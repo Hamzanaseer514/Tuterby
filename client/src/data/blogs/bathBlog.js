@@ -8,7 +8,7 @@ const bathBlog = {
       location: "Bath",
       author: "Dr. Eleanor Ainsworth, Bath Education Consultant",
       imageTag: "Stunning panoramic photograph of the Royal Crescent in Bath on a sunny afternoon, showcasing its iconic Georgian architecture and lush green lawns, suitable for a very large, impressive blog header image.",
-      mainImageSrc: "Panoramic view of the Royal Crescent in Bath on a sunny day.",
+      mainImageSrc: "/images/bath.avif",
       mainImageAlt: "Panoramic header image of the Royal Crescent in Bath, symbolizing educational prestige",
       content: [
         { type: 'heading', level: 2, text: "Bath: A City of Heritage, Culture, and Academic Distinction" },

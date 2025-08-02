@@ -8,7 +8,7 @@ const brightonBlog = {
       location: "Brighton",
       author: "Ms. Sophie Chen, Creative Education Lead & Brighton Resident",
       imageTag: "Students enjoying Brighton Palace Pier with the iconic Royal Pavilion in the distant background, saturated vibrant colors, lively scene",
-      mainImageSrc: "Students at Brighton Palace Pier with Royal Pavilion.",
+      mainImageSrc: "/images/brighton.jpg",
       mainImageAlt: "Vibrant student scene on Brighton Palace Pier with Royal Pavilion",
       content: [
         { type: 'heading', level: 2, text: "Brighton & Hove: A Unique Hub for Creative and Academic Pursuits" },

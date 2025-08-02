@@ -6,6 +6,7 @@ const customTestPapersGradingBlog = {
     author: "TutorNearby Assessment Team",
     imageTag: "A neatly arranged desk with a custom test paper, a grading pen, and a laptop showing a feedback report, symbolizing structured assessment",
     mainImageAlt: "Custom test paper with grading tools and feedback report",
+     mainImageSrc: "/images/london7.webp",
     slug: "custom-test-papers-grading",
     description: "Learn how our tailored test papers for UK qualifications (GCSE, A-Level - AQA, Edexcel, OCR), complete with detailed grading and constructive feedback, help students prepare effectively, identify weaknesses, and build exam confidence, especially those finding exams challenging.",
     keywords: ["custom test papers", "mock exams UK", "exam grading service", "GCSE practice papers", "A-Level mock tests", "AQA exam practice", "Edexcel assessment", "OCR past papers", "exam feedback", "study improvement", "personalized assessment"],
@@ -39,11 +40,11 @@ const customTestPapersGradingBlog = {
       {
         type: 'list',
         items: [
-          "**Understanding of Concepts:** Where was knowledge from the AQA, Edexcel, or OCR syllabus applied correctly, and where were there fundamental misunderstandings or misinterpretations?",
-          "**Common Errors and Misconceptions:** Highlighting patterns in mistakes specific to the subject and exam board to address root causes rather than just symptoms.",
-          "**Exam Technique and Strategy:** How well did the student manage their time according to mark allocations? Did they interpret command words correctly? Was their answer structure effective and aligned with examiner expectations?",
-          "**Actionable Strategies for Improvement:** Clear, practical advice on what specific topics to revisit, which skills to develop further, and how to approach similar questions more effectively in future exams.",
-          "**Mark Scheme Alignment:** Explaining how marks are awarded according to the specific exam board's criteria, helping students understand how to maximize their score."
+          "Understanding of Concepts: Where was knowledge from the AQA, Edexcel, or OCR syllabus applied correctly, and where were there fundamental misunderstandings or misinterpretations?",
+          "Common Errors and Misconceptions: Highlighting patterns in mistakes specific to the subject and exam board to address root causes rather than just symptoms.",
+          "Exam Technique and Strategy: How well did the student manage their time according to mark allocations? Did they interpret command words correctly? Was their answer structure effective and aligned with examiner expectations?",
+          "Actionable Strategies for Improvement: Clear, practical advice on what specific topics to revisit, which skills to develop further, and how to approach similar questions more effectively in future exams.",
+          "Mark Scheme Alignment: Explaining how marks are awarded according to the specific exam board's criteria, helping students understand how to maximize their score."
         ]
       },
       {

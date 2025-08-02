@@ -8,6 +8,7 @@ const derbyBlog = {
       author: "Ms. Laura Evans, Engineering Education Advocate & Derby Alumna",
       imageTag: "Students attentively observing architectural details near Derby Cathedral, close-up on cathedral's stonework and student expressions, highlighting heritage and learning",
       mainImageAlt: "Students focusing on Derby Cathedral architectural details, heritage and learning",
+       mainImageSrc: "/images/derby.jpg",
       content: [
         { type: 'heading', level: 2, text: "Derby: A City of Engineering Prowess and Educational Advancement" },
         { type: 'paragraph', text: "Derby, a city renowned for its rich industrial heritage, particularly in engineering and manufacturing (home to global giants like Rolls-Royce and Bombardier Transportation), and host to the modern and career-oriented University of Derby, provides a diverse and dynamic range of educational opportunities. Students from across Derby, Derbyshire, and nearby areas such as Nottingham and Burton upon Trent, frequently seek expert tutoring. This support is crucial for excelling in their GCSEs, A-Levels (especially in STEM subjects and Business), and for preparing for specialized university courses or high-value apprenticeships, all aligned with the rigorous UK curriculum standards. The city's innovative spirit is deeply embedded in its educational ethos." },

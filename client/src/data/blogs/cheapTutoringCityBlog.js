@@ -6,6 +6,7 @@ const cheapTutoringCityBlog = {
     author: "The Local Learning Expert",
     imageTag: "A map of a generic UK city with glowing pins highlighting various locations, and a magnifying glass focusing on one pin, symbolizing finding local tutors",
     mainImageAlt: "Map highlighting local tutors in a UK city",
+    mainImageSrc: "/images/london4.jpg",
     slug: "cheap-tutoring-options-your-city",
     description: "Looking for cheap tutoring options in Your City without sacrificing quality? TutorNearby connects you with affordable local tutors for GCSE, A-Level, and more. Find a 'tutor near me' that fits your budget, covering subjects like Maths, English, and Science.",
     keywords: ["Cheap tutoring Your City", "Affordable tutors Your City", "Tutor near me Your City", "Maths tutor near me Your City", "Private tutor near me Your City", "English tutor near me Your City", "Science tutor near me Your City", "GCSE tutor Your City", "A-Level tutor Your City", "Local tutoring services UK", "Primary school tutor Your City", "Secondary school tutor Your City"],

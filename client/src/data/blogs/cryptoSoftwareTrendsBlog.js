@@ -6,6 +6,7 @@ const cryptoSoftwareTrendsBlog = {
     author: "Tech Trend Forecaster",
     imageTag: "Abstract digital art representing blockchain technology with interconnected blocks and futuristic software interface elements, dark background with neon highlights",
     mainImageAlt: "Blockchain and futuristic software interface",
+     mainImageSrc: "/images/london6.webp",
     slug: "crypto-software-trends-development-tutoring-uk",
     description: "Stay ahead in the fast-evolving tech landscape. TutorNearby offers expert tutoring on cryptocurrency, blockchain, and the latest software development trends in the UK. Learn from IT professionals.",
     keywords: ["Cryptocurrency tutor", "Blockchain tutor", "Software development tutor", "IT tutor UK", "learn blockchain UK", "software trends 2025", "programming tutor UK", "tech education UK"],

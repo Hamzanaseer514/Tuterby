@@ -6,6 +6,7 @@ const learningGameDevelopmentBlog = {
     author: "Prof. Dev Dynamo",
     imageTag: "Futuristic image of a developer's hands coding on a holographic interface showing game elements like characters, environments, and UI components, with AR/VR headsets and mobile devices in the background",
     mainImageAlt: "Developer coding game elements on a holographic interface with AR/VR and mobile devices nearby",
+     mainImageSrc: "/images/london18.jpg",
     slug: "learning-game-development-ar-vr-metaverse",
     description: "Embark on an exciting journey into game development! Learn to create games for PC, mobile (Android/iOS), AR/VR with Unity, and explore the Metaverse. TutorNearby offers expert guidance.",
     keywords: [

@@ -6,6 +6,7 @@ const highLevelChallengerQuestionsBlog = {
     author: "TutorNearby Advanced Studies Unit",
     imageTag: "Stylized image of a brain with glowing neural pathways, representing complex thought and problem-solving",
     mainImageAlt: "Abstract representation of advanced cognitive challenges",
+     mainImageSrc: "/images/london16.webp",
     slug: "high-level-challenger-questions",
     description: "Explore how our High-Level Challenger Questions push students beyond standard curriculum, fostering critical thinking and problem-solving skills essential for achieving top grades and succeeding in competitive environments.",
     content: [
@@ -75,11 +76,11 @@ const highLevelChallengerQuestionsBlog = {
       {
         type: 'list',
         items: [
-          "**Enhanced Critical Thinking:** Develops the ability to analyze complex information and make reasoned judgments.",
-          "**Improved Problem-Solving Skills:** Builds resilience and adaptability in tackling unfamiliar problems.",
-          "**Deeper Subject Mastery:** Solidifies understanding by exploring topics from advanced perspectives.",
-          "**Preparation for Competitive Admissions:** Provides a distinct advantage in university applications and interviews.",
-          "**Increased Intellectual Curiosity:** Fosters a lifelong love of learning and intellectual exploration."
+          "Enhanced Critical Thinking: Develops the ability to analyze complex information and make reasoned judgments.",
+          "Improved Problem-Solving Skills: Builds resilience and adaptability in tackling unfamiliar problems.",
+          "Deeper Subject Mastery: Solidifies understanding by exploring topics from advanced perspectives.",
+          "Preparation for Competitive Admissions: Provides a distinct advantage in university applications and interviews.",
+          "Increased Intellectual Curiosity: Fosters a lifelong love of learning and intellectual exploration."
         ]
       },
       {

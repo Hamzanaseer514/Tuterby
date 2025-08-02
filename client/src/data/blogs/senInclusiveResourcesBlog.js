@@ -6,6 +6,7 @@ const senInclusiveResourcesBlog = {
     author: "TutorNearby Inclusive Education Specialists",
     imageTag: "Diverse group of students with different learning tools, one using a tablet with accessibility features, another with tactile learning blocks",
     mainImageAlt: "Inclusive learning environment with diverse tools for SEN students",
+     mainImageSrc: "/images/london28.jpg",
     slug: "sen-inclusive-resources",
     description: "Explore TutorNearby's commitment to inclusive education through SEN-specific resources designed to support diverse learning styles and challenges, ensuring every student can access the curriculum and achieve their potential.",
     content: [
@@ -48,11 +49,11 @@ const senInclusiveResourcesBlog = {
       {
         type: 'list',
         items: [
-          "**Clear and Readable Formats:** Using dyslexia-friendly fonts, appropriate spacing, uncluttered layouts, and high contrast for visual clarity.",
-          "**Multi-Sensory Approaches:** Incorporating visual aids (diagrams, images), auditory elements (where applicable in digital resources), and suggestions for tactile or kinesthetic activities.",
-          "**Simplified Language and Structure:** Breaking down complex information into smaller, digestible chunks, using clear and direct language, and providing glossaries for key terms.",
-          "**Scaffolding and Support:** Offering step-by-step instructions, worked examples, writing frames, and checklists to guide students.",
-          "**Flexibility and Adaptability:** Designing resources that can be easily modified by tutors or parents to further personalize them to a student's specific requirements."
+          "Clear and Readable Formats: Using dyslexia-friendly fonts, appropriate spacing, uncluttered layouts, and high contrast for visual clarity.",
+          "Multi-Sensory Approaches: Incorporating visual aids (diagrams, images), auditory elements (where applicable in digital resources), and suggestions for tactile or kinesthetic activities.",
+          "Simplified Language and Structure: Breaking down complex information into smaller, digestible chunks, using clear and direct language, and providing glossaries for key terms.",
+          "Scaffolding and Support: Offering step-by-step instructions, worked examples, writing frames, and checklists to guide students.",
+          "Flexibility and Adaptability: Designing resources that can be easily modified by tutors or parents to further personalize them to a student's specific requirements."
         ]
       },
       {

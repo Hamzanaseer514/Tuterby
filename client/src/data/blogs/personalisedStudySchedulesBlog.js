@@ -6,6 +6,7 @@ const personalisedStudySchedulesBlog = {
     author: "TutorNearby Academic Strategy Team",
     imageTag: "A well-organized weekly study schedule on a desk with a laptop, notebook, and a cup of tea, suggesting calm and productive planning",
     mainImageAlt: "Organized and personalized weekly study schedule",
+     mainImageSrc: "/images/london26.jpg",
     slug: "personalised-study-schedules",
     description: "Learn how TutorNearby's personalised study and revision schedules help students manage workloads, optimize study time, reduce stress, and achieve consistent progress, especially those feeling overwhelmed.",
     content: [
@@ -25,11 +26,11 @@ const personalisedStudySchedulesBlog = {
       {
         type: 'list',
         items: [
-          "**Academic Commitments:** Current subjects, coursework deadlines, exam dates.",
-          "**Learning Pace and Style:** How the student learns best and how quickly they absorb information.",
-          "**Strengths and Weaknesses:** Identifying areas requiring more focus versus those where the student excels.",
-          "**Extracurricular Activities and Personal Time:** Ensuring a healthy balance between study and other aspects of life.",
-          "**Specific Areas of Difficulty:** For students struggling, the schedule directly addresses these pain points with dedicated, manageable slots."
+          "Academic Commitments: Current subjects, coursework deadlines, exam dates.",
+          "Learning Pace and Style: How the student learns best and how quickly they absorb information.",
+          "Strengths and Weaknesses: Identifying areas requiring more focus versus those where the student excels.",
+          "Extracurricular Activities and Personal Time: Ensuring a healthy balance between study and other aspects of life.",
+          "Specific Areas of Difficulty: For students struggling, the schedule directly addresses these pain points with dedicated, manageable slots."
         ]
       },
       {
@@ -44,12 +45,12 @@ const personalisedStudySchedulesBlog = {
       {
         type: 'list',
         items: [
-          "**Realistic Goal Setting:** Breaking down large tasks into smaller, achievable daily or weekly targets.",
-          "**Prioritization:** Helping students identify and focus on the most important tasks.",
-          "**Incorporation of Learning Science:** Integrating proven techniques like spaced repetition (reviewing material at increasing intervals) and active recall (testing oneself).",
-          "**Flexibility and Adaptability:** Schedules are not rigid; they are living documents that can be reviewed and adjusted as circumstances or needs change.",
-          "**Scheduled Breaks and Downtime:** Recognizing the importance of rest and rejuvenation to prevent burnout and maintain focus.",
-          "**Building Routine and Discipline:** Helping students develop consistent study habits."
+          "Realistic Goal Setting: Breaking down large tasks into smaller, achievable daily or weekly targets.",
+          "Prioritization: Helping students identify and focus on the most important tasks.",
+          "Incorporation of Learning Science: Integrating proven techniques like spaced repetition (reviewing material at increasing intervals) and active recall (testing oneself).",
+          "Flexibility and Adaptability: Schedules are not rigid; they are living documents that can be reviewed and adjusted as circumstances or needs change.",
+          "Scheduled Breaks and Downtime: Recognizing the importance of rest and rejuvenation to prevent burnout and maintain focus.",
+          "Building Routine and Discipline: Helping students develop consistent study habits."
         ]
       },
       {

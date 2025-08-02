@@ -8,7 +8,7 @@ const bristolBlog = {
     location: "Bristol",
     author: "Dr. Ben Williams, Educational Researcher & Bristol Alumnus",
     imageTag: "Wide panoramic shot of Bristol's Clifton Suspension Bridge spanning the Avon Gorge, clear blue sky, sunny day, ideal for a striking blog header",
-    mainImageSrc: "Clifton Suspension Bridge in Bristol on a sunny day.",
+    mainImageSrc: "/images/Bristol.avif",
     mainImageAlt: "Panoramic header image of Bristol's Clifton Suspension Bridge on a sunny day",
     content: [
       { type: 'heading', level: 2, text: "Bristol: A Beacon of Innovation, Creativity, and Distinguished Academic Excellence in the South West" },

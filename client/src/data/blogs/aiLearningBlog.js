@@ -6,7 +6,7 @@ const aiLearningBlog = {
     author: "Dr. Algorithm Insight",
     imageTag: "Abstract visualization of a neural network with glowing nodes and connections, representing artificial intelligence and machine learning concepts",
     mainImageAlt: "Neural network visualization for AI and Machine Learning",
-    mainImageSrc: "Abstract visualization of glowing neural network connections, symbolizing AI.",
+    mainImageSrc: "/images/london1.jpg",
     slug: "ai-machine-learning-tutoring-uk",
     description: "Explore the fascinating world of Artificial Intelligence (AI) and Machine Learning (ML) with TutorNearby. Our expert AI tutors in the UK offer personalized tutoring in Python, data science, neural networks, and more. Kickstart your journey to learn AI UK and become proficient in cutting-edge technologies.",
     keywords: ["AI tutor", "Machine learning tutor", "AI and machine learning tutoring", "Data science tutor", "Python tutor UK", "learn AI UK", "learn machine learning UK", "IT tutor UK", "programming tutor UK", "online tutor UK", "tutoring services UK", "artificial intelligence courses", "machine learning courses UK"],

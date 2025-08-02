@@ -171,7 +171,8 @@ const BlogDetail = () => {
                 loading="eager"
                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500 ease-in-out"
                 alt={post.mainImageAlt || `Visual representation for blog post titled: ${post.title}`} 
-                src={post.mainImageSrc || "https://images.unsplash.com/photo-1504983875-d3b163aba9e6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"} src="https://images.unsplash.com/photo-1504983875-d3b163aba9e6" />
+                src={post.mainImageSrc}
+                 />
         </header>
         
         <div className="max-w-7xl mx-auto p-6 sm:p-8 md:p-10 lg:p-12 xl:p-16">
@@ -196,7 +197,7 @@ const BlogDetail = () => {
                    className={`w-full h-auto object-cover rounded-lg shadow-lg ${item.aspectRatio ? `aspect-${item.aspectRatio}` : 'aspect-video' }`}
                    alt={item.alt || `Image related to ${post.title}`}
                    src={item.src} 
-                  src="https://images.unsplash.com/photo-1618633566498-59d8e8c0e015" />
+                 />
                </div>
             ))}
             {faqSectionData && faqSectionData.faqs && faqSectionData.faqs.length > 0 && (

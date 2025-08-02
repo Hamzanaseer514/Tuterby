@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const tutorApplicationSchema = new mongoose.Schema({
-  user_id: {
+  tutor_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'TutorProfile',
     required: true
   },
   interview_status: {

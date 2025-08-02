@@ -126,6 +126,7 @@ const BlogsPage = () => {
       {filteredBlogs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredBlogs.map((post, index) => (
+          
             <motion.div
               key={post.slug}
               initial={{ opacity: 0, y: 50 }}
@@ -135,6 +136,7 @@ const BlogsPage = () => {
               viewport={{ once: true }}
             >
               <Card className="flex flex-col w-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 glassmorphism hover:border-primary/50 border border-transparent">
+      
                 <Link 
                   to={`/blog/${post.slug}`} 
                   className="block h-48 w-full overflow-hidden aspect-video" 
@@ -144,8 +146,9 @@ const BlogsPage = () => {
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     alt={post.mainImageAlt || `Visual representation for blog post titled: ${post.title}`} 
-                    src={post.mainImageSrc || post.image || "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80"} src="https://images.unsplash.com/photo-1504983875-d3b163aba9e6" />
-                </Link>
+                    src={post.mainImageSrc}
+                    />
+                     </Link>
                 <CardHeader>
                   <CardTitle className="text-xl hover:text-primary transition-colors">
                     <Link to={`/blog/${post.slug}`} aria-label={`Read blog post titled: ${post.title}`}>{post.title}</Link>

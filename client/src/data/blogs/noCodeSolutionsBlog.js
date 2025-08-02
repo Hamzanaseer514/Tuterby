@@ -6,6 +6,7 @@ const noCodeSolutionsBlog = {
     author: "The Digital Builder",
     imageTag: "User-friendly interface of a no-code platform with drag-and-drop elements creating a website or app, clean and modern design",
     mainImageAlt: "No-code platform interface with drag-and-drop elements",
+     mainImageSrc: "/images/london22.webp",
     slug: "no-code-solutions-tutoring-uk",
     description: "Discover the power of no-code development with TutorNearby. Our UK tutors guide you through popular no-code platforms, enabling you to build websites, apps, and automations without writing a single line of code.",
     keywords: ["No-code tutor", "No-code development", "Low-code solutions", "Build apps without code", "Website builder tutor", "Automation tools", "IT tutor UK", "Digital skills UK"],

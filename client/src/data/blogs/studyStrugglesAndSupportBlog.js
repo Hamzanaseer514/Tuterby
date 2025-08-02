@@ -6,6 +6,7 @@ const studyStrugglesAndSupportBlog = {
     author: "Dr. Aisha Khan, Student Wellbeing Consultant",
     imageTag: "A compassionate image of a hand reaching out to another over a desk with scattered books, symbolizing support and guidance",
     mainImageAlt: "Supportive hand reaching out over a study desk",
+     mainImageSrc: "/images/london28.jpg",
     slug: "study-struggles-addictions-support",
     description: "Feeling overwhelmed, distracted, or finding that habits like excessive gaming, social media, or other addictions are impacting your studies? TutorNearby offers a supportive, non-judgmental space to discuss these challenges and get back on track academically. We can help you develop strategies and connect you with specialized support if needed.",
     content: [
@@ -48,11 +49,11 @@ const studyStrugglesAndSupportBlog = {
       {
         type: 'list',
         items: [
-          "**Academic Re-engagement Strategies:** Our tutors can help you break down overwhelming tasks, create manageable study plans, and rediscover your interest in subjects.",
-          "**Study Skills Development:** We can teach effective time management, organization, note-taking, and exam techniques that build confidence and reduce stress.",
-          "**Goal Setting and Motivation:** Working with a tutor can help you set realistic academic goals and provide the encouragement to achieve them.",
-          "**A Non-Judgmental Space:** Sometimes, simply talking about your struggles with a supportive tutor can be a relief and help clarify the next steps.",
-          "**Signposting to Specialized Services:** If your challenges require more specialized support (e.g., for addiction, mental health), our team can discreetly guide you towards appropriate professional services and resources available in the UK."
+          "Academic Re-engagement Strategies: Our tutors can help you break down overwhelming tasks, create manageable study plans, and rediscover your interest in subjects.",
+          "Study Skills Development: We can teach effective time management, organization, note-taking, and exam techniques that build confidence and reduce stress.",
+          "Goal Setting and Motivation: Working with a tutor can help you set realistic academic goals and provide the encouragement to achieve them.",
+          "A Non-Judgmental Space: Sometimes, simply talking about your struggles with a supportive tutor can be a relief and help clarify the next steps.",
+          "Signposting to Specialized Services: If your challenges require more specialized support (e.g., for addiction, mental health), our team can discreetly guide you towards appropriate professional services and resources available in the UK."
         ]
       },
       {

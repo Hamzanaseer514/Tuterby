@@ -6,6 +6,7 @@ const targetedGradeImprovementBlog = {
     author: "TutorNearby Academic Achievement Specialists",
     imageTag: "A graph showing an upward trend in grades, with a student looking pleased and a mentor pointing to the graph, symbolizing progress",
     mainImageAlt: "Graph showing grade improvement with student and mentor",
+     mainImageSrc: "/images/london29.webp",
     slug: "targeted-grade-improvement",
     description: "Discover how TutorNearby's personalized strategies for grade improvement help students identify specific weaknesses, develop actionable plans, and achieve tangible academic progress, especially those feeling stuck.",
     content: [
@@ -25,11 +26,11 @@ const targetedGradeImprovementBlog = {
       {
         type: 'list',
         items: [
-          "**Specific Areas of Weakness:** Are there particular topics, concepts, or skills where marks are consistently being lost?",
-          "**Exam Technique Issues:** Difficulties with time management, question interpretation, or answer structure?",
-          "**Gaps in Foundational Knowledge:** Are earlier misunderstandings hindering current progress?",
-          "**Ineffective Study Habits:** Is the student's current approach to revision and learning optimizing their efforts?",
-          "**Confidence or Mindset Barriers:** Is anxiety or a lack of self-belief impacting performance?"
+          "Specific Areas of Weakness: Are there particular topics, concepts, or skills where marks are consistently being lost?",
+          "Exam Technique Issues: Difficulties with time management, question interpretation, or answer structure?",
+          "Gaps in Foundational Knowledge: Are earlier misunderstandings hindering current progress?",
+          "Ineffective Study Habits: Is the student's current approach to revision and learning optimizing their efforts?",
+          "Confidence or Mindset Barriers: Is anxiety or a lack of self-belief impacting performance?"
         ]
       },
       {
@@ -48,11 +49,11 @@ const targetedGradeImprovementBlog = {
       {
         type: 'list',
         items: [
-          "**Focused Practice on Core Skills:** Targeted exercises to strengthen specific academic abilities (e.g., essay writing, mathematical problem-solving, scientific analysis).",
-          "**Re-teaching or Consolidating Key Concepts:** Ensuring a solid understanding of foundational material.",
-          "**Targeted Resource Recommendations:** Suggesting specific textbooks, online tools, or practice papers that suit their learning style and address their weaknesses.",
-          "**Skill-Building Exercises:** Activities designed to improve exam technique, critical thinking, or analytical skills.",
-          "**Confidence-Building Strategies:** Setting small, achievable goals to build momentum and positive self-perception."
+          "Focused Practice on Core Skills: Targeted exercises to strengthen specific academic abilities (e.g., essay writing, mathematical problem-solving, scientific analysis).",
+          "Re-teaching or Consolidating Key Concepts: Ensuring a solid understanding of foundational material.",
+          "Targeted Resource Recommendations: Suggesting specific textbooks, online tools, or practice papers that suit their learning style and address their weaknesses.",
+          "Skill-Building Exercises: Activities designed to improve exam technique, critical thinking, or analytical skills.",
+          "Confidence-Building Strategies: Setting small, achievable goals to build momentum and positive self-perception."
         ]
       },
       {

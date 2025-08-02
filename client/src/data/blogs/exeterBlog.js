@@ -8,6 +8,7 @@ const exeterBlog = {
       author: "Prof. James Harding, Classics and Law Scholar & Exeter Alumnus",
       imageTag: "Close-up of students engaging in discussion in front of the historic Exeter Cathedral, focusing on their expressions and the cathedral's intricate facade, symbolizing heritage and academic discourse",
       mainImageAlt: "Students in discussion at Exeter Cathedral, facade detail, heritage and discourse",
+      mainImageSrc: "/images/Exeter.avif",
       content: [
         { type: 'heading', level: 2, text: "Exeter: A Historic City Fostering Academic Excellence and Diverse Learning" },
         { type: 'paragraph', text: "Exeter, a captivating historic city nestled in the heart of Devon, is renowned for its magnificent cathedral, Roman heritage, and its prestigious, research-intensive University of Exeter. This institution is particularly distinguished for its strengths in humanities (such as Classics, History, Archaeology, and English), law, social sciences, and increasingly, environmental and life sciences. This strong academic environment means students from across Exeter, East Devon, and surrounding areas frequently seek expert tutoring. This support is vital for excelling in their GCSEs, A-Levels (often following AQA, Edexcel, or OCR specifications), and for preparing for competitive university courses, both at the University of Exeter and other leading UK institutions. The city's blend of ancient history and modern intellectual vibrancy creates a unique learning atmosphere." },

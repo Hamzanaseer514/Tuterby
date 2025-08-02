@@ -8,6 +8,7 @@ const coventryBlog = {
       author: "Ms. Sarah Jones, West Midlands Education Advisor & Coventry Alumna",
       imageTag: "Students standing near Coventry Cathedral, highlighting the juxtaposition of modern and historic architecture from an intriguing low-angle perspective, emphasizing the cathedral's resilience and rebirth",
       mainImageAlt: "Students at Coventry Cathedral, interesting architectural perspective emphasizing resilience",
+      mainImageSrc: "/images/Coventry.webp",
       content: [
         { type: 'heading', level: 2, text: "Coventry: A City of Resilience, Innovation, and Educational Opportunity" },
         { type: 'paragraph', text: "Coventry, a city celebrated for its remarkable history of resilience, innovation, and cultural rebirth, stands as a significant educational hub in the West Midlands. It is home to the modern and career-focused Coventry University and is situated in close proximity to the globally renowned, research-intensive University of Warwick. This dynamic educational environment offers diverse and excellent academic pathways for students. Learners from across Coventry, Warwickshire, and surrounding areas like Nuneaton, Rugby, and Leamington Spa, frequently seek expert tutoring to excel in their GCSEs, A-Levels, and to prepare for specialized degree courses and vocational training. The city's rich heritage in manufacturing and engineering, coupled with its growing digital and creative sectors, shapes its unique educational landscape." },

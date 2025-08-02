@@ -5,7 +5,7 @@ const bespokeCurriculumWorksheetsBlog = {
     location: "UK Wide Online Support",
     author: "TutorNearby Curriculum Team",
     imageTag: "Close-up of a colorful, engaging worksheet designed for a young learner, with pencils and educational toys nearby",
-    mainImageSrc: "Colorful worksheet with pencils and educational toys.",
+    mainImageSrc: "/images/london2.webp",
     mainImageAlt: "Engaging and colorful bespoke worksheet for early years learning",
     slug: "bespoke-curriculum-worksheets",
     description: "Discover how our custom-crafted worksheets, meticulously aligned with UK curricula from EYFS to A-Levels (AQA, Edexcel, OCR), address individual learning gaps and make learning effective and engaging, especially for students needing extra support or enrichment. Perfect for primary school tutors and GCSE/A-Level subject reinforcement.",

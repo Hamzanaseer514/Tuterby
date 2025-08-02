@@ -8,6 +8,7 @@ const norwichBlog = {
       author: "Dr. Olivia Green, Environmental Science & Arts Educator",
       imageTag: "Students near Norwich Cathedral, with a close-up focus on the cathedral's magnificent spire against a clear blue sky",
       mainImageAlt: "Students near Norwich Cathedral, spire detail focus",
+       mainImageSrc: "/images/Norwich.jpg",
       content: [
         { type: 'heading', level: 2, text: "Norwich: A Blend of Historic Charm and Academic Innovation" },
         { type: 'paragraph', text: "Norwich, a historic city nestled in the heart of Norfolk, is renowned for its stunning cathedral, medieval lanes, and a vibrant cultural scene. It's also home to the highly respected University of East Anglia (UEA), globally recognized for its pioneering research in environmental sciences and its flourishing creative writing programs. This unique blend of rich heritage and academic dynamism creates a stimulating environment for students. Across Norwich and the wider Norfolk county, learners frequently seek expert tutoring to navigate the challenges of the UK curriculum, excel in their GCSEs and A-Levels, and prepare for specialized degree programs at UEA and other leading UK universities." },

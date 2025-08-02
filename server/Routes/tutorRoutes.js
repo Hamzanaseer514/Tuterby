@@ -9,16 +9,12 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/documents/');
   },
   filename: function (req, file, cb) {
-    // Extract user_id and document_type from req.body
-    const userId = req.body.user_id || 'unknownUser';
+    const tutorId = req.body.tutor_id || 'unknownUser';
     const documentType = req.body.document_type ? req.body.document_type.replace(/\s+/g, '_') : 'unknownType';
-
     const originalName = file.originalname;
     const timestamp = Date.now();
 
-    // Construct the new filename
-    const newFileName = `${userId}_${documentType}_${originalName}`;
-
+    const newFileName = `${tutorId}_${documentType}_${timestamp}_${originalName}`;
     cb(null, newFileName);
   }
 });

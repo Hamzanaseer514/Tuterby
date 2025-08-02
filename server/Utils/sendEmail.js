@@ -11,7 +11,7 @@ const sendEmail = async (to, subject, htmlContent) => {
   });
 
   await transporter.sendMail({
-    from: `"SaferSavvy" <${process.env.EMAIL_USER}>`,
+    from: `"Tutor" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html: htmlContent,

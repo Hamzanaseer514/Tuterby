@@ -6,6 +6,7 @@ const gameDevelopmentBlog = {
     author: "Prof. Pixel Play",
     imageTag: "Dynamic scene of a video game being designed on a computer screen, with characters and environments taking shape, vibrant and futuristic",
     mainImageAlt: "Game development process shown on a computer screen",
+     mainImageSrc: "/images/london15.webp",
     slug: "game-development-tutoring-uk",
     description: "Dreaming of creating your own video games? TutorNearby offers specialized game development tutoring across the UK. Learn C++, C#, Unity, Unreal Engine, and game design principles with our expert tutors.",
     keywords: ["Game development tutor", "Game development tutoring", "C++ tutor", "C# tutor", "Unity tutor", "Unreal Engine tutor", "learn game design UK", "coding for games", "IT tutor UK", "programming tutor UK"],

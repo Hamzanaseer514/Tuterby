@@ -8,7 +8,7 @@ const bradfordBlog = {
       location: "Bradford",
       author: "Mr. David Miller, Bradford Education Advocate",
       imageTag: "Vibrant photograph of Bradford City Park with its mirror pool and the City Hall in the background, under a clear blue sky, suitable for a very large, impressive blog header image representing community and progress.",
-      mainImageSrc: "Bradford City Park with mirror pool and City Hall on a clear day.",
+      mainImageSrc: "/images/Bradford.jpg",
       mainImageAlt: "Header image of Bradford City Park and City Hall, symbolizing community and progress",
       content: [
         { type: 'heading', level: 2, text: "Bradford: A City of Rich Heritage and Growing Academic Ambition" },

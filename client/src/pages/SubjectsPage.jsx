@@ -132,7 +132,7 @@ const SubjectsPage = () => {
             className="py-10 px-6 md:px-8 bg-gradient-to-r from-primary/5 via-background to-primary/10 dark:from-primary/20 dark:via-slate-900 dark:to-primary/20 rounded-xl text-center shadow-lg border border-primary/20"
           >
             <Search className="w-12 h-12 text-primary mx-auto mb-3" />
-            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-primary">Comprehensive Subject Coverage</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-primary"></h2>
             <p className="text-muted-foreground mb-6 max-w-3xl mx-auto text-md md:text-lg">
               We cover an extensive list of subjects and modules within GCSE, A-Levels, BTECs, IB, and various Undergraduate degrees including Software Engineering, AI, Cybersecurity, Data Science, Business, Accounting, Finance, Law, Economics, Statistics, and Research & Academic Skills. Click "View All Subjects" on a level below for a detailed breakdown.
             </p>
@@ -172,6 +172,8 @@ const SubjectsPage = () => {
                 viewport={{ once: true, amount: 0.2 }}
                 className="h-full"
               >
+
+              {/* this is the subject card  */}
                 <SubjectLevelCard
                   level={level}
                   onExpand={() => handleExpandLevel(level.id)}

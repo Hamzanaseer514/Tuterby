@@ -8,6 +8,7 @@ const londonBlog = {
       author: "Dr. Emily Carter, London Education Consultant",
       imageTag: "Iconic panoramic view of the London skyline at sunset, featuring landmarks like the Shard, Tower Bridge, and the Gherkin, symbolizing opportunity and academic aspiration, ideal for a blog header.",
       mainImageAlt: "Panoramic header image of London skyline at sunset",
+       mainImageSrc: "/images/london20.jpg",
       content: [
         { type: 'heading', level: 2, text: "London: A Global Epicentre of Education, Innovation, and Opportunity" },
         { type: 'paragraph', text: "London, a leading global city, stands as an unparalleled hub for education, offering a vast and diverse academic landscape. Home to world-renowned institutions like University College London (UCL), King's College London (KCL), Imperial College London, and the London School of Economics (LSE), the city attracts ambitious students from across the globe. This intensely competitive environment means that students throughout Greater London increasingly seek expert tutoring to excel in their GCSEs, A-Levels, International Baccalaureate (IB) Diplomas, BTEC qualifications, and to navigate the rigorous university admissions processes for these elite institutions. The city's dynamic blend of historic prestige and cutting-edge innovation creates a uniquely stimulating learning environment." },

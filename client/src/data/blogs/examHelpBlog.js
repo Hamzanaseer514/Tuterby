@@ -8,7 +8,7 @@ const examHelpBlog = {
     author: "The TutorNearby Exam Experts",
     imageTag: "High-angle, wide shot of a bright, modern desk impeccably organized for study: laptop displaying a detailed digital exam revision schedule, vibrant color-coded sticky notes, a steaming cup of coffee, and neatly arranged textbooks, conveying focus and readiness for UK exams.",
     mainImageAlt: "Organized modern desk with exam revision schedule, notes, and coffee for UK exam preparation",
-    mainImageSrc: "/assets/blog-images/exam-prep-desk.jpg",
+ mainImageSrc: "/images/london11.avif",
     keywords: ["exam preparation UK", "GCSE revision tips", "A-Level study guide", "SQA exam help", "BTEC assessment", "university exam strategy", "AQA revision", "Edexcel past papers", "OCR exam technique", "study skills UK", "revision timetable", "exam stress management", "tutoring for exams", "online tutoring UK"],
     content: [
       { type: 'heading', level: 2, text: "The UK Examination Gauntlet: A Call for Strategic, Board-Specific Preparation" },

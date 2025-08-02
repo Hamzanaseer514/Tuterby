@@ -85,7 +85,7 @@ const BlogContentRenderer = ({ item, index, postTitle }) => {
             className={`w-full h-auto object-cover rounded-lg shadow-lg ${item.aspectRatio ? `aspect-${item.aspectRatio}` : 'aspect-video' }`}
             alt={item.alt || `Image related to ${postTitle}`}
             src={item.src} 
-           src="https://images.unsplash.com/photo-1587645663324-d7fc65590f25" />
+            src="https://images.unsplash.com/photo-1587645663324-d7fc65590f25" />
         </div>
       );
     default:

@@ -20,6 +20,8 @@ const adminRoutes = require("./Routes/adminRoutes")
 app.use(express.json());
 app.use(errorHandler)
 app.use(cookieParser());
+app.use('/uploads', express.static('uploads'));
+
 
 
 app.use('/api/auth',UserRoute)

@@ -8,6 +8,7 @@ const leicesterBlog = {
       author: "Mr. David Wilson, Midlands Education Consultant & Leicester Advocate",
       imageTag: "Students energetically posing in front of the futuristic National Space Centre in Leicester, dynamic angle capturing excitement and scientific curiosity",
       mainImageAlt: "Excited students at National Space Centre Leicester, dynamic, scientific curiosity",
+       mainImageSrc: "/images/Leicester.webp",
       content: [
         { type: 'heading', level: 2, text: "Leicester: A Vibrant Hub for Education, Culture, and Academic Achievement" },
         { type: 'paragraph', text: "Leicester, a remarkably diverse, historically rich, and culturally vibrant city in the East Midlands, is home to two renowned institutions: the research-led University of Leicester (known for strengths in space science, archaeology, and medicine) and the career-focused De Montfort University (DMU, with notable programs in art, design, and pharmacy). This dynamic educational landscape, coupled with a wide array of excellent schools and colleges across Leicester and Leicestershire, means students frequently seek expert tutoring. This support is crucial for excelling in their GCSEs, A-Levels (covering AQA, Edexcel, OCR specifications), and for preparing for competitive university courses or vocational pathways. The city's unique blend of heritage, from its Roman past and the discovery of Richard III to its modern multiculturalism, creates an inspiring learning environment." },

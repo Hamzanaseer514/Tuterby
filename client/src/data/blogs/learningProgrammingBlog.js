@@ -6,6 +6,7 @@ const learningProgrammingBlog = {
     author: "Dr. Code Mentor",
     imageTag: "Abstract representation of code on a screen with glowing lines connecting to a human brain, symbolizing learning and understanding programming concepts",
     mainImageAlt: "Conceptual image of learning programming with interconnected code and brain",
+     mainImageSrc: "/images/london19.jpg",
     slug: "learning-programming-tutornearby-uk",
     description: "Embark on your programming journey with expert guidance from TutorNearby. Our coding tutors across the UK offer personalized lessons in Python, Java, JavaScript, and more for all levels, from GCSE Computer Science to advanced development.",
     keywords: ["Python tutor UK", "Coding tutor UK", "Programming tutor UK", "IT tutor UK", "Computer science tutor", "GCSE Computer Science tutor", "A-Level Computer Science tutor", "Java tutor UK", "JavaScript tutor UK", "learn programming UK", "online coding tutor"],

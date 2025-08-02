@@ -6,6 +6,7 @@ const emergencyTutoringBlog = {
     author: "Dr. Eleanor Vance, Lead Academic Advisor",
     imageTag: "Dynamic image of a clock face merging with a student intensely focused on a laptop screen, symbolizing rapid response tutoring",
     mainImageAlt: "Clock face merging with student studying, symbolizing fast tutoring help",
+     mainImageSrc: "/images/london10.jpg",
     slug: "emergency-tutoring-near-me",
     description: "Facing a last-minute exam (GCSE, A-Level, IB, Uni), a surprise assignment, or a sudden academic hurdle? TutorNearby offers emergency tutoring support across the UK, connecting you with expert tutors, often within 2 hours, for special assistance when you need it most. Find 'urgent tutor near me' or 'last minute tutor' solutions.",
     keywords: ["Emergency tutoring", "Urgent tutor near me", "Last minute tutor", "Exam help fast", "Assignment help UK", "Quick tutoring", "2 hour tutor", "GCSE emergency help", "A-Level urgent revision", "University assignment panic", "Online tutor immediate", "academic crisis support"],
@@ -22,13 +23,13 @@ const emergencyTutoringBlog = {
       {
         type: 'list',
         items: [
-          "**Last-Minute Exam Preparation:** Facing an impending GCSE, A-Level, IB, or University exam with specific topics causing panic.",
-          "**Urgent Assignment or Coursework Assistance:** Needing guidance on structuring an essay, understanding assignment criteria, or overcoming writer's block under a tight deadline.",
-          "**Clarification of Complex Topics:** Requiring immediate explanation of difficult concepts encountered just before a test or submission.",
-          "**Sudden Realization of a Knowledge Gap:** Discovering a critical area of misunderstanding that needs to be addressed quickly.",
-          "**Quick Review and Feedback:** Needing a second pair of expert eyes on a nearly completed project, dissertation chapter, or essay before submission.",
-          "**Unexpected Difficulties with Homework:** Hitting a roadblock with homework that's due imminently and crucial for understanding.",
-          "**Technical Issues with Learning Platforms:** Needing quick guidance on navigating online learning tools for an upcoming assessment."
+          "Last-Minute Exam Preparation: Facing an impending GCSE, A-Level, IB, or University exam with specific topics causing panic.",
+          "Urgent Assignment or Coursework Assistance: Needing guidance on structuring an essay, understanding assignment criteria, or overcoming writer's block under a tight deadline.",
+          "Clarification of Complex Topics: Requiring immediate explanation of difficult concepts encountered just before a test or submission.",
+          "Sudden Realization of a Knowledge Gap: Discovering a critical area of misunderstanding that needs to be addressed quickly.",
+          "Quick Review and Feedback: Needing a second pair of expert eyes on a nearly completed project, dissertation chapter, or essay before submission.",
+          "Unexpected Difficulties with Homework: Hitting a roadblock with homework that's due imminently and crucial for understanding.",
+          "Technical Issues with Learning Platforms: Needing quick guidance on navigating online learning tools for an upcoming assessment."
         ]
       },
       {
@@ -49,11 +50,11 @@ const emergencyTutoringBlog = {
       {
         type: 'list',
         items: [
-          "**Dedicated Rapid Response System:** We have robust internal systems and communication channels designed to flag and prioritize urgent tutoring requests.",
-          "**Real-time Tutor Availability Monitoring:** Our platform often provides insights into which tutors are currently available or can accommodate immediate or very short-notice sessions.",
-          "**Flexible and Instant Online Platform:** Online tutoring sessions can commence almost instantly once a tutor is assigned, completely eliminating travel time and logistical delays.",
-          "**Highly Targeted Tutor Matching:** We focus intensely on finding not just any tutor, but the right expertise for your specific urgent problem, ensuring the most efficient and effective use of your valuable time.",
-          "**Streamlined Booking Process:** We simplify the booking and payment for emergency sessions to get you connected with help as quickly as possible."
+          "Dedicated Rapid Response System: We have robust internal systems and communication channels designed to flag and prioritize urgent tutoring requests.",
+          "Real-time Tutor Availability Monitoring: Our platform often provides insights into which tutors are currently available or can accommodate immediate or very short-notice sessions.",
+          "Flexible and Instant Online Platform: Online tutoring sessions can commence almost instantly once a tutor is assigned, completely eliminating travel time and logistical delays.",
+          "Highly Targeted Tutor Matching: We focus intensely on finding not just any tutor, but the right expertise for your specific urgent problem, ensuring the most efficient and effective use of your valuable time.",
+          "Streamlined Booking Process: We simplify the booking and payment for emergency sessions to get you connected with help as quickly as possible."
         ]
       },
       {
@@ -73,11 +74,11 @@ const emergencyTutoringBlog = {
       {
         type: 'list',
         items: [
-          "**Be Highly Specific and Focused:** Clearly articulate your most urgent problem, the specific topic causing difficulty, or the precise area where you need help. The more focused your request, the more targeted the support.",
-          "**Have All Relevant Materials Ready:** If possible, share any relevant notes, assignment briefs, textbook pages, or past paper questions with the tutor beforehand or at the very start of the session. This saves valuable time.",
-          "**Prepare Targeted Questions:** Come prepared with specific questions about the areas you're struggling with. This allows the tutor to address your core issues efficiently.",
-          "**Stay Actively Engaged and Interactive:** Fully participate in the session, ask for clarification whenever needed, and work through problems collaboratively with the tutor. Active engagement maximizes learning.",
-          "**Be Open to New Approaches:** An emergency tutor might offer a different perspective or method that can unlock understanding quickly. Be receptive to their expert guidance."
+          "Be Highly Specific and Focused: Clearly articulate your most urgent problem, the specific topic causing difficulty, or the precise area where you need help. The more focused your request, the more targeted the support.",
+          "Have All Relevant Materials Ready: If possible, share any relevant notes, assignment briefs, textbook pages, or past paper questions with the tutor beforehand or at the very start of the session. This saves valuable time.",
+          "Prepare Targeted Questions: Come prepared with specific questions about the areas you're struggling with. This allows the tutor to address your core issues efficiently.",
+          "Stay Actively Engaged and Interactive: Fully participate in the session, ask for clarification whenever needed, and work through problems collaboratively with the tutor. Active engagement maximizes learning.",
+          "Be Open to New Approaches: An emergency tutor might offer a different perspective or method that can unlock understanding quickly. Be receptive to their expert guidance."
         ]
       },
       {

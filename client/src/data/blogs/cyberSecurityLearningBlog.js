@@ -6,6 +6,7 @@ const cyberSecurityLearningBlog = {
     author: "The Cyber Guardian",
     imageTag: "Stylized image of a digital shield protecting data streams from cyber threats like viruses and hackers, dark blue and green tones",
     mainImageAlt: "Digital shield protecting data from cyber threats",
+     mainImageSrc: "/images/london8.jpg",
     slug: "cybersecurity-learning-tutoring-uk",
     description: "Gain essential cybersecurity knowledge and skills with TutorNearby. Our expert cybersecurity tutors in the UK offer personalized lessons on network security, ethical hacking, data protection (GDPR), malware analysis, and more. Prepare for certifications like CompTIA Security+.",
     keywords: ["Cybersecurity tutor", "Cybersecurity tutoring", "learn cybersecurity UK", "ethical hacking tutor", "network security tutor", "data protection UK", "IT security tutor", "IT tutor UK", "CompTIA Security+ training", "GDPR courses", "malware analysis", "cybersecurity careers"],

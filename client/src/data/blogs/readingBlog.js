@@ -8,6 +8,7 @@ const readingBlog = {
       author: "Dr. James Allen, Thames Valley Education Expert",
       imageTag: "Students enjoying the serene University of Reading campus near Whiteknights Lake, surrounded by vibrant autumn colors and reflections in the water",
       mainImageAlt: "Students at University of Reading campus by lake, autumn colors",
+       mainImageSrc: "/images/london27.webp",
       content: [
         { type: 'paragraph', text: "Reading, a major commercial centre in Berkshire and home to the University of Reading, has a strong focus on education and technology. Students in Reading and the Thames Valley seek tutoring for GCSEs, A-Levels, and university courses, often with a tech or science emphasis." },
         { type: 'image', imageTag: "The modern 'The Blade' skyscraper in Reading with students in the foreground, captured from a unique architectural angle that emphasizes its height and design", alt: "Unique architectural angle of The Blade, Reading, with students" },

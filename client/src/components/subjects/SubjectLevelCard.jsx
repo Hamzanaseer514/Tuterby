@@ -63,9 +63,9 @@ const SubjectLevelCard = ({ level, onExpand, isExpanded, isHomePage }) => {
     >
       <Card className="h-full flex flex-col bg-card/80 dark:bg-card/90 backdrop-blur-sm border-2 border-primary/10 hover:border-primary/30 transition-all duration-300 shadow-lg hover:shadow-2xl rounded-2xl overflow-hidden">
         <CardHeader className="p-6 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 dark:from-primary/10 dark:to-secondary/10">
-          <div className="flex items-start mb-3">
+          <div className="items-start mb-3">
             {isValidLucideIcon(headerIcon) && <headerIcon className="w-12 h-12 text-primary shrink-0 mr-4" />}
-            <CardTitle className="text-2xl md:text-3xl font-bold gradient-text text-left flex-grow">{name}</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl font-bold gradient-text text-center flex-grow">{name}</CardTitle>
           </div>
           <CardDescription className="text-sm text-muted-foreground leading-relaxed min-h-[calc(1.25rem*1.5*3)] line-clamp-3">{description}</CardDescription>
         </CardHeader>

@@ -6,6 +6,7 @@ const conciseShortNotesBlog = {
     author: "TutorNearby Study Skills Experts",
     imageTag: "A neatly organized desk with concise, handwritten short notes on colorful cards, alongside a textbook and a laptop",
     mainImageAlt: "Desk with well-organized concise study notes for revision",
+    mainImageSrc: "/images/london5.jpg",
     slug: "concise-short-notes",
     description: "Discover how our expertly summarized concise short notes help students, especially those feeling overwhelmed or short on time, to quickly revise key concepts for UK exams (GCSE, A-Level), reinforce understanding, and boost exam confidence. Ideal for AQA, Edexcel, and OCR curricula.",
     keywords: ["concise notes", "short study notes", "revision techniques", "exam preparation UK", "GCSE revision", "A-Level revision", "study skills", "memory aids", "AQA notes", "Edexcel summaries", "OCR revision guides", "quick learning"],
@@ -26,12 +27,12 @@ const conciseShortNotesBlog = {
       {
         type: 'list',
         items: [
-          "**Key Definitions and Essential Terminology:** Precisely as required by exam boards like AQA, Edexcel, and OCR.",
-          "**Essential Formulas, Principles, and Theorems:** Critical for subjects like Maths, Physics, and Chemistry.",
-          "**Critical Arguments, Theories, and Interpretations:** Vital for Humanities subjects such as History, English Literature, and Sociology.",
-          "**Crucial Facts, Dates, and Case Studies:** Necessary for providing evidence and context in many subjects.",
-          "**Step-by-Step Processes and Methodologies:** Applicable in Sciences, Computer Science, and problem-solving scenarios.",
-          "**Command Word Clarification:** Understanding what examiners expect for terms like 'analyze', 'evaluate', 'compare'."
+          "Key Definitions and Essential Terminology: Precisely as required by exam boards like AQA, Edexcel, and OCR.",
+          "Essential Formulas, Principles, and Theorems: Critical for subjects like Maths, Physics, and Chemistry.",
+          "Critical Arguments, Theories, and Interpretations: Vital for Humanities subjects such as History, English Literature, and Sociology.",
+          "Crucial Facts, Dates, and Case Studies: Necessary for providing evidence and context in many subjects.",
+          "Step-by-Step Processes and Methodologies: Applicable in Sciences, Computer Science, and problem-solving scenarios.",
+          "Command Word Clarification: Understanding what examiners expect for terms like 'analyze', 'evaluate', 'compare'."
         ]
       },
       {
@@ -50,12 +51,12 @@ const conciseShortNotesBlog = {
       {
         type: 'list',
         items: [
-          "**Efficient and Targeted Revision:** Perfect for last-minute recaps before a test or exam, ensuring all key syllabus points are covered.",
-          "**Reinforced Learning and Consolidation:** Helps to consolidate understanding of complex topics after initial learning or extensive study periods.",
-          "**Quick and Accessible Reference:** Acts as a handy, portable guide for key information without needing to search through bulky materials or extensive digital files.",
-          "**Reduces Cognitive Overload and Study Anxiety:** Breaks down complex topics from various exam boards into manageable, easy-to-understand segments, making revision feel less daunting.",
-          "**Boosts Exam Confidence Significantly:** Knowing you have the key points and concepts at your fingertips can significantly reduce study anxiety and improve performance on the day.",
-          "**Aids Memory and Recall:** The summarized format acts as a powerful memory aid, facilitating quicker recall of essential facts and details during exams."
+          "Efficient and Targeted Revision: Perfect for last-minute recaps before a test or exam, ensuring all key syllabus points are covered.",
+          "Reinforced Learning and Consolidation: Helps to consolidate understanding of complex topics after initial learning or extensive study periods.",
+          "Quick and Accessible Reference: Acts as a handy, portable guide for key information without needing to search through bulky materials or extensive digital files.",
+          "Reduces Cognitive Overload and Study Anxiety: Breaks down complex topics from various exam boards into manageable, easy-to-understand segments, making revision feel less daunting.",
+          "Boosts Exam Confidence Significantly: Knowing you have the key points and concepts at your fingertips can significantly reduce study anxiety and improve performance on the day.",
+          "Aids Memory and Recall: The summarized format acts as a powerful memory aid, facilitating quicker recall of essential facts and details during exams."
         ]
       },
       {

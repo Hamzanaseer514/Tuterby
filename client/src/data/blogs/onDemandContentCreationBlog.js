@@ -6,6 +6,7 @@ const onDemandContentCreationBlog = {
     author: "TutorNearby Rapid Response Team",
     imageTag: "A digital interface showing a request for educational content being quickly fulfilled, symbolizing speed and efficiency",
     mainImageAlt: "Digital interface symbolizing rapid on-demand educational content creation",
+     mainImageSrc: "/images/london23.jpg",
     slug: "on-demand-content-creation",
     description: "Discover TutorNearby's rapid On-Demand Content Creation service, delivering bespoke educational resources like worksheets and revision guides within 24-48 hours to address urgent learning needs.",
     content: [
@@ -48,10 +49,10 @@ const onDemandContentCreationBlog = {
       {
         type: 'list',
         items: [
-          "**Expertly Crafted:** All on-demand content is created by experienced educators who are experts in their respective subjects and understand the UK curriculum.",
-          "**Highly Targeted:** Resources are precisely tailored to the specific request, ensuring they address the student's immediate learning need effectively.",
-          "**Curriculum-Aligned:** Even with rapid creation, materials remain aligned with appropriate educational standards and learning objectives.",
-          "**Engaging and Accessible:** We strive to make all content clear, engaging, and easy for students to use independently or with minimal guidance."
+          "Expertly Crafted: All on-demand content is created by experienced educators who are experts in their respective subjects and understand the UK curriculum.",
+          "Highly Targeted: Resources are precisely tailored to the specific request, ensuring they address the student's immediate learning need effectively.",
+          "Curriculum-Aligned: Even with rapid creation, materials remain aligned with appropriate educational standards and learning objectives.",
+          "Engaging and Accessible: We strive to make all content clear, engaging, and easy for students to use independently or with minimal guidance."
         ]
       },
       {

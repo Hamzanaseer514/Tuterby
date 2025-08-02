@@ -164,7 +164,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     // Step 3: Create tutor application entry
     const tutorApplication = await TutorApplication.create(
       [{
-        user_id: user[0]._id,
+        tutor_id: tutorProfile[0]._id,
         interview_status: 'Pending',
         code_of_conduct_agreed: code_of_conduct_agreed,
         application_status: 'Pending'
@@ -436,9 +436,17 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   let roleData = null;
 
   if (user.role === "student") {
-    roleData = await Student.findOne({ user: user._id }).select("-__v -createdAt -updatedAt");
+    roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
   }
-
+  if (user.role === "tutor") {
+    roleData = await TutorProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
+  }
+  if (user.role === "parent") {
+    roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
+  }
+  if (user.role === "admin") {
+    roleData = await AdminProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
+  }
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
@@ -509,48 +517,43 @@ exports.resendOtp = asyncHandler(async (req, res) => {
 
 exports.addAdmin = asyncHandler(async (req, res) => {
   console.log("Adding admin with data:", req.body);
-  const { full_name, email, password } = req.body;
+  const { full_name, email, password, phone_number } = req.body;
 
-  if (!email || !password || !full_name) {
+  if (!email || !password || !full_name || !phone_number) {
     res.status(400);
     throw new Error("All fields are required");
   }
+
   const emailExists = await User.findOne({ email });
   if (emailExists) {
     res.status(400);
     throw new Error("Email already exists");
   }
 
-  // const session = await User.startSession();
-  // session.startTransaction();
-
   try {
-    const user = await User.create(
-      [
-        {
-          full_name,
-          email,
-          password,
-          role: "admin"
-        },
-      ],
-      // { session }
-    );
+    // const hashedPassword = await bcrypt.hash(password, 10);
 
-    // await session.commitTransaction();
-    // session.endSession();
+    const user = await User.create([
+      {
+        full_name,
+        email,
+        password,
+        phone_number,
+        role: "admin",
+        is_verified: true // ✅ manually set as admin
+      }
+    ]);
 
     res.status(201).json({
       message: `Admin ${user[0].full_name} added successfully`,
       _id: user[0]._id,
       full_name: user[0].full_name,
       email: user[0].email,
-      role: user[0].role
+      role: user[0].role,
+      is_verified: user[0].is_verified
     });
 
   } catch (error) {
-    // await session.abortTransaction();
-    // session.endSession();
     res.status(500);
     throw new Error("Admin creation failed: " + error.message);
   }

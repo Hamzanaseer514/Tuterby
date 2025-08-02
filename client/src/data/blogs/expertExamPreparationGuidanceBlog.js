@@ -6,6 +6,7 @@ const expertExamPreparationGuidanceBlog = {
     author: "TutorNearby Chief Examiners & Mentors",
     imageTag: "A confident student smiling while reviewing well-organized exam notes, with a calendar marked 'Exam Day' in the background",
     mainImageAlt: "Confident student preparing for exams with organized notes",
+ mainImageSrc: "/images/london13.webp",
     slug: "expert-exam-preparation-guidance",
     description: "Unlock your exam potential with TutorNearby's expert guidance covering every stage, from long-term planning and revision techniques to managing exam-day nerves and optimizing performance under pressure, especially for anxious students.",
     content: [
@@ -25,12 +26,12 @@ const expertExamPreparationGuidanceBlog = {
       {
         type: 'list',
         items: [
-          "**Long-Term Strategic Planning:** Developing a roadmap for revision well in advance, breaking down syllabi into manageable chunks, and setting realistic study goals.",
-          "**Creating Effective Revision Materials:** Guidance on making concise notes, summary sheets, flashcards, mind maps, and utilizing other resources (like those from our 'Key Features' list) tailored to individual learning styles.",
-          "**Mastering Revision Techniques:** Implementing proven methods like active recall, spaced repetition, interleaving (mixing topics), and practice testing to maximize retention and understanding.",
-          "**Understanding Mark Schemes and Examiner Expectations:** Learning how to interpret what examiners are looking for and how marks are allocated for different question types.",
-          "**Simulating Exam Conditions:** Strategies for practicing under timed conditions to build stamina, refine pacing, and reduce anxiety associated with the exam environment.",
-          "**Developing Time-Efficient Answering Strategies:** Techniques for tackling different sections of an exam, allocating time per mark, and ensuring all questions are attempted effectively."
+          "Long-Term Strategic Planning: Developing a roadmap for revision well in advance, breaking down syllabi into manageable chunks, and setting realistic study goals.",
+          "Creating Effective Revision Materials: Guidance on making concise notes, summary sheets, flashcards, mind maps, and utilizing other resources (like those from our 'Key Features' list) tailored to individual learning styles.",
+          "Mastering Revision Techniques: Implementing proven methods like active recall, spaced repetition, interleaving (mixing topics), and practice testing to maximize retention and understanding.",
+          "Understanding Mark Schemes and Examiner Expectations: Learning how to interpret what examiners are looking for and how marks are allocated for different question types.",
+          "Simulating Exam Conditions: Strategies for practicing under timed conditions to build stamina, refine pacing, and reduce anxiety associated with the exam environment.",
+          "Developing Time-Efficient Answering Strategies: Techniques for tackling different sections of an exam, allocating time per mark, and ensuring all questions are attempted effectively."
         ]
       },
       {
@@ -49,10 +50,10 @@ const expertExamPreparationGuidanceBlog = {
       {
         type: 'list',
         items: [
-          "**Managing Exam Anxiety and Stress:** Practical techniques (including mindfulness and relaxation exercises) to stay calm and focused before and during exams.",
-          "**Building a Positive Mindset:** Cultivating self-belief, overcoming fear of failure, and approaching exams with a sense of preparedness and control.",
-          "**Developing Resilience:** Learning how to bounce back from challenging questions or perceived setbacks during an exam.",
-          "**Pre-Exam Routines:** Advice on sleep, nutrition, and last-minute preparation to ensure students are physically and mentally at their peak on exam day."
+          "Managing Exam Anxiety and Stress: Practical techniques (including mindfulness and relaxation exercises) to stay calm and focused before and during exams.",
+          "Building a Positive Mindset: Cultivating self-belief, overcoming fear of failure, and approaching exams with a sense of preparedness and control.",
+          "Developing Resilience: Learning how to bounce back from challenging questions or perceived setbacks during an exam.",
+          "Pre-Exam Routines: Advice on sleep, nutrition, and last-minute preparation to ensure students are physically and mentally at their peak on exam day."
         ]
       },
       {

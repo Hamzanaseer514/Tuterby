@@ -6,7 +6,7 @@ const affordableTuitionBlog = {
     author: "The Value Seeker",
     imageTag: "A piggy bank with a graduation cap on top, with stacks of books in the background, symbolizing affordable education investment",
     mainImageAlt: "Piggy bank with graduation cap symbolizing affordable tuition in the UK",
-    mainImageSrc: "A piggy bank with a graduation cap and books representing affordable education investment.", 
+    mainImageSrc: "/images/london.jpg", 
     slug: "affordable-tutoring-options-uk",
     description: "Access high-quality, affordable tutoring with TutorNearby across the UK. We offer competitive pricing for GCSE, A-Level, and university tutoring, ensuring academic support is within reach. Find cheap tutoring options without compromising on quality, including maths tutor near me and private tutor near me.",
     keywords: ["Affordable tutoring UK", "Cheap tutoring UK", "GCSE tutor price", "A-Level tutor cost", "University tuition affordable", "Private tutor UK rates", "Online tutoring UK cheap", "Tutoring services UK cost", "Value tutoring", "Budget-friendly tutors", "online tutor UK", "private tutor UK", "tutoring services UK", "private tuition UK", "maths tutor near me", "english tutor near me", "primary school tutor", "secondary school tutor", "A-level tutor near me", "GCSE tutor near me"],

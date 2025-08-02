@@ -6,6 +6,7 @@ const examTechniqueTimeManagementBlog = {
     author: "TutorNearby Academic Performance Coaches",
     imageTag: "A student calmly working on an exam paper with a clock visible, symbolizing good time management and technique",
     mainImageAlt: "Student demonstrating effective exam technique and time management",
+     mainImageSrc: "/images/london12.jpg",
     slug: "exam-technique-time-management",
     description: "Discover how TutorNearby's dedicated modules on exam technique and time management equip UK students (GCSE, A-Level, etc.) with essential skills to deconstruct questions for AQA/Edexcel/OCR, plan answers, manage stress, and perform at their best under pressure, especially benefiting anxious students.",
     keywords: ["exam technique", "time management for exams", "UK exam skills", "GCSE exam strategy", "A-Level performance", "AQA exam tips", "Edexcel exam help", "OCR question approach", "study skills UK", "reduce exam stress", "academic coaching"],
@@ -50,13 +51,13 @@ const examTechniqueTimeManagementBlog = {
       {
         type: 'list',
         items: [
-          "**Deconstructing Exam Questions:** Systematically identifying keywords, understanding the specific requirements of command words used by AQA, Edexcel, OCR (e.g., 'analyze', 'compare', 'explain', 'to what extent'), and breaking down complex multi-part questions into manageable components.",
-          "**Effective Answer Planning & Structuring:** Techniques for rapidly outlining essays, structuring logical arguments with clear topic sentences and supporting evidence, and ensuring all parts of the question are comprehensively addressed within the answer.",
-          "**Strategic Time Allocation:** Learning how to allocate appropriate time per mark or per section based on the exam paper's structure, and practicing effective pacing under timed conditions to ensure completion of the entire paper.",
-          "**Mastering Different Question Types:** Specific techniques and approaches for tackling multiple-choice questions, short answer questions, data response/interpretation tasks, source analysis, and extended essay questions common in UK exams.",
-          "**Understanding Mark Schemes and Examiner Expectations:** Gaining crucial insight into how examiners award marks for specific UK qualifications, learning to identify and include high-value points, and tailoring answers to precisely meet assessment criteria.",
-          "**Effective Stress Management and Mindfulness Techniques:** Practical, evidence-based strategies to stay calm, maintain focus, and build mental resilience before and during high-pressure exam situations.",
-          "**Reviewing and Editing Answers:** Techniques for quickly and effectively checking work for errors, clarity, and completeness within the final minutes of an exam."
+          "Deconstructing Exam Questions: Systematically identifying keywords, understanding the specific requirements of command words used by AQA, Edexcel, OCR (e.g., 'analyze', 'compare', 'explain', 'to what extent'), and breaking down complex multi-part questions into manageable components.",
+          "Effective Answer Planning & Structuring: Techniques for rapidly outlining essays, structuring logical arguments with clear topic sentences and supporting evidence, and ensuring all parts of the question are comprehensively addressed within the answer.",
+          "Strategic Time Allocation: Learning how to allocate appropriate time per mark or per section based on the exam paper's structure, and practicing effective pacing under timed conditions to ensure completion of the entire paper.",
+          "Mastering Different Question Types: Specific techniques and approaches for tackling multiple-choice questions, short answer questions, data response/interpretation tasks, source analysis, and extended essay questions common in UK exams.",
+          "Understanding Mark Schemes and Examiner Expectations: Gaining crucial insight into how examiners award marks for specific UK qualifications, learning to identify and include high-value points, and tailoring answers to precisely meet assessment criteria.",
+          "Effective Stress Management and Mindfulness Techniques: Practical, evidence-based strategies to stay calm, maintain focus, and build mental resilience before and during high-pressure exam situations.",
+          "Reviewing and Editing Answers: Techniques for quickly and effectively checking work for errors, clarity, and completeness within the final minutes of an exam."
         ]
       },
       {

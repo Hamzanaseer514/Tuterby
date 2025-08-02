@@ -6,6 +6,7 @@ const familyTuitionOptionsBlog = {
     author: "The Family Learning Advocate",
     imageTag: "A diverse family group (parents and children of different ages) smiling and learning together around a table with laptops and books, warm and inviting atmosphere",
     mainImageAlt: "Family learning together with TutorNearby options",
+     mainImageSrc: "/images/london14.jpg",
     slug: "family-tuition-options-uk",
     description: "TutorNearby offers flexible and affordable family tuition options across the UK. Support multiple children's learning, from primary to A-Levels, or even parent upskilling, with our tailored tutoring packages.",
     keywords: ["Family tutoring UK", "Sibling discount tutoring", "Multi-child tutoring", "Affordable family education", "GCSE tutor for my child", "A-Level tutor for siblings", "Parent upskilling tutor", "Tutoring services UK family", "Home tutoring UK family"],

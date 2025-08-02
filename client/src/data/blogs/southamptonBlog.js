@@ -8,6 +8,7 @@ const southamptonBlog = {
       author: "Dr. Emily Carter, South Coast Education Specialist",
       imageTag: "Students engaging with exhibits near the SeaCity Museum in Southampton, with prominent maritime artifacts and ship models in the background",
       mainImageAlt: "Students exploring maritime artifacts at SeaCity Museum Southampton",
+       mainImageSrc: "/images/Southampton.webp",
       content: [
         { type: 'paragraph', text: "Southampton, a major port city with a strong maritime heritage and home to the University of Southampton and Solent University, provides excellent educational opportunities. Students often need tutoring for GCSEs, A-Levels, and specialized degree preparation." },
         { type: 'image', imageTag: "The historic Bargate in Southampton with students passing by, capturing intricate medieval architectural details and city life", alt: "Students passing historic Bargate, Southampton, architectural detail" },

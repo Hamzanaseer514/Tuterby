@@ -8,6 +8,7 @@ const manchesterBlog = {
     author: "Dr. Sarah Jones, Manchester Education Specialist",
     imageTag: "Dynamic shot of Manchester's modern skyline including Beetham Tower and new developments, perhaps with a tram in the foreground, under a partly cloudy sky, ideal for a blog header illustrating a vibrant, contemporary city.",
     mainImageAlt: "Header image of Manchester's modern skyline and tram",
+     mainImageSrc: "/images/Manchester.jpg",
     content: [
       { type: 'heading', level: 2, text: "Manchester: A Northern Powerhouse of Education, Innovation, and Student Life" },
       { type: 'paragraph', text: "Manchester, a city renowned for its rich industrial heritage, vibrant cultural scene, and pioneering spirit, is also a major educational hub in the North of England. Home to prestigious institutions like the University of Manchester and Manchester Metropolitan University (MMU), the city attracts a diverse student population. Students across Greater Manchester and surrounding areas frequently seek expert tutoring to excel in their GCSEs, A-Levels, International Baccalaureate (IB) Diplomas, BTEC qualifications, and to navigate the competitive admissions processes for these leading universities. The city's dynamic atmosphere, blending historical significance with modern innovation, provides an exceptional environment for academic and personal growth." },

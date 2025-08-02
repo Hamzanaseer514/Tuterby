@@ -8,6 +8,7 @@ const plymouthBlog = {
       author: "Mr. Tom Richards, Maritime & Engineering Education Specialist",
       imageTag: "Students enjoying the panoramic view from Plymouth Hoe with the iconic Smeaton's Tower lighthouse prominently featured, bright sunny day",
       mainImageAlt: "Students at Plymouth Hoe with Smeaton's Tower, panoramic",
+       mainImageSrc: "/images/plymouth.jpg",
       content: [
         { type: 'heading', level: 2, text: "Plymouth: Britain's Ocean City - A Hub for Maritime and Academic Excellence" },
         { type: 'paragraph', text: "Plymouth, a historic port city on the stunning Devon coast, is aptly known as 'Britain's Ocean City.' It boasts a rich maritime heritage and is home to the University of Plymouth, renowned for its world-class research and teaching in marine biology, oceanography, marine engineering, and environmental science. This unique coastal setting and strong academic focus mean students in Plymouth and surrounding areas of Devon and Cornwall frequently seek expert tutoring. This support is vital for excelling in GCSEs, A-Levels (particularly in science and engineering disciplines), and for preparing for specialized university courses that align with the UK curriculum and the city's strengths." },

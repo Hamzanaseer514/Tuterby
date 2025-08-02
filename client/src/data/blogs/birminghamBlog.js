@@ -8,7 +8,7 @@ const birminghamBlog = {
       location: "Birmingham",
       author: "Dr. Aisha Khan, Birmingham Education Strategist",
       imageTag: "Dynamic, modern cityscape photograph of Birmingham's skyline at dusk, featuring iconic buildings like the Library of Birmingham and the Bullring, suitable for a very large, impressive blog header image that conveys urban energy and opportunity.",
-      mainImageSrc: "Birmingham skyline at dusk with Library of Birmingham and Bullring.",
+      mainImageSrc: "/images/Birmingham.jpg",
       mainImageAlt: "Header image of Birmingham's modern cityscape at dusk, symbolizing opportunity",
       content: [
         { type: 'heading', level: 2, text: "Birmingham: A Dynamic Hub for Education and Innovation" },

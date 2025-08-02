@@ -6,6 +6,7 @@ const oneToOneMentorshipCoachingBlog = {
     author: "TutorNearby Senior Mentorship Team",
     imageTag: "A mentor and student engaged in a supportive one-to-one discussion, with a bright and encouraging atmosphere",
     mainImageAlt: "Supportive one-to-one mentorship session in progress",
+     mainImageSrc: "/images/london24.jpg",
     slug: "one-to-one-mentorship-coaching",
     description: "Explore how TutorNearby's dedicated One-to-One Mentorship & Academic Coaching provides personalized guidance, motivation, and skill development, fostering holistic growth especially for students needing extra support and confidence.",
     content: [
@@ -25,11 +26,11 @@ const oneToOneMentorshipCoachingBlog = {
       {
         type: 'list',
         items: [
-          "**Identify Unique Challenges and Strengths:** Understanding the individual student's learning style, personality, aspirations, and any specific difficulties they face (academic or otherwise).",
-          "**Set Meaningful Goals:** Collaboratively defining clear, achievable academic and personal development goals.",
-          "**Develop Effective Learning Strategies:** Tailoring study techniques, time management skills, and organizational methods to the student's needs.",
-          "**Build Essential Life Skills:** Fostering resilience, critical thinking, problem-solving, communication, and self-advocacy.",
-          "**Provide Unwavering Support and Motivation:** Offering consistent encouragement, a listening ear, and guidance through setbacks."
+          "Identify Unique Challenges and Strengths: Understanding the individual student's learning style, personality, aspirations, and any specific difficulties they face (academic or otherwise).",
+          "Set Meaningful Goals: Collaboratively defining clear, achievable academic and personal development goals.",
+          "Develop Effective Learning Strategies: Tailoring study techniques, time management skills, and organizational methods to the student's needs.",
+          "Build Essential Life Skills: Fostering resilience, critical thinking, problem-solving, communication, and self-advocacy.",
+          "Provide Unwavering Support and Motivation: Offering consistent encouragement, a listening ear, and guidance through setbacks."
         ]
       },
       {
@@ -48,11 +49,11 @@ const oneToOneMentorshipCoachingBlog = {
       {
         type: 'list',
         items: [
-          "**A Patient Sounding Board:** Allowing students to voice concerns, explore ideas, and reflect on their progress without fear of judgment.",
-          "**A Source of Accountability:** Gently helping students stay on track with their goals and commitments.",
-          "**A Strategic Guide:** Offering practical advice and proven strategies for academic and personal challenges.",
-          "**A Motivator and Encourager:** Celebrating successes, big or small, and providing support during difficult times.",
-          "**A Facilitator of Self-Awareness:** Helping students understand their own learning processes, strengths, and areas for growth."
+          "A Patient Sounding Board: Allowing students to voice concerns, explore ideas, and reflect on their progress without fear of judgment.",
+          "A Source of Accountability: Gently helping students stay on track with their goals and commitments.",
+          "A Strategic Guide: Offering practical advice and proven strategies for academic and personal challenges.",
+          "A Motivator and Encourager: Celebrating successes, big or small, and providing support during difficult times.",
+          "A Facilitator of Self-Awareness: Helping students understand their own learning processes, strengths, and areas for growth."
         ]
       },
       {

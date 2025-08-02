@@ -9,6 +9,7 @@ const nottinghamBlog = {
       keywords: ["tutor Nottingham", "GCSE tutor Nottingham", "A-Level tutor Nottingham", "private tutor Nottingham", "Maths tutor Nottingham", "Science tutor Nottingham", "English tutor Nottingham", "tutoring services Nottingham", "tutoring near me", "private tutors near me"],
       imageTag: "Students near the illuminated Council House in Nottingham's Old Market Square during an atmospheric evening, different unique perspective",
       mainImageAlt: "Students in Nottingham Old Market Square at evening, unique view",
+       mainImageSrc: "/images/Nottingham.jpg",
       content: [
         { type: 'paragraph', text: "Nottingham, a historic city with a vibrant student population from the University of Nottingham and Nottingham Trent University, is a key educational hub in the East Midlands. Students seek tutoring to excel in GCSEs, A-Levels, and university preparation, focusing on UK exam boards." },
         { type: 'image', imageTag: "View of Nottingham Castle with students in the foreground, captured during a crisp autumn day with colorful foliage, alternative angle", alt: "Nottingham Castle with students in autumn, alternative angle" },

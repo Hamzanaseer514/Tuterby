@@ -6,6 +6,7 @@ const meditationFocusSessionsBlog = {
     author: "TutorNearby Wellbeing & Performance Team",
     imageTag: "A serene image of a student sitting calmly at a desk with eyes gently closed, a soft light filtering in, suggesting a moment of meditation or focused calm",
     mainImageAlt: "Student in a calm, meditative state at their study desk",
+     mainImageSrc: "/images/london21.jpeg",
     slug: "meditation-focus-sessions",
     description: "Learn how TutorNearby's Meditation & Focus Sessions equip students with practical mindfulness techniques to reduce stress, improve concentration, and enhance overall well-being, leading to better academic performance.",
     content: [
@@ -25,11 +26,11 @@ const meditationFocusSessionsBlog = {
       {
         type: 'list',
         items: [
-          "**Improved Attention and Concentration:** Strengthening the brain's ability to focus and resist distractions.",
-          "**Reduced Stress and Anxiety:** Lowering levels of stress hormones and promoting a sense of calm.",
-          "**Enhanced Working Memory:** Improving the ability to hold and manipulate information.",
-          "**Greater Emotional Regulation:** Helping students manage difficult emotions and respond more thoughtfully.",
-          "**Increased Self-Awareness:** Fostering a better understanding of one's own thoughts, feelings, and bodily sensations."
+          "Improved Attention and Concentration: Strengthening the brain's ability to focus and resist distractions.",
+          "Reduced Stress and Anxiety: Lowering levels of stress hormones and promoting a sense of calm.",
+          "Enhanced Working Memory: Improving the ability to hold and manipulate information.",
+          "Greater Emotional Regulation: Helping students manage difficult emotions and respond more thoughtfully.",
+          "Increased Self-Awareness: Fostering a better understanding of one's own thoughts, feelings, and bodily sensations."
         ]
       },
       {
@@ -48,11 +49,11 @@ const meditationFocusSessionsBlog = {
       {
         type: 'list',
         items: [
-          "**Simple Breathing Techniques:** To anchor attention and calm the nervous system.",
-          "**Guided Mindfulness Practices:** Focusing on a single point (like the breath or sounds) to train attention.",
-          "**Body Scan Meditations:** To increase awareness of physical sensations and release tension.",
-          "**Techniques for Managing Distracting Thoughts:** Learning to acknowledge thoughts without getting carried away by them.",
-          "**Short 'Focus Reset' Exercises:** Quick practices that can be used before studying or exams to clear the mind."
+          "Simple Breathing Techniques: To anchor attention and calm the nervous system.",
+          "Guided Mindfulness Practices: Focusing on a single point (like the breath or sounds) to train attention.",
+          "Body Scan Meditations: To increase awareness of physical sensations and release tension.",
+          "Techniques for Managing Distracting Thoughts: Learning to acknowledge thoughts without getting carried away by them.",
+          "Short 'Focus Reset' Exercises: Quick practices that can be used before studying or exams to clear the mind."
         ]
       },
       {

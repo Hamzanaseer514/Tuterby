@@ -8,6 +8,7 @@ const newcastleBlog = {
     author: "Mr. Ben Carter, Software Development Lead",
     imageTag: "Students engaged in collaborative pair programming in a brightly lit, modern university computer lab in Newcastle, with the city skyline clearly visible and focus on the complex code on their screen",
     mainImageAlt: "Collaborative pair programming in Newcastle lab with city view and code focus",
+     mainImageSrc: "/images/Newcastle.jpg",
     keywords: ["Computer Science tutor Newcastle", "GCSE CS tutor Newcastle", "A-Level CS tutor Newcastle", "Python tutor Newcastle", "Java tutor Newcastle", "programming tutor Newcastle", "Newcastle University CS", "Northumbria University CS", "IT tutor Newcastle", "online CS tutor UK"],
     content: [
       { type: 'paragraph', text: "In Newcastle upon Tyne and the wider North East, Computer Science skills are in high demand. From mastering Python for an A-Level NEA (Non-Exam Assessment) to understanding Java for a degree at Newcastle University or Northumbria University, expert guidance is invaluable. This guide helps Newcastle students find specialist 'Computer Science tutors Newcastle' for GCSE (AQA/OCR), A-Level, and university modules, focusing on the UK curriculum." },

@@ -6,6 +6,7 @@ const parentalSupportRevisionPacksBlog = {
     author: "TutorNearby Family Learning Team",
     imageTag: "A parent and child sitting together at a table, looking at a revision pack with a supportive and positive atmosphere",
     mainImageAlt: "Parent and child collaborating on studies using a revision support pack",
+     mainImageSrc: "/images/london25.jpg",
     slug: "parental-support-revision-packs",
     description: "Discover how TutorNearby's Parental Support Revision Packs empower parents to effectively assist in their child's learning, fostering a collaborative and positive home study environment, especially when a child is struggling.",
     content: [
@@ -25,12 +26,12 @@ const parentalSupportRevisionPacksBlog = {
       {
         type: 'list',
         items: [
-          "**Clear Overviews of Topics:** Summaries of what their child is currently learning or revising, explained in accessible language.",
-          "**Key Learning Objectives:** Understanding the main goals and outcomes for specific subjects or modules.",
-          "**Example Questions and Answers:** Sample problems or questions (often with worked solutions or mark schemes) to illustrate expected standards and common pitfalls.",
-          "**Practical Revision Strategies:** Tips and techniques that parents can use to help their child study effectively at home.",
-          "**Guidance on Creating a Positive Study Environment:** Suggestions for minimizing distractions, organizing study space, and fostering a supportive atmosphere.",
-          "**Prompts for Constructive Conversations:** Ideas on how to discuss academic progress and challenges without adding undue pressure."
+          "Clear Overviews of Topics: Summaries of what their child is currently learning or revising, explained in accessible language.",
+          "Key Learning Objectives: Understanding the main goals and outcomes for specific subjects or modules.",
+          "Example Questions and Answers: Sample problems or questions (often with worked solutions or mark schemes) to illustrate expected standards and common pitfalls.",
+          "Practical Revision Strategies: Tips and techniques that parents can use to help their child study effectively at home.",
+          "Guidance on Creating a Positive Study Environment: Suggestions for minimizing distractions, organizing study space, and fostering a supportive atmosphere.",
+          "Prompts for Constructive Conversations: Ideas on how to discuss academic progress and challenges without adding undue pressure."
         ]
       },
       {
@@ -49,12 +50,12 @@ const parentalSupportRevisionPacksBlog = {
       {
         type: 'list',
         items: [
-          "**Reinforced Learning:** Concepts covered in tutoring or school can be consistently reinforced at home.",
-          "**Improved Parent-Child Communication:** Facilitates more informed and constructive conversations about schoolwork.",
-          "**Reduced Student Anxiety:** Knowing they have support and understanding from their parents can alleviate stress for students.",
-          "**Increased Parental Confidence:** Equips parents with the knowledge to help effectively, reducing their own anxieties about their child's education.",
-          "**Stronger Home-School-Tutor Connection:** Creates a unified approach to supporting the student's academic journey.",
-          "**Early Identification of Issues:** Parents become better equipped to notice if their child is struggling with specific areas and can communicate this to tutors or teachers."
+          "Reinforced Learning: Concepts covered in tutoring or school can be consistently reinforced at home.",
+          "Improved Parent-Child Communication: Facilitates more informed and constructive conversations about schoolwork.",
+          "Reduced Student Anxiety: Knowing they have support and understanding from their parents can alleviate stress for students.",
+          "Increased Parental Confidence: Equips parents with the knowledge to help effectively, reducing their own anxieties about their child's education.",
+          "Stronger Home-School-Tutor Connection: Creates a unified approach to supporting the student's academic journey.",
+          "Early Identification of Issues: Parents become better equipped to notice if their child is struggling with specific areas and can communicate this to tutors or teachers."
         ]
       },
       {

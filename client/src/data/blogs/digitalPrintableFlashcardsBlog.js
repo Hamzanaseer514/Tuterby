@@ -6,6 +6,7 @@ const digitalPrintableFlashcardsBlog = {
     author: "TutorNearby Revision Specialists",
     imageTag: "A split image showing digital flashcards on a smartphone on one side, and a stack of physical, printed flashcards on the other",
     mainImageAlt: "Comparison of digital and printable flashcards for study",
+     mainImageSrc: "/images/london9.jpg",
     slug: "digital-printable-flashcards",
     description: "Learn how our custom-made digital and printable flashcards, incorporating spaced repetition, help students effectively memorize key facts, vocabulary, and formulas for UK exams (GCSE, A-Level). Ideal for AQA, Edexcel, OCR revision.",
     keywords: ["flashcards", "digital flashcards", "printable flashcards", "spaced repetition", "active recall", "revision techniques UK", "GCSE study tools", "A-Level memory aids", "exam memorization", "AQA revision", "Edexcel flashcards", "OCR study help", "learning tools"],
@@ -26,8 +27,8 @@ const digitalPrintableFlashcardsBlog = {
       {
         type: 'list',
         items: [
-          "**Active Recall:** Instead of passively rereading notes or textbooks, flashcards prompt students to actively retrieve information from their memory. This effortful retrieval significantly strengthens neural pathways, making information 'stickier' and more readily accessible during high-pressure exam conditions. This is far more effective than simply highlighting text.",
-          "**Spaced Repetition:** This technique involves reviewing material at increasing intervals over time (e.g., daily, then every few days, then weekly). Information is revisited strategically, just as the student is about to forget it, which powerfully reinforces it in long-term memory. This method is scientifically proven to be far more effective for sustained learning than last-minute cramming."
+          "Active Recall: Instead of passively rereading notes or textbooks, flashcards prompt students to actively retrieve information from their memory. This effortful retrieval significantly strengthens neural pathways, making information 'stickier' and more readily accessible during high-pressure exam conditions. This is far more effective than simply highlighting text.",
+          "Spaced Repetition: This technique involves reviewing material at increasing intervals over time (e.g., daily, then every few days, then weekly). Information is revisited strategically, just as the student is about to forget it, which powerfully reinforces it in long-term memory. This method is scientifically proven to be far more effective for sustained learning than last-minute cramming."
         ]
       },
       {
@@ -45,7 +46,7 @@ const digitalPrintableFlashcardsBlog = {
       },
       {
         type: 'paragraph',
-        text: "**Digital Flashcards:** Accessible anywhere, anytime on smartphones, tablets, or computers, our digital flashcard platforms often include features like:"
+        text: "Digital Flashcards: Accessible anywhere, anytime on smartphones, tablets, or computers, our digital flashcard platforms often include features like:"
       },
       {
         type: 'list',
@@ -59,7 +60,7 @@ const digitalPrintableFlashcardsBlog = {
       },
       {
         type: 'paragraph',
-        text: "**Printable Flashcards:** For students who prefer a tactile learning experience, want to minimize screen time, or find physical manipulation aids memory. These printable learning materials can be easily organized, carried, and used for self-quizzing, pair study, or group revision sessions. They are excellent for visual learners and can be color-coded for different topics."
+        text: "Printable Flashcards: For students who prefer a tactile learning experience, want to minimize screen time, or find physical manipulation aids memory. These printable learning materials can be easily organized, carried, and used for self-quizzing, pair study, or group revision sessions. They are excellent for visual learners and can be color-coded for different topics."
       },
       {
         type: 'quote',
@@ -78,10 +79,10 @@ const digitalPrintableFlashcardsBlog = {
       {
         type: 'list',
         items: [
-          "**Increased Revision Efficiency:** Spaced repetition optimizes study time, focusing effort on material that needs more attention and reducing time spent on already mastered concepts.",
-          "**Improved Long-Term Retention:** Actively moves information from short-term working memory to robust long-term memory, crucial for exam success.",
-          "**Enhanced Exam Confidence:** Seeing tangible progress through mastering flashcard decks builds self-assurance and reduces exam anxiety.",
-          "**Reduced Study Stress and Overwhelm:** Provides a clear, manageable method for tackling large amounts of syllabus content required by UK exam boards."
+          "Increased Revision Efficiency: Spaced repetition optimizes study time, focusing effort on material that needs more attention and reducing time spent on already mastered concepts.",
+          "Improved Long-Term Retention: Actively moves information from short-term working memory to robust long-term memory, crucial for exam success.",
+          "Enhanced Exam Confidence: Seeing tangible progress through mastering flashcard decks builds self-assurance and reduces exam anxiety.",
+          "Reduced Study Stress and Overwhelm: Provides a clear, manageable method for tackling large amounts of syllabus content required by UK exam boards."
         ]
       },
       {
