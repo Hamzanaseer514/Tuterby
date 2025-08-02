@@ -1,0 +1,149 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { X, ListChecks, BookOpen, ExternalLink } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+
+const isValidLucideIcon = (IconComponent) => {
+  return IconComponent && (typeof IconComponent === 'function' || (typeof IconComponent === 'object' && IconComponent !== null && typeof IconComponent.render === 'function'));
+};
+
+const SubjectChip = ({ subject, isPremiumFeature = false }) => {
+  const IconComponent = subject.icon;
+  const linkAriaLabel = `Learn more about ${subject.name} in our blog`;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex items-center justify-between bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-foreground/80 p-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-primary/20 dark:hover:bg-primary/30 transition-all duration-200 cursor-default"
+    >
+      <div className="flex items-center">
+          {isValidLucideIcon(IconComponent) && <IconComponent className="w-5 h-5 mr-2 text-primary" />}
+          <span className="text-sm font-medium text-foreground dark:text-slate-200">{subject.name}</span>
+      </div>
+      {isPremiumFeature && subject.blogSlug && (
+          <Link to={`/blog/${subject.blogSlug}`} title={`Learn more about ${subject.name}`} className="ml-2 p-1 rounded-full hover:bg-primary/20" aria-label={linkAriaLabel}>
+              <ExternalLink className="w-4 h-4 text-primary/80 hover:text-primary transition-colors" />
+          </Link>
+      )}
+    </motion.div>
+  );
+};
+
+const CategorySection = ({ categoryName, subjects, categoryIcon, isPremiumService }) => {
+  const IconToRender = isValidLucideIcon(categoryIcon) ? categoryIcon : ListChecks; 
+  
+  return (
+    <motion.div 
+      className="mb-8 p-6 rounded-xl shadow-xl bg-card border border-border/30 glassmorphism"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <CardHeader className="p-0 mb-4 flex flex-row items-center space-x-3">
+        {isValidLucideIcon(IconToRender) && <IconToRender className="w-7 h-7 text-secondary"/>}
+        <CardTitle className="text-2xl md:text-3xl font-semibold gradient-text">{categoryName}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {subjects.map((subject, index) => (
+          <SubjectChip key={`${categoryName}-${subject.name}-${index}`} subject={subject} isPremiumFeature={isPremiumService} />
+        ))}
+      </CardContent>
+    </motion.div>
+  );
+};
+
+const ExpandedLevelView = ({ level, onClose }) => {
+  if (!level) return null;
+
+  const { name, icon: LevelIcon, description, categories, subjects: allSubjectsWithIcons, isPremiumService } = level;
+  const closeAriaLabel = `Close full list view for ${name}`;
+
+  return (
+    <motion.div 
+      className="my-8 p-4 md:p-8 rounded-2xl shadow-2xl bg-gradient-to-br from-background via-slate-50 to-secondary/5 dark:from-slate-900 dark:via-slate-800 dark:to-secondary/10 border-2 border-primary/30 relative"
+      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "circOut" }}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full z-10"
+        onClick={onClose}
+        aria-label={closeAriaLabel}
+      >
+        <X className="w-6 h-6" />
+      </Button>
+
+      <div className="text-center mb-10">
+        {isValidLucideIcon(LevelIcon) && <LevelIcon className="w-20 h-20 text-primary mx-auto mb-4" />}
+        <h1 className="text-4xl md:text-5xl font-bold mb-3 text-foreground">
+          Full {isPremiumService ? "Feature" : "Subject"} List for <span className="gradient-text">{name}</span>
+        </h1>
+        <p className="text-md md:text-lg text-muted-foreground max-w-2xl mx-auto">{description}</p>
+      </div>
+
+      {name === "Undergraduate" && typeof categories === 'object' && categories !== null ? (
+        Object.entries(categories).map(([degreeArea, dataObject]) => { 
+          const areaSubjects = allSubjectsWithIcons.filter(s => s.category === degreeArea);
+          if (areaSubjects.length === 0) return null;
+          
+          let CategoryIconForUG = BookOpen; 
+          if (typeof dataObject === 'object' && dataObject !== null && isValidLucideIcon(dataObject.icon)) {
+             CategoryIconForUG = dataObject.icon;
+          }
+          
+          return (
+             <CategorySection 
+                key={degreeArea} 
+                categoryName={degreeArea} 
+                subjects={areaSubjects} 
+                categoryIcon={CategoryIconForUG}
+                isPremiumService={isPremiumService}
+             />
+          );
+        })
+      ) : categories && typeof categories === 'object' ? (
+        Object.entries(categories).map(([categoryName, subjectNamesOrObjects]) => {
+            let categorySubjects;
+            if (isPremiumService && Array.isArray(subjectNamesOrObjects)) {
+                categorySubjects = allSubjectsWithIcons.filter(s => subjectNamesOrObjects.includes(s.name));
+            } else if (Array.isArray(subjectNamesOrObjects)) {
+                categorySubjects = allSubjectsWithIcons.filter(s => subjectNamesOrObjects.includes(s.name));
+            } else {
+                categorySubjects = [];
+            }
+
+           if (categorySubjects.length === 0) return null;
+          return (
+            <CategorySection 
+                key={categoryName} 
+                categoryName={categoryName} 
+                subjects={categorySubjects}
+                categoryIcon={ListChecks} 
+                isPremiumService={isPremiumService}
+            />
+          );
+        })
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {allSubjectsWithIcons.map((subject, index) => (
+            <SubjectChip key={`${name}-${subject.name}-${index}`} subject={subject} isPremiumFeature={isPremiumService} />
+          ))}
+        </div>
+      )}
+      
+      <div className="mt-12 text-center">
+        <Button onClick={onClose} variant="outline" size="lg" className="group border-primary text-primary hover:bg-primary hover:text-primary-foreground" aria-label={closeAriaLabel}>
+          <X className="mr-2 h-5 w-5" /> Close Full List
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
+
+export default ExpandedLevelView;
