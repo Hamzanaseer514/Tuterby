@@ -81,7 +81,7 @@ const StudentPreferences = ({ studentId }) => {
       }
       const data = await response.json();
       setProfile(data.profile);
-      
+
       // Set form values
       setAcademicLevel(data.profile?.academic_level || '');
       setLearningGoals(data.profile?.learning_goals || '');
@@ -214,6 +214,7 @@ const StudentPreferences = ({ studentId }) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Primary School">Primary School</SelectItem>
+                  <SelectItem value="Middle School">Middle School</SelectItem>
                   <SelectItem value="Secondary School">Secondary School</SelectItem>
                   <SelectItem value="GCSE">GCSE</SelectItem>
                   <SelectItem value="A-Level">A-Level</SelectItem>

@@ -6,6 +6,7 @@ const TutorApplication = require("../Models/tutorApplicationSchema");
 const TutorDocument = require("../Models/tutorDocumentSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
 const TutoringSession = require("../Models/tutoringSessionSchema"); // Added for student dashboard
+const TutorInquiry = require("../Models/tutorInquirySchema"); // Added for tutor search and help requests
 const { generateAccessToken, generateRefreshToken } = require("../Utils/generateTokens");
 const sendEmail = require("../Utils/sendEmail");
 const otpStore = require("../Utils/otpStore");
@@ -118,12 +119,16 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     qualifications,
     experience_years,
     subjects, // array of subjects
+    academic_levels_taught, // array of academic levels they will teach
+    location, // tutor's location
+    hourly_rate, // tutor's hourly rate
+    
     bio,
     code_of_conduct_agreed,
     documentsMap
   } = req.body;
 console.log(req.body);
-  if (!email || !password || !age || !full_name || !photo_url || !qualifications || !subjects || !experience_years || code_of_conduct_agreed === undefined || !documentsMap) {
+  if (!email || !password || !age || !full_name || !photo_url || !qualifications || !subjects || !academic_levels_taught || !location || !hourly_rate || !experience_years || code_of_conduct_agreed === undefined || !documentsMap) {
     res.status(400);
     throw new Error("All required fields must be provided");
   }
@@ -160,7 +165,14 @@ console.log(req.body);
         bio: bio || '',
         qualifications,
         experience_years,
-        subjects
+        subjects,
+        academic_levels_taught: Array.isArray(academic_levels_taught) ? academic_levels_taught : [academic_levels_taught],
+        location,
+        hourly_rate: parseFloat(hourly_rate),
+        average_rating: 0, // Initialize with 0 rating
+        total_sessions: 0, // Initialize with 0 sessions
+        is_verified: false, // Not verified yet
+        is_approved: false // Not approved yet
       }],
       // { session }
     );
@@ -923,3 +935,309 @@ exports.getStudentNotes = asyncHandler(async (req, res) => {
     notes: populatedNotes
   });
 });
+
+// Search for available tutors
+exports.searchTutors = asyncHandler(async (req, res) => {
+  const { 
+    search,
+    subjects,
+    academic_level, 
+    location, 
+    min_rating, 
+    max_hourly_rate,
+    page = 1,
+    limit = 10
+  } = req.query;
+  try {
+    const query = {
+      // Show all tutors, but you can uncomment these lines to only show verified tutors
+      // is_verified: true,
+      // is_approved: true
+    };
+
+    // Add subject filter
+    if (subjects) {
+      query.subjects = { $in: [new RegExp(subjects, 'i')] };
+    }
+
+    // Add academic level filter
+    if (academic_level) {
+      query.academic_levels_taught = { $in: [new RegExp(academic_level, 'i')] };
+    }
+
+    // Add location filter
+    if (location) {
+      query.location = { $regex: location, $options: 'i' };
+    }
+
+    // Add rating filter
+    if (min_rating) {
+      query.average_rating = { $gte: parseFloat(min_rating) };
+    }
+
+    // Add hourly rate filter
+    if (max_hourly_rate) {
+      query.hourly_rate = { $lte: parseFloat(max_hourly_rate) };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Handle search for tutor name or subject
+    let tutors;
+    if (search) {
+      // Find users that match the search term
+      const matchingUsers = await User.find({
+        full_name: { $regex: search, $options: 'i' },
+        role: 'tutor'
+      }).select('_id');
+      
+      const userIds = matchingUsers.map(user => user._id);
+      
+      // Create search query
+      const searchQuery = {
+        ...query,
+        $or: [
+          { subjects_taught: { $in: [new RegExp(search, 'i')] } },
+          ...(userIds.length > 0 ? [{ user_id: { $in: userIds } }] : [])
+        ]
+      };
+      
+      tutors = await TutorProfile.find(searchQuery)
+        .populate('user_id', 'full_name email photo_url')
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ average_rating: -1, hourly_rate: 1 });
+    } else {
+      tutors = await TutorProfile.find(query)
+        .populate('user_id', 'full_name email photo_url')
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ average_rating: -1, hourly_rate: 1 });
+    }
+
+    // Count total documents based on the same query used for fetching
+    let total;
+    if (search) {
+      const matchingUsers = await User.find({
+        full_name: { $regex: search, $options: 'i' },
+        role: 'tutor'
+      }).select('_id');
+      
+      const userIds = matchingUsers.map(user => user._id);
+      
+      const searchQuery = {
+        ...query,
+        $or: [
+          { subjects_taught: { $in: [new RegExp(search, 'i')] } },
+          ...(userIds.length > 0 ? [{ user_id: { $in: userIds } }] : [])
+        ]
+      };
+      
+      total = await TutorProfile.countDocuments(searchQuery);
+    } else {
+      total = await TutorProfile.countDocuments(query);
+    }
+
+    const formattedTutors = tutors.map(tutor => ({
+      _id: tutor._id,
+      user_id: tutor.user_id,
+      subjects: tutor.subjects,
+      academic_levels_taught: tutor.academic_levels_taught,
+      hourly_rate: tutor.hourly_rate,
+      average_rating: tutor.average_rating,
+      total_sessions: tutor.total_sessions,
+      location: tutor.location,
+      bio: tutor.bio,
+      qualifications: tutor.qualifications,
+      experience_years: tutor.experience_years
+    }));
+
+    res.json({
+      tutors: formattedTutors,
+      pagination: {
+        current_page: parseInt(page),
+        total_pages: Math.ceil(total / parseInt(limit)),
+        total_tutors: total,
+        has_next: skip + parseInt(limit) < total,
+        has_prev: parseInt(page) > 1
+      }
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to search tutors: " + error.message);
+  }
+});
+
+// Get tutor details by ID
+exports.getTutorDetails = asyncHandler(async (req, res) => {
+  const { tutorId } = req.params;
+
+  try {
+    const tutor = await TutorProfile.findOne({ 
+      _id: tutorId,
+      is_verified: true,
+      is_approved: true
+    }).populate('user_id', 'full_name email photo_url');
+
+    if (!tutor) {
+      res.status(404);
+      throw new Error("Tutor not found");
+    }
+
+    // Get tutor's recent sessions for availability context
+    const recentSessions = await TutoringSession.find({
+      tutor_id: tutor.user_id._id
+    })
+    .sort({ session_date: -1 })
+    .limit(5)
+    .populate('student_id', 'full_name');
+
+    const formattedTutor = {
+      _id: tutor._id,
+      user_id: tutor.user_id,
+      subjects_taught: tutor.subjects_taught,
+      academic_levels_taught: tutor.academic_levels_taught,
+      hourly_rate: tutor.hourly_rate,
+      average_rating: tutor.average_rating,
+      total_sessions: tutor.total_sessions,
+      location: tutor.location,
+      bio: tutor.bio,
+      qualifications: tutor.qualifications,
+      experience_years: tutor.experience_years,
+      teaching_approach: tutor.teaching_approach,
+      recent_sessions: recentSessions
+    };
+
+    res.json(formattedTutor);
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to get tutor details: " + error.message);
+  }
+});
+
+// Request help in additional subjects
+exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const { 
+    subject, 
+    academic_level, 
+    description, 
+    preferred_schedule,
+    urgency_level = 'normal',
+    tutor_id // Add tutor_id to destructuring
+  } = req.body;
+
+  if (!subject || !academic_level || !description) {
+    res.status(400);
+    throw new Error("Subject, academic level, and description are required");
+  }
+
+  try {
+    // Create a new inquiry for additional help
+    const inquiry = await TutorInquiry.create({
+      student_id: studentId,
+      tutor_id: tutor_id, // Save the tutor_id
+      subject: subject,
+      academic_level: academic_level,
+      description: description,
+      preferred_schedule: preferred_schedule,
+      urgency_level: urgency_level,
+      status: 'unread',
+      type: 'additional_help'
+    });
+
+    res.status(201).json({
+      message: "Help request submitted successfully",
+      inquiry: inquiry
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to submit help request: " + error.message);
+  }
+});
+
+// Create a general tutor inquiry
+exports.createTutorInquiry = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const { 
+    tutor_id,
+    subject, 
+    academic_level, 
+    description, 
+    preferred_schedule,
+    urgency_level = 'normal'
+  } = req.body;
+
+  if (!tutor_id || !subject || !academic_level || !description) {
+    res.status(400);
+    throw new Error("Tutor ID, subject, academic level, and description are required");
+  }
+
+  try {
+    // Create a new general tutor inquiry
+    const inquiry = await TutorInquiry.create({
+      student_id: studentId,
+      tutor_id: tutor_id,
+      subject: subject,
+      academic_level: academic_level,
+      description: description,
+      preferred_schedule: preferred_schedule,
+      urgency_level: urgency_level,
+      status: 'unread',
+      type: 'tutor_inquiry'
+    });
+
+    res.status(201).json({
+      message: "Tutor inquiry submitted successfully",
+      inquiry: inquiry
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to submit tutor inquiry: " + error.message);
+  }
+});
+
+// Get student's help requests
+exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  try {
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const inquiries = await TutorInquiry.find({
+      student_id: studentId
+      // Removed type filter to show both tutor_inquiry and additional_help
+    })
+    .populate('tutor_id', 'full_name email')
+    .sort({ created_at: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
+
+    const total = await TutorInquiry.countDocuments({
+      student_id: studentId
+      // Removed type filter to count both types
+    });
+
+    res.json({
+      inquiries: inquiries,
+      pagination: {
+        current_page: parseInt(page),
+        total_pages: Math.ceil(total / parseInt(limit)),
+        total_inquiries: total,
+        has_next: skip + parseInt(limit) < total,
+        has_prev: parseInt(page) > 1
+      }
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to get help requests: " + error.message);
+  }
+});
+
+

@@ -29,6 +29,10 @@ const Register = () => {
         qualifications: '',
         experience_years: '',
         subjects: [],
+        subjects_taught: [], // New field for subjects they will teach
+        academic_levels_taught: [], // New field for academic levels they will teach
+        location: '', // New field for tutor's location
+        hourly_rate: '', // New field for tutor's hourly rate
         code_of_conduct_agreed: false,
         academic_level: '',
         learning_goals: '',
@@ -58,8 +62,9 @@ const Register = () => {
 
     const documentTypes = ['ID Proof', 'Address Proof', 'Degree', 'Certificate', 'Reference Letter', 'Background Check'];
     const availabilityOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English'];
+    const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'History', 'Geography', 'Computer Science', 'Spanish', 'French', 'German'];
     const academicLevels = ['Primary School', 'Middle School', 'High School', 'College'];
+    const teachingLevels = ['GCSE', 'A-Level', 'IB', 'BTEC', 'Undergraduate', 'Primary', 'Secondary'];
     const durationOptions = ['1-2 hours', '3-4 hours', '4-5 hours', '5-6 hours', '6+ hours'];
 
     const addToast = (title, description) => {
@@ -71,7 +76,7 @@ const Register = () => {
     };
 
     const validateTutorStep1 = () => {
-        const requiredFields = ['full_name', 'email', 'password', 'confirmPassword', 'age', 'phone_number', 'bio', 'qualifications', 'experience_years'];
+        const requiredFields = ['full_name', 'email', 'password', 'confirmPassword', 'age', 'phone_number', 'bio', 'qualifications', 'experience_years', 'location', 'hourly_rate'];
         const missingFields = requiredFields.filter(field => !formData[field]);
         
         if (missingFields.length > 0) {
@@ -84,8 +89,13 @@ const Register = () => {
             return false;
         }
         
-        if (formData.subjects.length === 0) {
-            setError('Please select at least one subject');
+        if (formData.subjects_taught.length === 0) {
+            setError('Please select at least one subject you will teach');
+            return false;
+        }
+        
+        if (formData.academic_levels_taught.length === 0) {
+            setError('Please select at least one academic level you will teach');
             return false;
         }
         
@@ -328,6 +338,10 @@ const Register = () => {
                     qualifications: formData.qualifications,
                     experience_years: parseInt(formData.experience_years) || undefined,
                     subjects: formData.subjects,
+                    subjects_taught: formData.subjects_taught,
+                    academic_levels_taught: formData.academic_levels_taught,
+                    location: formData.location,
+                    hourly_rate: parseFloat(formData.hourly_rate) || undefined,
                     code_of_conduct_agreed: formData.code_of_conduct_agreed,
                 };
             } else if (activeTab === 'parent') {
@@ -375,6 +389,10 @@ const Register = () => {
                     qualifications: '',
                     experience_years: '',
                     subjects: [],
+                    subjects_taught: [],
+                    academic_levels_taught: [],
+                    location: '',
+                    hourly_rate: '',
                     code_of_conduct_agreed: false,
                     academic_level: '',
                     learning_goals: '',
@@ -421,6 +439,10 @@ const Register = () => {
                     qualifications: formData.qualifications,
                     experience_years: parseInt(formData.experience_years) || undefined,
                     subjects: formData.subjects,
+                    subjects_taught: formData.subjects_taught,
+                    academic_levels_taught: formData.academic_levels_taught,
+                    location: formData.location,
+                    hourly_rate: parseFloat(formData.hourly_rate) || undefined,
                     code_of_conduct_agreed: formData.code_of_conduct_agreed,
                 }),
             });
@@ -467,6 +489,10 @@ const Register = () => {
                 qualifications: '',
                 experience_years: '',
                 subjects: [],
+                subjects_taught: [],
+                academic_levels_taught: [],
+                location: '',
+                hourly_rate: '',
                 code_of_conduct_agreed: false,
                 academic_level: '',
                 learning_goals: '',
@@ -902,8 +928,8 @@ const Register = () => {
                                                         <div key={subject} className="flex items-center space-x-2">
                                                             <Checkbox
                                                                 id={`tutor-${subject}`}
-                                                                checked={formData.subjects.includes(subject)}
-                                                                onCheckedChange={(checked) => handleSubjectChange(subject, checked, 'subjects')}
+                                                                checked={formData.subjects_taught.includes(subject)}
+                                                                onCheckedChange={(checked) => handleSubjectChange(subject, checked, 'subjects_taught')}
                                                                 className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                             />
                                                             <Label htmlFor={`tutor-${subject}`} className="text-gray-700 font-normal">
@@ -911,6 +937,51 @@ const Register = () => {
                                                             </Label>
                                                         </div>
                                                     ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 mt-6">
+                                                <Label className="text-gray-700">Academic Levels You Teach</Label>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                                                    {teachingLevels.map((level) => (
+                                                        <div key={level} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`level-${level}`}
+                                                                checked={formData.academic_levels_taught.includes(level)}
+                                                                onCheckedChange={(checked) => handleSubjectChange(level, checked, 'academic_levels_taught')}
+                                                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                            <Label htmlFor={`level-${level}`} className="text-gray-700 font-normal">
+                                                                {level}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="location" className="text-gray-700">Location</Label>
+                                                    <Input
+                                                        id="location"
+                                                        name="location"
+                                                        value={formData.location}
+                                                        onChange={handleChange}
+                                                        placeholder="e.g., London, Manchester"
+                                                        className="focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="hourly_rate" className="text-gray-700">Hourly Rate (£)</Label>
+                                                    <Input
+                                                        id="hourly_rate"
+                                                        name="hourly_rate"
+                                                        type="number"
+                                                        value={formData.hourly_rate}
+                                                        onChange={handleChange}
+                                                        placeholder="e.g., 25"
+                                                        className="focus:ring-2 focus:ring-blue-500"
+                                                    />
                                                 </div>
                                             </div>
 

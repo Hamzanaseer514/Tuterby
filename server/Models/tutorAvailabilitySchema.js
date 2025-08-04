@@ -70,7 +70,7 @@ const blackoutDateSchema = new mongoose.Schema({
 const tutorAvailabilitySchema = new mongoose.Schema({
   tutor_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'TutorProfile',
     required: true,
     unique: true
   },
@@ -131,8 +131,16 @@ tutorAvailabilitySchema.methods.isAvailable = function(date, durationMinutes = 6
   const dayOfWeek = checkDate.getDay();
   const timeString = checkDate.toTimeString().slice(0, 5); // "HH:MM" format
   
+  console.log('=== AVAILABILITY CHECK DEBUG ===');
+  console.log('Input date:', date);
+  console.log('Parsed date:', checkDate);
+  console.log('Day of week:', dayOfWeek);
+  console.log('Time string:', timeString);
+  console.log('Is accepting bookings:', this.is_accepting_bookings);
+  
   // Check if tutor is accepting bookings
   if (!this.is_accepting_bookings) {
+    console.log('❌ Tutor not accepting bookings');
     return false;
   }
   
@@ -144,6 +152,7 @@ tutorAvailabilitySchema.methods.isAvailable = function(date, durationMinutes = 6
   );
   
   if (isBlackedOut) {
+    console.log('❌ Date is blacked out');
     return false;
   }
   
@@ -151,14 +160,23 @@ tutorAvailabilitySchema.methods.isAvailable = function(date, durationMinutes = 6
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const dayAvailability = this.general_availability[dayNames[dayOfWeek]];
   
+  console.log('Day name:', dayNames[dayOfWeek]);
+  console.log('Day availability:', dayAvailability);
+  
   if (!dayAvailability.available) {
+    console.log('❌ Day not available in general availability');
     return false;
   }
   
   // Check if time falls within general availability hours
+  console.log('Time check:', timeString, '>=', dayAvailability.start, '&&', timeString, '<=', dayAvailability.end);
   if (timeString < dayAvailability.start || timeString > dayAvailability.end) {
+    console.log('❌ Time outside general availability hours');
     return false;
   }
+  
+  // If we reach here, the time is within general availability hours
+  // Now check if there are any specific recurring or one-time slots that might override this
   
   // Check recurring availability
   const hasRecurringSlot = this.recurring_availability.some(slot => 
@@ -168,7 +186,11 @@ tutorAvailabilitySchema.methods.isAvailable = function(date, durationMinutes = 6
     timeString <= slot.end_time
   );
   
+  console.log('Recurring availability slots:', this.recurring_availability);
+  console.log('Has recurring slot:', hasRecurringSlot);
+  
   if (hasRecurringSlot) {
+    console.log('✅ Available via recurring slot');
     return true;
   }
   
@@ -180,7 +202,25 @@ tutorAvailabilitySchema.methods.isAvailable = function(date, durationMinutes = 6
     timeString <= slot.end_time
   );
   
-  return hasOneTimeSlot;
+  console.log('One-time availability slots:', this.one_time_availability);
+  console.log('Has one-time slot:', hasOneTimeSlot);
+  
+  // If no specific slots are defined, but time is within general availability, it should be available
+  if (this.recurring_availability.length === 0 && this.one_time_availability.length === 0) {
+    console.log('✅ Available via general availability (no specific slots defined)');
+    return true;
+  }
+  
+  // If specific slots are defined but none match, then it's not available
+  if (!hasRecurringSlot && !hasOneTimeSlot) {
+    console.log('❌ Time within general availability but no specific slots match');
+    return false;
+  }
+  
+  console.log('✅ Available via one-time slot');
+  console.log('=== END DEBUG ===');
+  
+  return true;
 };
 
 // Method to get available slots for a specific date

@@ -1,0 +1,366 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+
+
+
+import { useAuth } from '../hooks/useAuth';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { useToast } from '../components/ui/use-toast';
+import { 
+  User, 
+  Star, 
+  MapPin, 
+  Clock, 
+  BookOpen,
+  ArrowLeft,
+  MessageCircle,
+  Calendar,
+  Award,
+  GraduationCap
+} from 'lucide-react';
+import Layout from '../components/Layout';
+
+const TutorProfilePage = () => {
+  const { tutorId } = useParams();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { getAuthToken } = useAuth();
+  const [tutor, setTutor] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (tutorId) {
+      fetchTutorDetails();
+    }
+  }, [tutorId]);
+
+  const fetchTutorDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = getAuthToken();
+      
+      const response = await fetch(`http://localhost:5000/api/auth/tutors/${tutorId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tutor details');
+      }
+      
+      const data = await response.json();
+      setTutor(data);
+    } catch (error) {
+      setError(error.message);
+      toast({
+        title: "Error",
+        description: "Failed to load tutor profile",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContactTutor = () => {
+    navigate(`/contact-tutor/${tutorId}`);
+  };
+
+  const handleBookSession = () => {
+    navigate(`/book-session/${tutorId}`);
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star 
+          key={i} 
+          className={`w-5 h-5 ${i <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+        />
+      );
+    }
+    return stars;
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !tutor) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Profile</h2>
+              <p className="text-gray-600 mb-4">{error || 'Tutor not found'}</p>
+              <Button onClick={() => navigate(-1)}>Go Back</Button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={() => navigate(-1)} 
+                variant="outline"
+                size="sm"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Tutor Profile</h1>
+                <p className="text-gray-600 mt-1">Learn more about this tutor</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleContactTutor} variant="outline">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Contact
+              </Button>
+              <Button onClick={handleBookSession}>
+                <Calendar className="w-4 h-4 mr-2" />
+                Book Session
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Profile Info */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Basic Info */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-6">
+                    <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-12 h-12 text-blue-600" />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            {tutor.user_id.full_name}
+                          </h2>
+                          {tutor.location && (
+                            <div className="flex items-center gap-1 text-gray-600 mb-2">
+                              <MapPin className="w-4 h-4" />
+                              {tutor.location}
+                            </div>
+                          )}
+                          {tutor.average_rating && (
+                            <div className="flex items-center gap-1 mb-2">
+                              {renderStars(tutor.average_rating)}
+                              <span className="text-sm text-gray-600 ml-2">
+                                {tutor.average_rating} ({tutor.total_sessions || 0} sessions)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="text-3xl font-bold text-gray-900">
+                            £{tutor.hourly_rate}/hr
+                          </p>
+                          {tutor.experience_years && (
+                            <p className="text-sm text-gray-600">
+                              {tutor.experience_years} years experience
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {tutor.bio && (
+                        <p className="text-gray-700 leading-relaxed">
+                          {tutor.bio}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Subjects and Levels */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Subjects & Levels
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Subjects Taught</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {tutor.subjects?.map((subject, index) => (
+                          <Badge key={index} variant="outline">
+                            {subject}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Academic Levels</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {tutor.academic_levels_taught?.map((level, index) => (
+                          <Badge key={index} variant="secondary">
+                            {level}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Qualifications */}
+              {tutor.qualifications && tutor.qualifications.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="w-5 h-5" />
+                      Qualifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {tutor.qualifications.map((qualification, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700">{qualification}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Teaching Approach */}
+              {tutor.teaching_approach && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Teaching Approach</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 leading-relaxed">
+                      {tutor.teaching_approach}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Quick Stats */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Total Sessions</span>
+                    <span className="font-semibold">{tutor.total_sessions || 0}</span>
+                  </div>
+                  
+                  {tutor.experience_years && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Experience</span>
+                      <span className="font-semibold">{tutor.experience_years} years</span>
+                    </div>
+                  )}
+                  
+                  {tutor.average_rating && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Rating</span>
+                      <div className="flex items-center gap-1">
+                        {renderStars(tutor.average_rating)}
+                        <span className="font-semibold ml-1">{tutor.average_rating}</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Sessions */}
+              {tutor.recent_sessions && tutor.recent_sessions.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Sessions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {tutor.recent_sessions.map((session) => (
+                        <div key={session._id} className="p-3 border rounded-lg">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm">
+                              {session.student_id.full_name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(session.session_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600">{session.subject}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Contact Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Get Started</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button onClick={handleBookSession} className="w-full">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book a Session
+                  </Button>
+                  <Button onClick={handleContactTutor} variant="outline" className="w-full">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Send Message
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default TutorProfilePage; 

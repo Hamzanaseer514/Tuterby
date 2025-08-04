@@ -158,11 +158,11 @@ const StudentDashboard = ({ studentId }) => {
           <p className="text-gray-600 mt-1">Manage your tutoring activities and track your progress</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => navigate('/subjects')} variant="outline">
+          <Button onClick={() => navigate(`/student/tutor-search/${studentId}`)} variant="outline">
             <Search className="w-4 h-4 mr-2" />
             Find Tutors
           </Button>
-          <Button onClick={() => navigate('/subjects')}>
+          <Button onClick={() => navigate(`/student/request-help/${studentId}`)}>
             <Plus className="w-4 h-4 mr-2" />
             Request Help
           </Button>
@@ -237,7 +237,7 @@ const StudentDashboard = ({ studentId }) => {
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No upcoming sessions</p>
                 <Button 
-                  onClick={() => navigate('/subjects')} 
+                  onClick={() => navigate(`/student/tutor-search/${studentId}`)} 
                   variant="outline" 
                   className="mt-2"
                 >
@@ -405,18 +405,26 @@ const StudentDashboard = ({ studentId }) => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Button 
-              onClick={() => navigate('/subjects')} 
+              onClick={() => navigate(`/student/tutor-search/${studentId}`)} 
               className="h-20 flex flex-col items-center justify-center gap-2"
             >
               <Search className="w-6 h-6" />
               <span>Find New Tutors</span>
+            </Button>
+            
+            <Button 
+              onClick={() => navigate(`/student/request-help/${studentId}`)} 
+              className="h-20 flex flex-col items-center justify-center gap-2"
+            >
+              <Plus className="w-6 h-6" />
+              <span>Request Help</span>
             </Button>
             
             <Button 
@@ -433,12 +441,12 @@ const StudentDashboard = ({ studentId }) => {
               variant="outline"
               className="h-20 flex flex-col items-center justify-center gap-2"
             >
-              <Plus className="w-6 h-6" />
-              <span>Request Help</span>
+              <BookOpen className="w-6 h-6" />
+              <span>Browse Subjects</span>
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

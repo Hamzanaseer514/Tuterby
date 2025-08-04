@@ -253,20 +253,51 @@ const getTutorSessions = asyncHandler(async (req, res) => {
 const getTutorInquiries = asyncHandler(async (req, res) => {
   const { tutor_id } = req.params;
   const { status, limit = 10, page = 1 } = req.query;
-
-  const query = { tutor_id };
-  if (status) {
+  console.log("req.query",req.query); 
+  console.log("getTutorInquiries called with tutor_id:", tutor_id, "status:", status);
+  
+  // Validate tutor_id
+  if (!tutor_id || !mongoose.Types.ObjectId.isValid(tutor_id)) {
+    res.status(400);
+    throw new Error("Invalid tutor ID");
+  }
+  
+  const tutorObjectId = new mongoose.Types.ObjectId(tutor_id);
+  
+  const query = { tutor_id: tutorObjectId };
+  if (status && status !== 'all') {
     query.status = status;
   }
-
+  console.log("query",query);
+  
+  // First check if there are any inquiries for this tutor
+  const allInquiries = await TutorInquiry.find({ tutor_id: tutorObjectId });
+  console.log("All inquiries for tutor:", allInquiries.length);
+  
   const inquiries = await TutorInquiry.find(query)
-    .populate('student_id', 'full_name email')
-    .sort({ created_at: -1 })
-    .limit(parseInt(limit))
-    .skip((parseInt(page) - 1) * parseInt(limit));
+  .populate('student_id', 'full_name email')
+  .sort({ created_at: -1 })
+  .limit(parseInt(limit))
+  .skip((parseInt(page) - 1) * parseInt(limit));
+  console.log("Filtered inquiries:", inquiries.length);
+  console.log("inquiries data:", inquiries);
+  
+  // Check if student_id is populated
+  if (inquiries.length > 0) {
+    console.log("First inquiry student_id:", inquiries[0].student_id);
+    console.log("First inquiry student_id type:", typeof inquiries[0].student_id);
+    console.log("First inquiry student_id full_name:", inquiries[0].student_id?.full_name);
+  }
 
   const total = await TutorInquiry.countDocuments(query);
-
+  console.log("total",total);
+  console.log("Sending response with inquiries:", inquiries.length);
+  console.log("Response structure:", {
+    inquiries: inquiries.length,
+    total,
+    page: parseInt(page),
+    totalPages: Math.ceil(total / parseInt(limit))
+  });
   res.json({
     inquiries,
     total,
@@ -793,6 +824,11 @@ const checkAvailability = asyncHandler(async (req, res) => {
   const { tutor_id } = req.params;
   const { date, duration_minutes = 60 } = req.query;
 
+  console.log('=== CHECK AVAILABILITY DEBUG ===');
+  console.log('Tutor ID:', tutor_id);
+  console.log('Original date:', date);
+  console.log('Duration minutes:', duration_minutes);
+
   if (!tutor_id || !mongoose.Types.ObjectId.isValid(tutor_id)) {
     res.status(400);
     throw new Error("Invalid tutor ID");
@@ -803,14 +839,32 @@ const checkAvailability = asyncHandler(async (req, res) => {
     throw new Error("Date is required");
   }
 
+  // Ensure proper date parsing for datetime-local input
+  let parsedDate = date;
+  if (date.includes('T')) {
+    // Handle datetime-local format (YYYY-MM-DDTHH:MM)
+    parsedDate = new Date(date).toISOString();
+  }
+
+  console.log('Parsed date for availability check:', parsedDate);
+
   const availability = await TutorAvailability.findOne({ tutor_id });
   
   if (!availability) {
+    console.log('❌ Availability record not found');
     res.status(404);
     throw new Error("Availability record not found");
   }
 
-  const isAvailable = availability.isAvailable(date, parseInt(duration_minutes));
+  console.log('Found availability record:', availability._id);
+  console.log('General availability:', availability.general_availability);
+  console.log('Recurring availability:', availability.recurring_availability);
+  console.log('One-time availability:', availability.one_time_availability);
+
+  const isAvailable = availability.isAvailable(parsedDate, parseInt(duration_minutes));
+
+  console.log('Final result - isAvailable:', isAvailable);
+  console.log('=== END CHECK AVAILABILITY DEBUG ===');
 
   res.json({
     date: date,

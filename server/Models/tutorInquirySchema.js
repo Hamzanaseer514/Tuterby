@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const tutorInquirySchema = new mongoose.Schema({
   tutor_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'TutorProfile',
+    required: false // Optional for general help requests
   },
   student_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -15,14 +15,36 @@ const tutorInquirySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  academic_level: {
+    type: String,
+    required: false
+  },
+  description: {
+    type: String,
+    required: false
+  },
   message: {
     type: String,
-    required: true
+    required: false
+  },
+  preferred_schedule: {
+    type: String,
+    required: false
+  },
+  urgency_level: {
+    type: String,
+    enum: ['low', 'normal', 'high', 'urgent'],
+    default: 'normal'
+  },
+  type: {
+    type: String,
+    enum: ['tutor_inquiry', 'additional_help'],
+    default: 'tutor_inquiry'
   },
   status: {
     type: String,
-    enum: ['unread', 'read', 'replied', 'converted_to_booking'],
-    default: 'unread'
+    enum: ['pending', 'in_progress', 'completed', 'cancelled', 'unread', 'read', 'replied', 'converted_to_booking'],
+    default: 'pending'
   },
   response_time_minutes: {
     type: Number,

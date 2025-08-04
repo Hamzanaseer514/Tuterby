@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import TutorDashboard from '../components/tutor/TutorDashboard';
 import SessionManagement from '../components/tutor/SessionManagement';
 import InquiryManagement from '../components/tutor/InquiryManagement';
+import AvailabilityCalendar from '../components/tutor/AvailabilityCalendar';
 import { Button } from '../components/ui/button';
 import { 
   LayoutDashboard, 
@@ -34,7 +35,9 @@ const TutorDashboardPage = () => {
       }
       
       // Use URL parameter if available, otherwise use user ID
-      setTutorId(urlTutorId || user._id);
+      const finalTutorId = urlTutorId || user._id;
+      console.log("TutorDashboardPage - Setting tutorId:", finalTutorId, "urlTutorId:", urlTutorId, "user._id:", user._id);
+      setTutorId(finalTutorId);
     }
   }, [user, loading, navigate, isTutor, urlTutorId]);
 
@@ -73,6 +76,12 @@ const TutorDashboardPage = () => {
       name: 'Settings',
       icon: Settings,
       component: <div className="p-6">Settings coming soon...</div>
+    },
+    {
+      id: 'availability',
+      name: 'Availability',
+      icon: Calendar,
+      component: <AvailabilityCalendar tutorId={tutorId} />
     }
   ];
 

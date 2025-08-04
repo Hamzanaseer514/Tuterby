@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, updateUser, forgotPassword,resetPassword, getStudentDashboard, getStudentSessions, updateStudentPreferences, getStudentAssignments, getStudentNotes } = require("../Controllers/UserController")
+const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, updateUser, forgotPassword,resetPassword, getStudentDashboard, getStudentSessions, updateStudentPreferences, getStudentAssignments, getStudentNotes, searchTutors, getTutorDetails, requestAdditionalHelp, getStudentHelpRequests } = require("../Controllers/UserController")
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
@@ -39,5 +39,11 @@ router.get("/student/sessions/:studentId", protect, getStudentSessions);
 router.put("/student/preferences/:studentId", protect, updateStudentPreferences);
 router.get("/student/assignments/:studentId", protect, getStudentAssignments);
 router.get("/student/notes/:studentId", protect, getStudentNotes);
+
+// Tutor search and help request routes
+router.get("/tutors/search", protect, searchTutors);
+router.get("/tutors/:tutorId", protect, getTutorDetails);
+router.post("/student/:studentId/help-request", protect, requestAdditionalHelp);
+router.get("/student/:studentId/help-requests", protect, getStudentHelpRequests);
 
 module.exports = router;            

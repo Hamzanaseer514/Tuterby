@@ -22,6 +22,9 @@ const LoginForm = lazy(() => import('./components/account/LoginForm.jsx'));
 const TutorDashboardPage = lazy(() => import('./pages/TutorDashboardPage'));
 const TutorAvailabilityPage = lazy(() => import('./pages/TutorAvailabilityPage'));
 const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage'));
+const StudentTutorSearchPage = lazy(() => import('./pages/StudentTutorSearchPage'));
+const StudentRequestHelpPage = lazy(() => import('./pages/StudentRequestHelpPage'));
+const TutorProfilePage = lazy(() => import('./pages/TutorProfilePage'));
 const ParentDashboardPage = lazy(() => import('./pages/ParentDashboardPage'));
 
     const PageLoader = () => (
@@ -54,6 +57,9 @@ const ParentDashboardPage = lazy(() => import('./pages/ParentDashboardPage'));
                   <Route path="/tutor-dashboard/:tutorId" element={<TutorDashboardPage />} />
                   <Route path="/tutor-dashboard/:tutorId/availability" element={<TutorAvailabilityPage />} />
                   <Route path="/student-dashboard/:studentId" element={<StudentDashboardPage />} />
+                  <Route path="/student/tutor-search/:studentId" element={<StudentTutorSearchPage />} />
+                  <Route path="/student/request-help/:studentId" element={<StudentRequestHelpPage />} />
+                  <Route path="/tutor/:tutorId" element={<TutorProfilePage />} />
                   <Route path="/parent-dashboard/:parentId" element={<ParentDashboardPage />} />
                 </Routes>
               </AnimatePresence>

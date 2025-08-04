@@ -31,7 +31,10 @@ const InquiryManagement = ({ tutorId }) => {
   const [replyMessage, setReplyMessage] = useState('');
 
   useEffect(() => {
-    fetchInquiries();
+    console.log("InquiryManagement useEffect - tutorId:", tutorId, "filter:", filter);
+    if (tutorId) {
+      fetchInquiries();
+    }
   }, [tutorId, filter]);
 
   const fetchInquiries = async () => {
@@ -39,15 +42,21 @@ const InquiryManagement = ({ tutorId }) => {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
       const url = filter === 'all' 
-        ? `/api/tutor/inquiries/${tutorId}`
-        : `/api/tutor/inquiries/${tutorId}?status=${filter}`;
+        ? `http://localhost:5000/api/tutor/inquiries/${tutorId}`
+        : `http://localhost:5000/api/tutor/inquiries/${tutorId}?status=${filter}`;
       
+      console.log("Fetching inquiries from:", url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch inquiries');
       }
       const data = await response.json();
-      setInquiries(data.inquiries);
+      console.log("inquiries response:", data);
+      console.log("inquiries array:", data.inquiries);
+      if (data.inquiries && data.inquiries.length > 0) {
+        console.log("First inquiry:", data.inquiries[0]);
+      }
+      setInquiries(data.inquiries || []);
     } catch (err) {
       console.error('Error fetching inquiries:', err);
     } finally {
@@ -189,9 +198,9 @@ const InquiryManagement = ({ tutorId }) => {
                         <p className="text-sm text-gray-500">{formatDate(inquiry.created_at)}</p>
                         <div className="mt-2">
                           <p className="text-sm text-gray-700 line-clamp-2">
-                            {inquiry.message.length > 100 
-                              ? `${inquiry.message.substring(0, 100)}...`
-                              : inquiry.message
+                            {(inquiry.message || inquiry.description || '').length > 100 
+                              ? `${(inquiry.message || inquiry.description || '').substring(0, 100)}...`
+                              : (inquiry.message || inquiry.description || '')
                             }
                           </p>
                         </div>
@@ -254,7 +263,7 @@ const InquiryManagement = ({ tutorId }) => {
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Message</Label>
                   <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">{selectedInquiry.message}</p>
+                    <p className="text-sm text-gray-700">{selectedInquiry.message || selectedInquiry.description || 'No message provided'}</p>
                   </div>
                 </div>
                 

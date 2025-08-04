@@ -22,20 +22,46 @@ const tutorProfileSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  tutoring_hours: {
+  academic_levels_taught: {
+    type: [String],
+    default: []
+  },
+  hourly_rate: {
     type: Number,
     default: 0,
     min: 0
+  },
+  location: {
+    type: String,
+    default: ''
+  },
+  average_rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  total_sessions: {
+    type: Number,
+    default: 0
   },
   is_background_checked: {
     type: Boolean,
     default: false
   },
-   is_reference_verified: {
+  is_reference_verified: {
     type: Boolean,
     default: false
   },
   is_qualification_verified: {
+    type: Boolean,
+    default: false
+  },
+  is_verified: {
+    type: Boolean,
+    default: false
+  },
+  is_approved: {
     type: Boolean,
     default: false
   },
@@ -44,7 +70,6 @@ const tutorProfileSchema = new mongoose.Schema({
     enum: ['unverified', 'pending', 'approved', 'rejected'],
     default: 'unverified'
   }
-  }, { timestamps: true }
-);
+}, { timestamps: true });
 
 module.exports = mongoose.model('TutorProfile', tutorProfileSchema);

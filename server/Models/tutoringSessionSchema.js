@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const tutoringSessionSchema = new mongoose.Schema({
   tutor_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'TutorProfile',
     required: true
   },
   student_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'StudentProfile',
     required: true
   },
   subject: {
