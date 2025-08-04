@@ -10,10 +10,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Toast, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from '@/components/ui/toast';
 import { UserPlus, Shield, Star } from 'lucide-react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, FileUp} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
     const [activeTab, setActiveTab] = useState('student');
+    const [tutorStep, setTutorStep] = useState(1); // 1: Basic Info, 2: Documents, 3: Final Registration
     const [formData, setFormData] = useState({
         full_name: '',
         email: '',
@@ -52,6 +54,7 @@ const Register = () => {
 
     const [currentDocumentIndex, setCurrentDocumentIndex] = useState(0);
     const [uploadedFiles, setUploadedFiles] = useState([]);
+    const navigate = useNavigate();
 
     const documentTypes = ['ID Proof', 'Address Proof', 'Degree', 'Certificate', 'Reference Letter', 'Background Check'];
     const availabilityOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -65,6 +68,52 @@ const Register = () => {
         setTimeout(() => {
             setToasts((prev) => prev.filter((toast) => toast.id !== id));
         }, 3000);
+    };
+
+    const validateTutorStep1 = () => {
+        const requiredFields = ['full_name', 'email', 'password', 'confirmPassword', 'age', 'phone_number', 'bio', 'qualifications', 'experience_years'];
+        const missingFields = requiredFields.filter(field => !formData[field]);
+        
+        if (missingFields.length > 0) {
+            setError(`Please fill in all required fields: ${missingFields.join(', ')}`);
+            return false;
+        }
+        
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            return false;
+        }
+        
+        if (formData.subjects.length === 0) {
+            setError('Please select at least one subject');
+            return false;
+        }
+        
+        if (!formData.code_of_conduct_agreed) {
+            setError('You must agree to the code of conduct');
+            return false;
+        }
+        
+        return true;
+    };
+
+    const handleTutorNext = () => {
+        setError('');
+        if (validateTutorStep1()) {
+            setTutorStep(2);
+            setIsDocDialogOpen(true);
+        }
+    };
+
+    const handleTutorBack = () => {
+        setTutorStep(1);
+        setIsDocDialogOpen(false);
+    };
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setTutorStep(1);
+        setError('');
     };
 
     const handleChange = (e) => {
@@ -134,31 +183,53 @@ const Register = () => {
 
     const handleFileUpload = (e, index) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) {
+                addToast('Error', 'File size must be less than 10MB');
+                return;
+            }
 
-        // Validate file type and size
-        const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-        if (!validTypes.includes(file.type)) {
-            addToast('Please upload a PDF, JPG, or PNG file', 'error');
-            return;
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                addToast('Error', 'Only PDF, JPG, and PNG files are allowed');
+                return;
+            }
+
+            setRequiredDocuments(prev => prev.map((doc, i) => 
+                i === index 
+                    ? { ...doc, uploaded: true, file: file, fileName: file.name }
+                    : doc
+            ));
+
+            setDocuments(prev => {
+                const existingIndex = prev.findIndex(doc => doc.type === requiredDocuments[index].type);
+                const newDoc = {
+                    type: requiredDocuments[index].type,
+                    file: file.name,
+                    content: file
+                };
+
+                if (existingIndex >= 0) {
+                    const newDocs = [...prev];
+                    newDocs[existingIndex] = newDoc;
+                    return newDocs;
+                } else {
+                    return [...prev, newDoc];
+                }
+            });
+
+            addToast('Success', `${file.name} uploaded successfully`);
         }
+    };
 
-        if (file.size > 10 * 1024 * 1024) {
-            addToast('File size must be less than 10MB', 'error');
-            return;
-        }
-
-        // Update the required documents
-        setRequiredDocuments(prev => prev.map((doc, i) =>
-            i === index ? { ...doc, uploaded: true, file } : doc
+    const removeDocument = (docToRemove) => {
+        setDocuments(prev => prev.filter(doc => doc !== docToRemove));
+        setRequiredDocuments(prev => prev.map(doc => 
+            doc.type === docToRemove.type 
+                ? { ...doc, uploaded: false, file: null, fileName: null }
+                : doc
         ));
-
-        // Add to uploaded files
-        setUploadedFiles(prev => [...prev, {
-            type: requiredDocuments[index].type,
-            file: file.name,
-            fileObject: file
-        }]);
+        addToast('Success', 'Document removed successfully');
     };
 
     const handleNextDocument = () => {
@@ -186,10 +257,22 @@ const Register = () => {
             return;
         }
 
-        if (activeTab === 'tutor' && !formData.code_of_conduct_agreed) {
-            setError('You must agree to the code of conduct');
-            setLoading(false);
-            return;
+        if (activeTab === 'tutor') {
+            if (tutorStep === 1) {
+                // For tutor step 1, just validate and move to next step
+                if (validateTutorStep1()) {
+                    setTutorStep(2);
+                    setIsDocDialogOpen(true);
+                }
+                setLoading(false);
+                return;
+            }
+            
+            if (!formData.code_of_conduct_agreed) {
+                setError('You must agree to the code of conduct');
+                setLoading(false);
+                return;
+            }
         }
 
         if (activeTab === 'student') {
@@ -321,28 +404,56 @@ const Register = () => {
 
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/upload-tutor-documents', {
+            // First, register the tutor
+            const registerResponse = await fetch('http://localhost:5000/api/auth/register-tutor', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    user_id: userId,
+                    full_name: formData.full_name,
+                    email: formData.email,
+                    password: formData.password,
+                    age: parseInt(formData.age) || undefined,
+                    photo_url: formData.photo_url,
+                    bio: formData.bio,
+                    phone_number: formData.phone_number,
+                    qualifications: formData.qualifications,
+                    experience_years: parseInt(formData.experience_years) || undefined,
+                    subjects: formData.subjects,
+                    code_of_conduct_agreed: formData.code_of_conduct_agreed,
+                }),
+            });
+
+            const registerData = await registerResponse.json();
+
+            if (!registerResponse.ok) {
+                throw new Error(registerData.message || 'Tutor registration failed');
+            }
+
+            // Then upload documents
+            const uploadResponse = await fetch('http://localhost:5000/upload-tutor-documents', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: registerData.user._id,
                     documents,
                 }),
             });
 
-            const data = await response.json();
+            const uploadData = await uploadResponse.json();
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Document upload failed');
+            if (!uploadResponse.ok) {
+                throw new Error(uploadData.message || 'Document upload failed');
             }
 
-            addToast('Registration Successful', `Welcome, ${formData.full_name}! Your account has been created as a tutor.`);
+            addToast('Registration Successful', `Welcome, ${formData.full_name}! Your account has been created as a tutor. Please log in to access your dashboard.`);
             setIsDocDialogOpen(false);
             setDocuments([]);
             setSelectedDocType('');
-            setUserId(null);
+            setTutorStep(1);
             setFormData({
                 full_name: '',
                 email: '',
@@ -363,6 +474,11 @@ const Register = () => {
                 availability: [],
             });
             setSelectedDuration('');
+            
+            // Add a small delay before redirecting to show the success message
+            setTimeout(() => {
+                navigate('/login?registrationSuccess=true');
+            }, 2000);
         } catch (err) {
             setError(err.message);
             addToast('Error', err.message);
@@ -417,21 +533,21 @@ const Register = () => {
                                 <div className="inline-flex w-[70%] rounded-md shadow-sm" role="group">
                                     <Button
                                         variant={activeTab === 'student' ? 'default' : 'outline'}
-                                        onClick={() => setActiveTab('student')}
+                                        onClick={() => handleTabChange('student')}
                                         className="px-6 w-full rounded-r-none border-r-0 hover:text-white hover:bg-gradient-to-br from-indigo-500 to-purple-400"
                                     >
                                         Student
                                     </Button>
                                     <Button
                                         variant={activeTab === 'tutor' ? 'default' : 'outline'}
-                                        onClick={() => setActiveTab('tutor')}
+                                        onClick={() => handleTabChange('tutor')}
                                         className="px-6 w-full rounded-none border-r-0 hover:text-white hover:bg-gradient-to-br from-indigo-500 to-purple-400"
                                     >
                                         Tutor
                                     </Button>
                                     <Button
                                         variant={activeTab === 'parent' ? 'default' : 'outline'}
-                                        onClick={() => setActiveTab('parent')}
+                                        onClick={() => handleTabChange('parent')}
                                         className="px-6 w-full rounded-l-none hover:text-white hover:bg-gradient-to-br from-indigo-500 to-purple-400"
                                     >
                                         Parent
@@ -727,99 +843,127 @@ const Register = () => {
                                 )}
 
                                 {activeTab === 'tutor' && (
-                                    <div className="mb-6">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="bio" className="text-gray-700">Bio</Label>
-                                            <Textarea
-                                                id="bio"
-                                                name="bio"
-                                                value={formData.bio}
-                                                onChange={handleChange}
-                                                placeholder="Tell us about your teaching experience and approach..."
-                                                className="focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2 mt-7">
-                                            <Label htmlFor="qualifications" className="text-gray-700">Qualifications</Label>
-                                            <Textarea
-                                                id="qualifications"
-                                                name="qualifications"
-                                                value={formData.qualifications}
-                                                onChange={handleChange}
-                                                placeholder="List your degrees, certifications, and relevant qualifications..."
-                                                className="focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2 mt-6">
-                                            <Label className="text-gray-700">Subjects You Teach</Label>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                                                {subjects.map((subject) => (
-                                                    <div key={subject} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={`tutor-${subject}`}
-                                                            checked={formData.subjects.includes(subject)}
-                                                            onCheckedChange={(checked) => handleSubjectChange(subject, checked, 'subjects')}
-                                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                        <Label htmlFor={`tutor-${subject}`} className="text-gray-700 font-normal">
-                                                            {subject}
-                                                        </Label>
+                                    <>
+                                        {/* Step Indicator */}
+                                        <div className="mb-8">
+                                            <div className="flex items-center justify-center space-x-4">
+                                                <div className={`flex items-center ${tutorStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${tutorStep >= 1 ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                                                        1
                                                     </div>
-                                                ))}
+                                                    <span className="ml-2 text-sm font-medium">Basic Information</span>
+                                                </div>
+                                                <div className={`w-12 h-0.5 ${tutorStep >= 2 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                                                <div className={`flex items-center ${tutorStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${tutorStep >= 2 ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                                                        2
+                                                    </div>
+                                                    <span className="ml-2 text-sm font-medium">Documents</span>
+                                                </div>
+                                                <div className={`w-12 h-0.5 ${tutorStep >= 3 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                                                <div className={`flex items-center ${tutorStep >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${tutorStep >= 3 ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                                                        3
+                                                    </div>
+                                                    <span className="ml-2 text-sm font-medium">Complete</span>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-start space-x-3 pt-2 mt-6">
-                                            <Checkbox
-                                                id="code_of_conduct_agreed"
-                                                name="code_of_conduct_agreed"
-                                                checked={formData.code_of_conduct_agreed}
-                                                onCheckedChange={(checked) =>
-                                                    setFormData({ ...formData, code_of_conduct_agreed: checked })
-                                                }
-                                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
-                                            />
-                                            <div className="space-y-1">
-                                                <Label htmlFor="code_of_conduct_agreed" className="text-gray-700 font-normal">
-                                                    I agree to the tutor code of conduct
-                                                </Label>
-                                                <p className="text-sm text-gray-500">
-                                                    By checking this box, you agree to maintain professional standards and ethical behavior.
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {documents.length > 0 && (
+                                        <div className="mb-6">
                                             <div className="space-y-2">
-                                                <Label className="text-gray-700">Uploaded Documents</Label>
-                                                <div className="space-y-2">
-                                                    {documents.map((doc) => (
-                                                        <div key={`${doc.type}-${doc.file}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                                            <div className="flex items-center space-x-3">
-                                                                <div className="bg-blue-100 p-2 rounded-full">
-                                                                    <Upload className="h-4 w-4 text-blue-600" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-gray-800">{doc.file}</p>
-                                                                    <p className="text-xs text-gray-500">{doc.type}</p>
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => removeDocument(doc)}
-                                                                className="text-red-500 hover:text-red-600"
-                                                            >
-                                                                <X className="h-4 w-4" />
-                                                            </Button>
+                                                <Label htmlFor="bio" className="text-gray-700">Bio</Label>
+                                                <Textarea
+                                                    id="bio"
+                                                    name="bio"
+                                                    value={formData.bio}
+                                                    onChange={handleChange}
+                                                    placeholder="Tell us about your teaching experience and approach..."
+                                                    className="focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2 mt-7">
+                                                <Label htmlFor="qualifications" className="text-gray-700">Qualifications</Label>
+                                                <Textarea
+                                                    id="qualifications"
+                                                    name="qualifications"
+                                                    value={formData.qualifications}
+                                                    onChange={handleChange}
+                                                    placeholder="List your degrees, certifications, and relevant qualifications..."
+                                                    className="focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2 mt-6">
+                                                <Label className="text-gray-700">Subjects You Teach</Label>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                                                    {subjects.map((subject) => (
+                                                        <div key={subject} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`tutor-${subject}`}
+                                                                checked={formData.subjects.includes(subject)}
+                                                                onCheckedChange={(checked) => handleSubjectChange(subject, checked, 'subjects')}
+                                                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                            <Label htmlFor={`tutor-${subject}`} className="text-gray-700 font-normal">
+                                                                {subject}
+                                                            </Label>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
+
+                                            <div className="flex items-start space-x-3 pt-2 mt-6">
+                                                <Checkbox
+                                                    id="code_of_conduct_agreed"
+                                                    name="code_of_conduct_agreed"
+                                                    checked={formData.code_of_conduct_agreed}
+                                                    onCheckedChange={(checked) =>
+                                                        setFormData({ ...formData, code_of_conduct_agreed: checked })
+                                                    }
+                                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
+                                                />
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="code_of_conduct_agreed" className="text-gray-700 font-normal">
+                                                        I agree to the tutor code of conduct
+                                                    </Label>
+                                                    <p className="text-sm text-gray-500">
+                                                        By checking this box, you agree to maintain professional standards and ethical behavior.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {documents.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <Label className="text-gray-700">Uploaded Documents</Label>
+                                                    <div className="space-y-2">
+                                                        {documents.map((doc) => (
+                                                            <div key={`${doc.type}-${doc.file}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                                <div className="flex items-center space-x-3">
+                                                                    <div className="bg-blue-100 p-2 rounded-full">
+                                                                        <Upload className="h-4 w-4 text-blue-600" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-medium text-gray-800">{doc.file}</p>
+                                                                        <p className="text-xs text-gray-500">{doc.type}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => removeDocument(doc)}
+                                                                    className="text-red-500 hover:text-red-600"
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
                                 )}
 
                                 <Button
@@ -835,6 +979,10 @@ const Register = () => {
                                             </svg>
                                             Processing...
                                         </span>
+                                    ) : activeTab === 'tutor' && tutorStep === 1 ? (
+                                        'Next: Upload Documents'
+                                    ) : activeTab === 'tutor' && tutorStep === 2 ? (
+                                        'Register Tutor'
                                     ) : (
                                         `Register as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`
                                     )}
@@ -854,114 +1002,101 @@ const Register = () => {
                 </div>
 
                 <Dialog open={isDocDialogOpen} onOpenChange={setIsDocDialogOpen}>
-                    <DialogContent className="max-w-md rounded-xl">
+                    <DialogContent className="max-w-4xl rounded-xl">
                         <DialogHeader>
                             <DialogTitle className="text-xl text-gray-800">
-                                Step {currentDocumentIndex + 1} of {requiredDocuments.length}: Upload Documents
+                                Upload Required Documents
                             </DialogTitle>
                             <p className="text-sm text-gray-500">
-                                Please upload the required documents in order to complete your tutor registration.
+                                Please upload all the required documents to complete your tutor registration.
                             </p>
                         </DialogHeader>
 
                         <div className="space-y-6">
-                            {/* Current document requirement */}
-                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="font-medium text-gray-800">
-                                            {requiredDocuments[currentDocumentIndex].label}
-                                        </h3>
-                                        <p className="text-sm text-gray-600 mt-1">
-                                            {requiredDocuments[currentDocumentIndex].type}
-                                        </p>
-                                    </div>
-                                    {requiredDocuments[currentDocumentIndex].uploaded && (
-                                        <CheckCircle className="h-6 w-6 text-green-500" />
-                                    )}
-                                </div>
-                            </div>
+                            {/* Document requirements list - Horizontal Layout */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {requiredDocuments.map((doc, index) => (
+                                    <div key={index} className="space-y-3">
+                                        <div className={`p-4 rounded-lg border ${doc.uploaded ? 'bg-green-50 border-green-100' : 'bg-blue-50 border-blue-100'}`}>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="font-medium text-gray-800">
+                                                        {doc.label}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 mt-1">
+                                                        {doc.type}
+                                                    </p>
+                                                </div>
+                                                {doc.uploaded ? (
+                                                    <CheckCircle className="h-6 w-6 text-green-500" />
+                                                ) : (
+                                                    <AlertCircle className="h-6 w-6 text-yellow-500" />
+                                                )}
+                                            </div>
+                                        </div>
 
-                            {/* Upload area */}
-                            <div className="space-y-2">
-                                <Label className="text-gray-700">Upload File</Label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                                    <input
-                                        type="file"
-                                        onChange={(e) => handleFileUpload(e, currentDocumentIndex)}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                    />
-                                    <div className="flex flex-col items-center justify-center space-y-2">
-                                        <Upload className="h-8 w-8 text-gray-400" />
-                                        <p className="text-sm text-gray-600">
-                                            Click to upload {requiredDocuments[currentDocumentIndex].label}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            PDF, JPG, PNG up to 10MB
-                                        </p>
+                                        {/* Upload area for each document */}
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                            <input
+                                                type="file"
+                                                onChange={(e) => handleFileUpload(e, index)}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                id={`file-upload-${index}`}
+                                            />
+                                            <label htmlFor={`file-upload-${index}`} className="flex flex-col items-center justify-center space-y-2 cursor-pointer">
+                                                <Upload className="h-8 w-8 text-gray-400" />
+                                                <p className="text-sm text-gray-600">
+                                                    {doc.uploaded ? 'Replace file' : `Upload ${doc.label}`}
+                                                </p>
+                                                {doc.uploaded && (
+                                                    <p className="text-xs text-green-600">
+                                                        {doc.fileName} uploaded
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-gray-500">
+                                                    PDF, JPG, PNG up to 10MB
+                                                </p>
+                                            </label>
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
                             </div>
 
                             {/* Navigation buttons */}
                             <div className="flex justify-between pt-4">
                                 <Button
                                     variant="outline"
-                                    onClick={handlePreviousDocument}
-                                    disabled={currentDocumentIndex === 0}
+                                    onClick={handleTutorBack}
+                                    disabled={loading}
                                 >
-                                    Previous
+                                    Back to Information
                                 </Button>
-
-                                {currentDocumentIndex < requiredDocuments.length - 1 ? (
-                                    <Button
-                                        onClick={handleNextDocument}
-                                        disabled={!requiredDocuments[currentDocumentIndex].uploaded}
-                                    >
-                                        Next Document
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                                        onClick={handleDocumentSubmit}
-                                        disabled={loading || !requiredDocuments.every(doc => doc.uploaded)}
-                                    >
-                                        {loading ? (
-                                            <span className="flex items-center justify-center">
-                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Completing Registration...
-                                            </span>
-                                        ) : (
-                                            'Complete Registration'
-                                        )}
-                                    </Button>
-                                )}
-                            </div>
-
-                            {/* Progress indicator */}
-                            <div className="pt-4">
-                                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                                    <span>Progress</span>
-                                    <span>
-                                        {requiredDocuments.filter(doc => doc.uploaded).length} / {requiredDocuments.length}
-                                    </span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                    <div
-                                        className="bg-blue-600 h-2.5 rounded-full"
-                                        style={{
-                                            width: `${(requiredDocuments.filter(doc => doc.uploaded).length / requiredDocuments.length) * 100}%`
-                                        }}
-                                    ></div>
-                                </div>
+                                
+                                <Button
+                                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                    onClick={handleDocumentSubmit}
+                                    disabled={loading || !requiredDocuments.every(doc => doc.uploaded)}
+                                >
+                                    {loading ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Registering...
+                                        </span>
+                                    ) : (
+                                        'Register Tutor'
+                                    )}
+                                </Button>
                             </div>
                         </div>
                     </DialogContent>
                 </Dialog>
+
+
+
             </div>
 
             <ToastViewport className="fixed bottom-4 right-4 z-50" />

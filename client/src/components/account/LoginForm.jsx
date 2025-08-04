@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, Smartphone, BookOpen, Calendar, MapPin, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Mail, Lock, User, Smartphone, BookOpen, Calendar, MapPin, Send, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield, Star, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -16,16 +16,64 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [otpPhase, setOtpPhase] = useState(false);
   const [otp, setOtp] = useState('');
   const [userId, setUserId] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { login, clearAllAuthData } = useAuth();
+
+  useEffect(() => {
+    const registrationSuccess = searchParams.get('registrationSuccess');
+    if (registrationSuccess) {
+      setSuccess('Registration successful! Please log in to continue.');
+      setTimeout(() => {
+        setSuccess('');
+      }, 5000); // Hide after 5 seconds
+    }
+  }, [searchParams]);
+
+  const getCurrentStorageData = () => {
+    const localUserData = localStorage.getItem('userData');
+    const sessionUserData = sessionStorage.getItem('userData');
+    const localToken = localStorage.getItem('authToken');
+    const sessionToken = sessionStorage.getItem('authToken');
+    
+    return {
+      localStorage: {
+        userData: localUserData ? JSON.parse(localUserData) : null,
+        token: localToken ? 'Present' : 'Not found'
+      },
+      sessionStorage: {
+        userData: sessionUserData ? JSON.parse(sessionUserData) : null,
+        token: sessionToken ? 'Present' : 'Not found'
+      }
+    };
+  };
+
+  const handleClearStorage = () => {
+    clearAllAuthData();
+    setSuccess('Storage cleared successfully! Please refresh the page.');
+    setTimeout(() => {
+      setSuccess('');
+    }, 3000);
+  };
+
+  const handleClearLocalStorageOnly = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    setSuccess('LocalStorage cleared! SessionStorage remains.');
+    setTimeout(() => {
+      setSuccess('');
+    }, 3000);
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    console.log('Login submit:', { email, password, rememberMe });
 
     try {
       const response = await fetch('http://localhost:5000/api/auth/login', {
@@ -37,7 +85,6 @@ export default function LoginForm() {
       });
 
       const data = await response.json();
-      console.log('Login response:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
@@ -56,7 +103,6 @@ export default function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    console.log('OTP submit:', { userId, otp });
 
     try {
       const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
@@ -69,19 +115,51 @@ export default function LoginForm() {
 
       const data = await response.json();
       console.log('OTP verification response:', data);
-
       if (!response.ok) {
         throw new Error(data.message || 'OTP verification failed');
       }
 
-      if (data.token) {
-        if (rememberMe) {
-          localStorage.setItem('authToken', data.token);
+      if (data.accessToken || data.authToken) {
+        console.log('About to call login with:', data.user);
+        console.log('User role from server:', data.user.role);
+        console.log('User ID from server:', data.user._id);
+        
+        // Clear any existing storage before login
+        clearAllAuthData();
+        
+        // Call login first to set the user state
+        login(data.user, data.accessToken, rememberMe);
+        
+        // Redirect based on user role after login is called
+        if (data.user && data.user.role === 'tutor') {
+          setSuccess('Welcome to your Tutor Dashboard! Redirecting...');
+          setTimeout(() => {
+            console.log('Redirecting to tutor dashboard');
+            navigate(`/tutor-dashboard/${data.user._id || data.user.id}`);
+          }, 1000);
+        } else if (data.user && data.user.role === 'admin') {
+          setSuccess('Welcome to Admin Dashboard! Redirecting...');
+          setTimeout(() => {
+            navigate('/admin');
+          }, 1000);
+        } else if (data.user && data.user.role === 'student') {
+          setSuccess('Welcome to your Student Dashboard! Redirecting...');
+          setTimeout(() => {
+            console.log('Redirecting to student dashboard:');
+            navigate(`/student-dashboard/${data.user._id || data.user.id}`);
+          }, 1000);
+        } else if (data.user && data.user.role === 'parent') {
+          setSuccess('Welcome to your Parent Dashboard! Redirecting...');
+          setTimeout(() => {
+            navigate(`/parent-dashboard/${data.user._id || data.user.id}`);
+          }, 1000);
         } else {
-          sessionStorage.setItem('authToken', data.token);
+          setSuccess('Welcome to your Dashboard! Redirecting...');
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
         }
       }
-      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -92,7 +170,6 @@ export default function LoginForm() {
   const handleResendOtp = async () => {
     setIsLoading(true);
     setError('');
-    console.log('Resending OTP for:', { email, userId });
 
     try {
       const response = await fetch('http://localhost:5000/api/auth/login', {
@@ -104,7 +181,6 @@ export default function LoginForm() {
       });
 
       const data = await response.json();
-      console.log('Resend OTP response:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to resend OTP');
@@ -177,6 +253,11 @@ export default function LoginForm() {
                 {error}
               </div>
             )}
+            {success && (
+              <div className="text-sm text-green-600 bg-green-100 p-3 rounded-md mb-4">
+                {success}
+              </div>
+            )}
 
             {!otpPhase ? (
               <form onSubmit={handleLoginSubmit} className="space-y-6">
@@ -238,18 +319,18 @@ export default function LoginForm() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Checkbox
-                        id="remember-me"
-                        checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMe(checked)}
-                        disabled={isLoading}
-                      />
-                      <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                        Remember me
-                      </Label>
-                    </div>
+                                     <div className="flex items-center justify-between">
+                     <div className="flex items-center">
+                       <Checkbox
+                         id="remember-me"
+                         checked={rememberMe}
+                         onCheckedChange={(checked) => setRememberMe(checked)}
+                         disabled={isLoading}
+                       />
+                       <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                         Remember me
+                       </Label>
+                     </div>
 
                     <div className="text-sm">
                       <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
@@ -348,6 +429,18 @@ export default function LoginForm() {
               </a>
             </p>
           </CardFooter>
+          
+          {/* Debug Toggle */}
+          <div className="px-6 pb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              {showDebug ? 'Hide Debug' : 'Show Debug'}
+            </Button>
+          </div>
         </Card>
 
         <Card className="w-full md:w-[60%] bg-white shadow-lg relative z-20">
@@ -391,6 +484,40 @@ export default function LoginForm() {
           </CardFooter>
         </Card>
       </div>
+
+      {showDebug && (
+        <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50">
+          <h3 className="text-lg font-bold mb-2">Debug Storage</h3>
+          <div className="space-y-2">
+            <p>
+              <strong>Local Storage:</strong>
+              <pre className="bg-gray-100 p-2 rounded-md text-sm">
+                {JSON.stringify(getCurrentStorageData().localStorage, null, 2)}
+              </pre>
+            </p>
+            <p>
+              <strong>Session Storage:</strong>
+              <pre className="bg-gray-100 p-2 rounded-md text-sm">
+                {JSON.stringify(getCurrentStorageData().sessionStorage, null, 2)}
+              </pre>
+            </p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleClearStorage}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Clear All Storage
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleClearLocalStorageOnly}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Clear Local Storage Only
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

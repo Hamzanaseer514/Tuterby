@@ -22,11 +22,12 @@ const tutorProfileSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  is_background_checked: {
-    type: Boolean,
-    default: false
+  tutoring_hours: {
+    type: Number,
+    default: 0,
+    min: 0
   },
-  is_id_verified: {
+  is_background_checked: {
     type: Boolean,
     default: false
   },
@@ -35,10 +36,6 @@ const tutorProfileSchema = new mongoose.Schema({
     default: false
   },
   is_qualification_verified: {
-    type: Boolean,
-    default: false
-  },
-  is_profile_approved: {
     type: Boolean,
     default: false
   },

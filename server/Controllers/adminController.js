@@ -5,6 +5,8 @@ const TutorDocument = require("../Models/tutorDocumentSchema");
 const User = require("../Models/userSchema");
 const mongoose = require("mongoose");
 const sendEmail = require("../Utils/sendEmail");
+const generateOtpEmail = require("../Utils/otpTempelate");
+
 
 exports.getAllPendingApplications = async (req, res) => {
   try {
@@ -184,7 +186,7 @@ exports.verifyReferenceChecks = async (req, res) => {
       document_type: "Reference Letter",
     });
 
-    if (referenceDocs.length < 2) {
+    if (referenceDocs.length < 1) {
       return res
         .status(400)
         .json({ message: "Less than 2 reference letters found." });
@@ -268,8 +270,7 @@ exports.approveTutorProfile = async (req, res) => {
     const allVerified =
       profile.is_background_checked &&
       profile.is_reference_verified &&
-      profile.is_qualification_verified &&
-      application.interview_status === "Passed";
+      profile.is_qualification_verified;
 
     if (!allVerified) {
       return res.status(400).json({
@@ -279,7 +280,6 @@ exports.approveTutorProfile = async (req, res) => {
 
     // Approve tutor
     profile.profile_status = "approved";
-    profile.is_approved = true;
     user.is_verified = true;
 
     await profile.save();
@@ -294,6 +294,7 @@ exports.approveTutorProfile = async (req, res) => {
     return res
       .status(200)
       .json({ message: "Tutor profile approved and email sent." });
+    // res.status(200).json({ message: "Tutor profile approved and email sent." });
 
   } catch (err) {
     console.error("Error approving tutor:", err);
@@ -302,6 +303,7 @@ exports.approveTutorProfile = async (req, res) => {
       error: err.message,
     });
   }
+
 };
 
 exports.rejectTutorProfile = async (req, res) => {
@@ -309,48 +311,66 @@ exports.rejectTutorProfile = async (req, res) => {
 
   try {
     const profile = await TutorProfile.findOne({ _id: tutor_id });
+    const application = await TutorApplication.findOne({ tutor_id });
 
-    if (!profile) {
-      return res.status(404).json({ message: "Tutor profile not found." });
+    if (!profile || !application) {
+      return res.status(404).json({ message: "Tutor profile or application not found." });
     }
 
-    await TutorProfile.findOneAndUpdate(
+    const user = await User.findOne({ _id: profile.user_id });
+
+    // Set all statuses to false
+    profile.profile_status = "rejected";
+    profile.rejection_reason = reason || "Not specified";
+    profile.is_background_checked = false;
+    profile.is_reference_verified = false;
+    profile.is_qualification_verified = false;
+    application.application_status = "Rejected";
+
+    user.is_verified = false;
+
+    await profile.save();
+    await user.save();
+    await application.save();
+
+    // ❗ Reject all documents
+    await TutorDocument.updateMany(
       { tutor_id },
-      {
-        profile_status: "rejected",
-        rejection_reason: reason || "Not specified",
-        interview_status: "Rejected",
-        is_background_verified: false,
-        is_reference_verified: false,
-        is_qualification_verified: false,
-      }
+      { $set: { verification_status: "Rejected" } }
+    );
+    await sendEmail(
+      user.email,
+      "Tutor Rejected",
+      "Sorry! Your tutor profile has been rejected. Please contact the admin for more information."
     );
 
     res.status(200).json({
-      message: "Tutor application rejected and all statuses cleared.",
+      message: "Tutor application rejected. Profile and documents updated.",
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to reject tutor", error: err.message });
+    res.status(500).json({
+      message: "Failed to reject tutor",
+      error: err.message,
+    });
   }
 };
 
+
 // Rejection
-exports.rejectTutorProfile = async (req, res) => {
-  const { tutor_id, reason } = req.body;
-  try {
-    await TutorProfile.findOneAndUpdate(
-      { id: tutor_id },
-      {
-        profile_status: "rejected",
-        rejection_reason: reason || "Not specified",
-      }
-    );
-    res.status(200).json({ message: "Tutor application rejected." });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to reject tutor", error: err.message });
-  }
-};
+// exports.rejectTutorProfile = async (req, res) => {
+//   const { tutor_id, reason } = req.body;
+//   try {
+//     await TutorProfile.findOneAndUpdate(
+//       { id: tutor_id },
+//       {
+//         profile_status: "rejected",
+//         rejection_reason: reason || "Not specified",
+//       }
+//     );
+//     res.status(200).json({ message: "Tutor application rejected." });
+//   } catch (err) {
+//     res
+//       .status(500)
+//       .json({ message: "Failed to reject tutor", error: err.message });
+//   }
+// };

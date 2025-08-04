@@ -19,10 +19,6 @@ const tutorDocumentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  verified_by_admin: {
-    type: Boolean,
-    default: false
-  },
   verification_status: {
     type: String,
     enum: ['Pending', 'Approved', 'Rejected'],

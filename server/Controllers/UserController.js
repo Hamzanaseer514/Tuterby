@@ -5,10 +5,13 @@ const TutorProfile = require("../Models/tutorProfileSchema");
 const TutorApplication = require("../Models/tutorApplicationSchema");
 const TutorDocument = require("../Models/tutorDocumentSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
+const TutoringSession = require("../Models/tutoringSessionSchema"); // Added for student dashboard
 const { generateAccessToken, generateRefreshToken } = require("../Utils/generateTokens");
 const sendEmail = require("../Utils/sendEmail");
 const otpStore = require("../Utils/otpStore");
 const generateOtpEmail = require("../Utils/otpTempelate");
+const path = require("path");
+
 
 
 exports.registerUser = asyncHandler(async (req, res) => {
@@ -116,10 +119,11 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     experience_years,
     subjects, // array of subjects
     bio,
-    code_of_conduct_agreed
+    code_of_conduct_agreed,
+    documentsMap
   } = req.body;
-
-  if (!email || !password || !age || !full_name || !qualifications || !subjects || !experience_years || code_of_conduct_agreed === undefined) {
+console.log(req.body);
+  if (!email || !password || !age || !full_name || !photo_url || !qualifications || !subjects || !experience_years || code_of_conduct_agreed === undefined || !documentsMap) {
     res.status(400);
     throw new Error("All required fields must be provided");
   }
@@ -140,7 +144,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         full_name,
         email,
         password,
-    phone_number,
+        phone_number,
         age,
         role: "tutor",
         photo_url,
@@ -171,7 +175,54 @@ exports.registerTutor = asyncHandler(async (req, res) => {
       }],
       // { session }
     );
+    
+    const savedDocuments = [];
+    const documentMapRaw = req.body.documentsMap;
+    
+    if (documentMapRaw && req.files && req.files['documents']) {
+      let documentsObj;
+      try {
+        documentsObj = JSON.parse(documentMapRaw);
+      } catch (error) {
+        res.status(400);
+        throw new Error("Invalid documentsMap format");
+      }
+    
+      for (const [documentType, originalFileName] of Object.entries(documentsObj)) {
+        const uploadedFile = req.files['documents'].find(file => file.originalname === originalFileName);
+      console.log(uploadedFile);
+        if (!uploadedFile) continue;
+        
+        // Optionally rename file to include document type
+        const oldPath = uploadedFile.path;
+        const ext = path.extname(uploadedFile.filename);
+        const base = path.basename(uploadedFile.filename, ext);
+        const newFilename = `${documentType.replace(/\s+/g, '_')}_${base}${ext}`;
+        const fs = require('fs');
+        const newPath = `uploads/documents/${newFilename}`;
+    
+        // Rename the file on disk
+        fs.renameSync(oldPath, newPath);
+    
+        const relativePath = `/uploads/documents/${newFilename}`;
+    
+        const newDoc = await TutorDocument.create({
+          tutor_id: tutorProfile[0]._id,
+          document_type: documentType,
+          file_url: relativePath,
+          uploaded_at: new Date(),
+          verified_by_admin: false,
+          verification_status: "Pending"
+        });
+    
+        savedDocuments.push(newDoc);
+      }
+    }
+    
+    
 
+    
+    
     // await session.commitTransaction();
     // session.endSession();
 
@@ -182,12 +233,13 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         full_name: user[0].full_name,
         email: user[0].email,
         role: user[0].role,
-        phone_number:user[0].phone_number,
+        phone_number: user[0].phone_number,
         age: user[0].age,
         photo_url: user[0].photo_url
       },
       profile: tutorProfile[0],
-      application: tutorApplication[0]
+      application: tutorApplication[0],
+      documents: savedDocuments
     });
 
   } catch (error) {
@@ -356,8 +408,6 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
 });
 
 
-
-
 exports.loginUser = asyncHandler(async (req, res) => {
   console.log("Registering user with data:", req.body);
   const { email, password } = req.body;
@@ -434,18 +484,28 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 
   // ✅ Case 2: Login
   let roleData = null;
+  
+  console.log('User role for OTP verification:', user.role);
+  console.log('User ID for OTP verification:', user._id);
 
   if (user.role === "student") {
     roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-  }
-  if (user.role === "tutor") {
+    console.log('Found student role data:', roleData);
+  } else if (user.role === "tutor") {
     roleData = await TutorProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-  }
-  if (user.role === "parent") {
+    console.log('Found tutor role data:', roleData);
+  } else if (user.role === "parent") {
     roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-  }
-  if (user.role === "admin") {
-    roleData = await AdminProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
+    console.log('Found parent role data:', roleData);
+  } else if (user.role === "admin") {
+    // Admin doesn't need separate profile data, use basic user info
+    roleData = {
+      _id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role
+    };
+    console.log('Created admin role data:', roleData);
   }
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -459,7 +519,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 
   delete otpStore[userId];
 
-  res.status(200).json({
+  const responseData = {
     message: "Login successful",
     user: {
       _id: user._id,
@@ -471,7 +531,10 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     },
     data: roleData,
     accessToken,
-  });
+  };
+  
+  console.log('Sending response data:', responseData);
+  res.status(200).json(responseData);
 });
 
 
@@ -685,4 +748,178 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   await user.save();
 
   res.status(200).json({ message: "Password reset successfully" });
+});
+
+// Student Dashboard Controllers
+exports.getStudentDashboard = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  
+  const student = await User.findById(studentId);
+  if (!student || student.role !== 'student') {
+    res.status(404);
+    throw new Error('Student not found');
+  }
+
+  // Get student profile with assignments and notes
+  const studentProfile = await Student.findOne({ user_id: studentId });
+  
+  // Get upcoming sessions
+  const upcomingSessions = await TutoringSession.find({
+    student_id: studentId,
+    session_date: { $gte: new Date() },
+    status: { $in: ['confirmed', 'pending'] }
+  }).populate('tutor_id', 'full_name email photo_url')
+    .sort({ session_date: 1 })
+    .limit(10);
+
+  // Get past sessions
+  const pastSessions = await TutoringSession.find({
+    student_id: studentId,
+    session_date: { $lt: new Date() },
+    status: 'completed'
+  }).populate('tutor_id', 'full_name email photo_url')
+    .sort({ session_date: -1 })
+    .limit(10);
+
+  // Get recent assignments
+  const recentAssignments = studentProfile?.assignments?.slice(-5) || [];
+  
+  // Get recent notes
+  const recentNotes = studentProfile?.notes?.slice(-5) || [];
+
+  res.status(200).json({
+    student: {
+      _id: student._id,
+      full_name: student.full_name,
+      email: student.email,
+      photo_url: student.photo_url
+    },
+    profile: studentProfile,
+    upcomingSessions,
+    pastSessions,
+    recentAssignments,
+    recentNotes
+  });
+});
+
+exports.getStudentSessions = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const { status, page = 1, limit = 10 } = req.query;
+  
+  const student = await User.findById(studentId);
+  if (!student || student.role !== 'student') {
+    res.status(404);
+    throw new Error('Student not found');
+  }
+
+  const query = { student_id: studentId };
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  const sessions = await TutoringSession.find(query)
+    .populate('tutor_id', 'full_name email photo_url')
+    .sort({ session_date: -1 })
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit));
+
+  const total = await TutoringSession.countDocuments(query);
+
+  res.status(200).json({
+    sessions,
+    pagination: {
+      current: parseInt(page),
+      total: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1
+    }
+  });
+});
+
+exports.updateStudentPreferences = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const { preferred_subjects, preferences, learning_goals, academic_level } = req.body;
+  
+  const student = await User.findById(studentId);
+  if (!student || student.role !== 'student') {
+    res.status(404);
+    throw new Error('Student not found');
+  }
+
+  const updateData = {};
+  if (preferred_subjects) updateData.preferred_subjects = preferred_subjects;
+  if (preferences) updateData.preferences = preferences;
+  if (learning_goals) updateData.learning_goals = learning_goals;
+  if (academic_level) updateData.academic_level = academic_level;
+
+  const updatedProfile = await Student.findOneAndUpdate(
+    { user_id: studentId },
+    updateData,
+    { new: true }
+  );
+
+  res.status(200).json({
+    message: 'Preferences updated successfully',
+    profile: updatedProfile
+  });
+});
+
+exports.getStudentAssignments = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  
+  const studentProfile = await Student.findOne({ user_id: studentId });
+  if (!studentProfile) {
+    res.status(404);
+    throw new Error('Student profile not found');
+  }
+
+  const assignments = studentProfile.assignments || [];
+  
+  // Populate tutor information for assignments
+  const populatedAssignments = await Promise.all(
+    assignments.map(async (assignment) => {
+      if (assignment.tutor_id) {
+        const tutor = await User.findById(assignment.tutor_id).select('full_name email');
+        return {
+          ...assignment.toObject(),
+          tutor: tutor
+        };
+      }
+      return assignment;
+    })
+  );
+
+  res.status(200).json({
+    assignments: populatedAssignments
+  });
+});
+
+exports.getStudentNotes = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  
+  const studentProfile = await Student.findOne({ user_id: studentId });
+  if (!studentProfile) {
+    res.status(404);
+    throw new Error('Student profile not found');
+  }
+
+  const notes = studentProfile.notes || [];
+  
+  // Populate tutor information for notes
+  const populatedNotes = await Promise.all(
+    notes.map(async (note) => {
+      if (note.tutor_id) {
+        const tutor = await User.findById(note.tutor_id).select('full_name email');
+        return {
+          ...note.toObject(),
+          tutor: tutor
+        };
+      }
+      return note;
+    })
+  );
+
+  res.status(200).json({
+    notes: populatedNotes
+  });
 });
