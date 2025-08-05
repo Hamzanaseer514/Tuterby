@@ -94,7 +94,6 @@ const TutorSearch = ({ studentId }) => {
         throw new Error('Failed to load tutors');
       }
       const data = await response.json();
-      console.log("response",data);
       setTutors(data.tutors);
       setTotalPages(data.pagination.total_pages);
       setCurrentPage(1);

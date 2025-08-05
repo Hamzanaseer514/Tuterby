@@ -365,21 +365,11 @@ const RequestHelp = ({ studentId }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => navigate(`/student-dashboard/${studentId}`)} 
-            variant="outline"
-            size="sm"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Request Additional Help</h1>
-            <p className="text-gray-600 mt-1">
-              {showTutorSelection ? 'Select a tutor to request help from' : 'Submit your help request'}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Request Additional Help</h1>
+          <p className="text-gray-600 mt-1">
+            {showTutorSelection ? 'Select a tutor to request help from' : 'Submit your help request'}
+          </p>
         </div>
       </div>
 

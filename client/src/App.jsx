@@ -17,7 +17,7 @@ import React, { Suspense, lazy } from 'react';
     const ChatbotWidget = lazy(() => import('@/components/ChatbotWidget'));
 
     const Register = lazy(() => import('./components/account/register'));
-const AdminDashboard = lazy(() => import('./components/admin/admin'));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const LoginForm = lazy(() => import('./components/account/LoginForm.jsx'));
 const TutorDashboardPage = lazy(() => import('./pages/TutorDashboardPage'));
 const TutorAvailabilityPage = lazy(() => import('./pages/TutorAvailabilityPage'));

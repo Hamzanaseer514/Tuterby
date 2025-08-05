@@ -45,17 +45,14 @@ const InquiryManagement = ({ tutorId }) => {
         ? `http://localhost:5000/api/tutor/inquiries/${tutorId}`
         : `http://localhost:5000/api/tutor/inquiries/${tutorId}?status=${filter}`;
       
-      console.log("Fetching inquiries from:", url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch inquiries');
       }
       const data = await response.json();
-      console.log("inquiries response:", data);
-      console.log("inquiries array:", data.inquiries);
-      if (data.inquiries && data.inquiries.length > 0) {
-        console.log("First inquiry:", data.inquiries[0]);
-      }
+      console.log("data",data);
+      console.log("data full_name",data.inquiries[0].student_id.user_id.full_name);
+      
       setInquiries(data.inquiries || []);
     } catch (err) {
       console.error('Error fetching inquiries:', err);
@@ -193,7 +190,7 @@ const InquiryManagement = ({ tutorId }) => {
                         <MessageSquare className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">{inquiry.student_id.full_name}</h3>
+                        <h3 className="font-semibold text-lg">{inquiry.student_id.user_id.full_name}</h3>
                         <p className="text-gray-600">{inquiry.subject}</p>
                         <p className="text-sm text-gray-500">{formatDate(inquiry.created_at)}</p>
                         <div className="mt-2">
@@ -252,7 +249,7 @@ const InquiryManagement = ({ tutorId }) => {
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-600">From</Label>
-                  <p className="text-lg font-semibold">{selectedInquiry.student_id.full_name}</p>
+                  <p className="text-lg font-semibold">{selectedInquiry.student_id.user_id.full_name}</p>
                 </div>
                 
                 <div>

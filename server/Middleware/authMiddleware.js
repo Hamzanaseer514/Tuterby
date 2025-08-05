@@ -5,15 +5,12 @@ const  User  = require("../Models/userSchema");
 
 const protect = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
-   console.log("Authorization Header:", authHeader); // Debugging line
+  //  console.log("Authorization Header:", authHeader); // Debugging line
   if (authHeader && authHeader.startsWith("Bearer")) {
       try {
         const token = authHeader.split(" ")[1];
-        console.log("Token:", token); // Debugging line
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("Decoded Token:", decoded); // Debugging line
         req.user = await User.findById(decoded.id).select("-password");
-        console.log("User from Token:", req.user); // Debugging line
         if (!req.user) {
           res.status(401);
           throw new Error("User not found");

@@ -375,33 +375,7 @@ const TutorDashboard = ({ tutorId }) => {
           <p className="text-gray-600">Manage your tutoring business and track your performance</p>
         </div>
 
-        {/* Navigation */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-4">
-            <Button 
-              variant="outline" 
-              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-              onClick={() => navigate(`/tutor-dashboard/${tutorId}/availability`)}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Manage Availability
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate(`/tutor-dashboard/${tutorId}/sessions`)}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              View All Sessions
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate(`/tutor-dashboard/${tutorId}/inquiries`)}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              View All Inquiries
-            </Button>
-          </div>
-        </div>
+       
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -532,7 +506,7 @@ const TutorDashboard = ({ tutorId }) => {
                   {pendingInquiries.slice(0, 3).map((inquiry) => (
                     <div key={inquiry._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-sm">{inquiry.student_id.full_name}</p>
+                        {/* <p className="font-medium text-sm">{inquiry.student_id.user_id.full_name}</p> */}
                         <p className="text-xs text-gray-600">{inquiry.subject}</p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -1064,7 +1038,7 @@ const TutorDashboard = ({ tutorId }) => {
             <form onSubmit={handleReplyToInquiry} className="space-y-4">
               <div>
                 <Label className="text-sm font-medium text-gray-600">From</Label>
-                <p className="text-lg font-semibold">{selectedInquiry.student_id.full_name}</p>
+                {/* <p className="text-lg font-semibold">{selectedInquiry.student_id.user_id.full_name}</p> */}
               </div>
               
               <div>

@@ -8,7 +8,7 @@ const tutorInquirySchema = new mongoose.Schema({
   },
   student_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'StudentProfile',
     required: true
   },
   subject: {

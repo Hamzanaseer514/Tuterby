@@ -90,6 +90,20 @@ export default function LoginForm() {
         throw new Error(data.message || 'Login failed');
       }
 
+      // Check if this is an admin login (no OTP required)
+      if (data.user && data.user.role === 'admin') {
+        console.log("admin login",data.user);
+        // Admin login - handle directly
+        clearAllAuthData();
+        login(data.user, data.accessToken, rememberMe);
+        setSuccess('Welcome to Admin Dashboard! Redirecting...');
+        setTimeout(() => {
+          navigate('/admin');
+        }, 1000);
+        return;
+      }
+
+      // Regular user login - proceed to OTP
       setUserId(data.userId);
       setOtpPhase(true);
     } catch (err) {
@@ -120,27 +134,20 @@ export default function LoginForm() {
       }
 
       if (data.accessToken || data.authToken) {
-        console.log('About to call login with:', data.user);
-        console.log('User role from server:', data.user.role);
-        console.log('User ID from server:', data.user._id);
+       
         
         // Clear any existing storage before login
         clearAllAuthData();
         
         // Call login first to set the user state
         login(data.user, data.accessToken, rememberMe);
-        
+        console.log('User data:', data.data, data.data._id);
         // Redirect based on user role after login is called
         if (data.user && data.user.role === 'tutor') {
           setSuccess('Welcome to your Tutor Dashboard! Redirecting...');
           setTimeout(() => {
             console.log('Redirecting to tutor dashboard');
-            navigate(`/tutor-dashboard/${data.user._id || data.user.id}`);
-          }, 1000);
-        } else if (data.user && data.user.role === 'admin') {
-          setSuccess('Welcome to Admin Dashboard! Redirecting...');
-          setTimeout(() => {
-            navigate('/admin');
+            navigate(`/tutor-dashboard/${data.data._id}`);
           }, 1000);
         } else if (data.user && data.user.role === 'student') {
           setSuccess('Welcome to your Student Dashboard! Redirecting...');

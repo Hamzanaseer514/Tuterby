@@ -127,7 +127,6 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     code_of_conduct_agreed,
     documentsMap
   } = req.body;
-console.log(req.body);
   if (!email || !password || !age || !full_name || !photo_url || !qualifications || !subjects || !academic_levels_taught || !location || !hourly_rate || !experience_years || code_of_conduct_agreed === undefined || !documentsMap) {
     res.status(400);
     throw new Error("All required fields must be provided");
@@ -202,7 +201,6 @@ console.log(req.body);
     
       for (const [documentType, originalFileName] of Object.entries(documentsObj)) {
         const uploadedFile = req.files['documents'].find(file => file.originalname === originalFileName);
-      console.log(uploadedFile);
         if (!uploadedFile) continue;
         
         // Optionally rename file to include document type
@@ -421,7 +419,6 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
 
 
 exports.loginUser = asyncHandler(async (req, res) => {
-  console.log("Registering user with data:", req.body);
   const { email, password } = req.body;
   if (!email || !password) {
     res.status(400);
@@ -436,6 +433,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     res.status(403);
     throw new Error("User not verified. please be Patient, Admin will verify you soon");
   }
+  if(user.role === "student" || user.role === "tutor" || user.role === "parent"){
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[user._id] = {
     otp,
@@ -451,12 +449,35 @@ exports.loginUser = asyncHandler(async (req, res) => {
     userId: user._id,
     email: user.email,
   });
+}else if(user.role === "admin"){
+  // Admin login - no OTP required
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(200).json({
+    message: "Admin login successful",
+    user: {
+      _id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role,
+      is_verified: user.is_verified
+    },
+    accessToken
+  });
+}
 });
 
 
 exports.verifyOtp = asyncHandler(async (req, res) => {
   const { userId, otp } = req.body;
-  console.log("Verifying OTP for user:", req.body);
   const entry = otpStore[userId];
 
   if (!entry) {
@@ -497,18 +518,17 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   // ✅ Case 2: Login
   let roleData = null;
   
-  console.log('User role for OTP verification:', user.role);
-  console.log('User ID for OTP verification:', user._id);
+
 
   if (user.role === "student") {
     roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-    console.log('Found student role data:', roleData);
+    // console.log('Found student role data:', roleData);
   } else if (user.role === "tutor") {
     roleData = await TutorProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-    console.log('Found tutor role data:', roleData);
+    // console.log('Found tutor role data:', roleData);
   } else if (user.role === "parent") {
     roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-    console.log('Found parent role data:', roleData);
+    // console.log('Found parent role data:', roleData);
   } else if (user.role === "admin") {
     // Admin doesn't need separate profile data, use basic user info
     roleData = {
@@ -517,7 +537,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role
     };
-    console.log('Created admin role data:', roleData);
+    // console.log('Created admin role data:', roleData);
   }
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -545,7 +565,6 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     accessToken,
   };
   
-  console.log('Sending response data:', responseData);
   res.status(200).json(responseData);
 });
 
@@ -591,7 +610,6 @@ exports.resendOtp = asyncHandler(async (req, res) => {
 
 
 exports.addAdmin = asyncHandler(async (req, res) => {
-  console.log("Adding admin with data:", req.body);
   const { full_name, email, password, phone_number } = req.body;
 
   if (!email || !password || !full_name || !phone_number) {
@@ -1128,16 +1146,15 @@ exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
     urgency_level = 'normal',
     tutor_id // Add tutor_id to destructuring
   } = req.body;
-
   if (!subject || !academic_level || !description) {
     res.status(400);
     throw new Error("Subject, academic level, and description are required");
   }
-
+  const student = await Student.findOne({user_id:studentId});
   try {
     // Create a new inquiry for additional help
     const inquiry = await TutorInquiry.create({
-      student_id: studentId,
+      student_id: student._id,
       tutor_id: tutor_id, // Save the tutor_id
       subject: subject,
       academic_level: academic_level,
@@ -1205,12 +1222,12 @@ exports.createTutorInquiry = asyncHandler(async (req, res) => {
 exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
   const { studentId } = req.params;
   const { page = 1, limit = 10 } = req.query;
-
+  const student = await Student.findOne({user_id:studentId});
   try {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const inquiries = await TutorInquiry.find({
-      student_id: studentId
+      student_id: student._id
       // Removed type filter to show both tutor_inquiry and additional_help
     })
     .populate('tutor_id', 'full_name email')
@@ -1219,7 +1236,7 @@ exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
     .limit(parseInt(limit));
 
     const total = await TutorInquiry.countDocuments({
-      student_id: studentId
+      student_id: student._id
       // Removed type filter to count both types
     });
 

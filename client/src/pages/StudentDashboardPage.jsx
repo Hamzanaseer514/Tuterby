@@ -25,7 +25,6 @@ const StudentDashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('StudentDashboardPage useEffect - authLoading:', authLoading, 'user:', user);
     
     // Wait for auth to finish loading before checking user
     if (authLoading) {
@@ -53,7 +52,7 @@ const StudentDashboardPage = () => {
     }
 
     // Check if the studentId in URL matches the logged-in user
-    const userId = user._id || user.id;
+    const userId = studentId;
     if (userId !== studentId) {
       console.log('User ID mismatch:', userId, 'vs', studentId);
       toast({
@@ -65,7 +64,6 @@ const StudentDashboardPage = () => {
       return;
     }
 
-    console.log('Access granted, setting loading to false');
     setLoading(false);
   }, [user, studentId, navigate, toast, authLoading]);
 

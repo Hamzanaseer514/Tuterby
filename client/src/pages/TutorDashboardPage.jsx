@@ -35,8 +35,7 @@ const TutorDashboardPage = () => {
       }
       
       // Use URL parameter if available, otherwise use user ID
-      const finalTutorId = urlTutorId || user._id;
-      console.log("TutorDashboardPage - Setting tutorId:", finalTutorId, "urlTutorId:", urlTutorId, "user._id:", user._id);
+      const finalTutorId = urlTutorId || tutorId;
       setTutorId(finalTutorId);
     }
   }, [user, loading, navigate, isTutor, urlTutorId]);
