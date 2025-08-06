@@ -258,6 +258,91 @@ const DocumentItem = ({ doc, onVerify, onReject, onAddNotes }) => (
   </ListItem>
 );
 
+const DocumentCategoryItem = ({ category, documents, onVerify, onReject, onAddNotes }) => {
+  const getCategoryIcon = (categoryName) => {
+    switch (categoryName) {
+      case 'Qualifications':
+        return <School />;
+      case 'Identity Documents':
+        return <Person />;
+      case 'References':
+        return <ContactMail />;
+      case 'Background Checks':
+        return <Gavel />;
+      case 'Other Documents':
+        return <Description />;
+      default:
+        return <Description />;
+    }
+  };
+
+  const getCategoryColor = (categoryName) => {
+    switch (categoryName) {
+      case 'Qualifications':
+        return 'primary';
+      case 'Identity Documents':
+        return 'secondary';
+      case 'References':
+        return 'info';
+      case 'Background Checks':
+        return 'warning';
+      case 'Other Documents':
+        return 'default';
+      default:
+        return 'default';
+    }
+  };
+
+  const verifiedCount = documents.filter(doc => doc.verified).length;
+  const totalCount = documents.length;
+
+  return (
+    <Accordion defaultExpanded sx={{ mb: 1 }}>
+      <AccordionSummary expandIcon={<ExpandMore />}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            <Box sx={{ 
+              color: `${getCategoryColor(category)}.main`, 
+              mr: 1,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              {getCategoryIcon(category)}
+            </Box>
+            <Typography variant="subtitle1" fontWeight="medium">
+              {category}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Chip 
+              label={`${verifiedCount}/${totalCount} Verified`} 
+              size="small" 
+              color={verifiedCount === totalCount ? "success" : "warning"}
+              variant={verifiedCount === totalCount ? "filled" : "outlined"}
+            />
+            {verifiedCount === totalCount && <CheckCircle color="success" fontSize="small" />}
+          </Box>
+        </Box>
+      </AccordionSummary>
+      <AccordionDetails sx={{ pt: 0 }}>
+        <List dense>
+          {documents.map((doc, index) => (
+            <Box key={index}>
+              <DocumentItem
+                doc={doc}
+                onVerify={onVerify}
+                onReject={onReject}
+                onAddNotes={onAddNotes}
+              />
+              {index < documents.length - 1 && <Divider />}
+            </Box>
+          ))}
+        </List>
+      </AccordionDetails>
+    </Accordion>
+  );
+};
+
 const InterviewSlotItem = ({ slot, tutorId, onSchedule, onComplete, onAddResult }) => (
   <ListItem>
     <ListItemIcon>
@@ -616,6 +701,41 @@ const AdminDashboard = () => {
     setSnackbar({ open: true, message: `Notes functionality for ${docType} will be implemented soon`, severity: 'info' });
   };
 
+  // Function to categorize documents
+  const categorizeDocuments = (documents) => {
+    const categories = {
+      'Qualifications': [],
+      'Identity Documents': [],
+      'References': [],
+      'Background Checks': []
+    };
+
+    documents.forEach(doc => {
+      const docType = doc.type.toLowerCase();
+      
+      if (docType.includes('degree') || docType.includes('certificate') || docType.includes('qualification')) {
+        categories['Qualifications'].push(doc);
+      } else if (docType.includes('id') || docType.includes('passport') || docType.includes('address')) {
+        categories['Identity Documents'].push(doc);
+      } else if (docType.includes('reference') || docType.includes('letter')) {
+        categories['References'].push(doc);
+      } else if (docType.includes('background') || docType.includes('dbs') || docType.includes('check')) {
+        categories['Background Checks'].push(doc);
+      } else {
+        // For any other documents, add to a general category
+        if (!categories['Other Documents']) {
+          categories['Other Documents'] = [];
+        }
+        categories['Other Documents'].push(doc);
+      }
+    });
+
+    // Remove empty categories
+    return Object.fromEntries(
+      Object.entries(categories).filter(([key, value]) => value.length > 0)
+    );
+  };
+
   // Load available interview slots when viewing tutor details
   useEffect(() => {
     if (selectedUser && tabValue === 'tutors') {
@@ -949,19 +1069,19 @@ const AdminDashboard = () => {
                       </Box>
                     </AccordionSummary>
                     <AccordionDetails>
-                      <List dense>
-                        {selectedUser.documents.map((doc, index) => (
-                          <Box key={index}>
-                            <DocumentItem
-                              doc={doc}
-                              onVerify={handleVerifyDocument}
-                              onReject={handleRejectDocument}
-                              onAddNotes={handleAddDocumentNotes}
-                            />
-                            {index < selectedUser.documents.length - 1 && <Divider />}
-                          </Box>
-                        ))}
-                      </List>
+                      {(() => {
+                        const categorizedDocs = categorizeDocuments(selectedUser.documents);
+                        return Object.entries(categorizedDocs).map(([category, documents]) => (
+                          <DocumentCategoryItem
+                            key={category}
+                            category={category}
+                            documents={documents}
+                            onVerify={handleVerifyDocument}
+                            onReject={handleRejectDocument}
+                            onAddNotes={handleAddDocumentNotes}
+                          />
+                        ));
+                      })()}
                     </AccordionDetails>
                   </Accordion>
                   
