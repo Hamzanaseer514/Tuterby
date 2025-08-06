@@ -28,26 +28,26 @@ import {
   Eye
 } from 'lucide-react';
 
-const StudentDashboard = ({ studentId }) => {
+const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken } = useAuth();
+  const { getAuthToken, user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (studentId) {
+    if (user) {
       fetchDashboardData();
     }
-  }, [studentId]);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-      const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${studentId}`, {
+      const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${user?._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

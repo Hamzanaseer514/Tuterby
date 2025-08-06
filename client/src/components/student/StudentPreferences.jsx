@@ -26,10 +26,10 @@ import {
   Plus
 } from 'lucide-react';
 
-const StudentPreferences = ({ studentId }) => {
+const StudentPreferences = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken } = useAuth();
+  const { getAuthToken, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -61,16 +61,16 @@ const StudentPreferences = ({ studentId }) => {
   ];
 
   useEffect(() => {
-    if (studentId) {
+    if (user) {
       fetchProfile();
     }
-  }, [studentId]);
+  }, [user]);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-              const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${studentId}`, {
+              const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${user?._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -110,7 +110,7 @@ const StudentPreferences = ({ studentId }) => {
     try {
       setSaving(true);
       const token = getAuthToken();
-              const response = await fetch(`http://localhost:5000/api/auth/student/preferences/${studentId}`, {
+              const response = await fetch(`http://localhost:5000/api/auth/student/preferences/${user?._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,7 +178,7 @@ const StudentPreferences = ({ studentId }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button 
-            onClick={() => navigate(`/student-dashboard/${studentId}`)} 
+            onClick={() => navigate(`/student-dashboard`)} 
             variant="outline"
             size="sm"
           >

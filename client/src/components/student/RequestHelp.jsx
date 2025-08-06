@@ -32,11 +32,11 @@ import {
   BookOpen
 } from 'lucide-react';
 
-const RequestHelp = ({ studentId }) => {
+const RequestHelp = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { getAuthToken } = useAuth();
+  const { getAuthToken, user} = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [helpRequests, setHelpRequests] = useState([]);
@@ -65,11 +65,11 @@ const RequestHelp = ({ studentId }) => {
   });
 
   useEffect(() => {
-    if (studentId) {
+    if (user) {
       fetchHelpRequests();
       loadTutors();
     }
-  }, [studentId, currentPage]);
+  }, [user, currentPage]);
 
   useEffect(() => {
     // Check if we have a selected tutor from the tutor search
@@ -193,7 +193,7 @@ const RequestHelp = ({ studentId }) => {
         limit: 10
       });
       
-      const response = await fetch(`http://localhost:5000/api/auth/student/${studentId}/help-requests?${params}`, {
+      const response = await fetch(`http://localhost:5000/api/auth/student/${user?._id}/help-requests?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -256,7 +256,7 @@ const RequestHelp = ({ studentId }) => {
         tutor_id: selectedTutor._id
       };
       
-      const response = await fetch(`http://localhost:5000/api/auth/student/${studentId}/help-request`, {
+      const response = await fetch(`http://localhost:5000/api/auth/student/${user?._id}/help-request`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

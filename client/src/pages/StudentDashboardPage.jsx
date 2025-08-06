@@ -61,13 +61,13 @@ const StudentDashboardPage = () => {
       id: 'dashboard',
       name: 'Dashboard',
       icon: LayoutDashboard,
-      component: <StudentDashboard studentId={user?._id} />,
+      component: <StudentDashboard  />,
     },
     {
       id: 'sessions',
       name: 'My Sessions',
       icon: Calendar,
-      component: <StudentSessions studentId={user?._id} />,
+      component: <StudentSessions />,
     },
     {
       id: 'assignments',
@@ -85,7 +85,7 @@ const StudentDashboardPage = () => {
       id: 'preferences',
       name: 'Preferences',
       icon: Settings,
-      component: <StudentPreferences studentId={user?._id} />,
+      component: <StudentPreferences />,
     },
   ];
 

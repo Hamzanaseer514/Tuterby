@@ -23,10 +23,10 @@ import {
   Search
 } from 'lucide-react';
 
-const StudentSessions = ({ studentId }) => {
+const StudentSessions = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken } = useAuth();
+  const { getAuthToken, user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,10 +36,10 @@ const StudentSessions = ({ studentId }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (studentId) {
+    if (user) {
       fetchSessions();
     }
-  }, [studentId, currentPage, statusFilter]);
+  }, [user, currentPage, statusFilter]);
 
   const fetchSessions = async () => {
     try {
@@ -51,8 +51,8 @@ const StudentSessions = ({ studentId }) => {
         limit: 10,
         ...(statusFilter !== 'all' && { status: statusFilter })
       });
-      
-              const response = await fetch(`http://localhost:5000/api/auth/student/sessions/${studentId}?${params}`, {
+
+      const response = await fetch(`http://localhost:5000/api/auth/student/sessions/${user?._id}?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -151,7 +151,7 @@ const StudentSessions = ({ studentId }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button 
-            onClick={() => navigate(`/student-dashboard/${studentId}`)} 
+            onClick={() => navigate(`/student-dashboard`)} 
             variant="outline"
             size="sm"
           >
@@ -163,7 +163,7 @@ const StudentSessions = ({ studentId }) => {
             <p className="text-gray-600 mt-1">View and manage all your tutoring sessions</p>
           </div>
         </div>
-        <Button onClick={() => navigate(`/student/tutor-search/${studentId}`)}>
+        <Button onClick={() => navigate(`/student/tutor-search`)}>
           <Search className="w-4 h-4 mr-2" />
           Book New Session
         </Button>
@@ -218,7 +218,7 @@ const StudentSessions = ({ studentId }) => {
                   : 'You haven\'t booked any sessions yet'
                 }
               </p>
-              <Button onClick={() => navigate(`/student/tutor-search/${studentId}`)}>
+              <Button onClick={() => navigate(`/student/tutor-search`)}>
                 Book Your First Session
               </Button>
             </CardContent>
