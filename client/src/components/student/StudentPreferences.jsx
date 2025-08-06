@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -15,15 +15,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
 import { useToast } from '../ui/use-toast';
-import { 
-  Save, 
-  ArrowLeft, 
-  BookOpen, 
-  Target, 
-  Clock, 
+import {
+  Save,
+  ArrowLeft,
+  BookOpen,
+  Target,
+  Clock,
   Bell,
   X,
-  Plus
+  Plus,
+  User,
+  Phone,
+  Calendar
 } from 'lucide-react';
 
 const StudentPreferences = () => {
@@ -33,11 +36,19 @@ const StudentPreferences = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
-  
+
   // Form states
-  const [academicLevel, setAcademicLevel] = useState('');
-  const [learningGoals, setLearningGoals] = useState('');
-  const [preferredSubjects, setPreferredSubjects] = useState([]);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    phone_number: '',
+    photo_url: '',
+    age: '',
+    academic_level: '',
+    learning_goals: '',
+    preferred_subjects: [],
+    availability: []
+  });
+
   const [newSubject, setNewSubject] = useState('');
   const [preferences, setPreferences] = useState({
     preferred_session_duration: '1 hour',
@@ -70,7 +81,7 @@ const StudentPreferences = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-              const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${user?._id}`, {
+      const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${user?._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -81,20 +92,23 @@ const StudentPreferences = () => {
       }
       const data = await response.json();
       setProfile(data.profile);
-
       // Set form values
-      setAcademicLevel(data.profile?.academic_level || '');
-      setLearningGoals(data.profile?.learning_goals || '');
-      setPreferredSubjects(data.profile?.preferred_subjects || []);
-      setPreferences(data.profile?.preferences || {
-        preferred_session_duration: '1 hour',
-        preferred_learning_style: 'visual',
-        notification_preferences: {
-          email_notifications: true,
-          session_reminders: true,
-          assignment_updates: true
-        }
+      const availabilityMap = {};
+      (data.profile?.availability || []).forEach(slot => {
+        availabilityMap[slot.day.toLowerCase()] = slot.duration;
       });
+
+      setFormData({
+        full_name: data.student?.full_name || '',
+        phone_number: data.student?.phone_number || '',
+        photo_url: data.student?.photo_url || '',
+        age: data.student?.age || '',
+        academic_level: data.profile?.academic_level || '',
+        learning_goals: data.profile?.learning_goals || '',
+        preferred_subjects: data.profile?.preferred_subjects || [],
+        availability: availabilityMap, // ✅ fixed
+      });
+
     } catch (error) {
       toast({
         title: "Error",
@@ -110,32 +124,46 @@ const StudentPreferences = () => {
     try {
       setSaving(true);
       const token = getAuthToken();
-              const response = await fetch(`http://localhost:5000/api/auth/student/preferences/${user?._id}`, {
+      const response = await fetch(`http://localhost:5000/api/auth/updatestudent/${user?._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          academic_level: academicLevel,
-          learning_goals: learningGoals,
-          preferred_subjects: preferredSubjects,
-          preferences: preferences
+          full_name: formData.full_name,
+          phone_number: formData.phone_number,
+          photo_url: formData.photo_url,
+          age: formData.age,
+          academic_level: formData.academic_level,
+          learning_goals: formData.learning_goals,
+          preferred_subjects: formData.preferred_subjects,
+          availability: formData.availability
         })
       });
-
       if (!response.ok) {
-        throw new Error('Failed to update preferences');
+        throw new Error('Failed to update profile');
       }
 
+      const result = await response.json();
       toast({
         title: "Success",
-        description: "Preferences updated successfully",
+        description: "Profile updated successfully",
       });
+
+      // Update local state with the returned data
+      setFormData(prev => ({
+        ...prev,
+        full_name: result.user?.full_name || prev.full_name,
+        phone_number: result.user?.phone_number || prev.phone_number,
+        photo_url: result.user?.photo_url || prev.photo_url,
+        age: result.user?.age || prev.age
+      }));
+
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update preferences",
+        description: error.message || "Failed to update profile",
         variant: "destructive"
       });
     } finally {
@@ -144,25 +172,30 @@ const StudentPreferences = () => {
   };
 
   const addSubject = () => {
-    if (newSubject.trim() && !preferredSubjects.includes(newSubject.trim())) {
-      setPreferredSubjects([...preferredSubjects, newSubject.trim()]);
+    if (newSubject.trim() && !formData.preferred_subjects.includes(newSubject.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        preferred_subjects: [...prev.preferred_subjects, newSubject.trim()]
+      }));
       setNewSubject('');
     }
   };
 
   const removeSubject = (subjectToRemove) => {
-    setPreferredSubjects(preferredSubjects.filter(subject => subject !== subjectToRemove));
-  };
-
-  const handleNotificationChange = (key, value) => {
-    setPreferences(prev => ({
+    setFormData(prev => ({
       ...prev,
-      notification_preferences: {
-        ...prev.notification_preferences,
-        [key]: value
-      }
+      preferred_subjects: prev.preferred_subjects.filter(subject => subject !== subjectToRemove)
     }));
   };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
 
   if (loading) {
     return (
@@ -177,17 +210,9 @@ const StudentPreferences = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => navigate(`/student-dashboard`)} 
-            variant="outline"
-            size="sm"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Student Preferences</h1>
-            <p className="text-gray-600 mt-1">Manage your learning preferences and subjects</p>
+            <h1 className="text-3xl font-bold text-gray-900">Student Profile</h1>
+            <p className="text-gray-600 mt-1">Manage your profile and preferences</p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
@@ -197,6 +222,65 @@ const StudentPreferences = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Personal Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Personal Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="full_name">Full Name</Label>
+              <Input
+                id="full_name"
+                name="full_name"
+                value={formData.full_name}
+                onChange={handleInputChange}
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="phone_number">Phone Number</Label>
+              <Input
+                id="phone_number"
+                name="phone_number"
+                value={formData.phone_number}
+                onChange={handleInputChange}
+                placeholder="Enter your phone number"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="photo_url">Profile Photo URL</Label>
+              <img
+                id="photo_url"
+                name="photo_url"
+                value={formData.photo_url}
+                onChange={handleInputChange}
+                placeholder="Enter URL for your profile photo"
+                src={formData.photo_url}
+                alt="Profile Photo"
+                className="w-10 h-10 rounded-full"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="age">Age</Label>
+              <Input
+                id="age"
+                name="age"
+                type="number"
+                value={formData.age}
+                onChange={handleInputChange}
+                placeholder="Enter your age"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Academic Information */}
         <Card>
           <CardHeader>
@@ -207,8 +291,11 @@ const StudentPreferences = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="academic-level">Academic Level</Label>
-              <Select value={academicLevel} onValueChange={setAcademicLevel}>
+              <Label htmlFor="academic_level">Academic Level</Label>
+              <Select
+                value={formData.academic_level}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, academic_level: value }))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select your academic level" />
                 </SelectTrigger>
@@ -225,12 +312,13 @@ const StudentPreferences = () => {
             </div>
 
             <div>
-              <Label htmlFor="learning-goals">Learning Goals</Label>
+              <Label htmlFor="learning_goals">Learning Goals</Label>
               <Textarea
-                id="learning-goals"
+                id="learning_goals"
+                name="learning_goals"
                 placeholder="Describe your learning goals and what you want to achieve..."
-                value={learningGoals}
-                onChange={(e) => setLearningGoals(e.target.value)}
+                value={formData.learning_goals}
+                onChange={handleInputChange}
                 rows={4}
               />
             </div>
@@ -238,7 +326,7 @@ const StudentPreferences = () => {
         </Card>
 
         {/* Preferred Subjects */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="w-5 h-5" />
@@ -270,11 +358,14 @@ const StudentPreferences = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (!preferredSubjects.includes(subject)) {
-                        setPreferredSubjects([...preferredSubjects, subject]);
+                      if (!formData.preferred_subjects.includes(subject)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          preferred_subjects: [...prev.preferred_subjects, subject]
+                        }));
                       }
                     }}
-                    disabled={preferredSubjects.includes(subject)}
+                    disabled={formData.preferred_subjects.includes(subject)}
                   >
                     {subject}
                   </Button>
@@ -283,9 +374,9 @@ const StudentPreferences = () => {
             </div>
 
             <div>
-              <Label>Your Subjects ({preferredSubjects.length})</Label>
+              <Label>Your Subjects ({formData.preferred_subjects.length})</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {preferredSubjects.map((subject) => (
+                {formData.preferred_subjects.map((subject) => (
                   <Badge key={subject} variant="secondary" className="flex items-center gap-1">
                     {subject}
                     <button
@@ -297,108 +388,48 @@ const StudentPreferences = () => {
                   </Badge>
                 ))}
               </div>
-              {preferredSubjects.length === 0 && (
+              {formData.preferred_subjects.length === 0 && (
                 <p className="text-sm text-gray-500 mt-2">No subjects added yet</p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Learning Preferences */}
-        <Card>
+        {/* Availability */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Learning Preferences
+              <Calendar className="w-5 h-5" />
+              Availability
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="session-duration">Preferred Session Duration</Label>
-              <Select 
-                value={preferences.preferred_session_duration} 
-                onValueChange={(value) => setPreferences(prev => ({ ...prev, preferred_session_duration: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30 minutes">30 minutes</SelectItem>
-                  <SelectItem value="1 hour">1 hour</SelectItem>
-                  <SelectItem value="1.5 hours">1.5 hours</SelectItem>
-                  <SelectItem value="2 hours">2 hours</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Set your weekly availability for tutoring sessions
+              </p>
 
-            <div>
-              <Label htmlFor="learning-style">Preferred Learning Style</Label>
-              <Select 
-                value={preferences.preferred_learning_style} 
-                onValueChange={(value) => setPreferences(prev => ({ ...prev, preferred_learning_style: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="visual">Visual (Diagrams, charts, videos)</SelectItem>
-                  <SelectItem value="auditory">Auditory (Listening, discussions)</SelectItem>
-                  <SelectItem value="kinesthetic">Kinesthetic (Hands-on, practical)</SelectItem>
-                  <SelectItem value="reading/writing">Reading/Writing (Text-based)</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Example availability slots - you can expand this */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Monday</Label>
+                  <Input type="time" value={formData.availability.monday} onChange={handleInputChange} />
+
+                </div>
+                <div>
+                  <Label>Tuesday</Label>
+                  <Input type="time" value={formData.availability.tuesday} onChange={handleInputChange} />
+                </div>
+                {/* Add more days as needed */}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Notification Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Notification Preferences
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="email-notifications"
-                checked={preferences.notification_preferences.email_notifications}
-                onCheckedChange={(checked) => handleNotificationChange('email_notifications', checked)}
-              />
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-            </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="session-reminders"
-                checked={preferences.notification_preferences.session_reminders}
-                onCheckedChange={(checked) => handleNotificationChange('session_reminders', checked)}
-              />
-              <Label htmlFor="session-reminders">Session Reminders</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="assignment-updates"
-                checked={preferences.notification_preferences.assignment_updates}
-                onCheckedChange={(checked) => handleNotificationChange('assignment_updates', checked)}
-              />
-              <Label htmlFor="assignment-updates">Assignment Updates</Label>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="lg">
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving Changes...' : 'Save All Changes'}
-        </Button>
       </div>
     </div>
   );
 };
 
-export default StudentPreferences; 
+export default StudentPreferences;

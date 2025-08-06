@@ -6,11 +6,11 @@ const tutoringSessionSchema = new mongoose.Schema({
     ref: 'TutorProfile',
     required: true
   },
-  student_id: {
+  student_ids: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'StudentProfile',
     required: true
-  },
+  }],
   subject: {
     type: String,
     required: true
@@ -55,16 +55,12 @@ const tutoringSessionSchema = new mongoose.Schema({
   },
   completed_at: {
     type: Date
-  },
-  response_time_minutes: {
-    type: Number,
-    default: null
   }
 }, { timestamps: true });
 
 // Index for efficient queries
 tutoringSessionSchema.index({ tutor_id: 1, status: 1 });
 tutoringSessionSchema.index({ session_date: 1 });
-tutoringSessionSchema.index({ student_id: 1 });
+tutoringSessionSchema.index({ student_ids: 1 });
 
 module.exports = mongoose.model('TutoringSession', tutoringSessionSchema); 

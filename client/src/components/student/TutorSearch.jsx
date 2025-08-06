@@ -179,12 +179,13 @@ const TutorSearch = () => {
   };
 
   const handleViewTutor = (tutorId) => {
-    navigate(`/tutor/${tutorId}`);
+    navigate(`/tutor`,{
+      state: { tutorId: tutorId }
+    });
+    console.log("user",user,tutorId);
+
   };
 
-  const handleContactTutor = (tutorId) => {
-    navigate(`/contact-tutor/${tutorId}`);
-  };
 
   const handleBookSession = (tutor) => {
     setSelectedTutor(tutor);
@@ -552,7 +553,7 @@ const TutorSearch = () => {
                             <Eye className="w-4 h-4 mr-2" />
                             View Profile
                           </Button>
-                          <Button 
+                          {/* <Button 
                             onClick={() => handleContactTutor(tutor._id)}
                             variant="outline"
                             size="sm"
@@ -560,7 +561,7 @@ const TutorSearch = () => {
                           >
                             <MessageCircle className="w-4 h-4 mr-2" />
                             Contact
-                          </Button>
+                          </Button> */}
                         </div>
                       </div>
                     </div>
