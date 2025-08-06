@@ -31,7 +31,6 @@ const InquiryManagement = ({ tutorId }) => {
   const [replyMessage, setReplyMessage] = useState('');
 
   useEffect(() => {
-    console.log("InquiryManagement useEffect - tutorId:", tutorId, "filter:", filter);
     if (tutorId) {
       fetchInquiries();
     }
@@ -50,9 +49,7 @@ const InquiryManagement = ({ tutorId }) => {
         throw new Error('Failed to fetch inquiries');
       }
       const data = await response.json();
-      console.log("data",data);
-      console.log("data full_name",data.inquiries[0].student_id.user_id.full_name);
-      
+   
       setInquiries(data.inquiries || []);
     } catch (err) {
       console.error('Error fetching inquiries:', err);

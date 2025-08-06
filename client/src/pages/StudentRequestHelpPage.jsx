@@ -21,20 +21,17 @@ const StudentRequestHelpPage = () => {
   useEffect(() => {
     // Wait for auth to finish loading before checking user
     if (authLoading) {
-      console.log('Auth still loading, waiting...');
       return;
     }
 
     // Check if user is authenticated and is a student
     if (!user) {
-      console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
 
     // Check user role immediately
     if (user.role !== 'student') {
-      console.log('User role is not student:', user.role);
       toast({
         title: "Access Denied",
         description: "This page is only for students",
@@ -47,7 +44,6 @@ const StudentRequestHelpPage = () => {
     // Check if the studentId in URL matches the logged-in user
     const userId = studentId;
     if (userId !== studentId) {
-      console.log('User ID mismatch:', userId, 'vs', studentId);
       toast({
         title: "Access Denied",
         description: "You can only access your own dashboard",
@@ -66,7 +62,7 @@ const StudentRequestHelpPage = () => {
   };
 
   const handleBackToDashboard = () => {
-    navigate(`/student-dashboard/${studentId}`);
+    navigate(`/student-dashboard`);
   };
 
   if (loading) {

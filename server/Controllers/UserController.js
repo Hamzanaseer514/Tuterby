@@ -5,20 +5,21 @@ const TutorProfile = require("../Models/tutorProfileSchema");
 const TutorApplication = require("../Models/tutorApplicationSchema");
 const TutorDocument = require("../Models/tutorDocumentSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
-const TutoringSession = require("../Models/tutoringSessionSchema"); // Added for student dashboard
-const TutorInquiry = require("../Models/tutorInquirySchema"); // Added for tutor search and help requests
-const {
-  generateAccessToken,
-  generateRefreshToken,
-} = require("../Utils/generateTokens");
+const { generateAccessToken, generateRefreshToken } = require("../Utils/generateTokens");
 const sendEmail = require("../Utils/sendEmail");
 const otpStore = require("../Utils/otpStore");
 const generateOtpEmail = require("../Utils/otpTempelate");
 const path = require("path");
 
 exports.registerUser = asyncHandler(async (req, res) => {
-  console.log(req.body);
-  const { full_name, email, password, age, academic_level, role } = req.body;
+  const {
+    full_name,
+    email,
+    password,
+    age,
+    academic_level,
+    role
+  } = req.body;
 
   if (!email || !password || !age || !full_name || !academic_level) {
     res.status(400);
@@ -72,97 +73,6 @@ exports.registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-exports.updateStudentProfile = asyncHandler(async (req, res) => {
-  const {
-    full_name,
-    phone_number,
-    photo_url,
-    age,
-    academic_level,
-    learning_goals,
-    preferred_subjects,
-    availability,
-  } = req.body;
-
-  const { user_id } = req.params;
-
-  const user = await User.findById(user_id);
-  if (!user) {
-    res.status(404);
-    throw new Error("User not found");
-  }
-
-  if (phone_number !== undefined && phone_number !== "") {
-    const existingUser = await User.findOne({ phone_number });
-    if (existingUser && existingUser._id.toString() !== user_id) {
-      res.status(400);
-      throw new Error("Phone number already in use");
-    }
-    user.phone_number = phone_number;
-  }
-
-  if (full_name !== undefined && full_name !== "") {
-    user.full_name = full_name;
-  }
-
-  if (photo_url !== undefined && photo_url !== "") {
-    user.photo_url = photo_url;
-  }
-
-  if (age !== undefined) {
-    user.age = age;
-  }
-
-  await user.save();
-
-  const student = await Student.findOne({ user_id: user_id });
-  if (!student) {
-    res.status(404);
-    throw new Error("Student profile not found");
-  }
-
-  if (academic_level !== undefined && academic_level !== "") {
-    student.academic_level = academic_level;
-  }
-
-  if (learning_goals !== undefined && learning_goals !== "") {
-    student.learning_goals = learning_goals;
-  }
-
-  if (
-    preferred_subjects !== undefined &&
-    Array.isArray(preferred_subjects) &&
-    preferred_subjects.length > 0
-  ) {
-    student.preferred_subjects = preferred_subjects;
-  }
-
-  if (
-    availability !== undefined &&
-    Array.isArray(availability) &&
-    availability.length > 0
-  ) {
-    student.availability = availability;
-  }
-
-  await student.save();
-
-  res.status(200).json({
-    message: "Student profile updated successfully",
-    user: {
-      phone_number: user.phone_number,
-      photo_url: user.photo_url,
-      age: user.age,
-      full_name: user.full_name,
-    },
-    student: {
-      academic_level: student.academic_level,
-      learning_goals: student.learning_goals,
-      preferred_subjects: student.preferred_subjects,
-      availability: student.availability,
-    },
-  });
-});
 
 exports.registerTutor = asyncHandler(async (req, res) => {
   console.log("registerTutor request body:", req.body);
@@ -267,7 +177,9 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     const savedDocuments = [];
     const documentMapRaw = req.body.documentsMap;
 
-    if (documentMapRaw && req.files && req.files["documents"]) {
+
+    if (documentMapRaw && req.files && req.files['documents']) {
+
       let documentsObj;
       try {
         documentsObj = JSON.parse(documentMapRaw);
@@ -276,12 +188,8 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         throw new Error("Invalid documentsMap format");
       }
 
-      for (const [documentType, originalFileName] of Object.entries(
-        documentsObj
-      )) {
-        const uploadedFile = req.files["documents"].find(
-          (file) => file.originalname === originalFileName
-        );
+      for (const [documentType, originalFileName] of Object.entries(documentsObj)) {
+        const uploadedFile = req.files['documents'].find(file => file.originalname === originalFileName);
         if (!uploadedFile) continue;
 
         // Optionally rename file to include document type
@@ -312,6 +220,10 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         savedDocuments.push(newDoc);
       }
     }
+
+
+
+
 
     // await session.commitTransaction();
     // session.endSession();
@@ -362,18 +274,16 @@ exports.registerParent = asyncHandler(async (req, res) => {
 
   try {
     const user = await User.create(
-      [
-        {
-          full_name,
-          email,
-          password,
-          phone_number,
-          age,
-          role: "parent",
-          photo_url,
-          is_verified: true,
-        },
-      ]
+      [{
+        full_name,
+        email,
+        password,
+        phone_number,
+        age,
+        role: "parent",
+        photo_url,
+        is_verified: true
+      }],
       // { session }
     );
 
@@ -474,6 +384,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
       ]
       // { session }
     );
+    
 
     const parentProfile = await ParentProfile.findOneAndUpdate(
       { user_id: parent_user_id },
@@ -519,18 +430,14 @@ exports.loginUser = asyncHandler(async (req, res) => {
       "User not verified. please be Patient, Admin will verify you soon"
     );
   }
-  if (
-    user.role === "student" ||
-    user.role === "tutor" ||
-    user.role === "parent"
-  ) {
+  if (user.role === "student" || user.role === "tutor" || user.role === "parent") {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[user._id] = {
       otp,
       expiresAt: Date.now() + 60000,
       attempts: 1,
       maxAttempts: 5,
-      lockUntil: null,
+      lockUntil: null
     };
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your SaferSavvy OTP Code", htmlContent);
@@ -542,6 +449,26 @@ exports.loginUser = asyncHandler(async (req, res) => {
   } else if (user.role === "admin") {
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Admin login successful",
+      user: {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        is_verified: user.is_verified
+      },
+      accessToken
+    });
+
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -607,19 +534,18 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     });
   }
 
+
   let roleData = null;
   if (user.role === "student") {
-    roleData = await Student.findOne({ user_id: user._id }).select(
-      "-__v -createdAt -updatedAt"
-    );
+    roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
+
   } else if (user.role === "tutor") {
     roleData = await TutorProfile.findOne({ user_id: user._id }).select(
       "-__v -createdAt -updatedAt"
     );
   } else if (user.role === "parent") {
-    roleData = await ParentProfile.findOne({ user_id: user._id }).select(
-      "-__v -createdAt -updatedAt"
-    );
+    roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
+
   } else if (user.role === "admin") {
     roleData = {
       _id: user._id,
@@ -736,80 +662,6 @@ exports.addAdmin = asyncHandler(async (req, res) => {
   }
 });
 
-// UPDATE USER...
-
-exports.updateUser = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-  const {
-    full_name,
-    phone_number,
-    address,
-    gender,
-    department,
-    licence_no,
-    experience,
-    cnic,
-    is_verified,
-    profile_picture,
-    joining_date,
-  } = req.body;
-
-  const user = await User.findById(userId);
-  if (!user) {
-    res.status(404);
-    throw new Error("User not found");
-  }
-
-  if (full_name) user.full_name = full_name;
-  if (phone_number) user.phone_number = phone_number;
-  if (address) user.address = address;
-  if (gender) user.gender = gender;
-  if (is_verified !== undefined) user.is_verified = is_verified;
-  if (profile_picture) user.profile_picture = profile_picture;
-
-  await user.save();
-
-  let roleData;
-
-  if (user.role === "student") {
-    const student = await Student.findOne({ user: userId });
-    if (!student) throw new Error("Student record not found");
-    if (department) student.department = department;
-
-    await student.save();
-    roleData = student;
-  } else if (user.role === "driver") {
-    const driver = await Driver.findOne({ user: userId });
-    if (!driver) throw new Error("Driver record not found");
-
-    if (licence_no) driver.licence_no = licence_no;
-    if (experience) driver.experience = experience;
-    if (cnic) driver.cnic = cnic;
-    if (joining_date) driver.joining_date = joining_date;
-
-    await driver.save();
-    roleData = driver;
-  } else if (user.role === "transportAdmin") {
-    const admin = await TransportAdmin.findOne({ user: userId });
-    if (!admin) throw new Error("TransportAdmin record not found");
-
-    roleData = admin;
-  }
-
-  res.status(200).json({
-    message: "User updated successfully",
-    user: {
-      _id: user._id,
-      full_name: user.full_name,
-      email: user.email,
-      phone_number: user.phone_number,
-      role: user.role,
-      address: user.address,
-      gender: user.gender,
-    },
-    roleData,
-  });
-});
 
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -859,485 +711,4 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   await user.save();
 
   res.status(200).json({ message: "Password reset successfully" });
-});
-
-// Student Dashboard Controllers
-exports.getStudentDashboard = asyncHandler(async (req, res) => {
-  const userID = req.user._id; // Assuming user ID is available in req.user
-  const { studentId } = req.params;
-
-  const student = await User.findById(studentId);
-  if (!student || student.role !== "student") {
-    res.status(404);
-    throw new Error("Student not found");
-  }
-
-  // Get student profile with assignments and notes
-  const studentProfile = await Student.findOne({ user_id: studentId });
-
-  const upcomingSessions = await TutoringSession.find({
-    student_id: studentId,
-    session_date: { $gte: new Date() },
-    status: { $in: ["confirmed", "pending"] },
-  })
-    .populate("tutor_id", "full_name email photo_url")
-    .sort({ session_date: 1 })
-    .limit(10);
-
-  // Get past sessions
-  const pastSessions = await TutoringSession.find({
-    student_id: studentId,
-    session_date: { $lt: new Date() },
-    status: "completed",
-  })
-    .populate("tutor_id", "full_name email photo_url")
-    .sort({ session_date: -1 })
-    .limit(10);
-
-  // Get recent assignments
-  const recentAssignments = studentProfile?.assignments?.slice(-5) || [];
-
-  // Get recent notes
-  const recentNotes = studentProfile?.notes?.slice(-5) || [];
-
-  res.status(200).json({
-    student: {
-      _id: student._id,
-      full_name: student.full_name,
-      email: student.email,
-      photo_url: student.photo_url,
-    },
-    profile: studentProfile,
-    upcomingSessions,
-    pastSessions,
-    recentAssignments,
-    recentNotes,
-  });
-});
-
-exports.getStudentSessions = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-  const { status, page = 1, limit = 10 } = req.query;
-
-  const student = await User.findById(studentId);
-  if (!student || student.role !== "student") {
-    res.status(404);
-    throw new Error("Student not found");
-  }
-
-  const query = { student_id: studentId };
-  if (status && status !== "all") {
-    query.status = status;
-  }
-
-  const sessions = await TutoringSession.find(query)
-    .populate("tutor_id", "full_name email photo_url")
-    .sort({ session_date: -1 })
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit));
-
-  const total = await TutoringSession.countDocuments(query);
-
-  res.status(200).json({
-    sessions,
-    pagination: {
-      current: parseInt(page),
-      total: Math.ceil(total / limit),
-      hasNext: page * limit < total,
-      hasPrev: page > 1,
-    },
-  });
-});
-
-exports.updateStudentPreferences = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-  const { preferred_subjects, preferences, learning_goals, academic_level } =
-    req.body;
-
-  const student = await User.findById(studentId);
-  if (!student || student.role !== "student") {
-    res.status(404);
-    throw new Error("Student not found");
-  }
-
-  const updateData = {};
-  if (preferred_subjects) updateData.preferred_subjects = preferred_subjects;
-  if (preferences) updateData.preferences = preferences;
-  if (learning_goals) updateData.learning_goals = learning_goals;
-  if (academic_level) updateData.academic_level = academic_level;
-
-  const updatedProfile = await Student.findOneAndUpdate(
-    { user_id: studentId },
-    updateData,
-    { new: true }
-  );
-
-  res.status(200).json({
-    message: "Preferences updated successfully",
-    profile: updatedProfile,
-  });
-});
-
-exports.getStudentAssignments = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-
-  const studentProfile = await Student.findOne({ user_id: studentId });
-  if (!studentProfile) {
-    res.status(404);
-    throw new Error("Student profile not found");
-  }
-
-  const assignments = studentProfile.assignments || [];
-
-  // Populate tutor information for assignments
-  const populatedAssignments = await Promise.all(
-    assignments.map(async (assignment) => {
-      if (assignment.tutor_id) {
-        const tutor = await User.findById(assignment.tutor_id).select(
-          "full_name email"
-        );
-        return {
-          ...assignment.toObject(),
-          tutor: tutor,
-        };
-      }
-      return assignment;
-    })
-  );
-
-  res.status(200).json({
-    assignments: populatedAssignments,
-  });
-});
-
-exports.getStudentNotes = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-
-  const studentProfile = await Student.findOne({ user_id: studentId });
-  if (!studentProfile) {
-    res.status(404);
-    throw new Error("Student profile not found");
-  }
-
-  const notes = studentProfile.notes || [];
-
-  // Populate tutor information for notes
-  const populatedNotes = await Promise.all(
-    notes.map(async (note) => {
-      if (note.tutor_id) {
-        const tutor = await User.findById(note.tutor_id).select(
-          "full_name email"
-        );
-        return {
-          ...note.toObject(),
-          tutor: tutor,
-        };
-      }
-      return note;
-    })
-  );
-
-  res.status(200).json({
-    notes: populatedNotes,
-  });
-});
-
-// Search for available tutors
-exports.searchTutors = asyncHandler(async (req, res) => {
-  const {
-    search,
-    subjects,
-    academic_level,
-    location,
-    min_rating,
-    max_hourly_rate,
-    page = 1,
-    limit = 10,
-  } = req.query;
-  try {
-    const query = {
-      // Show all tutors, but you can uncomment these lines to only show verified tutors
-      // is_verified: true,
-      // is_approved: true
-    };
-
-    // Add subject filter
-    if (subjects) {
-      query.subjects = { $in: [new RegExp(subjects, "i")] };
-    }
-
-    // Add academic level filter
-    if (academic_level) {
-      query.academic_levels_taught = { $in: [new RegExp(academic_level, "i")] };
-    }
-
-    // Add location filter
-    if (location) {
-      query.location = { $regex: location, $options: "i" };
-    }
-
-    // Add rating filter
-    if (min_rating) {
-      query.average_rating = { $gte: parseFloat(min_rating) };
-    }
-
-    // Add hourly rate filter
-    if (max_hourly_rate) {
-      query.hourly_rate = { $lte: parseFloat(max_hourly_rate) };
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Handle search for tutor name or subject
-    let tutors;
-    if (search) {
-      // Find users that match the search term
-      const matchingUsers = await User.find({
-        full_name: { $regex: search, $options: "i" },
-        role: "tutor",
-      }).select("_id");
-
-      const userIds = matchingUsers.map((user) => user._id);
-
-      // Create search query
-      const searchQuery = {
-        ...query,
-        $or: [
-          { subjects_taught: { $in: [new RegExp(search, "i")] } },
-          ...(userIds.length > 0 ? [{ user_id: { $in: userIds } }] : []),
-        ],
-      };
-
-      tutors = await TutorProfile.find(searchQuery)
-        .populate("user_id", "full_name email photo_url")
-        .skip(skip)
-        .limit(parseInt(limit))
-        .sort({ average_rating: -1, hourly_rate: 1 });
-    } else {
-      tutors = await TutorProfile.find(query)
-        .populate("user_id", "full_name email photo_url")
-        .skip(skip)
-        .limit(parseInt(limit))
-        .sort({ average_rating: -1, hourly_rate: 1 });
-    }
-
-    // Count total documents based on the same query used for fetching
-    let total;
-    if (search) {
-      const matchingUsers = await User.find({
-        full_name: { $regex: search, $options: "i" },
-        role: "tutor",
-      }).select("_id");
-
-      const userIds = matchingUsers.map((user) => user._id);
-
-      const searchQuery = {
-        ...query,
-        $or: [
-          { subjects_taught: { $in: [new RegExp(search, "i")] } },
-          ...(userIds.length > 0 ? [{ user_id: { $in: userIds } }] : []),
-        ],
-      };
-
-      total = await TutorProfile.countDocuments(searchQuery);
-    } else {
-      total = await TutorProfile.countDocuments(query);
-    }
-
-    const formattedTutors = tutors.map((tutor) => ({
-      _id: tutor._id,
-      user_id: tutor.user_id,
-      subjects: tutor.subjects,
-      academic_levels_taught: tutor.academic_levels_taught,
-      hourly_rate: tutor.hourly_rate,
-      average_rating: tutor.average_rating,
-      total_sessions: tutor.total_sessions,
-      location: tutor.location,
-      bio: tutor.bio,
-      qualifications: tutor.qualifications,
-      experience_years: tutor.experience_years,
-    }));
-
-    res.json({
-      tutors: formattedTutors,
-      pagination: {
-        current_page: parseInt(page),
-        total_pages: Math.ceil(total / parseInt(limit)),
-        total_tutors: total,
-        has_next: skip + parseInt(limit) < total,
-        has_prev: parseInt(page) > 1,
-      },
-    });
-  } catch (error) {
-    res.status(500);
-    throw new Error("Failed to search tutors: " + error.message);
-  }
-});
-
-// Get tutor details by ID
-exports.getTutorDetails = asyncHandler(async (req, res) => {
-  const { tutorId } = req.params;
-
-  try {
-    const tutor = await TutorProfile.findOne({
-      _id: tutorId,
-      is_verified: true,
-      is_approved: true,
-    }).populate("user_id", "full_name email photo_url");
-
-    if (!tutor) {
-      res.status(404);
-      throw new Error("Tutor not found");
-    }
-
-    // Get tutor's recent sessions for availability context
-    const recentSessions = await TutoringSession.find({
-      tutor_id: tutor.user_id._id,
-    })
-      .sort({ session_date: -1 })
-      .limit(5)
-      .populate("student_id", "full_name");
-
-    const formattedTutor = {
-      _id: tutor._id,
-      user_id: tutor.user_id,
-      subjects_taught: tutor.subjects_taught,
-      academic_levels_taught: tutor.academic_levels_taught,
-      hourly_rate: tutor.hourly_rate,
-      average_rating: tutor.average_rating,
-      total_sessions: tutor.total_sessions,
-      location: tutor.location,
-      bio: tutor.bio,
-      qualifications: tutor.qualifications,
-      experience_years: tutor.experience_years,
-      teaching_approach: tutor.teaching_approach,
-      recent_sessions: recentSessions,
-    };
-
-    res.json(formattedTutor);
-  } catch (error) {
-    res.status(500);
-    throw new Error("Failed to get tutor details: " + error.message);
-  }
-});
-
-// Request help in additional subjects
-exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-  const {
-    subject,
-    academic_level,
-    description,
-    preferred_schedule,
-    urgency_level = "normal",
-    tutor_id, // Add tutor_id to destructuring
-  } = req.body;
-  if (!subject || !academic_level || !description) {
-    res.status(400);
-    throw new Error("Subject, academic level, and description are required");
-  }
-  const student = await Student.findOne({ user_id: studentId });
-  try {
-    // Create a new inquiry for additional help
-    const inquiry = await TutorInquiry.create({
-      student_id: student._id,
-      tutor_id: tutor_id, // Save the tutor_id
-      subject: subject,
-      academic_level: academic_level,
-      description: description,
-      preferred_schedule: preferred_schedule,
-      urgency_level: urgency_level,
-      status: "unread",
-      type: "additional_help",
-    });
-
-    res.status(201).json({
-      message: "Help request submitted successfully",
-      inquiry: inquiry,
-    });
-  } catch (error) {
-    res.status(500);
-    throw new Error("Failed to submit help request: " + error.message);
-  }
-});
-
-// Create a general tutor inquiry
-exports.createTutorInquiry = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-  const {
-    tutor_id,
-    subject,
-    academic_level,
-    description,
-    preferred_schedule,
-    urgency_level = "normal",
-  } = req.body;
-
-  if (!tutor_id || !subject || !academic_level || !description) {
-    res.status(400);
-    throw new Error(
-      "Tutor ID, subject, academic level, and description are required"
-    );
-  }
-
-  try {
-    // Create a new general tutor inquiry
-    const inquiry = await TutorInquiry.create({
-      student_id: studentId,
-      tutor_id: tutor_id,
-      subject: subject,
-      academic_level: academic_level,
-      description: description,
-      preferred_schedule: preferred_schedule,
-      urgency_level: urgency_level,
-      status: "unread",
-      type: "tutor_inquiry",
-    });
-
-    res.status(201).json({
-      message: "Tutor inquiry submitted successfully",
-      inquiry: inquiry,
-    });
-  } catch (error) {
-    res.status(500);
-    throw new Error("Failed to submit tutor inquiry: " + error.message);
-  }
-});
-
-// Get student's help requests
-exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
-  const { studentId } = req.params;
-  const { page = 1, limit = 10 } = req.query;
-  const student = await Student.findOne({ user_id: studentId });
-  try {
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const inquiries = await TutorInquiry.find({
-      student_id: student._id,
-      // Removed type filter to show both tutor_inquiry and additional_help
-    })
-      .populate("tutor_id", "full_name email")
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await TutorInquiry.countDocuments({
-      student_id: student._id,
-      // Removed type filter to count both types
-    });
-
-    res.json({
-      inquiries: inquiries,
-      pagination: {
-        current_page: parseInt(page),
-        total_pages: Math.ceil(total / parseInt(limit)),
-        total_inquiries: total,
-        has_next: skip + parseInt(limit) < total,
-        has_prev: parseInt(page) > 1,
-      },
-    });
-  } catch (error) {
-    res.status(500);
-    throw new Error("Failed to get help requests: " + error.message);
-  }
 });

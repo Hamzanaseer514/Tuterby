@@ -86,14 +86,12 @@ export default function LoginForm() {
 
       const data = await response.json();
 
-      console.log("hey hamza",data)
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
 
       // Check if this is an admin login (no OTP required)
       if (data.user && data.user.role === 'admin') {
-        console.log("admin login",data.user);
         clearAllAuthData();
         login(data.user, data.accessToken, rememberMe);
         setSuccess('Welcome to Admin Dashboard! Redirecting...');
@@ -127,12 +125,10 @@ export default function LoginForm() {
       });
 
       const data = await response.json();
-      console.log('OTP verification response:', data);
       if (!response.ok) {
         throw new Error(data.message || 'OTP verification failed');
       }
 
-      console.log('OTP sent response data:', data);
 
       if (data.accessToken || data.authToken) {
       login(data.user, data.accessToken, rememberMe);
@@ -140,16 +136,13 @@ export default function LoginForm() {
         if (data.user && data.user.role === 'tutor') {
           setSuccess('Welcome to your Tutor Dashboard! Redirecting...');
           setTimeout(() => {
-            console.log('Redirecting to tutor dashboard');
             navigate(`/tutor-dashboard/${data.data._id}`);
           }, 1000);
 
         }
         else if (data.user && data.user.role === 'student') {
-          console.log('I am the person who want to debug this useless code', data)
           setSuccess('Welcome to your Student Dashboard! Redirecting...');
           setTimeout(() => {
-            console.log('Redirecting to student dashboard:');
             navigate(`/student-dashboard`);
           }, 1000);
         }

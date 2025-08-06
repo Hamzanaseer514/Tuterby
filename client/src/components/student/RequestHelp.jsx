@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '../ui/use-toast';
-import { 
-  HelpCircle, 
+import {
+  HelpCircle,
   ArrowLeft,
   Clock,
   AlertCircle,
@@ -36,7 +36,7 @@ const RequestHelp = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { getAuthToken, user} = useAuth();
+  const { getAuthToken, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [helpRequests, setHelpRequests] = useState([]);
@@ -44,9 +44,11 @@ const RequestHelp = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [tutors, setTutors] = useState([]);
+  const [tutor_name, setTutorName] = useState([]);
   const [tutorsLoading, setTutorsLoading] = useState(false);
   const [showTutorSelection, setShowTutorSelection] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showInquiries, setShowInquiries] = useState(false);
   const [filters, setFilters] = useState({
     subject: '',
     academic_level: '',
@@ -54,7 +56,7 @@ const RequestHelp = () => {
     min_rating: '',
     max_hourly_rate: ''
   });
-  
+
   // Form state
   const [formData, setFormData] = useState({
     subject: '',
@@ -90,23 +92,23 @@ const RequestHelp = () => {
     try {
       setTutorsLoading(true);
       const token = getAuthToken();
-      
+
       const params = new URLSearchParams({
         page: 1,
         limit: 20
       });
-      
+
       const response = await fetch(`http://localhost:5000/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to load tutors');
       }
-      
+
       const data = await response.json();
       setTutors(data.tutors);
     } catch (error) {
@@ -124,7 +126,7 @@ const RequestHelp = () => {
     try {
       setTutorsLoading(true);
       const token = getAuthToken();
-      
+
       const params = new URLSearchParams({
         page: 1,
         limit: 20,
@@ -134,18 +136,18 @@ const RequestHelp = () => {
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim());
       }
-      
+
       const response = await fetch(`http://localhost:5000/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to search tutors');
       }
-      
+
       const data = await response.json();
       setTutors(data.tutors);
     } catch (error) {
@@ -187,25 +189,29 @@ const RequestHelp = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      
+
       const params = new URLSearchParams({
         page: currentPage,
-        limit: 10
+        limit: 10,
       });
-      
-      const response = await fetch(`http://localhost:5000/api/auth/student/${user?._id}/help-requests?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `http://localhost:5000/api/auth/student/${user?._id}/help-requests?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
-      
+      );
+
+
       if (!response.ok) {
         throw new Error('Failed to fetch help requests');
       }
-      
+
       const data = await response.json();
       setHelpRequests(data.inquiries);
+      setTutorName(data.tutors);
       setTotalPages(data.pagination.total_pages);
     } catch (error) {
       toast({
@@ -228,7 +234,7 @@ const RequestHelp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedTutor) {
       toast({
         title: "Error",
@@ -250,12 +256,12 @@ const RequestHelp = () => {
     try {
       setSubmitting(true);
       const token = getAuthToken();
-      
+
       const requestData = {
         ...formData,
         tutor_id: selectedTutor._id
       };
-      
+
       const response = await fetch(`http://localhost:5000/api/auth/student/${user?._id}/help-request`, {
         method: 'POST',
         headers: {
@@ -264,19 +270,19 @@ const RequestHelp = () => {
         },
         body: JSON.stringify(requestData)
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to submit help request');
       }
-      
+
       const data = await response.json();
-      
+
       toast({
         title: "Success",
         description: `Help request submitted to ${selectedTutor.user_id.full_name}`,
         variant: "default"
       });
-      
+
       // Reset form and go back to tutor selection
       setFormData({
         subject: '',
@@ -287,10 +293,10 @@ const RequestHelp = () => {
       });
       setSelectedTutor(null);
       setShowTutorSelection(true);
-      
+
       // Refresh help requests
       fetchHelpRequests();
-      
+
     } catch (error) {
       toast({
         title: "Error",
@@ -309,10 +315,10 @@ const RequestHelp = () => {
       completed: { variant: "default", icon: CheckCircle, color: "text-green-600" },
       cancelled: { variant: "destructive", icon: AlertCircle, color: "text-red-600" }
     };
-    
+
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className={`flex items-center gap-1 ${config.color}`}>
         <Icon className="w-3 h-3" />
@@ -328,9 +334,9 @@ const RequestHelp = () => {
       high: { variant: "outline", color: "text-orange-600" },
       urgent: { variant: "destructive", color: "text-red-600" }
     };
-    
+
     const config = urgencyConfig[urgency] || urgencyConfig.normal;
-    
+
     return (
       <Badge variant={config.variant} className={config.color}>
         {urgency.charAt(0).toUpperCase() + urgency.slice(1)}
@@ -352,9 +358,9 @@ const RequestHelp = () => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <Star 
-          key={i} 
-          className={`w-4 h-4 ${i <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`}
         />
       );
     }
@@ -371,6 +377,9 @@ const RequestHelp = () => {
             {showTutorSelection ? 'Select a tutor to request help from' : 'Submit your help request'}
           </p>
         </div>
+        <Button onClick={() => setShowInquiries(!showInquiries)}>
+          {showInquiries ? 'Hide Inquiries' : 'Show Inquiries'}
+        </Button>
       </div>
 
       {showTutorSelection ? (
@@ -413,7 +422,7 @@ const RequestHelp = () => {
                       onChange={(e) => handleFilterChange('subject', e.target.value)}
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
                     <Select value={filters.academic_level} onValueChange={(value) => handleFilterChange('academic_level', value)}>
@@ -429,7 +438,7 @@ const RequestHelp = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
                     <Input
@@ -468,7 +477,7 @@ const RequestHelp = () => {
                           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                             <User className="w-6 h-6 text-blue-600" />
                           </div>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-start justify-between mb-2">
                               <div>
@@ -490,7 +499,7 @@ const RequestHelp = () => {
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="mb-3">
                               <div className="flex flex-wrap gap-1 mb-2">
                                 {tutor.subjects?.slice(0, 3).map((subject, index) => (
@@ -504,7 +513,7 @@ const RequestHelp = () => {
                                   </Badge>
                                 )}
                               </div>
-                              
+
                               <div className="flex flex-wrap gap-1">
                                 {tutor.academic_levels_taught?.slice(0, 2).map((level, index) => (
                                   <Badge key={index} variant="secondary" className="text-xs">
@@ -513,13 +522,13 @@ const RequestHelp = () => {
                                 ))}
                               </div>
                             </div>
-                            
+
                             {tutor.bio && (
                               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                                 {tutor.bio}
                               </p>
                             )}
-                            
+
                             <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
                               <div className="flex items-center gap-1">
                                 <BookOpen className="w-4 h-4" />
@@ -532,7 +541,7 @@ const RequestHelp = () => {
                                 </div>
                               )}
                             </div>
-                            
+
                             <Button className="w-full" size="sm">
                               <MessageCircle className="w-4 h-4 mr-2" />
                               Select This Tutor
@@ -595,121 +604,9 @@ const RequestHelp = () => {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Request Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5" />
-                  Request Help from {selectedTutor.user_id.full_name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subject *
-                    </label>
-                    <Select value={formData.subject} onValueChange={(value) => handleInputChange('subject', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedTutor.subjects?.map((subject, index) => (
-                          <SelectItem key={index} value={subject}>{subject}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Academic Level *
-                    </label>
-                    <Select 
-                      value={formData.academic_level} 
-                      onValueChange={(value) => handleInputChange('academic_level', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select academic level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GCSE">GCSE</SelectItem>
-                        <SelectItem value="A-Level">A-Level</SelectItem>
-                        <SelectItem value="IB">IB</SelectItem>
-                        <SelectItem value="BTEC">BTEC</SelectItem>
-                        <SelectItem value="Undergraduate">Undergraduate</SelectItem>
-                        <SelectItem value="Postgraduate">Postgraduate</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description *
-                    </label>
-                    <Textarea
-                      placeholder="Describe what you need help with, specific topics, exam preparation, etc."
-                      value={formData.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                      rows={4}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Schedule
-                    </label>
-                    <Input
-                      placeholder="e.g., Weekdays after 6 PM, Weekends"
-                      value={formData.preferred_schedule}
-                      onChange={(e) => handleInputChange('preferred_schedule', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Urgency Level
-                    </label>
-                    <Select 
-                      value={formData.urgency_level} 
-                      onValueChange={(value) => handleInputChange('urgency_level', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low - Flexible timing</SelectItem>
-                        <SelectItem value="normal">Normal - Within a few weeks</SelectItem>
-                        <SelectItem value="high">High - Within a week</SelectItem>
-                        <SelectItem value="urgent">Urgent - ASAP</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Request Help from {selectedTutor.user_id.full_name}
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
 
-            {/* Help Requests History */}
+          {/* Help Requests History */}
+          {showInquiries && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -730,10 +627,11 @@ const RequestHelp = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {helpRequests.map((request) => (
-                      <div key={request._id} className={`p-4 border rounded-lg ${
-                        request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
-                      }`}>
+                    {helpRequests.map((request) => {
+                      const tutor = tutors.find(t => t._id === request.tutor_id);
+                      return (
+                      <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
+                        }`}>
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -742,30 +640,29 @@ const RequestHelp = () => {
                                 {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600">{request.academic_level}</p>
+                            <div className='flex items-center justify-start gap-8'>
+                              <p className="text-sm text-gray-600">{request.academic_level}</p>
+                              {request.preferred_schedule && (
+                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                  <Calendar className="w-4 h-4" />
+                                  {request.preferred_schedule}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {getStatusBadge(request.status)}
                             {getUrgencyBadge(request.urgency_level)}
                           </div>
                         </div>
-                        
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                          {request.description}
-                        </p>
-                        
-                        {request.preferred_schedule && (
-                          <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
-                            <Calendar className="w-4 h-4" />
-                            {request.preferred_schedule}
-                          </div>
-                        )}
-                        
+
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Submitted: {formatDate(request.created_at)}</span>
+                          <p className="text-sm text-gray-600 ">
+                            {request.description}
+                          </p>
                           {request.tutor_id ? (
                             <span className="text-blue-600 font-medium">
-                              Assigned to: {request.tutor_id.full_name}
+                              Assigned to: {tutor.user_id.full_name}
                             </span>
                           ) : (
                             <span className="text-gray-500">
@@ -773,9 +670,12 @@ const RequestHelp = () => {
                             </span>
                           )}
                         </div>
+
+
+
                       </div>
-                    ))}
-                    
+                    )})}
+
                     {/* Pagination */}
                     {totalPages > 1 && (
                       <div className="flex items-center justify-center gap-2 pt-4">
@@ -787,11 +687,11 @@ const RequestHelp = () => {
                         >
                           Previous
                         </Button>
-                        
+
                         <span className="text-sm text-gray-600">
                           Page {currentPage} of {totalPages}
                         </span>
-                        
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -804,6 +704,124 @@ const RequestHelp = () => {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="">
+            {/* Request Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <HelpCircle className="w-5 h-5" />
+                  Request Help from {selectedTutor.user_id.full_name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject *
+                    </label>
+                    <Select value={formData.subject} onValueChange={(value) => handleInputChange('subject', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedTutor.subjects?.map((subject, index) => (
+                          <SelectItem key={index} value={subject}>{subject}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Academic Level *
+                    </label>
+                    <Select
+                      value={formData.academic_level}
+                      onValueChange={(value) => handleInputChange('academic_level', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select academic level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GCSE">GCSE</SelectItem>
+                        <SelectItem value="A-Level">A-Level</SelectItem>
+                        <SelectItem value="IB">IB</SelectItem>
+                        <SelectItem value="BTEC">BTEC</SelectItem>
+                        <SelectItem value="Undergraduate">Undergraduate</SelectItem>
+                        <SelectItem value="Postgraduate">Postgraduate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description *
+                    </label>
+                    <Textarea
+                      placeholder="Describe what you need help with, specific topics, exam preparation, etc."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      rows={4}
+                      required
+                    />
+                  </div>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Schedule
+                    </label>
+                    <Input
+                      placeholder="e.g., Weekdays after 6 PM, Weekends"
+                      value={formData.preferred_schedule}
+                      onChange={(e) => handleInputChange('preferred_schedule', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Urgency Level
+                    </label>
+                    <Select
+                      value={formData.urgency_level}
+                      onValueChange={(value) => handleInputChange('urgency_level', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low - Flexible timing</SelectItem>
+                        <SelectItem value="normal">Normal - Within a few weeks</SelectItem>
+                        <SelectItem value="high">High - Within a week</SelectItem>
+                        <SelectItem value="urgent">Urgent - ASAP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-[50%] mx-auto flex justify-center items-center mt-10"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Request Help from {selectedTutor.user_id.full_name}
+                      </>
+                    )}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </div>
@@ -826,7 +844,7 @@ const RequestHelp = () => {
                 Browse and choose from qualified tutors based on your needs
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-green-600 font-bold">2</span>
@@ -836,7 +854,7 @@ const RequestHelp = () => {
                 Fill out the form with your specific requirements and preferences
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-purple-600 font-bold">3</span>
@@ -853,4 +871,5 @@ const RequestHelp = () => {
   );
 };
 
-export default RequestHelp; 
+export default RequestHelp;
+

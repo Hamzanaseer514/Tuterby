@@ -198,20 +198,6 @@ const StudentDashboard = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
-              <FileText className="w-8 h-8 text-purple-500" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Active Assignments</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {dashboardData.recentAssignments.filter(a => a.status !== 'completed').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
               <TrendingUp className="w-8 h-8 text-orange-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Completed Sessions</p>
@@ -236,13 +222,13 @@ const StudentDashboard = () => {
               <div className="text-center py-8">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No upcoming sessions</p>
-                <Button 
+                {/* <Button 
                   onClick={() => navigate(`/student/tutor-search`)} 
                   variant="outline" 
                   className="mt-2"
                 >
                   Book a Session
-                </Button>
+                </Button> */}
               </div>
             ) : (
               <div className="space-y-3">
@@ -275,46 +261,6 @@ const StudentDashboard = () => {
                     View All Sessions
                   </Button>
                 )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Assignments */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Recent Assignments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dashboardData.recentAssignments.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No assignments yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {dashboardData.recentAssignments.map((assignment) => (
-                  <div key={assignment._id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{assignment.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{assignment.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline">{assignment.subject}</Badge>
-                          {getAssignmentStatusBadge(assignment.status)}
-                        </div>
-                        {assignment.due_date && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Due: {formatDate(assignment.due_date)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </CardContent>
@@ -366,87 +312,10 @@ const StudentDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Notes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Recent Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dashboardData.recentNotes.length === 0 ? (
-              <div className="text-center py-8">
-                <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No notes yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {dashboardData.recentNotes.map((note) => (
-                  <div key={note._id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{note.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{note.content}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline">{note.subject}</Badge>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(note.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+     
       </div>
 
-      {/* Quick Actions */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button 
-              onClick={() => navigate(`/student/tutor-search/${studentId}`)} 
-              className="h-20 flex flex-col items-center justify-center gap-2"
-            >
-              <Search className="w-6 h-6" />
-              <span>Find New Tutors</span>
-            </Button>
-            
-            <Button 
-              onClick={() => navigate(`/student/request-help/${studentId}`)} 
-              className="h-20 flex flex-col items-center justify-center gap-2"
-            >
-              <Plus className="w-6 h-6" />
-              <span>Request Help</span>
-            </Button>
-            
-            <Button 
-              onClick={() => navigate(`/student/preferences/${studentId}`)} 
-              variant="outline"
-              className="h-20 flex flex-col items-center justify-center gap-2"
-            >
-              <Settings className="w-6 h-6" />
-              <span>Update Preferences</span>
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/subjects')} 
-              variant="outline"
-              className="h-20 flex flex-col items-center justify-center gap-2"
-            >
-              <BookOpen className="w-6 h-6" />
-              <span>Browse Subjects</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card> */}
+  
     </div>
   );
 };

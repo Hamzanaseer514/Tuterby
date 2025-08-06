@@ -221,10 +221,10 @@ const DocumentItem = ({ doc, onVerify, onReject, onAddNotes }) => (
       }
     />
     <Box sx={{ display: 'flex', gap: 1 }}>
-      <IconButton 
-        edge="end" 
-        href={doc.url} 
-        target="_blank" 
+      <IconButton
+        edge="end"
+        href={doc.url}
+        target="_blank"
         size="small"
         disabled={doc.url === '#'}
         title={doc.url === '#' ? 'Document not available' : 'View document'}
@@ -355,18 +355,18 @@ const InterviewSlotItem = ({ slot, tutorId, onSchedule, onComplete, onAddResult 
     <ListItemText
       primary={`${slot.date} at ${slot.time}`}
       secondary={
-        slot.scheduled ? 
-          (slot.completed ? 
-            `Completed - ${slot.result}${slot.notes ? `: ${slot.notes}` : ''}` : 
+        slot.scheduled ?
+          (slot.completed ?
+            `Completed - ${slot.result}${slot.notes ? `: ${slot.notes}` : ''}` :
             'Scheduled'
-          ) : 
+          ) :
           'Available'
       }
     />
     <Box sx={{ display: 'flex', gap: 1 }}>
       {!slot.scheduled && (
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="outlined"
           size="small"
           onClick={() => onSchedule(tutorId, slot.date, slot.time)}
         >
@@ -374,8 +374,8 @@ const InterviewSlotItem = ({ slot, tutorId, onSchedule, onComplete, onAddResult 
         </Button>
       )}
       {slot.scheduled && !slot.completed && (
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           size="small"
           onClick={() => onComplete(tutorId, slot)}
         >
@@ -436,13 +436,13 @@ const AdminDashboard = () => {
         getDashboardStats().catch(() => getMockDashboardStats()),
         getAllUsers({ userType: tabValue }).catch(() => getMockUsers(tabValue))
       ]);
-      
+
       console.log('Real stats data:', statsData);
       console.log('Real users data:', usersData);
-      
+
       setStats(statsData);
       setUsers(prev => ({ ...prev, [tabValue]: usersData }));
-      
+
       setSnackbar({ open: true, message: 'Data loaded successfully', severity: 'success' });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
@@ -473,7 +473,7 @@ const AdminDashboard = () => {
       const usersData = await getAllUsers({ userType });
       console.log('Loaded users data:', usersData);
       setUsers(prev => ({ ...prev, [userType]: usersData }));
-      
+
       if (usersData.length === 0) {
         setSnackbar({ open: true, message: `No ${userType} found in the database.`, severity: 'info' });
       }
@@ -618,17 +618,17 @@ const AdminDashboard = () => {
         }
         return slot;
       });
-      
+
       // Use userId (user ID) for setAvailableInterviewSlots API call
       const userId = selectedUser.userId || selectedUser.id;
       await setAvailableInterviewSlots(userId, slotTimes);
-      
+
       // Reload tutor details using the tutor profile ID
       const updatedTutor = await getTutorDetails(tutorProfileId).catch(() => null);
       if (updatedTutor) {
         setSelectedUser(updatedTutor);
       }
-      
+
       setSnackbar({ open: true, message: 'Preferred interview slots set successfully', severity: 'success' });
     } catch (error) {
       console.error('Error setting preferred slots:', error);
@@ -753,27 +753,27 @@ const AdminDashboard = () => {
   }, [selectedUser, tabValue]);
 
   const filteredUsers = users[tabValue]?.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.subjects && user.subjects.some(subject => subject.toLowerCase().includes(searchTerm.toLowerCase())));
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.subjects && user.subjects.some(subject => subject.toLowerCase().includes(searchTerm.toLowerCase())));
     return matchesSearch;
   }) || [];
 
   const getStatusCounts = () => {
     const counts = { tutors: {}, students: {}, parents: {} };
-    
+
     users.tutors.forEach(tutor => {
       counts.tutors[tutor.status] = (counts.tutors[tutor.status] || 0) + 1;
     });
-    
+
     users.students.forEach(student => {
       counts.students[student.status] = (counts.students[student.status] || 0) + 1;
     });
-    
+
     users.parents.forEach(parent => {
       counts.parents[parent.status] = (counts.parents[parent.status] || 0) + 1;
     });
-    
+
     return counts;
   };
 
@@ -784,7 +784,7 @@ const AdminDashboard = () => {
       <Typography variant="h4" gutterBottom>
         Admin Dashboard
       </Typography>
-      
+
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
@@ -846,7 +846,7 @@ const AdminDashboard = () => {
           </Card>
         </Grid>
       </Grid>
-      
+
       <Paper sx={{ p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Tabs value={tabValue} onChange={handleTabChange}>
@@ -854,7 +854,7 @@ const AdminDashboard = () => {
             <Tab label="Students" value="students" icon={<Person fontSize="small" />} />
             <Tab label="Parents" value="parents" icon={<ContactMail fontSize="small" />} />
           </Tabs>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <TextField
               size="small"
@@ -870,7 +870,7 @@ const AdminDashboard = () => {
             </Button>
           </Box>
         </Box>
-        
+
         <TableContainer>
           <Table>
             <TableHead>
@@ -928,10 +928,10 @@ const AdminDashboard = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip 
-                          label={user.status} 
-                          color={statusColors[user.status]} 
-                          size="small" 
+                        <Chip
+                          label={user.status}
+                          color={statusColors[user.status]}
+                          size="small"
                           variant={user.status === 'unverified' ? 'outlined' : 'filled'}
                         />
                       </TableCell>
@@ -1023,9 +1023,9 @@ const AdminDashboard = () => {
                 </IconButton>
                 <Typography variant="h6">{selectedUser.name}</Typography>
                 {selectedUser.status && (
-                  <Chip 
-                    label={selectedUser.status} 
-                    color={statusColors[selectedUser.status]} 
+                  <Chip
+                    label={selectedUser.status}
+                    color={statusColors[selectedUser.status]}
                     sx={{ ml: 2 }}
                   />
                 )}
@@ -1050,9 +1050,9 @@ const AdminDashboard = () => {
                   )}
                 </Box>
               </Box>
-              
+
               <Divider sx={{ my: 2 }} />
-              
+
               {tabValue === 'tutors' && (
                 <>
                   {/* Documents Section */}
@@ -1061,9 +1061,9 @@ const AdminDashboard = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Description sx={{ mr: 1 }} />
                         <Typography>Uploaded Documents</Typography>
-                        <Badge 
-                          badgeContent={selectedUser.documents.filter(d => !d.verified).length} 
-                          color="error" 
+                        <Badge
+                          badgeContent={selectedUser.documents.filter(d => !d.verified).length}
+                          color="error"
                           sx={{ ml: 2 }}
                         />
                       </Box>
@@ -1076,7 +1076,7 @@ const AdminDashboard = () => {
                             key={category}
                             category={category}
                             documents={documents}
-                            onVerify={handleVerifyDocument}
+                              onVerify={handleVerifyDocument}
                             onReject={handleRejectDocument}
                             onAddNotes={handleAddDocumentNotes}
                           />
@@ -1084,7 +1084,7 @@ const AdminDashboard = () => {
                       })()}
                     </AccordionDetails>
                   </Accordion>
-                  
+
                   {/* Interview Section */}
                   <Accordion defaultExpanded sx={{ mt: 2 }}>
                     <AccordionSummary expandIcon={<ExpandMore />}>
@@ -1109,16 +1109,16 @@ const AdminDashboard = () => {
                           </Typography>
                         )}
                       </Box>
-                      
+
                       <Typography variant="subtitle2" gutterBottom>
                        Tutor Scheduled Interview:
                       </Typography>
                       {selectedUser.interviewSlots && selectedUser.interviewSlots.length > 0 ? (
                         <List dense>
                           {selectedUser.interviewSlots.map((slot, index) => (
-                            <InterviewSlotItem 
-                              key={index} 
-                              slot={slot} 
+                            <InterviewSlotItem
+                              key={index}
+                              slot={slot}
                               tutorId={selectedUser.id}
                               onSchedule={handleScheduleInterview}
                               onComplete={handleCompleteInterview}
@@ -1130,7 +1130,7 @@ const AdminDashboard = () => {
                           No interviews scheduled yet
                         </Typography>
                       )}
-                      
+
                       {/* <Box sx={{ mt: 3 }}>
                         <Typography variant="subtitle2" gutterBottom>
                           Available Interview Slots:
@@ -1148,7 +1148,7 @@ const AdminDashboard = () => {
                           ))}
                         </Grid>
                       </Box> */}
-                      
+
                       {/* Admin can set available slots for tutor to choose from */}
                       <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -1189,9 +1189,9 @@ const AdminDashboard = () => {
             <DialogActions>
               <Button onClick={handleCloseDialog}>Close</Button>
               {tabValue === 'tutors' && selectedUser.status !== 'verified' && (
-                <Button 
-                  variant="contained" 
-                  color="success" 
+                <Button
+                  variant="contained"
+                  color="success"
                   onClick={async () => {
                     setLoading(true);
                     try {
@@ -1311,115 +1311,115 @@ const AdminDashboard = () => {
         </DialogActions>
       </Dialog>
 
-             {/* Preferred Times Dialog */}
-       <Dialog open={showPreferredTimesDialog} onClose={() => setShowPreferredTimesDialog(false)} maxWidth="md" fullWidth>
-         <DialogTitle>Set Preferred Interview Slots</DialogTitle>
-         <DialogContent>
-           <Typography variant="subtitle2" gutterBottom>
-             Select available dates and times for the tutor to choose from:
-           </Typography>
-           
-           {/* Date and Time Input */}
-           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3, mt: 2 }}>
-             <TextField
-               type="date"
-               label="Date"
-               value={newInterviewDate}
-               onChange={(e) => setNewInterviewDate(e.target.value)}
-               InputLabelProps={{ shrink: true }}
-             />
-             <TextField
-               type="time"
-               label="Time"
-               value={newInterviewTime}
-               onChange={(e) => setNewInterviewTime(e.target.value)}
-               InputLabelProps={{ shrink: true }}
-             />
-             <Button
-               variant="outlined"
-               onClick={() => {
-                 if (newInterviewDate && newInterviewTime) {
-                   const slotTime = `${newInterviewDate} ${newInterviewTime}`;
-                   if (!preferredTimes.includes(slotTime)) {
-                     setPreferredTimes([...preferredTimes, slotTime]);
-                   }
-                   setNewInterviewDate('');
-                   setNewInterviewTime('');
-                 }
-               }}
-             >
-               Add Slot
-             </Button>
-           </Box>
-           
-           {/* Available Slots from API */}
-           <Typography variant="subtitle2" gutterBottom>
-             Available Slots (Click to add):
-           </Typography>
-           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-             {availableSlots.filter(slot => slot.available).map((slot, index) => {
-               const slotTime = `${slot.date} ${slot.time}`;
-               return (
-                 <Chip
-                   key={index}
-                   label={slotTime}
-                   variant="outlined"
-                   onClick={() => {
-                     if (!preferredTimes.includes(slotTime)) {
-                       setPreferredTimes([...preferredTimes, slotTime]);
-                     }
-                   }}
-                   sx={{ cursor: 'pointer' }}
-                 />
-               );
-             })}
-           </Box>
-           
-           {/* Selected Preferred Slots */}
-           <Typography variant="subtitle2" gutterBottom>
-             Selected Preferred Slots:
-           </Typography>
-           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-             {preferredTimes.map((slot, index) => (
-               <Chip
-                 key={index}
-                 label={slot}
-                 variant="filled"
-                 color="primary"
-                 onDelete={() => setPreferredTimes(preferredTimes.filter((_, i) => i !== index))}
-               />
-             ))}
-           </Box>
-           
-           {preferredTimes.length === 0 && (
-             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-               No slots selected. Add slots above for the tutor to choose from.
-             </Typography>
-           )}
-         </DialogContent>
-         <DialogActions>
-           <Button onClick={() => {
-             setShowPreferredTimesDialog(false);
-             setPreferredTimes([]);
-           }}>
-             Cancel
-           </Button>
-                       <Button 
-              variant="contained"
+      {/* Preferred Times Dialog */}
+      <Dialog open={showPreferredTimesDialog} onClose={() => setShowPreferredTimesDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Set Preferred Interview Slots</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle2" gutterBottom>
+            Select available dates and times for the tutor to choose from:
+          </Typography>
+
+          {/* Date and Time Input */}
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3, mt: 2 }}>
+            <TextField
+              type="date"
+              label="Date"
+              value={newInterviewDate}
+              onChange={(e) => setNewInterviewDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              type="time"
+              label="Time"
+              value={newInterviewTime}
+              onChange={(e) => setNewInterviewTime(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <Button
+              variant="outlined"
               onClick={() => {
-                if (preferredTimes.length > 0) {
-                  // Use the tutor profile ID (selectedUser.id should already be the tutor profile ID)
-                  handleSetAvailableSlots(selectedUser.id, preferredTimes);
-                  setShowPreferredTimesDialog(false);
-                  setPreferredTimes([]); // Clear selected slots after saving
+                if (newInterviewDate && newInterviewTime) {
+                  const slotTime = `${newInterviewDate} ${newInterviewTime}`;
+                  if (!preferredTimes.includes(slotTime)) {
+                    setPreferredTimes([...preferredTimes, slotTime]);
+                  }
+                  setNewInterviewDate('');
+                  setNewInterviewTime('');
                 }
               }}
-              disabled={preferredTimes.length === 0}
             >
-              Save Preferred Slots ({preferredTimes.length})
+              Add Slot
             </Button>
-         </DialogActions>
-       </Dialog>
+          </Box>
+
+          {/* Available Slots from API */}
+          <Typography variant="subtitle2" gutterBottom>
+            Available Slots (Click to add):
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+            {availableSlots.filter(slot => slot.available).map((slot, index) => {
+              const slotTime = `${slot.date} ${slot.time}`;
+              return (
+                <Chip
+                  key={index}
+                  label={slotTime}
+                  variant="outlined"
+                  onClick={() => {
+                    if (!preferredTimes.includes(slotTime)) {
+                      setPreferredTimes([...preferredTimes, slotTime]);
+                    }
+                  }}
+                  sx={{ cursor: 'pointer' }}
+                />
+              );
+            })}
+          </Box>
+
+          {/* Selected Preferred Slots */}
+          <Typography variant="subtitle2" gutterBottom>
+            Selected Preferred Slots:
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+            {preferredTimes.map((slot, index) => (
+              <Chip
+                key={index}
+                label={slot}
+                variant="filled"
+                color="primary"
+                onDelete={() => setPreferredTimes(preferredTimes.filter((_, i) => i !== index))}
+              />
+            ))}
+          </Box>
+
+          {preferredTimes.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              No slots selected. Add slots above for the tutor to choose from.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowPreferredTimesDialog(false);
+            setPreferredTimes([]);
+          }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (preferredTimes.length > 0) {
+                // Use the tutor profile ID (selectedUser.id should already be the tutor profile ID)
+                handleSetAvailableSlots(selectedUser.id, preferredTimes);
+                setShowPreferredTimesDialog(false);
+                setPreferredTimes([]); // Clear selected slots after saving
+              }
+            }}
+            disabled={preferredTimes.length === 0}
+          >
+            Save Preferred Slots ({preferredTimes.length})
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Loading Overlay */}
       {loading && (

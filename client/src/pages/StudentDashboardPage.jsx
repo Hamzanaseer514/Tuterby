@@ -24,21 +24,17 @@ const StudentDashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Checking user authentication and role...', user, loading);
 
     if (authLoading) {
-      console.log('Auth still loading, waiting...');
       return;
     }
 
     if (!user) {
-      console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
 
     if (user.role !== 'student') {
-      console.log('User role is not student:', user.role);
       toast({
         title: 'Access Denied',
         description: 'This dashboard is only for students',

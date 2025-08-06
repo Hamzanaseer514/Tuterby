@@ -36,7 +36,6 @@ exports.getAllPendingApplications = async (req, res) => {
 exports.setAvailableInterviewSlots = async (req, res) => {
   const { tutor_id, preferred_interview_times } = req.body;
   const tutor = await TutorProfile.findOne({user_id:tutor_id});
-  console.log("tutor_id",tutor);
   if (
     !tutor ||
     !preferred_interview_times ||
@@ -52,7 +51,6 @@ exports.setAvailableInterviewSlots = async (req, res) => {
     
     // Check if tutor application exists using tutor profile ID
     let application = await TutorApplication.findOne({ tutor_id:tutor._id });
-    console.log("application",application);
     if (!application) {
       // Create new application if it doesn't exist
       application = new TutorApplication({

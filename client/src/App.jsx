@@ -59,7 +59,7 @@ const ParentDashboardPage = lazy(() => import('./pages/ParentDashboardPage'));
                   <Route path="/student-dashboard/" element={<StudentDashboardPage />} />
                   <Route path="/student/tutor-search" element={<StudentTutorSearchPage />} />
                   <Route path="/student/request-help" element={<StudentRequestHelpPage />} />
-                  <Route path="/tutor/:tutorId" element={<TutorProfilePage />} />
+                  <Route path="/tutor" element={<TutorProfilePage />} />
                   <Route path="/parent-dashboard/:parentId" element={<ParentDashboardPage />} />
                 </Routes>
               </AnimatePresence>

@@ -13,8 +13,6 @@ const getAuthToken = () => {
 const apiCall = async (endpoint, options = {}) => {
   try {
     const token = getAuthToken();
-    console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
-    console.log('Token:', token ? 'Present' : 'Missing');
     
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -25,7 +23,6 @@ const apiCall = async (endpoint, options = {}) => {
       ...options,
     });
 
-    console.log('Response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -41,7 +38,6 @@ const apiCall = async (endpoint, options = {}) => {
     }
 
     const data = await response.json();
-    console.log('API Response data:', data);
     return data;
   } catch (error) {
     console.error('API call failed:', error);
@@ -69,13 +65,11 @@ const getDocumentUrl = (fileUrl) => {
 
 // Dashboard Statistics
 export const getDashboardStats = async () => {
-  console.log('Getting dashboard stats...');
   return apiCall('/dashboard/stats');
 };
 
 // User Management - Enhanced with better error handling and logging
 export const getAllUsers = async (filters = {}) => {
-  console.log('Getting all users with filters:', filters);
   
   try {
     const queryParams = new URLSearchParams();
@@ -84,10 +78,8 @@ export const getAllUsers = async (filters = {}) => {
     });
 
     const endpoint = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    console.log('Calling endpoint:', endpoint);
     
     const users = await apiCall(endpoint);
-    console.log('Raw users data received:', users);
     
     // Process users data
     const processedUsers = users.map(user => {
@@ -139,10 +131,8 @@ export const getAllUsers = async (filters = {}) => {
 };
 
 export const getTutorDetails = async (tutorId) => {
-  console.log('Getting tutor details for:', tutorId);
   try {
     const details = await apiCall(`/tutors/${tutorId}`);
-    console.log('Tutor details received:', details);
     
     // Fix document URLs
     if (details.documents && Array.isArray(details.documents)) {
@@ -189,7 +179,6 @@ export const getTutorDetails = async (tutorId) => {
 
 // Interview Management - Using your existing endpoint
 export const scheduleInterview = async (tutorProfileId, scheduledTime, notes = '') => {
-  console.log('Scheduling interview:', { tutorProfileId, scheduledTime, notes });
   return apiCall('/tutors/interview/select', {
     method: 'POST',
     body: JSON.stringify({
@@ -200,7 +189,6 @@ export const scheduleInterview = async (tutorProfileId, scheduledTime, notes = '
 };
 
 export const completeInterview = async (tutorId, result, notes = '') => {
-  console.log('Completing interview:', { tutorId, result, notes });
   return apiCall('/interviews/complete', {
     method: 'POST',
     body: JSON.stringify({
@@ -212,10 +200,8 @@ export const completeInterview = async (tutorId, result, notes = '') => {
 };
 
 export const getAvailableInterviewSlots = async (date) => {
-  console.log('Getting available interview slots for:', date);
   try {
     const slots = await apiCall(`/interviews/available-slots?date=${date}`);
-    console.log('Available slots received:', slots);
     return slots;
   } catch (error) {
     console.error('Error fetching available slots:', error);
@@ -233,7 +219,6 @@ export const getAvailableInterviewSlots = async (date) => {
 
 // Application Management
 export const updateApplicationNotes = async (tutorId, notes) => {
-  console.log('Updating application notes:', { tutorId, notes });
   return apiCall('/applications/notes', {
     method: 'PUT',
     body: JSON.stringify({
@@ -245,7 +230,6 @@ export const updateApplicationNotes = async (tutorId, notes) => {
 
 // Tutor Approval/Rejection
 export const approveTutor = async (tutorId) => {
-  console.log('Approving tutor:', tutorId);
   return apiCall('/tutors/approve', {
     method: 'POST',
     body: JSON.stringify({ tutor_id: tutorId }),
@@ -253,7 +237,6 @@ export const approveTutor = async (tutorId) => {
 };
 
 export const rejectTutor = async (tutorId, reason) => {
-  console.log('Rejecting tutor:', { tutorId, reason });
   return apiCall('/tutors/reject', {
     method: 'POST',
     body: JSON.stringify({
@@ -265,7 +248,6 @@ export const rejectTutor = async (tutorId, reason) => {
 
 // Background Check Verification
 export const verifyBackgroundCheck = async (tutorId) => {
-  console.log('Verifying background check for:', tutorId);
   return apiCall('/tutors/verify/background', {
     method: 'POST',
     body: JSON.stringify({ tutor_id: tutorId }),
@@ -274,9 +256,6 @@ export const verifyBackgroundCheck = async (tutorId) => {
 
 // Individual Document Verification (for Background Check documents)
 export const verifyDocument = async (tutorId, documentType) => {
-  console.log('Verifying document:', { tutorId, documentType });
-  // For now, we'll use a direct document update approach
-  // This would need a new endpoint in your backend
   return apiCall('/tutors/verify/document', {
     method: 'POST',
     body: JSON.stringify({ 
@@ -287,7 +266,6 @@ export const verifyDocument = async (tutorId, documentType) => {
 };
 
 export const verifyReferenceChecks = async (tutorId) => {
-  console.log('Verifying reference checks for:', tutorId);
   return apiCall('/tutors/verify/references', {
     method: 'POST',
     body: JSON.stringify({ tutor_id: tutorId }),
@@ -295,7 +273,6 @@ export const verifyReferenceChecks = async (tutorId) => {
 };
 
 export const verifyQualifications = async (tutorId) => {
-  console.log('Verifying qualifications for:', tutorId);
   return apiCall('/tutors/verify/qualifications', {
     method: 'POST',
     body: JSON.stringify({ tutor_id: tutorId }),
@@ -304,7 +281,6 @@ export const verifyQualifications = async (tutorId) => {
 
 // Interview Slot Management
 export const setAvailableInterviewSlots = async (userId, preferredTimes) => {
-  console.log('Setting available interview slots:', { userId, preferredTimes });
   return apiCall('/tutors/interview/assign', {
     method: 'POST',
     body: JSON.stringify({
