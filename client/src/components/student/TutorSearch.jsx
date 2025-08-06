@@ -29,10 +29,10 @@ import {
   X
 } from 'lucide-react';
 
-const TutorSearch = ({ studentId }) => {
+const TutorSearch = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken } = useAuth();
+  const { getAuthToken, user } = useAuth();
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -61,13 +61,13 @@ const TutorSearch = ({ studentId }) => {
   });
 
   useEffect(() => {
-    if (studentId) {
+    if (user) {
       loadAllTutors();
     }
-  }, [studentId]);
+  }, [user]);
 
   useEffect(() => {
-    if (studentId) {
+    if (user) {
       searchTutors();
     }
   }, [currentPage, filters, searchQuery]);
@@ -198,7 +198,7 @@ const TutorSearch = ({ studentId }) => {
   };
 
   const handleRequestHelp = (tutor) => {
-    navigate(`/student/request-help/${studentId}`, {
+    navigate(`/student/request-help`, {
       state: { selectedTutor: tutor }
     });
   };
@@ -214,7 +214,7 @@ const TutorSearch = ({ studentId }) => {
         },
         body: JSON.stringify({
           tutor_id: selectedTutor.user_id._id,
-          student_id: studentId,
+          student_id: user._id,
           subject: bookingData.subject,
           session_date: bookingData.session_date,
           duration_hours: bookingData.duration_hours,
@@ -270,7 +270,7 @@ const TutorSearch = ({ studentId }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button 
-            onClick={() => navigate(`/student-dashboard/${studentId}`)} 
+            onClick={() => navigate(`/student-dashboard`)} 
             variant="outline"
             size="sm"
           >

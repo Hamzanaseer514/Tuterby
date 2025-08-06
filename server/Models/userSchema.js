@@ -17,12 +17,10 @@ const userSchema = new mongoose.Schema({
   },
   phone_number: {
     type: String,
-    required: true
   },
   role: {
     type: String,
-    enum: ['tutor', 'student', 'parent', 'admin'],
-    required: true
+    enum: ['tutor', 'student', 'parent', 'admin']
   },
   age: {
     type: Number,

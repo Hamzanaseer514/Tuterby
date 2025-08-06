@@ -16,97 +16,157 @@ const path = require("path");
 
 
 exports.registerUser = asyncHandler(async (req, res) => {
+  console.log(req.body)
   const {
     full_name,
     email,
     password,
     age,
-    role,
-    phone_number,
-    photo_url,
     academic_level,
-    learning_goals,
-    preferred_subjects,
-    availability,
+    role 
   } = req.body;
 
-  if (
-    !email || !password || !age || !full_name ||
-    !academic_level || !learning_goals || !preferred_subjects || !availability
-  ) {
+  if (!email || !password || !age || !full_name || !academic_level) {
     res.status(400);
-    throw new Error("All fields are required");
+    throw new Error("Full name, email, password, age, and academic level are required");
   }
-  if(age < 12) {
+
+  if (age < 12) {
     res.status(400);
     throw new Error("Age must be 12 or older");
   }
+
   const emailExists = await User.findOne({ email });
   if (emailExists) {
     res.status(400);
     throw new Error("Email already exists");
   }
 
-
-  // const session = await User.startSession();
-  // session.startTransaction();
-
   try {
-    // Create user with password (hashing will happen in model)
-    const user = await User.create(
-      [
-        {
-          full_name,
-          email,
-          password, // will be hashed by pre-save hook
-          age,
-          phone_number,
-          role: role || "student",
-          photo_url,
-          is_verified: true // Assuming auto-verification for registration
-        },
-      ],
-      // { session }
-    );
+    const user = await User.create({
+      full_name,
+      email,
+      password,
+      age,
+      role: role || "student",
+      is_verified: true,
+    });
 
-    // Create student profile
-    const student = await Student.create(
-      [
-        {
-          user_id: user[0]._id,
-          academic_level,
-          learning_goals,
-          preferred_subjects,
-          availability
-        },
-      ],
-      // { session }
-    );
-
-    // await session.commitTransaction();
-    // session.endSession();
+    const student = await Student.create({
+      user_id: user._id,
+      academic_level,
+    });
 
     res.status(201).json({
       message: "Student registered successfully",
-      _id: user[0]._id,
-      full_name: user[0].full_name,
-      email: user[0].email,
-      role: user[0].role,
-      age: user[0].age,
-      phone_number: user[0].phone_number,
-      photo_url: user[0].photo_url,
-      studentData: student[0]
+      user: {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        age: user.age,
+        role: user.role,
+      },
+      student: {
+        academic_level: student.academic_level,
+      }
     });
-
   } catch (error) {
-    // await session.abortTransaction();
-    // session.endSession();
     res.status(500);
     throw new Error("User/Student creation failed: " + error.message);
   }
 });
 
+exports.updateStudentProfile = asyncHandler(async (req, res) => {
+  const {
+    full_name,
+    phone_number,
+    photo_url,
+    age,
+    academic_level,
+    learning_goals,
+    preferred_subjects,
+    availability,
+  } = req.body;
 
+  const { user_id } = req.params;
+
+  const user = await User.findById(user_id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (phone_number !== undefined && phone_number !== "") {
+    const existingUser = await User.findOne({ phone_number });
+    if (existingUser && existingUser._id.toString() !== user_id) {
+      res.status(400);
+      throw new Error("Phone number already in use");
+    }
+    user.phone_number = phone_number;
+  }
+
+  if (full_name !== undefined && full_name !== "") {
+    user.full_name = full_name;
+  }
+
+  if (photo_url !== undefined && photo_url !== "") {
+    user.photo_url = photo_url;
+  }
+
+  if (age !== undefined) {
+    user.age = age;
+  }
+
+  await user.save();
+
+  const student = await Student.findOne({ user_id: user_id });
+  if (!student) {
+    res.status(404);
+    throw new Error("Student profile not found");
+  }
+
+  if (academic_level !== undefined && academic_level !== "") {
+    student.academic_level = academic_level;
+  }
+
+  if (learning_goals !== undefined && learning_goals !== "") {
+    student.learning_goals = learning_goals;
+  }
+
+  if (
+    preferred_subjects !== undefined &&
+    Array.isArray(preferred_subjects) &&
+    preferred_subjects.length > 0
+  ) {
+    student.preferred_subjects = preferred_subjects;
+  }
+
+  if (
+    availability !== undefined &&
+    Array.isArray(availability) &&
+    availability.length > 0
+  ) {
+    student.availability = availability;
+  }
+
+  await student.save();
+
+  res.status(200).json({
+    message: "Student profile updated successfully",
+    user: {
+      phone_number: user.phone_number,
+      photo_url: user.photo_url,
+      age: user.age,
+      full_name: user.full_name,
+    },
+    student: {
+      academic_level: student.academic_level,
+      learning_goals: student.learning_goals,
+      preferred_subjects: student.preferred_subjects,
+      availability: student.availability,
+    },
+  });
+});
 
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
@@ -122,7 +182,6 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     academic_levels_taught, // array of academic levels they will teach
     location, // tutor's location
     hourly_rate, // tutor's hourly rate
-    
     bio,
     code_of_conduct_agreed,
     documentsMap
@@ -419,6 +478,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
 
 
 exports.loginUser = asyncHandler(async (req, res) => {
+  
   const { email, password } = req.body;
   if (!email || !password) {
     res.status(400);
@@ -450,7 +510,6 @@ exports.loginUser = asyncHandler(async (req, res) => {
     email: user.email,
   });
 }else if(user.role === "admin"){
-  // Admin login - no OTP required
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
@@ -506,38 +565,34 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "User not found" });
   }
 
-  // // ✅ Case 1: Forgot Password
-  // if (entry.purpose === "forgotPassword") {
-  //   delete otpStore[userId];
-  //   return res.status(200).json({
-  //     message: "OTP verified successfully. You can now reset your password.",
-  //     userId
-  //   });
-  // }
+  // ✅ Case 1: Forgot Password
+  if (entry.purpose === "forgotPassword") {
+    delete otpStore[userId];
+    return res.status(200).json({
+      message: "OTP verified successfully. You can now reset your password.",
+      userId
+    });
+  }
 
-  // ✅ Case 2: Login
-  let roleData = null;
   
-
-
+  let roleData = null;
   if (user.role === "student") {
     roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-    // console.log('Found student role data:', roleData);
+   
   } else if (user.role === "tutor") {
     roleData = await TutorProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-    // console.log('Found tutor role data:', roleData);
+
   } else if (user.role === "parent") {
     roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-    // console.log('Found parent role data:', roleData);
+ 
   } else if (user.role === "admin") {
-    // Admin doesn't need separate profile data, use basic user info
     roleData = {
       _id: user._id,
       full_name: user.full_name,
       email: user.email,
       role: user.role
     };
-    // console.log('Created admin role data:', roleData);
+    
   }
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -558,8 +613,6 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       full_name: user.full_name,
       email: user.email,
       role: user.role,
-      address: user.address,
-      gender: user.gender
     },
     data: roleData,
     accessToken,
@@ -782,6 +835,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
 // Student Dashboard Controllers
 exports.getStudentDashboard = asyncHandler(async (req, res) => {
+  const userID = req.user._id; // Assuming user ID is available in req.user
   const { studentId } = req.params;
   
   const student = await User.findById(studentId);
@@ -792,8 +846,7 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
 
   // Get student profile with assignments and notes
   const studentProfile = await Student.findOne({ user_id: studentId });
-  
-  // Get upcoming sessions
+
   const upcomingSessions = await TutoringSession.find({
     student_id: studentId,
     session_date: { $gte: new Date() },

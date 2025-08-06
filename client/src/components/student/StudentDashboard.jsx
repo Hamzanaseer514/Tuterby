@@ -158,11 +158,11 @@ const StudentDashboard = ({ studentId }) => {
           <p className="text-gray-600 mt-1">Manage your tutoring activities and track your progress</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => navigate(`/student/tutor-search/${studentId}`)} variant="outline">
+          <Button onClick={() => navigate(`/student/tutor-search`)} variant="outline">
             <Search className="w-4 h-4 mr-2" />
             Find Tutors
           </Button>
-          <Button onClick={() => navigate(`/student/request-help/${studentId}`)}>
+          <Button onClick={() => navigate(`/student/request-help`)}>
             <Plus className="w-4 h-4 mr-2" />
             Request Help
           </Button>
@@ -237,7 +237,7 @@ const StudentDashboard = ({ studentId }) => {
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No upcoming sessions</p>
                 <Button 
-                  onClick={() => navigate(`/student/tutor-search/${studentId}`)} 
+                  onClick={() => navigate(`/student/tutor-search`)} 
                   variant="outline" 
                   className="mt-2"
                 >
@@ -268,7 +268,7 @@ const StudentDashboard = ({ studentId }) => {
                 ))}
                 {dashboardData.upcomingSessions.length > 5 && (
                   <Button 
-                    onClick={() => navigate(`/student/sessions/${studentId}`)} 
+                    onClick={() => navigate(`/student/sessions}`)} 
                     variant="outline" 
                     className="w-full"
                   >

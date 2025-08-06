@@ -56,8 +56,8 @@ const ParentDashboardPage = lazy(() => import('./pages/ParentDashboardPage'));
                   <Route path="/login" element={<LoginForm />} />
                   <Route path="/tutor-dashboard/:tutorId" element={<TutorDashboardPage />} />
                   <Route path="/tutor-dashboard/:tutorId/availability" element={<TutorAvailabilityPage />} />
-                  <Route path="/student-dashboard/:studentId" element={<StudentDashboardPage />} />
-                  <Route path="/student/tutor-search/:studentId" element={<StudentTutorSearchPage />} />
+                  <Route path="/student-dashboard/" element={<StudentDashboardPage />} />
+                  <Route path="/student/tutor-search" element={<StudentTutorSearchPage />} />
                   <Route path="/student/request-help/:studentId" element={<StudentRequestHelpPage />} />
                   <Route path="/tutor/:tutorId" element={<TutorProfilePage />} />
                   <Route path="/parent-dashboard/:parentId" element={<ParentDashboardPage />} />

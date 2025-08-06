@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  FileText, 
-  BookOpen, 
+import {
+  LayoutDashboard,
+  Calendar,
+  FileText,
+  BookOpen,
   Settings,
   LogOut,
-  User
+  User,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/use-toast';
@@ -17,7 +17,6 @@ import StudentSessions from '../components/student/StudentSessions';
 import StudentPreferences from '../components/student/StudentPreferences';
 
 const StudentDashboardPage = () => {
-  const { studentId } = useParams();
   const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,47 +24,32 @@ const StudentDashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    
-    // Wait for auth to finish loading before checking user
+    console.log('Checking user authentication and role...', user, loading);
+
     if (authLoading) {
       console.log('Auth still loading, waiting...');
       return;
     }
 
-    // Check if user is authenticated and is a student
     if (!user) {
       console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
 
-    // Check user role immediately
     if (user.role !== 'student') {
       console.log('User role is not student:', user.role);
       toast({
-        title: "Access Denied",
-        description: "This dashboard is only for students",
-        variant: "destructive"
-      });
-      navigate('/');
-      return;
-    }
-
-    // Check if the studentId in URL matches the logged-in user
-    const userId = studentId;
-    if (userId !== studentId) {
-      console.log('User ID mismatch:', userId, 'vs', studentId);
-      toast({
-        title: "Access Denied",
-        description: "You can only access your own dashboard",
-        variant: "destructive"
+        title: 'Access Denied',
+        description: 'This dashboard is only for students',
+        variant: 'destructive',
       });
       navigate('/');
       return;
     }
 
     setLoading(false);
-  }, [user, studentId, navigate, toast, authLoading]);
+  }, [user, navigate, toast, authLoading]);
 
   const handleLogout = () => {
     logout();
@@ -77,35 +61,35 @@ const StudentDashboardPage = () => {
       id: 'dashboard',
       name: 'Dashboard',
       icon: LayoutDashboard,
-      component: <StudentDashboard studentId={studentId} />
+      component: <StudentDashboard studentId={user?._id} />,
     },
     {
       id: 'sessions',
       name: 'My Sessions',
       icon: Calendar,
-      component: <StudentSessions studentId={studentId} />
+      component: <StudentSessions studentId={user?._id} />,
     },
     {
       id: 'assignments',
       name: 'Assignments',
       icon: FileText,
-      component: <div className="p-6">Assignments coming soon...</div>
+      component: <div className="p-6">Assignments coming soon...</div>,
     },
     {
       id: 'notes',
       name: 'Notes',
       icon: BookOpen,
-      component: <div className="p-6">Notes coming soon...</div>
+      component: <div className="p-6">Notes coming soon...</div>,
     },
     {
       id: 'preferences',
       name: 'Preferences',
       icon: Settings,
-      component: <StudentPreferences studentId={studentId} />
-    }
+      component: <StudentPreferences studentId={user?._id} />,
+    },
   ];
 
-  const activeComponent = tabs.find(tab => tab.id === activeTab)?.component;
+  const activeComponent = tabs.find((tab) => tab.id === activeTab)?.component;
 
   if (loading) {
     return (
@@ -129,7 +113,7 @@ const StudentDashboardPage = () => {
                 <h1 className="text-xl font-bold text-gray-900">Student Dashboard</h1>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -182,4 +166,4 @@ const StudentDashboardPage = () => {
   );
 };
 
-export default StudentDashboardPage; 
+export default StudentDashboardPage;

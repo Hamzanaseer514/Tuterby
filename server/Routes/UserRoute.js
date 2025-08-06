@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, updateUser, forgotPassword,resetPassword, getStudentDashboard, getStudentSessions, updateStudentPreferences, getStudentAssignments, getStudentNotes, searchTutors, getTutorDetails, requestAdditionalHelp, getStudentHelpRequests } = require("../Controllers/UserController")
+const { registerUser,updateStudentProfile,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, updateUser, forgotPassword,resetPassword, getStudentDashboard, getStudentSessions, updateStudentPreferences, getStudentAssignments, getStudentNotes, searchTutors, getTutorDetails, requestAdditionalHelp, getStudentHelpRequests } = require("../Controllers/UserController")
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
@@ -22,6 +22,7 @@ const storage = multer.diskStorage({
   
 
 router.post("/register", registerUser)
+router.post("/updatestudent/:user_id", updateStudentProfile)
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
 router.post("/register-parent", registerParent)
 router.post("/add-student-to-parent", protect, addStudentToParent)

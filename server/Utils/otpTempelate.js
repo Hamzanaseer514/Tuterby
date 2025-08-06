@@ -35,7 +35,7 @@ const generateOtpEmail = (otp, userName = "User") => {
 
       <!-- Footer -->
       <div style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px; text-align: center; font-size: 12px; color: #aaa;">
-        <p>© ${currentYear} SaferSavvy – A Project by Laskon. All rights reserved.</p>
+        <p>© ${currentYear} TUTERBY – A Project by Laskon. All rights reserved.</p>
         <p>This is an automated email. Please do not reply.</p>
       </div>
     </div>
