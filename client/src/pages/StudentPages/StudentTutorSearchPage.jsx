@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import TutorSearch from '../components/student/TutorSearch';
+import TutorSearch from '../../components/student/TutorSearch';
 
 const StudentTutorSearchPage = () => {
   // const { studentId } = useParams();

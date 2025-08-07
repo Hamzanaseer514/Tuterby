@@ -19,13 +19,13 @@ import React, { Suspense, lazy } from 'react';
     const Register = lazy(() => import('./components/account/register'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const LoginForm = lazy(() => import('./components/account/LoginForm.jsx'));
-const TutorDashboardPage = lazy(() => import('./pages/TutorDashboardPage'));
-const TutorAvailabilityPage = lazy(() => import('./pages/TutorAvailabilityPage'));
-const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage'));
-const StudentTutorSearchPage = lazy(() => import('./pages/StudentTutorSearchPage'));
-const StudentRequestHelpPage = lazy(() => import('./pages/StudentRequestHelpPage'));
-const TutorProfilePage = lazy(() => import('./pages/TutorProfilePage'));
-const ParentDashboardPage = lazy(() => import('./pages/ParentDashboardPage'));
+const TutorDashboardPage = lazy(() => import('./pages/TutorPages/TutorDashboardPage'));
+const TutorAvailabilityPage = lazy(() => import('./pages/TutorPages/TutorAvailabilityPage'));
+const StudentDashboardPage = lazy(() => import('./pages/StudentPages/StudentDashboardPage'));
+const StudentTutorSearchPage = lazy(() => import('./pages/StudentPages/StudentTutorSearchPage'));
+const StudentRequestHelpPage = lazy(() => import('./pages/StudentPages/StudentRequestHelpPage'));
+const TutorProfilePage = lazy(() => import('./pages/TutorPages/TutorProfilePage'));
+const ParentDashboardPage = lazy(() => import('./pages/ParentPages/ParentDashboardPage'));
 
     const PageLoader = () => (
       <div className="flex justify-center items-center h-screen">
@@ -54,8 +54,8 @@ const ParentDashboardPage = lazy(() => import('./pages/ParentDashboardPage'));
                   <Route path="/register" element={<Register />} />
                   <Route path="/admin" element={<AdminDashboard/>}/> 
                   <Route path="/login" element={<LoginForm />} />
-                  <Route path="/tutor-dashboard/:tutorId" element={<TutorDashboardPage />} />
-                  <Route path="/tutor-dashboard/:tutorId/availability" element={<TutorAvailabilityPage />} />
+                  <Route path="/tutor-dashboard" element={<TutorDashboardPage />} />
+                  <Route path="/tutor-dashboard/availability" element={<TutorAvailabilityPage />} />
                   <Route path="/student-dashboard/" element={<StudentDashboardPage />} />
                   <Route path="/student/tutor-search" element={<StudentTutorSearchPage />} />
                   <Route path="/student/request-help" element={<StudentRequestHelpPage />} />

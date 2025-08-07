@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import TutorDashboard from '../components/tutor/TutorDashboard';
-import SessionManagement from '../components/tutor/SessionManagement';
-import InquiryManagement from '../components/tutor/InquiryManagement';
-import AvailabilityCalendar from '../components/tutor/AvailabilityCalendar';
-import { Button } from '../components/ui/button';
+import TutorDashboard from '../../components/tutor/TutorDashboard';
+import SessionManagement from '../../components/tutor/SessionManagement';
+import InquiryManagement from '../../components/tutor/InquiryManagement';
+import AvailabilityCalendar from '../../components/tutor/AvailabilityCalendar';
+import { Button } from '../../components/ui/button';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -20,7 +20,6 @@ const TutorDashboardPage = () => {
   const [tutorId, setTutorId] = useState(null);
   const navigate = useNavigate();
   const { user, loading, logout, isTutor } = useAuth();
-  const { tutorId: urlTutorId } = useParams();
 
   useEffect(() => {
     if (!loading) {
@@ -35,10 +34,9 @@ const TutorDashboardPage = () => {
       }
       
       // Use URL parameter if available, otherwise use user ID
-      const finalTutorId = urlTutorId || tutorId;
-      setTutorId(finalTutorId);
+      setTutorId(tutorId);
     }
-  }, [user, loading, navigate, isTutor, urlTutorId]);
+  }, [user, loading, navigate, isTutor]);
 
   const handleLogout = () => {
     logout();

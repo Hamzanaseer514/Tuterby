@@ -28,12 +28,16 @@ import {
   Plus,
   Edit,
   Reply,
-  XCircle
+  XCircle,
+  User
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
-const TutorDashboard = ({ tutorId }) => {
+const TutorDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { getAuthToken, user } = useAuth();
+
   
   // Common subjects for dropdown
   const commonSubjects = [
@@ -81,16 +85,16 @@ const TutorDashboard = ({ tutorId }) => {
   const [loadingStudents, setLoadingStudents] = useState(false);
 
   useEffect(() => {
-    if (tutorId) {
+    if (user) {
       fetchDashboardData();
       fetchAvailableStudents();
     } else {
       setLoading(false);
     }
-  }, [tutorId]);
+  }, [user]);
 
   const fetchDashboardData = async () => {
-    if (!tutorId) {
+    if (!user) {
       setError('Tutor ID is required');
       setLoading(false);
       return;
@@ -99,7 +103,13 @@ const TutorDashboard = ({ tutorId }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/tutor/dashboard/${tutorId}`);
+      const token = getAuthToken();
+        const response = await fetch(`http://localhost:5000/api/tutor/dashboard/${user?._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch dashboard data');
@@ -130,7 +140,14 @@ const TutorDashboard = ({ tutorId }) => {
     try {
       // Check availability before creating session
       const availabilityResponse = await fetch(
-        `http://localhost:5000/api/tutor/availability/${tutorId}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`
+          `http://localhost:5000/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
       );
       
       if (availabilityResponse.ok) {
@@ -148,11 +165,12 @@ const TutorDashboard = ({ tutorId }) => {
       const response = await fetch('http://localhost:5000/api/tutor/sessions', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...sessionForm,
-          tutor_id: tutorId
+          tutor_id: user?._id
         }),
       });
 

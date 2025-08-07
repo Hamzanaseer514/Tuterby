@@ -487,21 +487,17 @@ exports.getAllUsers = async (req, res) => {
 // Get detailed tutor information including documents and interviews
 exports.getTutorDetails = async (req, res) => {
   try {
-    const { tutorId } = req.params;
-    
-    const tutor = await TutorProfile.findById(tutorId)
-      .populate('user_id');
-    
+    const { userId } = req.params;
+    const tutor = await TutorProfile.findOne({user_id:userId})
     if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
     
-
     // Get documents
-    const documents = await TutorDocument.find({ tutor_id: tutorId });
+    const documents = await TutorDocument.find({tutor_id: tutor._id });
     
     // Get interview slots
-    const application = await TutorApplication.findOne({ tutor_id: tutorId });
+    const application = await TutorApplication.findOne({tutor_id: tutor._id });
     
     // Parse subjects if they are JSON strings
     let parsedSubjects = tutor.subjects || [];
@@ -563,7 +559,6 @@ exports.getTutorDetails = async (req, res) => {
       applicationNotes: application ? application.admin_notes : ''
     };
 
-   
 
     res.status(200).json(tutorDetails);
   } catch (err) {

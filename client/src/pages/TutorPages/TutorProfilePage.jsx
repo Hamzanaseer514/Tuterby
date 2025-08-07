@@ -3,16 +3,16 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 
 
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle
-} from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { useToast } from '../components/ui/use-toast';
+} from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { useToast } from '../../components/ui/use-toast';
 import {
   User,
   Star,
@@ -25,7 +25,6 @@ import {
   Award,
   GraduationCap
 } from 'lucide-react';
-import Layout from '../components/Layout';
 
 const TutorProfilePage = () => {
   const location = useLocation();

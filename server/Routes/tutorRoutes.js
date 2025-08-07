@@ -49,35 +49,35 @@ const upload = multer({ storage });
 router.post('/upload-document', upload.single('document'), uploadDocument);
 
 // Dashboard routes
-router.get('/dashboard/:tutor_id', getTutorDashboard);
-router.get('/profile/:tutor_id', getTutorProfile);
-router.get('/stats/:tutor_id', getTutorStats);
+router.get('/dashboard/:user_id', getTutorDashboard);
+router.get('/profile/:user_id', getTutorProfile);
+router.get('/stats/:user_id', getTutorStats);
 
 // Session management routes
 router.post('/sessions', createSession);
 router.put('/sessions/:session_id', updateSessionStatus);
-router.get('/sessions/:tutor_id', getTutorSessions);
+router.get('/sessions/:user_id', getTutorSessions);
 
 // Inquiry management routes
-router.get('/inquiries/:tutor_id', getTutorInquiries);
+router.get('/inquiries/:user_id', getTutorInquiries);
 router.put('/inquiries/:inquiry_id/reply', replyToInquiry);
 
 // Student management routes
 router.get('/students', getAvailableStudents);
 
 // Availability management routes
-router.get('/availability/:tutor_id', getTutorAvailability);
-router.put('/availability/:tutor_id/general', updateGeneralAvailability);
-router.post('/availability/:tutor_id/recurring', addRecurringAvailability);
-router.put('/availability/:tutor_id/recurring/:slot_id', updateRecurringAvailability);
-router.delete('/availability/:tutor_id/recurring/:slot_id', removeRecurringAvailability);
-router.post('/availability/:tutor_id/one-time', addOneTimeAvailability);
-router.put('/availability/:tutor_id/one-time/:slot_id', updateOneTimeAvailability);
-router.delete('/availability/:tutor_id/one-time/:slot_id', removeOneTimeAvailability);
-router.post('/availability/:tutor_id/blackout', addBlackoutDate);
-router.put('/availability/:tutor_id/blackout/:blackout_id', updateBlackoutDate);
-router.delete('/availability/:tutor_id/blackout/:blackout_id', removeBlackoutDate);
-router.get('/availability/:tutor_id/slots', getAvailableSlots);
+router.get('/availability/:user_id', getTutorAvailability);
+router.put('/availability/:user_id/general', updateGeneralAvailability);
+router.post('/availability/:user_id/recurring', addRecurringAvailability);
+router.put('/availability/:user_id/recurring/:slot_id', updateRecurringAvailability);
+router.delete('/availability/:user_id/recurring/:slot_id', removeRecurringAvailability);
+router.post('/availability/:user_id/one-time', addOneTimeAvailability);
+router.put('/availability/:user_id/one-time/:slot_id', updateOneTimeAvailability);
+router.delete('/availability/:user_id/one-time/:slot_id', removeOneTimeAvailability);
+router.post('/availability/:user_id/blackout', addBlackoutDate);
+router.put('/availability/:user_id/blackout/:blackout_id', updateBlackoutDate);
+router.delete('/availability/:user_id/blackout/:blackout_id', removeBlackoutDate);
+router.get('/availability/:user_id/slots', getAvailableSlots);
 router.get('/availability/:tutor_id/check', checkAvailability);
 
 module.exports = router;

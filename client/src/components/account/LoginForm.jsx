@@ -136,7 +136,7 @@ export default function LoginForm() {
         if (data.user && data.user.role === 'tutor') {
           setSuccess('Welcome to your Tutor Dashboard! Redirecting...');
           setTimeout(() => {
-            navigate(`/tutor-dashboard/${data.data._id}`);
+            navigate(`/tutor-dashboard`);
           }, 1000);
 
         }

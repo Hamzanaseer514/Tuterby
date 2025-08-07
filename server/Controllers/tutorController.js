@@ -34,15 +34,15 @@ const uploadDocument = asyncHandler(async (req, res) => {
 
 // Get tutor dashboard overview
 const getTutorDashboard = asyncHandler(async (req, res) => {
-  const { tutor_id } = req.params;
-
+  const { user_id } = req.params;
+  console.log("user_id", user_id);
   // Validate tutor_id
-  if (!tutor_id || !mongoose.Types.ObjectId.isValid(tutor_id)) {
+  if (!user_id || !mongoose.Types.ObjectId.isValid(user_id)) {
     res.status(400);
-    throw new Error("Invalid tutor ID");
+    throw new Error("Invalid user ID");
   }
 
-  const tutorObjectId = new mongoose.Types.ObjectId(tutor_id);
+  const tutorObjectId = new mongoose.Types.ObjectId(user_id);
 
   // Get upcoming sessions (all future sessions)
   const upcomingSessions = await TutoringSession.find({
@@ -251,7 +251,7 @@ const getTutorSessions = asyncHandler(async (req, res) => {
 
 // Get tutor's inquiries
 const getTutorInquiries = asyncHandler(async (req, res) => {
-  const { tutor_id } = req.params;
+  const { user_id } = req.params;
   const { status, limit = 10, page = 1 } = req.query;
 
   
