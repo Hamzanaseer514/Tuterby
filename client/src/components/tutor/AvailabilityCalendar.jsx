@@ -27,7 +27,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-const AvailabilityCalendar = ({ tutorId }) => {
+const AvailabilityCalendar = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [availability, setAvailability] = useState(null);
@@ -94,7 +95,7 @@ const AvailabilityCalendar = ({ tutorId }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${tutorId}`);
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch availability');
       }
@@ -118,7 +119,7 @@ const AvailabilityCalendar = ({ tutorId }) => {
   const handleGeneralSettingsUpdate = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${tutorId}/general`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/general`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generalSettings)
@@ -147,8 +148,8 @@ const AvailabilityCalendar = ({ tutorId }) => {
     e.preventDefault();
     try {
       const url = editingSlot 
-        ? `http://localhost:5000/api/tutor/availability/${tutorId}/recurring/${editingSlot._id}`
-        : `http://localhost:5000/api/tutor/availability/${tutorId}/recurring`;
+        ? `http://localhost:5000/api/tutor/availability/${user.id}/recurring/${editingSlot._id}`
+        : `http://localhost:5000/api/tutor/availability/${user.id}/recurring`;
       
       const method = editingSlot ? 'PUT' : 'POST';
       
@@ -183,8 +184,8 @@ const AvailabilityCalendar = ({ tutorId }) => {
     e.preventDefault();
     try {
       const url = editingSlot 
-        ? `http://localhost:5000/api/tutor/availability/${tutorId}/one-time/${editingSlot._id}`
-        : `http://localhost:5000/api/tutor/availability/${tutorId}/one-time`;
+        ? `http://localhost:5000/api/tutor/availability/${user.id}/one-time/${editingSlot._id}`
+        : `http://localhost:5000/api/tutor/availability/${user.id}/one-time`;
       
       const method = editingSlot ? 'PUT' : 'POST';
       
@@ -219,8 +220,8 @@ const AvailabilityCalendar = ({ tutorId }) => {
     e.preventDefault();
     try {
       const url = editingBlackout 
-        ? `http://localhost:5000/api/tutor/availability/${tutorId}/blackout/${editingBlackout._id}`
-        : `http://localhost:5000/api/tutor/availability/${tutorId}/blackout`;
+        ? `http://localhost:5000/api/tutor/availability/${user.id}/blackout/${editingBlackout._id}`
+        : `http://localhost:5000/api/tutor/availability/${user.id}/blackout`;
       
       const method = editingBlackout ? 'PUT' : 'POST';
       
@@ -255,7 +256,7 @@ const AvailabilityCalendar = ({ tutorId }) => {
     if (!confirm('Are you sure you want to delete this recurring slot?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${tutorId}/recurring/${slotId}`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/recurring/${slotId}`, {
         method: 'DELETE'
       });
 
@@ -281,7 +282,7 @@ const AvailabilityCalendar = ({ tutorId }) => {
     if (!confirm('Are you sure you want to delete this one-time slot?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${tutorId}/one-time/${slotId}`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/one-time/${slotId}`, {
         method: 'DELETE'
       });
 
@@ -307,7 +308,7 @@ const AvailabilityCalendar = ({ tutorId }) => {
     if (!confirm('Are you sure you want to delete this blackout date?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${tutorId}/blackout/${blackoutId}`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/blackout/${blackoutId}`, {
         method: 'DELETE'
       });
 
@@ -403,7 +404,7 @@ const AvailabilityCalendar = ({ tutorId }) => {
             </div>
             <Button 
               variant="outline"
-              onClick={() => navigate(`/tutor-dashboard/${tutorId}`)}
+                onClick={() => navigate(`/tutor-dashboard`)}
               className="flex items-center space-x-2"
             >
               <ArrowLeft className="h-4 w-4" />

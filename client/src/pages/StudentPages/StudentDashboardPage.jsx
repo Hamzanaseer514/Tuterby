@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 import {
   LayoutDashboard,
   Calendar,
@@ -10,11 +10,11 @@ import {
   LogOut,
   User,
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { useToast } from '../components/ui/use-toast';
-import StudentDashboard from '../components/student/StudentDashboard';
-import StudentSessions from '../components/student/StudentSessions';
-import StudentPreferences from '../components/student/StudentPreferences';
+import { Button } from '../../components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
+import StudentDashboard from '../../components/student/StudentDashboard';
+import StudentSessions from '../../components/student/StudentSessions';
+import StudentPreferences from '../../components/student/StudentPreferences';
 
 const StudentDashboardPage = () => {
   const { user, logout, loading: authLoading } = useAuth();

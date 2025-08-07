@@ -37,7 +37,7 @@ router.post('/tutors/reject', rejectTutorProfile);
 
 // New comprehensive admin routes
 router.get('/users', getAllUsers);
-router.get('/tutors/:tutorId', getTutorDetails);
+router.get('/tutors/:userId', getTutorDetails);
 router.post('/interviews/complete', completeInterview);
 router.get('/interviews/available-slots', getAvailableInterviewSlots);
 router.put('/applications/notes', updateApplicationNotes);

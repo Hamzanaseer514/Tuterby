@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 import { 
   LogOut,
   User,
   ArrowLeft
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { useToast } from '../components/ui/use-toast';
-import RequestHelp from '../components/student/RequestHelp';
+import { Button } from '../../components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
+import RequestHelp from '../../components/student/RequestHelp';
 import { Toaster } from "@/components/ui/toaster";
 
 const StudentRequestHelpPage = () => {

@@ -130,10 +130,10 @@ export const getAllUsers = async (filters = {}) => {
   }
 };
 
-export const getTutorDetails = async (tutorId) => {
+export const getTutorDetails = async (userId) => {
   try {
-    const details = await apiCall(`/tutors/${tutorId}`);
-    
+    const details = await apiCall(`/tutors/${userId}`);
+
     // Fix document URLs
     if (details.documents && Array.isArray(details.documents)) {
       details.documents = details.documents.map(doc => ({
@@ -168,7 +168,6 @@ export const getTutorDetails = async (tutorId) => {
     if (!Array.isArray(details.subjects)) {
       details.subjects = [];
     }
-    
     return details;
   } catch (error) {
     console.error('Error fetching tutor details:', error);
