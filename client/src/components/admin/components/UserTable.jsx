@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -36,7 +36,12 @@ import {
   Badge,
   Zoom,
   Menu,
-  MenuItem
+  MenuItem,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  Alert
 } from '@mui/material';
 import {
   Visibility,
@@ -58,10 +63,20 @@ import {
   Assignment,
   ExpandMore,
   Edit,
-  Delete
+  Delete,
+  Schedule,
+  Send,
+  Refresh,
+  Cancel
 } from '@mui/icons-material';
+import {
+  verifyDocument,
+  getAvailableInterviewSlots,
+  setAvailableInterviewSlots
+} from '../../../services/adminService';
 
 // UserDetailDialog component
+
 const UserDetailDialog = ({
   open,
   user,
@@ -70,6 +85,84 @@ const UserDetailDialog = ({
 }) => {
   // Early return if no user or dialog is not open
   if (!user || !open) return null;
+
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedTimes, setSelectedTimes] = useState([]); // Changed to array for multiple selection
+  const [selectedTime, setSelectedTime] = useState('');
+  const [interviewNotes, setInterviewNotes] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotError, setSlotError] = useState('');
+  const [schedulingStatus, setSchedulingStatus] = useState('');
+
+  // Fetch available slots when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      fetchAvailableSlots(selectedDate);
+    }
+  }, [selectedDate]);
+
+  const fetchAvailableSlots = async (date) => {
+    setLoadingSlots(true);
+    setSlotError('');
+    try {
+      const slots = await getAvailableInterviewSlots(date);
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error('Error fetching slots:', error);
+      setSlotError('Failed to load available slots. Using default times.');
+      // Set default slots
+      setAvailableSlots([
+        { date: date, time: '09:00', available: true },
+        { date: date, time: '10:00', available: true },
+        { date: date, time: '11:00', available: false },
+        { date: date, time: '14:00', available: true },
+        { date: date, time: '15:00', available: true },
+        { date: date, time: '16:00', available: true }
+      ]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleTimeSelection = (time) => {
+    setSelectedTimes(prev => {
+      if (prev.includes(time)) {
+        return prev.filter(t => t !== time); // Remove if already selected
+      } else {
+        return [...prev, time]; // Add if not selected
+      }
+    });
+  };
+
+  const handleScheduleInterview = async () => {
+    if (selectedTimes.length === 0) {
+      setSlotError('Please select at least one time slot');
+      return;
+    }
+
+    setSchedulingStatus('scheduling');
+    try {
+      // Create array of date-time strings for all selected times
+      const scheduledDateTimes = selectedTimes.map(time => `${selectedDate}T${time}`);
+
+      await setAvailableInterviewSlots(user.id, scheduledDateTimes, interviewNotes);
+      setSchedulingStatus('success');
+      setTimeout(() => {
+        setSchedulingStatus('');
+        setSelectedTimes([]); // Reset selection after successful scheduling
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      setSchedulingStatus('error');
+    }
+  };
+
+
+  const handleRefreshSlots = () => {
+    fetchAvailableSlots(selectedDate);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -114,10 +207,10 @@ const UserDetailDialog = ({
   const userApplicationNotes = user?.applicationNotes;
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
       fullWidth
       TransitionComponent={Fade}
       transitionDuration={300}
@@ -154,10 +247,10 @@ const UserDetailDialog = ({
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={3}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <Avatar 
-                        sx={{ 
-                          width: 80, 
-                          height: 80, 
+                      <Avatar
+                        sx={{
+                          width: 80,
+                          height: 80,
                           mb: 2,
                           background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                           fontSize: '2rem',
@@ -176,67 +269,67 @@ const UserDetailDialog = ({
                       )}
                     </Box>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={9}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
                       {userName}
                     </Typography>
-                    
+
                     <List dense>
                       <ListItem>
                         <ListItemIcon>
                           <Email color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
-                          primary="Email" 
+                        <ListItemText
+                          primary="Email"
                           secondary={userEmail}
                           primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                           secondaryTypographyProps={{ variant: 'body1', fontWeight: 'medium' }}
                         />
                       </ListItem>
-                      
+
                       <ListItem>
                         <ListItemIcon>
                           <Phone color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
-                          primary="Phone" 
+                        <ListItemText
+                          primary="Phone"
                           secondary={userPhone}
                           primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                           secondaryTypographyProps={{ variant: 'body1', fontWeight: 'medium' }}
                         />
                       </ListItem>
-                      
+
                       <ListItem>
                         <ListItemIcon>
                           <LocationOn color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
-                          primary="Location" 
+                        <ListItemText
+                          primary="Location"
                           secondary={userLocation}
                           primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                           secondaryTypographyProps={{ variant: 'body1', fontWeight: 'medium' }}
                         />
                       </ListItem>
-                      
+
                       <ListItem>
                         <ListItemIcon>
                           <CalendarToday color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
-                          primary="Joined" 
+                        <ListItemText
+                          primary="Joined"
                           secondary={userJoinDate}
                           primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                           secondaryTypographyProps={{ variant: 'body1', fontWeight: 'medium' }}
                         />
                       </ListItem>
-                      
+
                       <ListItem>
                         <ListItemIcon>
                           <Work color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
-                          primary="Last Active" 
+                        <ListItemText
+                          primary="Last Active"
                           secondary={userLastActive}
                           primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                           secondaryTypographyProps={{ variant: 'body1', fontWeight: 'medium' }}
@@ -249,7 +342,6 @@ const UserDetailDialog = ({
             </Card>
 
             <Divider sx={{ my: 2 }} />
-
             {/* Tab-specific content */}
             {tabValue === 'tutors' && (
               <Box>
@@ -310,19 +402,21 @@ const UserDetailDialog = ({
                               </IconButton>
                               {!doc.verified && (
                                 <>
-                                  <Button 
-                                    size="small" 
-                                    variant="outlined" 
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
                                     color="success"
+                                    onClick={async () => {
+                                      try {
+                                        await verifyDocument(user.id, doc.type);
+                                        alert(`${doc.type} verified`);
+                                      } catch (err) {
+                                        console.error("Verification failed:", err);
+                                        alert(`Failed to verify ${doc.type}`);
+                                      }
+                                    }}
                                   >
                                     Verify
-                                  </Button>
-                                  <Button 
-                                    size="small" 
-                                    variant="outlined" 
-                                    color="error"
-                                  >
-                                    Reject
                                   </Button>
                                 </>
                               )}
@@ -339,19 +433,271 @@ const UserDetailDialog = ({
                 </Accordion>
 
                 {/* Interview Section */}
-                <Accordion defaultExpanded sx={{ mb: 2 }}>
-                  <AccordionSummary expandIcon={<ExpandMore />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <CalendarToday sx={{ mr: 1 }} />
-                      <Typography variant="h6">Interview Management</Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography variant="body2" color="text.secondary">
-                      Interview management functionality will be implemented soon.
-                    </Typography>
-                  </AccordionDetails>
-                </Accordion>
+             {/* Interview Section */}
+<Accordion defaultExpanded sx={{ mb: 2 }}>
+  <AccordionSummary expandIcon={<ExpandMore />}>
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <CalendarToday sx={{ mr: 1 }} />
+      <Typography variant="h6">Interview Management</Typography>
+      {user.preferredSlots.length > 0 && (
+        <Chip
+          label="Scheduled"
+          color="info"
+          size="small"
+          sx={{ ml: 2 }}
+        />
+      )}
+    </Box>
+  </AccordionSummary>
+  <AccordionDetails>
+    <Box>
+        {/* Interview Status */}
+        <Card sx={{ mb: 2, p: 2 }}>
+                        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                          Interview Slot Scheduled by Admin
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          {Array.isArray(user.preferredSlots) && user.preferredSlots.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: 2 }}>
+                              {user.preferredSlots.map((slot, index) => (
+                                <Chip
+                                  key={index}
+                                  label={slot}
+                                  variant="outlined"
+                                  color="primary"
+                                  size="small"
+                                />
+                              ))}
+                            </Box>
+                          )}
+
+                        </Box>
+                      </Card>
+
+      <Card sx={{ mb: 2, p: 2 }}>
+        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+          Interview Slot Booked by Tutor
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {Array.isArray(user.interviewSlots) && user.interviewSlots.length > 0 ? (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: 2 }}>
+              {user.interviewSlots.map((slot, index) => {
+                const date = new Date(slot.date);
+                const formattedDate = date.toLocaleDateString();
+                let chipColor = 'primary';
+                if (slot.completed) {
+                  chipColor = slot.result ? 'success' : 'warning';
+                } else if (slot.scheduled) {
+                  chipColor = 'primary';
+                }
+
+                return (
+                  <Chip
+                    key={index}
+                    label={`${formattedDate}, ${slot.time}`}
+                    variant="outlined"
+                    color={chipColor}
+                    size="small"
+                    sx={{
+                      borderStyle: slot.completed ? 'solid' : 'dashed',
+                      fontWeight: slot.completed ? 'bold' : 'normal'
+                    }}
+                    title={
+                      slot.completed
+                        ? `Completed: ${slot.result || 'No result yet'}`
+                        : 'Scheduled interview'
+                    }
+                  />
+                );
+              })}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No interview slots booked yet.
+            </Typography>
+          )}
+        </Box>
+      </Card>
+
+      {/* Show interview results when scheduled but not completed */}
+      {user.interviewSlots?.some(slot => slot.scheduled) && (
+        <Card sx={{ p: 2, mt: 2 }}>
+          <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+            Interview Results
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Interview Outcome</InputLabel>
+                <Select
+                  defaultValue=""
+                  label="Interview Outcome"
+                >
+                  <MenuItem value="passed">Passed</MenuItem>
+                  <MenuItem value="failed">Failed</MenuItem>
+                  <MenuItem value="conditional">Conditional Pass</MenuItem>
+                  <MenuItem value="reschedule">Needs Reschedule</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Interview Score"
+                type="number"
+                inputProps={{ min: 0, max: 100 }}
+                defaultValue=""
+                helperText="Score out of 100"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Interview Feedback"
+                multiline
+                rows={4}
+                placeholder="Add detailed feedback about the interview..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={() => {
+                  alert('Interview results saved successfully!');
+                }}
+              >
+                Save Interview Results
+              </Button>
+            </Grid>
+          </Grid>
+        </Card>
+      )}
+{console.log("user", user)}
+      {/* Schedule Interview Form - only show if no scheduled interviews */}
+      {!user.interviewSlots?.some(slot => slot.scheduled) && user.interviewSlots === "Passed" && (
+        <Card sx={{ p: 2 }}>
+          <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+            Schedule Interview
+          </Typography>
+
+          {/* Status Messages */}
+          {schedulingStatus === 'success' && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Interview scheduled successfully!
+            </Alert>
+          )}
+          {schedulingStatus === 'error' && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Failed to schedule interview. Please try again.
+            </Alert>
+          )}
+          {slotError && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {slotError}
+            </Alert>
+          )}
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Interview Date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" gutterBottom>
+                Available Slots for {selectedDate}
+                {selectedTimes.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    ({selectedTimes.length} selected)
+                  </Typography>
+                )}
+              </Typography>
+              {loadingSlots ? (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} variant="rectangular" width={80} height={32} />
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                  {availableSlots.map((slot, index) => (
+                    <Chip
+                      key={index}
+                      label={slot.time}
+                      color={
+                        selectedTimes.includes(slot.time)
+                          ? 'primary'
+                          : slot.available ? 'default' : 'default'
+                      }
+                      variant={
+                        selectedTimes.includes(slot.time)
+                          ? 'filled'
+                          : slot.available ? 'outlined' : 'outlined'
+                      }
+                      onClick={() => slot.available && handleTimeSelection(slot.time)}
+                      sx={{
+                        cursor: slot.available ? 'pointer' : 'default',
+                        opacity: slot.available ? 1 : 0.5
+                      }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Grid>
+
+            {selectedTimes.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="body2" gutterBottom>
+                  Selected Times:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {selectedTimes.map((time, index) => (
+                    <Chip
+                      key={index}
+                      label={time}
+                      color="primary"
+                      onDelete={() => handleTimeSelection(time)}
+                      deleteIcon={<Cancel />}
+                      sx={{
+                        '& .MuiChip-deleteIcon': {
+                          color: 'primary.main',
+                          fontSize: '1.2rem'
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Grid>
+            )}
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<Schedule />}
+                  onClick={handleScheduleInterview}
+                  disabled={schedulingStatus === 'scheduling'}
+                >
+                  {schedulingStatus === 'scheduling' ? 'Scheduling...' : 'Schedule Interview'}
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </Card>
+      )}
+    </Box>
+  </AccordionDetails>
+</Accordion>
+
 
                 {/* Application Notes */}
                 <Accordion>
@@ -495,9 +841,9 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
 
   return (
     <Slide direction="up" in timeout={300 + index * 50}>
-      <TableRow 
-        sx={{ 
-          '&:hover': { 
+      <TableRow
+        sx={{
+          '&:hover': {
             backgroundColor: 'rgba(25, 118, 210, 0.04)',
             cursor: 'pointer'
           },
@@ -506,8 +852,8 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
       >
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar 
-              sx={{ 
+            <Avatar
+              sx={{
                 mr: 2,
                 background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                 color: 'white',
@@ -541,7 +887,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                       label={subject}
                       size="small"
                       variant="outlined"
-                      sx={{ 
+                      sx={{
                         fontSize: '0.7rem',
                         borderColor: 'primary.main',
                         color: 'primary.main'
@@ -604,7 +950,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                     label={subject}
                     size="small"
                     variant="outlined"
-                    sx={{ 
+                    sx={{
                       fontSize: '0.7rem',
                       borderColor: 'success.main',
                       color: 'success.main'
@@ -639,7 +985,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                     label={child}
                     size="small"
                     variant="outlined"
-                    sx={{ 
+                    sx={{
                       fontSize: '0.7rem',
                       borderColor: 'info.main',
                       color: 'info.main'
@@ -659,12 +1005,12 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
         <TableCell>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Tooltip title="View Details">
-              <IconButton 
+              <IconButton
                 onClick={() => onViewUser(user)}
 
-                sx={{ 
+                sx={{
                   color: 'primary.main',
-                  '&:hover': { 
+                  '&:hover': {
                     backgroundColor: 'rgba(25, 118, 210, 0.1)',
                     transform: 'scale(1.1)'
                   },
@@ -676,10 +1022,10 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             </Tooltip>
             {tabValue === 'tutors' && (
               <Tooltip title="More Actions">
-                <IconButton 
+                <IconButton
                   onClick={(e) => onMenuClick(e, user)}
-                  sx={{ 
-                    '&:hover': { 
+                  sx={{
+                    '&:hover': {
                       backgroundColor: 'rgba(0, 0, 0, 0.1)',
                       transform: 'scale(1.1)'
                     },
@@ -749,7 +1095,7 @@ const UserTable = ({
   };
 
   const handleMenuAction = (action) => {
-    
+
     switch (action) {
       case 'view':
         handleViewUser(selectedMenuUser);
@@ -764,18 +1110,17 @@ const UserTable = ({
         // Handle edit action
         break;
       case 'delete':
-        // Handle delete action
         break;
       default:
         break;
     }
-    
+
     handleMenuClose();
   };
 
   const getTableHeaders = () => {
     const baseHeaders = ['User'];
-    
+
     if (tabValue === 'tutors') {
       return [...baseHeaders, 'Subjects', 'Status', 'Documents', 'Interview', 'Actions'];
     } else if (tabValue === 'students') {
@@ -783,16 +1128,16 @@ const UserTable = ({
     } else if (tabValue === 'parents') {
       return [...baseHeaders, 'Children', 'Sessions Booked', 'Actions'];
     }
-    
+
     return [...baseHeaders, 'Actions'];
   };
 
   return (
     <Box>
-      <TableContainer 
-        component={Paper} 
+      <TableContainer
+        component={Paper}
         elevation={0}
-        sx={{ 
+        sx={{
           borderRadius: 2,
           border: '1px solid #e0e0e0',
           overflow: 'hidden'
@@ -802,9 +1147,9 @@ const UserTable = ({
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
               {getTableHeaders().map((header) => (
-                <TableCell 
+                <TableCell
                   key={header}
-                  sx={{ 
+                  sx={{
                     fontWeight: 'bold',
                     color: 'text.primary',
                     borderBottom: '2px solid #e0e0e0'
@@ -836,7 +1181,7 @@ const UserTable = ({
           </TableBody>
         </Table>
       </TableContainer>
-      
+
       <TablePagination
         rowsPerPageOptions={[5, 10, 25, 50]}
         component="div"
@@ -877,13 +1222,13 @@ const UserTable = ({
         </MenuItem>
         {tabValue === 'tutors' && (
           <>
-            <MenuItem 
+            <MenuItem
               onClick={() => handleMenuAction('approve')}
               disabled={selectedMenuUser?.status === 'verified'}
             >
               <CheckCircle sx={{ mr: 1 }} /> Approve
             </MenuItem>
-            <MenuItem 
+            <MenuItem
               onClick={() => handleMenuAction('reject')}
               disabled={selectedMenuUser?.status === 'rejected'}
             >
@@ -893,7 +1238,7 @@ const UserTable = ({
               <Edit sx={{ mr: 1 }} /> Edit
             </MenuItem>
             <Divider />
-            <MenuItem 
+            <MenuItem
               onClick={() => handleMenuAction('delete')}
               sx={{ color: 'error.main' }}
             >
@@ -907,7 +1252,7 @@ const UserTable = ({
               <Edit sx={{ mr: 1 }} /> Edit
             </MenuItem>
             <Divider />
-            <MenuItem 
+            <MenuItem
               onClick={() => handleMenuAction('delete')}
               sx={{ color: 'error.main' }}
             >

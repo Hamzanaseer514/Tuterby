@@ -6,15 +6,15 @@ const {
   setAvailableInterviewSlots,
   getAllPendingApplications,
   selectInterviewSlot,
-  verifyBackgroundCheck,
-  verifyReferenceChecks,
-  verifyQualifications,
+  // verifyBackgroundCheck,
+  // verifyReferenceChecks,
+  // verifyQualifications,
   approveTutorProfile,
   rejectTutorProfile,
+  verifyDocument,
   // New comprehensive admin functions
   getAllUsers,
   getTutorDetails,
-  scheduleInterview,
   completeInterview,
   getAvailableInterviewSlots,
   updateApplicationNotes,
@@ -27,20 +27,22 @@ router.use(adminOnly);
 
 // Existing routes
 router.get('/tutors/applications/pending', getAllPendingApplications);
-router.post('/tutors/interview/assign', setAvailableInterviewSlots);
+router.put('/tutors/interview/assign', setAvailableInterviewSlots);
 router.post('/tutors/interview/select', selectInterviewSlot);
-router.post('/tutors/verify/background', verifyBackgroundCheck);
-router.post('/tutors/verify/references', verifyReferenceChecks);
-router.post('/tutors/verify/qualifications', verifyQualifications);
+// router.post('/tutors/verify/background', verifyBackgroundCheck);
+// router.post('/tutors/verify/references', verifyReferenceChecks);
+// router.post('/tutors/verify/qualifications', verifyQualifications);
 router.post('/tutors/approve', approveTutorProfile);
 router.post('/tutors/reject', rejectTutorProfile);
+router.post('/tutors/verify/document', verifyDocument);
 
 // New comprehensive admin routes
 router.get('/users', getAllUsers);
-router.get('/tutors/:userId', getTutorDetails);
+router.get('/tutors/:user_id', getTutorDetails);
 router.post('/interviews/complete', completeInterview);
 router.get('/interviews/available-slots', getAvailableInterviewSlots);
 router.put('/applications/notes', updateApplicationNotes);
 router.get('/dashboard/stats', getDashboardStats);
+
 
 module.exports = router;

@@ -34,8 +34,9 @@ exports.getAllPendingApplications = async (req, res) => {
 
 // Admin provides available interview slots
 exports.setAvailableInterviewSlots = async (req, res) => {
-  const { tutor_id, preferred_interview_times } = req.body;
-  const tutor = await TutorProfile.findOne({user_id:tutor_id});
+  const { user_id, preferred_interview_times } = req.body;
+  const tutor = await TutorProfile.findOne({ user_id: user_id });
+
   if (
     !tutor ||
     !preferred_interview_times ||
@@ -47,25 +48,28 @@ exports.setAvailableInterviewSlots = async (req, res) => {
   }
 
   try {
-  
-    
-    // Check if tutor application exists using tutor profile ID
-    let application = await TutorApplication.findOne({ tutor_id:tutor._id });
+    let application = await TutorApplication.findOne({ tutor_id: tutor._id });
     if (!application) {
-      // Create new application if it doesn't exist
       application = new TutorApplication({
-        tutor_id:tutor._id, // This should be the tutor profile ID
-        preferred_interview_times: preferred_interview_times,
+        tutor_id: tutor._id,
+        preferred_interview_times: preferred_interview_times.map(time => new Date(time)),
         interview_status: 'Pending',
-        application_status: 'Pending'
+        application_status: 'Pending',
       });
     } else {
-      // Update existing application
-      application.preferred_interview_times = preferred_interview_times;
+      const existingTimes = application.preferred_interview_times || [];
+      const mergedTimes = Array.from(
+        new Set([
+          ...existingTimes.map(time => new Date(time).toISOString()),
+          ...preferred_interview_times.map(time => new Date(`${time}:00Z`).toISOString()) // Ensure UTC
+        ])
+      ).map(time => new Date(time));
+      
+
+      application.preferred_interview_times = mergedTimes;
     }
 
     await application.save();
-
     res.status(200).json({
       message: "Available interview slots set successfully",
       data: application,
@@ -79,25 +83,39 @@ exports.setAvailableInterviewSlots = async (req, res) => {
   }
 };
 
+
+// Select interview slot by Tutor
 exports.selectInterviewSlot = async (req, res) => {
-  const { tutor_id, scheduled_time } = req.body;
-  if (!tutor_id || !scheduled_time) {
+  const { user_id, scheduled_time } = req.body;
+
+  if (!user_id || !scheduled_time) {
     return res
       .status(400)
-      .json({ message: "tutor_id and scheduled_time are required" });
+      .json({ message: "user_id and scheduled_time are required" });
   }
 
   try {
-    
-    const application = await TutorApplication.findOne({ tutor_id });
-    if (!application)
-      return res.status(404).json({ message: "Tutor application not found" });
+    const tutor = await TutorProfile.findOne({ user_id: user_id });
+    if (!tutor) {
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
 
-    const selectedTime = new Date(scheduled_time);
+    const application = await TutorApplication.findOne({ tutor_id: tutor._id });
+    if (!application) {
+      return res.status(404).json({ message: "Tutor application not found" });
+    }
+
+    // Ensure scheduled_time is treated as UTC
+    const selectedTime = new Date(scheduled_time.endsWith('Z') ? scheduled_time : `${scheduled_time}Z`);
+
+    // Normalize to start of minute to avoid millisecond issues
+    selectedTime.setMilliseconds(0);
+
+    // Check for existing slot
     const existingSlot = await TutorApplication.findOne({
-      scheduled_time: selectedTime,
+      preferred_interview_times: { $elemMatch: { $eq: selectedTime } },
       interview_status: { $in: ["Scheduled", "Pending"] },
-      tutor_id: { $ne: tutor_id },
+      tutor_id: { $ne: tutor._id },
     });
 
     if (existingSlot) {
@@ -106,7 +124,8 @@ exports.selectInterviewSlot = async (req, res) => {
       });
     }
 
-    application.scheduled_time = selectedTime;
+    // Save as a single Date object in preferred_interview_times (array)
+    application.preferred_interview_times = [selectedTime];
     application.interview_status = "Scheduled";
     await application.save();
 
@@ -115,135 +134,134 @@ exports.selectInterviewSlot = async (req, res) => {
       data: application,
     });
   } catch (err) {
+    console.error("Error:", err);
     res
       .status(500)
       .json({ message: "Failed to select interview slot", error: err.message });
   }
 };
+// // Background Check Verification
+// exports.verifyBackgroundCheck = async (req, res) => {
+//   const { tutor_id } = req.body;
 
-// Background Check Verification
-exports.verifyBackgroundCheck = async (req, res) => {
-  const { tutor_id } = req.body;
+//   try {
+//     const tutor = await TutorProfile.findOne({user_id:tutor_id});
+//     const documents = await TutorDocument.find({
+//       tutor_id:tutor._id,
+//       document_type: { $in: ["ID Proof", "Address Proof","Background Check"] },
+//     });
+//     const hasIDProof = documents.some(
+//       (doc) => doc.document_type === "ID Proof"
+//     );
+//     const hasAddressProof = documents.some(
+//       (doc) => doc.document_type === "Address Proof"
+//     );
 
-  try {
-    const tutor = await TutorProfile.findOne({user_id:tutor_id});
-    const documents = await TutorDocument.find({
-      tutor_id:tutor._id,
-      document_type: { $in: ["ID Proof", "Address Proof","Background Check"] },
-    });
-    const hasIDProof = documents.some(
-      (doc) => doc.document_type === "ID Proof"
-    );
-    const hasAddressProof = documents.some(
-      (doc) => doc.document_type === "Address Proof"
-    );
+//     if (!hasIDProof || !hasAddressProof) {
+//       let missingDocs = [];
+//       if (!hasIDProof) missingDocs.push("ID Proof");
+//       if (!hasAddressProof) missingDocs.push("Address Proof");
 
-    if (!hasIDProof || !hasAddressProof) {
-      let missingDocs = [];
-      if (!hasIDProof) missingDocs.push("ID Proof");
-      if (!hasAddressProof) missingDocs.push("Address Proof");
+//       return res.status(400).json({
+//         message: `Missing required document(s): ${missingDocs.join(", ")}`,
+//       });
+//     }
 
-      return res.status(400).json({
-        message: `Missing required document(s): ${missingDocs.join(", ")}`,
-      });
-    }
+//     await TutorProfile.findOneAndUpdate(
+//       { _id: tutor._id },
+//       { is_background_checked: true }
+//     );
+//     await TutorDocument.updateMany(
+//       { tutor_id:tutor._id, document_type: { $in: ["ID Proof", "Address Proof", "Background Check"] } },
+//       { $set: { verification_status: "Approved" } }
+//     );
 
-    await TutorProfile.findOneAndUpdate(
-      { _id: tutor._id },
-      { is_background_checked: true }
-    );
-    await TutorDocument.updateMany(
-      { tutor_id:tutor._id, document_type: { $in: ["ID Proof", "Address Proof", "Background Check"] } },
-      { $set: { verification_status: "Approved" } }
-    );
+//     res.status(200).json({
+//       message: "Background check verified. All required documents are valid.",
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       message: "Failed to verify background check",
+//       error: err.message,
+//     });
+//   }
+// };
 
-    res.status(200).json({
-      message: "Background check verified. All required documents are valid.",
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: "Failed to verify background check",
-      error: err.message,
-    });
-  }
-};
+// exports.verifyReferenceChecks = async (req, res) => {
+//   const { tutor_id } = req.body;
+//   const tutor = await TutorProfile.findOne({user_id:tutor_id});
+//   try {
+//     const referenceDocs = await TutorDocument.find({
+//       tutor_id:tutor._id,
+//       document_type: "Reference Letter",
+//     });
 
-exports.verifyReferenceChecks = async (req, res) => {
-  const { tutor_id } = req.body;
-  const tutor = await TutorProfile.findOne({user_id:tutor_id});
-  try {
-    const referenceDocs = await TutorDocument.find({
-      tutor_id:tutor._id,
-      document_type: "Reference Letter",
-    });
+//     if (referenceDocs.length < 1) {
+//       return res
+//         .status(400)
+//         .json({ message: "Less than 2 reference letters found." });
+//     }
 
-    if (referenceDocs.length < 1) {
-      return res
-        .status(400)
-        .json({ message: "Less than 2 reference letters found." });
-    }
+//     await TutorProfile.findOneAndUpdate(
+//       { _id: tutor._id },
+//       { is_reference_verified: true }
+//     );
+//     await TutorDocument.updateMany(
+//       {
+//         tutor_id:tutor._id,
+//         document_type: "Reference Letter",
+//       },
+//       { $set: { verification_status: "Approved" } }
+//     );
 
-    await TutorProfile.findOneAndUpdate(
-      { _id: tutor._id },
-      { is_reference_verified: true }
-    );
-    await TutorDocument.updateMany(
-      {
-        tutor_id:tutor._id,
-        document_type: "Reference Letter",
-      },
-      { $set: { verification_status: "Approved" } }
-    );
+//     res.status(200).json({ message: "Reference check verified successfully." });
+//   } catch (err) {
+//     res.status(500).json({
+//       message: "Failed to verify references",
+//       error: err.message,
+//     });
+//   }
+// };
 
-    res.status(200).json({ message: "Reference check verified successfully." });
-  } catch (err) {
-    res.status(500).json({
-      message: "Failed to verify references",
-      error: err.message,
-    });
-  }
-};
+// // Qualification Verification
+// exports.verifyQualifications = async (req, res) => {
+//   const { tutor_id } = req.body;
+//   const tutor = await TutorProfile.findOne({user_id:tutor_id});
+//   try {
+//     const qualificationDocs = await TutorDocument.find({
+//       tutor_id:tutor._id,
+//       document_type: { $in: ["Degree", "Certificate"] },
+//     });
 
-// Qualification Verification
-exports.verifyQualifications = async (req, res) => {
-  const { tutor_id } = req.body;
-  const tutor = await TutorProfile.findOne({user_id:tutor_id});
-  try {
-    const qualificationDocs = await TutorDocument.find({
-      tutor_id:tutor._id,
-      document_type: { $in: ["Degree", "Certificate"] },
-    });
+//     if (qualificationDocs.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ message: "No qualification documents found." });
+//     }
 
-    if (qualificationDocs.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No qualification documents found." });
-    }
+//     // ✅ Step 1: Update tutor profile
+//     await TutorProfile.findOneAndUpdate(
+//       { _id: tutor._id },
+//       { is_qualification_verified: true }
+//     );
 
-    // ✅ Step 1: Update tutor profile
-    await TutorProfile.findOneAndUpdate(
-      { _id: tutor._id },
-      { is_qualification_verified: true }
-    );
+//     // ✅ Step 2: Update document verification status
+//     await TutorDocument.updateMany(
+//       {
+//         tutor_id:tutor._id,
+//         document_type: { $in: ["Degree", "Certificate"] },
+//       },
+//       { $set: { verification_status: "Approved" } }
+//     );
 
-    // ✅ Step 2: Update document verification status
-    await TutorDocument.updateMany(
-      {
-        tutor_id:tutor._id,
-        document_type: { $in: ["Degree", "Certificate"] },
-      },
-      { $set: { verification_status: "Approved" } }
-    );
-
-    res.status(200).json({ message: "Qualifications verified successfully." });
-  } catch (err) {
-    res.status(500).json({
-      message: "Failed to verify qualifications",
-      error: err.message,
-    });
-  }
-};
-
+//     res.status(200).json({ message: "Qualifications verified successfully." });
+//   } catch (err) {
+//     res.status(500).json({
+//       message: "Failed to verify qualifications",
+//       error: err.message,
+//     });
+//   }
+// };
 
 exports.approveTutorProfile = async (req, res) => {
   const { tutor_id } = req.body;
@@ -346,9 +364,6 @@ exports.rejectTutorProfile = async (req, res) => {
   }
 };
 
-
-// Comprehensive Admin Functions
-
 // Get all users (tutors, students, parents) with detailed information
 exports.getAllUsers = async (req, res) => {
   try {
@@ -422,18 +437,33 @@ exports.getAllUsers = async (req, res) => {
               uploadDate: doc.uploaded_at || doc.createdAt,
               notes: doc.notes || ''
             })),
-            interviewSlots: application && application.scheduled_time ? [{
+              interviewSlots: application && application.scheduled_time ? [{
               date: application.scheduled_time,
-              time: new Date(application.scheduled_time).toLocaleTimeString(),
+              time: new Date(application.scheduled_time).toLocaleTimeString('en-US', {
+                timeZone: 'UTC',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+              }),
               scheduled: application.interview_status === 'Scheduled',
               completed: ['Passed', 'Failed'].includes(application.interview_status),
               result: application.interview_status === 'Passed' ? 'Passed' : application.interview_status === 'Failed' ? 'Failed' : null,
               notes: application.interview_notes || ''
             }] : [],
-            preferredSlots: application && application.preferred_interview_times ? 
-              application.preferred_interview_times.map(time => 
-                new Date(time).toLocaleString()
-              ) : [],
+            preferredSlots: application && application.preferred_interview_times
+            ? application.preferred_interview_times.map(time =>
+                new Date(time).toLocaleString('en-US', {
+                  timeZone: 'UTC',
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                })
+              )
+            : [],
             backgroundCheck: tutorProfile.is_background_checked || false,
             references: documents.filter(doc => doc.document_type === 'Reference Letter').length,
             qualifications: tutorProfile.qualifications || '',
@@ -570,48 +600,6 @@ exports.getTutorDetails = async (req, res) => {
 };
 
 
-
-// Schedule interview
-exports.scheduleInterview = async (req, res) => {
-  try {
-    const { tutorId, scheduledTime, notes } = req.body;
-    
-    const application = await TutorApplication.findOneAndUpdate(
-      { tutor_id: tutorId },
-      {
-        scheduled_time: new Date(scheduledTime),
-        interview_status: 'Scheduled',
-        admin_notes: notes || ''
-      },
-      { new: true }
-    );
-
-    if (!application) {
-      return res.status(404).json({ message: "Tutor application not found" });
-    }
-
-    // Send email notification to tutor
-    const tutor = await TutorProfile.findById(tutorId).populate('user_id');
-    if (tutor) {
-      await sendEmail(
-        tutor.user_id.email,
-        "Interview Scheduled",
-        `Your interview has been scheduled for ${new Date(scheduledTime).toLocaleString()}. Please check your dashboard for details.`
-      );
-    }
-
-    res.status(200).json({
-      message: "Interview scheduled successfully",
-      application
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: "Failed to schedule interview",
-      error: err.message,
-    });
-  }
-};
-
 // Complete interview with result
 exports.completeInterview = async (req, res) => {
   try {
@@ -657,39 +645,47 @@ exports.completeInterview = async (req, res) => {
 // Get available interview slots
 exports.getAvailableInterviewSlots = async (req, res) => {
   try {
-    const { date } = req.query;
-    
-    // Get all scheduled interviews for the date
-    const scheduledInterviews = await TutorApplication.find({
-      scheduled_time: {
-        $gte: new Date(date),
-        $lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000)
-      },
-      interview_status: { $in: ['Scheduled', 'Pending'] }
-    });
+    const { date } = req.query; // Expecting format like "2025-08-07"
 
-    // Define available time slots (9 AM to 5 PM, 1-hour intervals)
+    // Force date to be parsed as UTC
+    const startOfDay = new Date(`${date}T00:00:00.000Z`);
+    const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+    // Query for applications with preferred_interview_times within the date
+    const applications = await TutorApplication.find({
+      preferred_interview_times: {
+        $elemMatch: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      },
+    });
+    // Extract preferred times and convert to UTC hours
+    const preferredTimes = applications.flatMap(app => app.preferred_interview_times);
+    const preferredHours = preferredTimes
+      .filter(time => {
+        const timeDate = new Date(time).toISOString().split('T')[0];
+        return timeDate === date; // Only include times for the requested date
+      })
+      .map(time => new Date(time).getUTCHours());
+
+    // Generate available slots from 9:00 to 17:00
     const availableSlots = [];
     const startHour = 9;
     const endHour = 17;
-    
+
     for (let hour = startHour; hour < endHour; hour++) {
-      const slotTime = new Date(date);
-      slotTime.setHours(hour, 0, 0, 0);
-      
-      const isBooked = scheduledInterviews.some(interview => 
-        new Date(interview.scheduled_time).getHours() === hour
-      );
-      
+      const isPreferred = preferredHours.includes(hour);
       availableSlots.push({
-        date: date,
+        date,
         time: `${hour.toString().padStart(2, '0')}:00`,
-        available: !isBooked
+        available: !isPreferred,
       });
     }
 
     res.status(200).json(availableSlots);
   } catch (err) {
+    console.error("Error:", err);
     res.status(500).json({
       message: "Failed to get available interview slots",
       error: err.message,
@@ -762,4 +758,16 @@ exports.getDashboardStats = async (req, res) => {
       error: err.message,
     });
   }
+};
+
+exports.verifyDocument = async (req, res) => {
+  const { user_id, document_type } = req.body;
+  const tutor = await TutorProfile.findOne({user_id:user_id});
+  const document = await TutorDocument.findOne({ tutor_id: tutor._id, document_type });
+  if (!document) {
+    return res.status(404).json({ message: "Document not found" });
+  }
+  document.verification_status = 'Approved';
+  await document.save();
+  res.status(200).json({ message: "Document verified successfully" });
 };

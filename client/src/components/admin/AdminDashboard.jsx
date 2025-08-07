@@ -18,17 +18,8 @@ import {
 import {
   getDashboardStats,
   getAllUsers,
-  getTutorDetails,
-  scheduleInterview,
-  completeInterview,
-  updateApplicationNotes,
   approveTutor,
-  rejectTutor,
-  verifyBackgroundCheck,
-  verifyReferenceChecks,
-  verifyQualifications,
-  getAvailableInterviewSlots,
-  setAvailableInterviewSlots,
+  rejectTutor
 } from '../../services/adminService';
 
 // Import custom components
@@ -216,7 +207,6 @@ const AdminDashboard = () => {
   };
 
   const handleViewUser = async (user) => {
-    // This function is now handled within UserTable component
     console.log("AdminDashboard - handleViewUser called with user:", user);
   };
 
@@ -236,7 +226,6 @@ const AdminDashboard = () => {
   };
 
   const handleMenuClick = (event, user) => {
-    console.log("user", user);
     updateUiState({
       anchorEl: event.currentTarget,
       selectedActionUser: user

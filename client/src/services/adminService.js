@@ -119,7 +119,6 @@ export const getAllUsers = async (filters = {}) => {
       if (!Array.isArray(user.subjects)) {
         user.subjects = [];
       }
-      
       return user;
     });
     
@@ -168,6 +167,7 @@ export const getTutorDetails = async (userId) => {
     if (!Array.isArray(details.subjects)) {
       details.subjects = [];
     }
+    console.log("details", details);
     return details;
   } catch (error) {
     console.error('Error fetching tutor details:', error);
@@ -177,15 +177,15 @@ export const getTutorDetails = async (userId) => {
 
 
 // Interview Management - Using your existing endpoint
-export const scheduleInterview = async (tutorProfileId, scheduledTime, notes = '') => {
-  return apiCall('/tutors/interview/select', {
-    method: 'POST',
-    body: JSON.stringify({
-      tutor_id: tutorProfileId, // This should be the tutor profile ID
-      scheduled_time: scheduledTime
-    }),
-  });
-};
+// export const scheduleInterview = async (user_id, scheduledTime, notes = '') => {
+//   return apiCall('/tutors/interview/select', {
+//     method: 'POST',
+//     body: JSON.stringify({
+//       user_id: user_id, // This should be the tutor profile ID
+//       scheduled_time: scheduledTime
+//     }),
+//   });
+// };
 
 export const completeInterview = async (tutorId, result, notes = '') => {
   return apiCall('/interviews/complete', {
@@ -200,7 +200,9 @@ export const completeInterview = async (tutorId, result, notes = '') => {
 
 export const getAvailableInterviewSlots = async (date) => {
   try {
+    console.log('adminService: Fetching slots for date:', date);
     const slots = await apiCall(`/interviews/available-slots?date=${date}`);
+    console.log('adminService: Received slots:', slots);
     return slots;
   } catch (error) {
     console.error('Error fetching available slots:', error);
@@ -246,44 +248,44 @@ export const rejectTutor = async (tutorId, reason) => {
 };
 
 // Background Check Verification
-export const verifyBackgroundCheck = async (tutorId) => {
-  return apiCall('/tutors/verify/background', {
-    method: 'POST',
-    body: JSON.stringify({ tutor_id: tutorId }),
-  });
-};
+// export const verifyBackgroundCheck = async (tutorId) => {
+//   return apiCall('/tutors/verify/background', {
+//     method: 'POST',
+//     body: JSON.stringify({ tutor_id: tutorId }),
+//   });
+// };
 
 // Individual Document Verification (for Background Check documents)
-export const verifyDocument = async (tutorId, documentType) => {
+export const verifyDocument = async (user_id, documentType) => {
   return apiCall('/tutors/verify/document', {
     method: 'POST',
     body: JSON.stringify({ 
-      tutor_id: tutorId,
+      user_id: user_id,  
       document_type: documentType 
     }),
   });
 };
 
-export const verifyReferenceChecks = async (tutorId) => {
-  return apiCall('/tutors/verify/references', {
-    method: 'POST',
-    body: JSON.stringify({ tutor_id: tutorId }),
-  });
-};
+// export const verifyReferenceChecks = async (tutorId) => {
+//   return apiCall('/tutors/verify/references', {
+//     method: 'POST',
+//     body: JSON.stringify({ tutor_id: tutorId }),
+//   });
+// };
 
-export const verifyQualifications = async (tutorId) => {
-  return apiCall('/tutors/verify/qualifications', {
-    method: 'POST',
-    body: JSON.stringify({ tutor_id: tutorId }),
-  });
-};
+// export const verifyQualifications = async (tutorId) => {
+//   return apiCall('/tutors/verify/qualifications', {
+//     method: 'POST',
+//     body: JSON.stringify({ tutor_id: tutorId }),
+//   });
+// };
 
 // Interview Slot Management
 export const setAvailableInterviewSlots = async (userId, preferredTimes) => {
   return apiCall('/tutors/interview/assign', {
-    method: 'POST',
+    method: 'PUT',
     body: JSON.stringify({
-      tutor_id: userId, // This should be the user ID, not tutor profile ID
+      user_id: userId, // This should be the user ID, not tutor profile ID
       preferred_interview_times: preferredTimes
     }),
   });

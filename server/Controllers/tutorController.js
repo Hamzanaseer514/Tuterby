@@ -33,30 +33,21 @@ const uploadDocument = asyncHandler(async (req, res) => {
 });
 
 // Get tutor dashboard overview
-const getTutorDashboard = asyncHandler(async (req, res) => {
+const getTutorDashboard = asyncHandler(async (req, res) => {    
   const { user_id } = req.params;
-  console.log("user_id", user_id);
-  // Validate tutor_id
-  if (!user_id || !mongoose.Types.ObjectId.isValid(user_id)) {
-    res.status(400);
-    throw new Error("Invalid user ID");
-  }
-
-  const tutorObjectId = new mongoose.Types.ObjectId(user_id);
-
-  // Get upcoming sessions (all future sessions)
+ 
+  const tutor = await TutorProfile.findOne({user_id: user_id});
   const upcomingSessions = await TutoringSession.find({
-    tutor_id: tutorObjectId,
+    tutor_id: tutor._id,
     session_date: { $gte: new Date() },
     status: { $in: ['pending', 'confirmed', 'in_progress'] }
   })
-  .populate('student_id', 'full_name email')
+  .populate('student_ids', 'full_name email')
   .sort({ session_date: 1 })
   .limit(10);
-
   // Get pending inquiries
   const pendingInquiries = await TutorInquiry.find({
-    tutor_id: tutorObjectId,
+    tutor_id: tutor._id,
     status: { $in: ['unread', 'read'] }
   })
   .populate('student_id', 'full_name email')
@@ -65,43 +56,49 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
 
   // Get recent sessions (last 30 days, all statuses)
   const recentSessions = await TutoringSession.find({
-    tutor_id: tutorObjectId,
+    tutor_id: tutor._id,
     session_date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
   })
-  .populate('student_id', 'full_name email')
+  .populate('student_ids', 'full_name email')
   .sort({ session_date: -1 })
   .limit(5);
-
   // Calculate metrics
   const [totalHours, totalEarnings, averageRating, completedSessions] = await Promise.all([
     TutoringSession.aggregate([
-      { $match: { tutor_id: tutorObjectId, status: 'completed' } },
+      { $match: { tutor_id: tutor._id, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$duration_hours' } } }
     ]),
     TutoringSession.aggregate([
-      { $match: { tutor_id: tutorObjectId, status: 'completed' } },
+      { $match: { tutor_id: tutor._id, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$total_earnings' } } }
     ]),
     TutoringSession.aggregate([
-      { $match: { tutor_id: tutorObjectId, status: 'completed', rating: { $exists: true } } },
+      { $match: { tutor_id: tutor._id, status: 'completed', rating: { $exists: true } } },
       { $group: { _id: null, average: { $avg: '$rating' } } }
     ]),
-    TutoringSession.countDocuments({ tutor_id: tutorObjectId, status: 'completed' })
+    TutoringSession.countDocuments({ tutor_id: tutor._id, status: 'completed' })
   ]);
 
   // Calculate response time and booking acceptance rate
   const [avgResponseTime, bookingAcceptanceRate] = await Promise.all([
     TutorInquiry.aggregate([
-      { $match: { tutor_id: tutorObjectId, response_time_minutes: { $exists: true } } },
+        { $match: { tutor_id: tutor._id, response_time_minutes: { $exists: true } } },
       { $group: { _id: null, average: { $avg: '$response_time_minutes' } } }
     ]),
-    calculateBookingAcceptanceRate(tutor_id)
+    calculateBookingAcceptanceRate(tutor._id)
   ]);
+
+  const studentObjectIds = upcomingSessions.flatMap(session => session.student_ids);
+  const students = await StudentProfile.find({ _id: { $in: studentObjectIds } });
+  const students_ids = students.map(student => student.user_id);
+  const users = await User.find({ _id: students_ids });
 
   const dashboard = {
     upcomingSessions,
     recentSessions,
     pendingInquiries,
+    users,
+    students,
     metrics: {
       totalHours: totalHours[0]?.total || 0,
       totalEarnings: totalEarnings[0]?.total || 0,
@@ -111,14 +108,12 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
       bookingAcceptanceRate
     }
   };
-
   res.json(dashboard);
 });
 
 // Calculate booking acceptance rate
-const calculateBookingAcceptanceRate = async (tutor_id) => {
+const calculateBookingAcceptanceRate = async (tutor_id) => {  
   const tutorObjectId = new mongoose.Types.ObjectId(tutor_id);
-  
   const [totalInquiries, convertedInquiries] = await Promise.all([
     TutorInquiry.countDocuments({ tutor_id: tutorObjectId }),
     TutorInquiry.countDocuments({ 
@@ -126,7 +121,6 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
       status: 'converted_to_booking' 
     })
   ]);
-
   return totalInquiries > 0 ? (convertedInquiries / totalInquiries) * 100 : 0;
 };
 
@@ -138,12 +132,15 @@ const createSession = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("All required fields must be provided");
   }
-
+  console.log("req.body", req.body);
   const total_earnings = duration_hours * hourly_rate;
+  const student = await StudentProfile.findOne({user_id: student_id});
+  const tutor = await TutorProfile.findOne({user_id: tutor_id});
+  const student_ids = [student._id];
 
   const session = await TutoringSession.create({
-    tutor_id,
-    student_id,
+    tutor_id: tutor._id,
+    student_ids,
     subject,
     session_date: new Date(session_date),
     duration_hours,
@@ -151,7 +148,7 @@ const createSession = asyncHandler(async (req, res) => {
     total_earnings,
     notes: notes || ''
   });
-
+console.log("session", session);
   res.status(201).json({
     message: "Tutoring session created successfully",
     session

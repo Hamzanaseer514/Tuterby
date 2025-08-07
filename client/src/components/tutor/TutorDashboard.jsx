@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -14,12 +14,12 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useToast } from '../ui/use-toast';
 import { Toaster } from '../ui/toaster';
-import { 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  Star, 
-  MessageSquare, 
+import {
+  Calendar,
+  Clock,
+  DollarSign,
+  Star,
+  MessageSquare,
   TrendingUp,
   Users,
   CheckCircle,
@@ -37,8 +37,9 @@ const TutorDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { getAuthToken, user } = useAuth();
+  const token = getAuthToken();
 
-  
+
   // Common subjects for dropdown
   const commonSubjects = [
     'Mathematics', 'English', 'Science', 'Physics', 'Chemistry', 'Biology',
@@ -52,14 +53,14 @@ const TutorDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Modal states
   const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
   const [showUpdateSessionModal, setShowUpdateSessionModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
-  
+
   // Form states
   const [sessionForm, setSessionForm] = useState({
     student_id: '',
@@ -103,8 +104,7 @@ const TutorDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = getAuthToken();
-        const response = await fetch(`http://localhost:5000/api/tutor/dashboard/${user?._id}`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/dashboard/${user?._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -126,7 +126,7 @@ const TutorDashboard = () => {
 
   const handleCreateSession = async (e) => {
     e.preventDefault();
-    
+
     // Validate that a valid student is selected
     if (!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students') {
       toast({
@@ -136,20 +136,20 @@ const TutorDashboard = () => {
       });
       return;
     }
-    
+
     try {
       // Check availability before creating session
       const availabilityResponse = await fetch(
-          `http://localhost:5000/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+        `http://localhost:5000/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
+        }
       );
-      
+
       if (availabilityResponse.ok) {
         const availabilityData = await availabilityResponse.json();
         if (!availabilityData.is_available) {
@@ -161,7 +161,7 @@ const TutorDashboard = () => {
           return;
         }
       }
-      
+
       const response = await fetch('http://localhost:5000/api/tutor/sessions', {
         method: 'POST',
         headers: {
@@ -367,8 +367,8 @@ const TutorDashboard = () => {
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
           <p className="text-gray-600 mb-4">
-            {error === 'Tutor ID is required' 
-              ? 'Authentication error. Please log in again.' 
+            {error === 'Tutor ID is required'
+              ? 'Authentication error. Please log in again.'
               : error
             }
           </p>
@@ -382,7 +382,7 @@ const TutorDashboard = () => {
 
   if (!dashboardData) return null;
 
-  const { upcomingSessions, recentSessions, pendingInquiries, metrics } = dashboardData;
+  const { upcomingSessions, recentSessions, pendingInquiries, metrics, users, students } = dashboardData;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -393,7 +393,7 @@ const TutorDashboard = () => {
           <p className="text-gray-600">Manage your tutoring business and track your performance</p>
         </div>
 
-       
+
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -476,7 +476,7 @@ const TutorDashboard = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">Response Time</span>
                   <span className="text-sm font-semibold">
-                    {metrics.avgResponseTime > 0 
+                    {metrics.avgResponseTime > 0
                       ? `${Math.round(metrics.avgResponseTime)} minutes`
                       : 'No data'
                     }
@@ -491,7 +491,7 @@ const TutorDashboard = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">Average Session Duration</span>
                   <span className="text-sm font-semibold">
-                    {metrics.completedSessions > 0 
+                    {metrics.completedSessions > 0
                       ? `${(metrics.totalHours / metrics.completedSessions).toFixed(1)} hours`
                       : 'No data'
                     }
@@ -508,8 +508,8 @@ const TutorDashboard = () => {
                   <MessageSquare className="h-5 w-5 mr-2" />
                   Recent Inquiries
                 </div>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   onClick={() => setShowReplyModal(true)}
                 >
@@ -531,8 +531,8 @@ const TutorDashboard = () => {
                         <Badge variant={inquiry.status === 'unread' ? 'destructive' : 'secondary'}>
                           {inquiry.status}
                         </Badge>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => openReplyModal(inquiry)}
                         >
@@ -563,8 +563,8 @@ const TutorDashboard = () => {
                 <Calendar className="h-5 w-5 mr-2" />
                 Upcoming Sessions
               </div>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => setShowCreateSessionModal(true)}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -583,7 +583,18 @@ const TutorDashboard = () => {
                         <Clock className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{session.student_id.full_name}</p>
+                        <p className="font-medium">
+                          {
+                            (() => {
+                              const studentIdObj = session.student_ids[0]; // e.g., { _id: '...' }
+                              const studentId = studentIdObj._id; // get the real string
+                              const student = students.find(s => s._id === studentId);
+                              const user = users.find(u => u._id === student?.user_id);
+                              return user?.full_name || "Unknown";
+                            })()
+                          }
+                        </p>
+
                         <p className="text-sm text-gray-600">{session.subject}</p>
                         <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
@@ -592,8 +603,8 @@ const TutorDashboard = () => {
                       <Badge className={getStatusColor(session.status)}>
                         {session.status}
                       </Badge>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => openUpdateSessionModal(session)}
                       >
@@ -613,7 +624,7 @@ const TutorDashboard = () => {
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500">No upcoming sessions</p>
                 <p className="text-sm text-gray-400 mt-1">Your schedule is clear for now</p>
-                <Button 
+                <Button
                   className="mt-4"
                   onClick={() => setShowCreateSessionModal(true)}
                 >
@@ -643,7 +654,18 @@ const TutorDashboard = () => {
                         <Calendar className="h-3 w-3 text-gray-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{session.student_id.full_name}</p>
+                        <p className="font-medium">
+                          {
+                            (() => {
+                              const studentIdObj = session.student_ids[0]; // e.g., { _id: '...' }
+                              const studentId = studentIdObj._id; // get the real strin
+                              const student = students.find(s => s._id === studentId);
+                              const user = users.find(u => u._id === student?.user_id);
+                              return user?.full_name || "Unknown";
+                            })()
+                          }
+                        </p>
+
                         <p className="text-xs text-gray-600">{session.subject}</p>
                         <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
@@ -673,46 +695,46 @@ const TutorDashboard = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Create New Session</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowCreateSessionModal(false)}
               >
                 <XCircle className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <form onSubmit={handleCreateSession} className="space-y-4">
               <div>
                 <Label htmlFor="student_id">Select Student</Label>
-                <Select 
-                  value={sessionForm.student_id} 
-                  onValueChange={(value) => setSessionForm({...sessionForm, student_id: value})}
+                <Select
+                  value={sessionForm.student_id}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, student_id: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a student" />
                   </SelectTrigger>
-                                     <SelectContent>
-                     {loadingStudents ? (
-                       <SelectItem value="loading" disabled>Loading students...</SelectItem>
-                     ) : availableStudents.length > 0 ? (
-                       availableStudents.map((student) => (
-                         <SelectItem key={student._id} value={student._id}>
-                           {student.full_name} - {student.academic_level}
-                         </SelectItem>
-                       ))
-                     ) : (
-                       <SelectItem value="no-students" disabled>No students available</SelectItem>
-                     )}
-                   </SelectContent>
+                  <SelectContent>
+                    {loadingStudents ? (
+                      <SelectItem value="loading" disabled>Loading students...</SelectItem>
+                    ) : availableStudents.length > 0 ? (
+                      availableStudents.map((student) => (
+                        <SelectItem key={student._id} value={student._id}>
+                          {student.full_name} - {student.academic_level}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-students" disabled>No students available</SelectItem>
+                    )}
+                  </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="subject">Subject</Label>
-                <Select 
-                  value={sessionForm.subject} 
-                  onValueChange={(value) => setSessionForm({...sessionForm, subject: value})}
+                <Select
+                  value={sessionForm.subject}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, subject: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
@@ -726,23 +748,23 @@ const TutorDashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="session_date">Session Date & Time</Label>
                 <Input
                   id="session_date"
                   type="datetime-local"
                   value={sessionForm.session_date}
-                  onChange={(e) => setSessionForm({...sessionForm, session_date: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, session_date: e.target.value })}
                   required
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="duration_hours">Duration (hours)</Label>
-                <Select 
-                  value={sessionForm.duration_hours.toString()} 
-                  onValueChange={(value) => setSessionForm({...sessionForm, duration_hours: parseFloat(value)})}
+                <Select
+                  value={sessionForm.duration_hours.toString()}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, duration_hours: parseFloat(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select duration" />
@@ -759,12 +781,12 @@ const TutorDashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="hourly_rate">Hourly Rate (£)</Label>
-                <Select 
-                  value={sessionForm.hourly_rate.toString()} 
-                  onValueChange={(value) => setSessionForm({...sessionForm, hourly_rate: parseFloat(value)})}
+                <Select
+                  value={sessionForm.hourly_rate.toString()}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, hourly_rate: parseFloat(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select hourly rate" />
@@ -784,13 +806,13 @@ const TutorDashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="notes">Notes (Optional)</Label>
                 <Textarea
                   id="notes"
                   value={sessionForm.notes}
-                  onChange={(e) => setSessionForm({...sessionForm, notes: e.target.value})}
+                  onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
                   rows={3}
                   placeholder="Add any additional notes about the session..."
                 />
@@ -805,23 +827,23 @@ const TutorDashboard = () => {
                   </p>
                 </div>
               )}
-              
+
               <div className="flex space-x-3">
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   onClick={() => setShowCreateSessionModal(false)}
                   className="flex-1"
                 >
                   Cancel
                 </Button>
-                                 <Button 
-                   type="submit" 
-                   className="flex-1"
-                   disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
-                 >
-                   Create Session
-                 </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                >
+                  Create Session
+                </Button>
               </div>
             </form>
           </div>
@@ -834,22 +856,22 @@ const TutorDashboard = () => {
           <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Update Session</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowUpdateSessionModal(false)}
               >
                 <XCircle className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <form onSubmit={handleUpdateSession} className="space-y-4">
               {/* Student Selection */}
               <div>
                 <Label htmlFor="student_id">Student</Label>
-                <Select 
-                  value={updateSessionForm.student_id} 
-                  onValueChange={(value) => setUpdateSessionForm({...updateSessionForm, student_id: value})}
+                <Select
+                  value={updateSessionForm.student_id}
+                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, student_id: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select student" />
@@ -867,9 +889,9 @@ const TutorDashboard = () => {
               {/* Subject Selection */}
               <div>
                 <Label htmlFor="subject">Subject</Label>
-                <Select 
-                  value={updateSessionForm.subject} 
-                  onValueChange={(value) => setUpdateSessionForm({...updateSessionForm, subject: value})}
+                <Select
+                  value={updateSessionForm.subject}
+                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, subject: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
@@ -891,7 +913,7 @@ const TutorDashboard = () => {
                   id="session_date"
                   type="datetime-local"
                   value={updateSessionForm.session_date}
-                  onChange={(e) => setUpdateSessionForm({...updateSessionForm, session_date: e.target.value})}
+                  onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
                   required
                 />
               </div>
@@ -899,9 +921,9 @@ const TutorDashboard = () => {
               {/* Duration */}
               <div>
                 <Label htmlFor="duration_hours">Duration (hours)</Label>
-                <Select 
-                  value={updateSessionForm.duration_hours.toString()} 
-                  onValueChange={(value) => setUpdateSessionForm({...updateSessionForm, duration_hours: parseFloat(value)})}
+                <Select
+                  value={updateSessionForm.duration_hours.toString()}
+                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, duration_hours: parseFloat(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select duration" />
@@ -922,9 +944,9 @@ const TutorDashboard = () => {
               {/* Hourly Rate */}
               <div>
                 <Label htmlFor="hourly_rate">Hourly Rate (£)</Label>
-                <Select 
-                  value={updateSessionForm.hourly_rate.toString()} 
-                  onValueChange={(value) => setUpdateSessionForm({...updateSessionForm, hourly_rate: parseFloat(value)})}
+                <Select
+                  value={updateSessionForm.hourly_rate.toString()}
+                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, hourly_rate: parseFloat(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select hourly rate" />
@@ -948,9 +970,9 @@ const TutorDashboard = () => {
               {/* Status */}
               <div>
                 <Label htmlFor="status">Status</Label>
-                <Select 
-                  value={updateSessionForm.status} 
-                  onValueChange={(value) => setUpdateSessionForm({...updateSessionForm, status: value})}
+                <Select
+                  value={updateSessionForm.status}
+                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
@@ -971,20 +993,20 @@ const TutorDashboard = () => {
                 <Textarea
                   id="notes"
                   value={updateSessionForm.notes}
-                  onChange={(e) => setUpdateSessionForm({...updateSessionForm, notes: e.target.value})}
+                  onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, notes: e.target.value })}
                   rows={3}
                   placeholder="Add any additional notes about the session..."
                 />
               </div>
-              
+
               {/* Rating and Feedback (only for completed sessions) */}
               {updateSessionForm.status === 'completed' && (
                 <>
                   <div>
                     <Label htmlFor="rating">Rating (1-5)</Label>
-                    <Select 
-                      value={updateSessionForm.rating.toString()} 
-                      onValueChange={(value) => setUpdateSessionForm({...updateSessionForm, rating: parseFloat(value)})}
+                    <Select
+                      value={updateSessionForm.rating.toString()}
+                      onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, rating: parseFloat(value) })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select rating" />
@@ -998,13 +1020,13 @@ const TutorDashboard = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="feedback">Feedback</Label>
                     <Textarea
                       id="feedback"
                       value={updateSessionForm.feedback}
-                      onChange={(e) => setUpdateSessionForm({...updateSessionForm, feedback: e.target.value})}
+                      onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, feedback: e.target.value })}
                       rows={3}
                       placeholder="Add feedback about the session..."
                     />
@@ -1019,11 +1041,11 @@ const TutorDashboard = () => {
                   £{(updateSessionForm.duration_hours * updateSessionForm.hourly_rate).toFixed(2)}
                 </p>
               </div>
-              
+
               <div className="flex space-x-3">
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   onClick={() => setShowUpdateSessionModal(false)}
                   className="flex-1"
                 >
@@ -1044,33 +1066,33 @@ const TutorDashboard = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Reply to Inquiry</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowReplyModal(false)}
               >
                 <XCircle className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <form onSubmit={handleReplyToInquiry} className="space-y-4">
               <div>
                 <Label className="text-sm font-medium text-gray-600">From</Label>
-                {/* <p className="text-lg font-semibold">{selectedInquiry.student_id.user_id.full_name}</p> */}
+                <p className="text-lg font-semibold">{selectedInquiry.student_id.user_id.full_name}</p>
               </div>
-              
+
               <div>
                 <Label className="text-sm font-medium text-gray-600">Subject</Label>
                 <p className="text-lg">{selectedInquiry.subject}</p>
               </div>
-              
+
               <div>
                 <Label className="text-sm font-medium text-gray-600">Original Message</Label>
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700">{selectedInquiry.message}</p>
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="reply-message" className="text-sm font-medium text-gray-600">
                   Your Reply
@@ -1085,17 +1107,17 @@ const TutorDashboard = () => {
                   required
                 />
               </div>
-              
+
               <div className="flex space-x-3">
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   onClick={() => setShowReplyModal(false)}
                   className="flex-1"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
                   disabled={!replyMessage.trim()}
                   className="flex-1"
