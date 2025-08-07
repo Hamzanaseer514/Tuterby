@@ -289,7 +289,7 @@ exports.approveTutorProfile = async (req, res) => {
 
     // Approve tutor
     profile.profile_status = "approved";
-    user.is_verified = true;
+    user.is_verified = 'active';
 
     await profile.save();
     await user.save();
@@ -336,7 +336,7 @@ exports.rejectTutorProfile = async (req, res) => {
     profile.is_qualification_verified = false;
     application.application_status = "Rejected";
 
-    user.is_verified = false;
+    user.is_verified = 'partialactive';
 
     await profile.save();
     await user.save();

@@ -35,8 +35,9 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   },
   is_verified: {
-    type: Boolean,
-    default: false
+    type: String,
+    enum: ['active', 'inactive', 'partialactive'],
+    default: 'inactive'
   }
 }, { timestamps: true });
 

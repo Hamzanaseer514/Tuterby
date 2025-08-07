@@ -46,7 +46,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
       password,
       age,
       role: role || "student",
-      is_verified: true,
+      is_verified: "active",
     });
 
     const student = await Student.create({
@@ -132,7 +132,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
           age,
           role: "tutor",
           photo_url,
-          is_verified: false, // Not verified yet
+          is_verified: "inactive", // Not verified yet
         },
       ]
       // { session }
@@ -282,7 +282,7 @@ exports.registerParent = asyncHandler(async (req, res) => {
         age,
         role: "parent",
         photo_url,
-        is_verified: true
+        is_verified: "active"
       }],
       // { session }
     );
@@ -424,7 +424,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Invalid email or password");
   }
-  if (!user.is_verified) {
+  if (user.is_verified === "inactive") {
     res.status(403);
     throw new Error(
       "User not verified. please be Patient, Admin will verify you soon"
@@ -440,7 +440,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
       lockUntil: null
     };
     const htmlContent = generateOtpEmail(otp, user.username);
-    await sendEmail(user.email, "Your SaferSavvy OTP Code", htmlContent);
+    await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
     res.status(200).json({
       message: "OTP sent to your email",
       userId: user._id,
@@ -644,7 +644,7 @@ exports.addAdmin = asyncHandler(async (req, res) => {
         password,
         phone_number,
         role: "admin",
-        is_verified: true, // ✅ manually set as admin
+        is_verified: 'active', // ✅ manually set as admin
       },
     ]);
 
