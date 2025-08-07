@@ -51,6 +51,7 @@ const studentProfileSchema = new mongoose.Schema(
         },
       },
     ],
+
     parent_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ParentProfile",

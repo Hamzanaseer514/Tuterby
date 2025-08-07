@@ -11,8 +11,6 @@ const otpStore = require("../Utils/otpStore");
 const generateOtpEmail = require("../Utils/otpTempelate");
 const path = require("path");
 
-
-
 exports.registerUser = asyncHandler(async (req, res) => {
   const {
     full_name,
@@ -25,7 +23,9 @@ exports.registerUser = asyncHandler(async (req, res) => {
 
   if (!email || !password || !age || !full_name || !academic_level) {
     res.status(400);
-    throw new Error("Full name, email, password, age, and academic level are required");
+    throw new Error(
+      "Full name, email, password, age, and academic level are required"
+    );
   }
 
   if (age < 12) {
@@ -65,7 +65,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
       },
       student: {
         academic_level: student.academic_level,
-      }
+      },
     });
   } catch (error) {
     res.status(500);
@@ -75,6 +75,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
 
 
 exports.registerTutor = asyncHandler(async (req, res) => {
+  console.log("registerTutor request body:", req.body);
   const {
     full_name,
     email,
@@ -90,11 +91,24 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     hourly_rate, // tutor's hourly rate
     bio,
     code_of_conduct_agreed,
-    documentsMap
+    documentsMap,
   } = req.body;
-  if (!email || !password || !age || !full_name || !photo_url || !qualifications || !subjects || !academic_levels_taught || !location || !hourly_rate || !experience_years || code_of_conduct_agreed === undefined || !documentsMap) {
+  if (
+    !email ||
+    !password ||
+    !age ||
+    !full_name ||
+    !qualifications ||
+    !subjects ||
+    !academic_levels_taught ||
+    !location ||
+    !hourly_rate ||
+    !experience_years ||
+    code_of_conduct_agreed === undefined ||
+    !documentsMap
+  ) {
     res.status(400);
-    throw new Error("All required fields must be provided");
+    throw new Error("All required fields must be provided ok!");
   }
 
   const existingUser = await User.findOne({ email });
@@ -109,53 +123,63 @@ exports.registerTutor = asyncHandler(async (req, res) => {
   try {
     // Step 1: Create user
     const user = await User.create(
-      [{
-        full_name,
-        email,
-        password,
-        phone_number,
-        age,
-        role: "tutor",
-        photo_url,
-        is_verified: false // Not verified yet
-      }],
+      [
+        {
+          full_name,
+          email,
+          password,
+          phone_number,
+          age,
+          role: "tutor",
+          photo_url,
+          is_verified: false, // Not verified yet
+        },
+      ]
       // { session }
     );
 
     // Step 2: Create tutor profile
     const tutorProfile = await TutorProfile.create(
-      [{
-        user_id: user[0]._id,
-        bio: bio || '',
-        qualifications,
-        experience_years,
-        subjects,
-        academic_levels_taught: Array.isArray(academic_levels_taught) ? academic_levels_taught : [academic_levels_taught],
-        location,
-        hourly_rate: parseFloat(hourly_rate),
-        average_rating: 0, // Initialize with 0 rating
-        total_sessions: 0, // Initialize with 0 sessions
-        is_verified: false, // Not verified yet
-        is_approved: false // Not approved yet
-      }],
+      [
+        {
+          user_id: user[0]._id,
+          bio: bio || "",
+          qualifications,
+          experience_years,
+          subjects,
+          academic_levels_taught: Array.isArray(academic_levels_taught)
+            ? academic_levels_taught
+            : [academic_levels_taught],
+          location,
+          hourly_rate: parseFloat(hourly_rate),
+          average_rating: 0, // Initialize with 0 rating
+          total_sessions: 0, // Initialize with 0 sessions
+          is_verified: false, // Not verified yet
+          is_approved: false, // Not approved yet
+        },
+      ]
       // { session }
     );
 
     // Step 3: Create tutor application entry
     const tutorApplication = await TutorApplication.create(
-      [{
-        tutor_id: tutorProfile[0]._id,
-        interview_status: 'Pending',
-        code_of_conduct_agreed: code_of_conduct_agreed,
-        application_status: 'Pending'
-      }],
+      [
+        {
+          tutor_id: tutorProfile[0]._id,
+          interview_status: "Pending",
+          code_of_conduct_agreed: code_of_conduct_agreed,
+          application_status: "Pending",
+        },
+      ]
       // { session }
     );
 
     const savedDocuments = [];
     const documentMapRaw = req.body.documentsMap;
 
+
     if (documentMapRaw && req.files && req.files['documents']) {
+
       let documentsObj;
       try {
         documentsObj = JSON.parse(documentMapRaw);
@@ -172,8 +196,11 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         const oldPath = uploadedFile.path;
         const ext = path.extname(uploadedFile.filename);
         const base = path.basename(uploadedFile.filename, ext);
-        const newFilename = `${documentType.replace(/\s+/g, '_')}_${base}${ext}`;
-        const fs = require('fs');
+        const newFilename = `${documentType.replace(
+          /\s+/g,
+          "_"
+        )}_${base}${ext}`;
+        const fs = require("fs");
         const newPath = `uploads/documents/${newFilename}`;
 
         // Rename the file on disk
@@ -187,7 +214,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
           file_url: relativePath,
           uploaded_at: new Date(),
           verified_by_admin: false,
-          verification_status: "Pending"
+          verification_status: "Pending",
         });
 
         savedDocuments.push(newDoc);
@@ -210,13 +237,12 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         role: user[0].role,
         phone_number: user[0].phone_number,
         age: user[0].age,
-        photo_url: user[0].photo_url
+        photo_url: user[0].photo_url,
       },
       profile: tutorProfile[0],
       application: tutorApplication[0],
-      documents: savedDocuments
+      documents: savedDocuments,
     });
-
   } catch (error) {
     // await session.abortTransaction();
     // session.endSession();
@@ -225,16 +251,8 @@ exports.registerTutor = asyncHandler(async (req, res) => {
   }
 });
 
-
 exports.registerParent = asyncHandler(async (req, res) => {
-  const {
-    full_name,
-    email,
-    phone_number,
-    password,
-    age,
-    photo_url
-  } = req.body;
+  const { full_name, email, phone_number, password, age, photo_url } = req.body;
 
   if (!email || !password || !full_name) {
     res.status(400);
@@ -270,10 +288,12 @@ exports.registerParent = asyncHandler(async (req, res) => {
     );
 
     const parent = await ParentProfile.create(
-      [{
-        user_id: user[0]._id,
-        students: [] // start with empty student array
-      }],
+      [
+        {
+          user_id: user[0]._id,
+          students: [], // start with empty student array
+        },
+      ]
       // { session }
     );
 
@@ -289,9 +309,8 @@ exports.registerParent = asyncHandler(async (req, res) => {
       phone_number: user[0].phone_number,
       age: user[0].age,
       photo_url: user[0].photo_url,
-      parentProfile: parent[0]
+      parentProfile: parent[0],
     });
-
   } catch (error) {
     // await session.abortTransaction();
     // session.endSession();
@@ -299,7 +318,6 @@ exports.registerParent = asyncHandler(async (req, res) => {
     throw new Error("Parent creation failed: " + error.message);
   }
 });
-
 
 exports.addStudentToParent = asyncHandler(async (req, res) => {
   const {
@@ -312,10 +330,19 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
     academic_level,
     learning_goals,
     preferred_subjects,
-    availability
+    availability,
   } = req.body;
 
-  if (!parent_user_id || !email || !password || !full_name || !academic_level || !learning_goals || !preferred_subjects || !availability) {
+  if (
+    !parent_user_id ||
+    !email ||
+    !password ||
+    !full_name ||
+    !academic_level ||
+    !learning_goals ||
+    !preferred_subjects ||
+    !availability
+  ) {
     res.status(400);
     throw new Error("Missing required student fields");
   }
@@ -331,33 +358,37 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
 
   try {
     const studentUser = await User.create(
-      [{
-        full_name,
-        email,
-        password,
-        age,
-        role: "student",
-        photo_url,
-        is_verified: true
-      }],
+      [
+        {
+          full_name,
+          email,
+          password,
+          age,
+          role: "student",
+          photo_url,
+          is_verified: true,
+        },
+      ]
       // { session }
     );
 
     const studentProfile = await Student.create(
-      [{
-        user_id: studentUser[0]._id,
-        academic_level,
-        learning_goals,
-        preferred_subjects,
-        availability
-      }],
+      [
+        {
+          user_id: studentUser[0]._id,
+          academic_level,
+          learning_goals,
+          preferred_subjects,
+          availability,
+        },
+      ]
       // { session }
     );
     
 
     const parentProfile = await ParentProfile.findOneAndUpdate(
       { user_id: parent_user_id },
-      { $push: { students: studentProfile[0] } }, // push whole object or just ref
+      { $push: { students: studentProfile[0] } } // push whole object or just ref
       // { new: true, session }
     );
 
@@ -372,9 +403,8 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
       message: "Student added to parent successfully",
       studentUser: studentUser[0],
       studentProfile: studentProfile[0],
-      parentProfile
+      parentProfile,
     });
-
   } catch (error) {
     // await session.abortTransaction();
     // session.endSession();
@@ -383,9 +413,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
   }
 });
 
-
 exports.loginUser = asyncHandler(async (req, res) => {
-
   const { email, password } = req.body;
   if (!email || !password) {
     res.status(400);
@@ -398,7 +426,9 @@ exports.loginUser = asyncHandler(async (req, res) => {
   }
   if (!user.is_verified) {
     res.status(403);
-    throw new Error("User not verified. please be Patient, Admin will verify you soon");
+    throw new Error(
+      "User not verified. please be Patient, Admin will verify you soon"
+    );
   }
   if (user.role === "student" || user.role === "tutor" || user.role === "parent") {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -438,9 +468,28 @@ exports.loginUser = asyncHandler(async (req, res) => {
       },
       accessToken
     });
+
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Admin login successful",
+      user: {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        is_verified: user.is_verified,
+      },
+      accessToken,
+    });
   }
 });
-
 
 exports.verifyOtp = asyncHandler(async (req, res) => {
   const { userId, otp } = req.body;
@@ -451,7 +500,9 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   }
 
   if (entry.lockUntil && Date.now() < entry.lockUntil) {
-    return res.status(429).json({ message: "Too many attempts. Try after 30 minutes." });
+    return res
+      .status(429)
+      .json({ message: "Too many attempts. Try after 30 minutes." });
   }
 
   if (Date.now() > entry.expiresAt) {
@@ -462,7 +513,9 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     entry.attempts++;
     if (entry.attempts >= entry.maxAttempts) {
       entry.lockUntil = Date.now() + 30 * 60 * 1000; // 30 minutes lock
-      return res.status(429).json({ message: "Too many wrong attempts. Try after 30 minutes." });
+      return res
+        .status(429)
+        .json({ message: "Too many wrong attempts. Try after 30 minutes." });
     }
     return res.status(401).json({ message: "Incorrect OTP" });
   }
@@ -477,7 +530,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     delete otpStore[userId];
     return res.status(200).json({
       message: "OTP verified successfully. You can now reset your password.",
-      userId
+      userId,
     });
   }
 
@@ -487,8 +540,9 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
 
   } else if (user.role === "tutor") {
-    roleData = await TutorProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-
+    roleData = await TutorProfile.findOne({ user_id: user._id }).select(
+      "-__v -createdAt -updatedAt"
+    );
   } else if (user.role === "parent") {
     roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
 
@@ -497,9 +551,8 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       _id: user._id,
       full_name: user.full_name,
       email: user.email,
-      role: user.role
+      role: user.role,
     };
-
   }
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -528,7 +581,6 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   res.status(200).json(responseData);
 });
 
-
 exports.resendOtp = asyncHandler(async (req, res) => {
   const { userId } = req.body;
 
@@ -539,12 +591,16 @@ exports.resendOtp = asyncHandler(async (req, res) => {
   }
 
   if (entry.lockUntil && Date.now() < entry.lockUntil) {
-    return res.status(429).json({ message: "Too many attempts. Try after 30 minutes." });
+    return res
+      .status(429)
+      .json({ message: "Too many attempts. Try after 30 minutes." });
   }
 
   if (entry.attempts >= entry.maxAttempts) {
     entry.lockUntil = Date.now() + 30 * 60 * 1000;
-    return res.status(429).json({ message: "OTP resend limit reached. Try after 30 minutes." });
+    return res
+      .status(429)
+      .json({ message: "OTP resend limit reached. Try after 30 minutes." });
   }
 
   const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -563,7 +619,6 @@ exports.resendOtp = asyncHandler(async (req, res) => {
 
   res.status(200).json({ message: "New OTP sent to your email." });
 });
-
 
 exports.addAdmin = asyncHandler(async (req, res) => {
   const { full_name, email, password, phone_number } = req.body;
@@ -589,8 +644,8 @@ exports.addAdmin = asyncHandler(async (req, res) => {
         password,
         phone_number,
         role: "admin",
-        is_verified: true // ✅ manually set as admin
-      }
+        is_verified: true, // ✅ manually set as admin
+      },
     ]);
 
     res.status(201).json({
@@ -599,15 +654,13 @@ exports.addAdmin = asyncHandler(async (req, res) => {
       full_name: user[0].full_name,
       email: user[0].email,
       role: user[0].role,
-      is_verified: user[0].is_verified
+      is_verified: user[0].is_verified,
     });
-
   } catch (error) {
     res.status(500);
     throw new Error("Admin creation failed: " + error.message);
   }
 });
-
 
 
 exports.forgotPassword = asyncHandler(async (req, res) => {
@@ -632,15 +685,17 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
     attempts: 1,
     maxAttempts: 5,
     lockUntil: null,
-    purpose: "forgotPassword"
+    purpose: "forgotPassword",
   };
 
-  const htmlContent = generateOtpEmail(otp, user.full_name || user.username || "User");
+  const htmlContent = generateOtpEmail(
+    otp,
+    user.full_name || user.username || "User"
+  );
   await sendEmail(user.email, "Reset Your Password - OTP", htmlContent);
 
   res.status(200).json({
     message: "OTP sent to your email for password reset",
-
   });
 });
 
