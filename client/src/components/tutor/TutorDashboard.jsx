@@ -62,16 +62,17 @@ const TutorDashboard = () => {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
 
   // Form states
-  const [sessionForm, setSessionForm] = useState({
-    student_id: '',
-    subject: '',
-    session_date: '',
-    duration_hours: 1,
-    hourly_rate: 25,
-    notes: ''
-  });
+const [sessionForm, setSessionForm] = useState({
+  student_ids: [], // was student_id
+  subject: '',
+  session_date: '',
+  duration_hours: 1,
+  hourly_rate: 25,
+  notes: ''
+});
+
   const [updateSessionForm, setUpdateSessionForm] = useState({
-    student_id: '',
+    student_id: [],
     subject: '',
     session_date: '',
     duration_hours: '',
@@ -149,7 +150,6 @@ const TutorDashboard = () => {
           }
         }
       );
-
       if (availabilityResponse.ok) {
         const availabilityData = await availabilityResponse.json();
         if (!availabilityData.is_available) {
@@ -285,9 +285,19 @@ const TutorDashboard = () => {
   };
 
   const openUpdateSessionModal = (session) => {
+  
+    
     setSelectedSession(session);
+    
+    // Extract student data from session
+    const sessionStudent = session.student_ids[0]; // Assuming single student for now
+    const studentId = sessionStudent?._id;
+    const studentName = sessionStudent?.user_id?.full_name;
+    
+    
     setUpdateSessionForm({
-      student_id: session.student_id._id,
+      student_id: [studentId],
+      full_name: [studentName],
       subject: session.subject,
       session_date: new Date(session.session_date).toISOString().slice(0, 16),
       duration_hours: session.duration_hours,
@@ -297,6 +307,8 @@ const TutorDashboard = () => {
       feedback: session.feedback || '',
       notes: session.notes || ''
     });
+
+
     setShowUpdateSessionModal(true);
   };
 
@@ -460,7 +472,7 @@ const TutorDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div>  
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -508,14 +520,6 @@ const TutorDashboard = () => {
                   <MessageSquare className="h-5 w-5 mr-2" />
                   Recent Inquiries
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowReplyModal(true)}
-                >
-                  <Reply className="h-4 w-4 mr-1" />
-                  Reply All
-                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -524,7 +528,7 @@ const TutorDashboard = () => {
                   {pendingInquiries.slice(0, 3).map((inquiry) => (
                     <div key={inquiry._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        {/* <p className="font-medium text-sm">{inquiry.student_id.user_id.full_name}</p> */}
+                        <p className="font-medium text-sm">{inquiry.student_id.user_id.full_name}</p>
                         <p className="text-xs text-gray-600">{inquiry.subject}</p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -583,18 +587,11 @@ const TutorDashboard = () => {
                         <Clock className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium">
-                          {
-                            (() => {
-                              const studentIdObj = session.student_ids[0]; // e.g., { _id: '...' }
-                              const studentId = studentIdObj._id; // get the real string
-                              const student = students.find(s => s._id === studentId);
-                              const user = users.find(u => u._id === student?.user_id);
-                              return user?.full_name || "Unknown";
-                            })()
-                          }
-                        </p>
-
+                        <p className="font-medium">{session.student_ids.map((student, index) => (
+                          <p key={index} className="text-sm font-semibold">
+                            {student.user_id.full_name}
+                          </p>
+                        ))}</p>
                         <p className="text-sm text-gray-600">{session.subject}</p>
                         <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
@@ -655,15 +652,11 @@ const TutorDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium">
-                          {
-                            (() => {
-                              const studentIdObj = session.student_ids[0]; // e.g., { _id: '...' }
-                              const studentId = studentIdObj._id; // get the real strin
-                              const student = students.find(s => s._id === studentId);
-                              const user = users.find(u => u._id === student?.user_id);
-                              return user?.full_name || "Unknown";
-                            })()
-                          }
+                          {session.student_ids.map((student, index) => (
+                            <p key={index} className="text-sm font-semibold">
+                              {student.user_id.full_name}
+                            </p>
+                          ))}
                         </p>
 
                         <p className="text-xs text-gray-600">{session.subject}</p>
@@ -703,7 +696,6 @@ const TutorDashboard = () => {
                 <XCircle className="h-4 w-4" />
               </Button>
             </div>
-
             <form onSubmit={handleCreateSession} className="space-y-4">
               <div>
                 <Label htmlFor="student_id">Select Student</Label>
@@ -720,7 +712,7 @@ const TutorDashboard = () => {
                     ) : availableStudents.length > 0 ? (
                       availableStudents.map((student) => (
                         <SelectItem key={student._id} value={student._id}>
-                          {student.full_name} - {student.academic_level}
+                          {student.full_name} 
                         </SelectItem>
                       ))
                     ) : (
@@ -868,20 +860,38 @@ const TutorDashboard = () => {
             <form onSubmit={handleUpdateSession} className="space-y-4">
               {/* Student Selection */}
               <div>
-                <Label htmlFor="student_id">Student</Label>
+                <Label htmlFor="full_name">Student</Label>
                 <Select
-                  value={updateSessionForm.student_id}
-                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, student_id: value })}
+                  value={updateSessionForm.student_id[0] || ""}
+                  onValueChange={(value) => {
+                    const selectedStudent = availableStudents.find(student => student._id === value);
+                    setUpdateSessionForm({ 
+                      ...updateSessionForm, 
+                      student_id: [value],
+                      full_name: selectedStudent ? [selectedStudent.full_name] : []
+                    });
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select student" />
+                    <SelectValue placeholder="Select student">
+                      {updateSessionForm.full_name[0] || "Select student"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {availableStudents.map((student) => (
-                      <SelectItem key={student._id} value={student._id}>
-                        {student.full_name} - {student.academic_level}
+                    {/* Add current session student if not in available students */}
+                    {updateSessionForm.student_id[0] && 
+                     !availableStudents.find(s => s._id === updateSessionForm.student_id[0]) && (
+                      <SelectItem value={updateSessionForm.student_id[0]}>
+                        {updateSessionForm.full_name[0]} (Current)
                       </SelectItem>
-                    ))}
+                    )}
+                    {availableStudents.map((student) => {
+                      return (
+                        <SelectItem key={student._id} value={student._id}>
+                          {student.full_name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

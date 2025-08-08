@@ -4,7 +4,7 @@ import AvailabilityCalendar from '../../components/tutor/AvailabilityCalendar';
 
 const TutorAvailabilityPage = () => {
 
-  return <AvailabilityCalendar />;
+  return <AvailabilityCalendar/>;
 };
 
 export default TutorAvailabilityPage; 

@@ -66,18 +66,19 @@ router.put('/inquiries/:inquiry_id/reply', replyToInquiry);
 router.get('/students', getAvailableStudents);
 
 // Availability management routes
+
 router.get('/availability/:user_id', getTutorAvailability);
 router.put('/availability/:user_id/general', updateGeneralAvailability);
-router.post('/availability/:user_id/recurring', addRecurringAvailability);
-router.put('/availability/:user_id/recurring/:slot_id', updateRecurringAvailability);
-router.delete('/availability/:user_id/recurring/:slot_id', removeRecurringAvailability);
-router.post('/availability/:user_id/one-time', addOneTimeAvailability);
-router.put('/availability/:user_id/one-time/:slot_id', updateOneTimeAvailability);
-router.delete('/availability/:user_id/one-time/:slot_id', removeOneTimeAvailability);
+// router.post('/availability/:user_id/recurring', addRecurringAvailability);
+// router.put('/availability/:user_id/recurring/:slot_id', updateRecurringAvailability);
+// router.delete('/availability/:user_id/recurring/:slot_id', removeRecurringAvailability);
+// router.post('/availability/:user_id/one-time', addOneTimeAvailability);
+// router.put('/availability/:user_id/one-time/:slot_id', updateOneTimeAvailability);
+// router.delete('/availability/:user_id/one-time/:slot_id', removeOneTimeAvailability);
 router.post('/availability/:user_id/blackout', addBlackoutDate);
 router.put('/availability/:user_id/blackout/:blackout_id', updateBlackoutDate);
 router.delete('/availability/:user_id/blackout/:blackout_id', removeBlackoutDate);
 router.get('/availability/:user_id/slots', getAvailableSlots);
-router.get('/availability/:tutor_id/check', checkAvailability);
+router.get('/availability/:user_id/check', checkAvailability);
 
 module.exports = router;

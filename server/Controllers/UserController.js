@@ -366,7 +366,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
           age,
           role: "student",
           photo_url,
-          is_verified: true,
+          is_verified: "active",
         },
       ]
       // { session }
@@ -533,7 +533,6 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       userId,
     });
   }
-
 
   let roleData = null;
   if (user.role === "student") {

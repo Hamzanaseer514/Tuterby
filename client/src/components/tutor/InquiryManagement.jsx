@@ -21,28 +21,30 @@ import {
   Eye,
   XCircle
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
-const InquiryManagement = ({ tutorId }) => {
+const InquiryManagement = () => {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [replyMessage, setReplyMessage] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (tutorId) {
+    if (user) {
       fetchInquiries();
     }
-  }, [tutorId, filter]);
+  }, [user, filter]);
 
   const fetchInquiries = async () => {
     try {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
       const url = filter === 'all' 
-        ? `http://localhost:5000/api/tutor/inquiries/${tutorId}`
-        : `http://localhost:5000/api/tutor/inquiries/${tutorId}?status=${filter}`;
+        ? `http://localhost:5000/api/tutor/inquiries/${user._id}`
+        : `http://localhost:5000/api/tutor/inquiries/${user._id}?status=${filter}`;
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -60,7 +62,7 @@ const InquiryManagement = ({ tutorId }) => {
 
   const replyToInquiry = async (inquiryId) => {
     try {
-      const response = await fetch(`/api/tutor/inquiries/${inquiryId}/reply`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/inquiries/${inquiryId}/reply`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +191,7 @@ const InquiryManagement = ({ tutorId }) => {
                       <div>
                         <h3 className="font-semibold text-lg">{inquiry.student_id.user_id.full_name}</h3>
                         <p className="text-gray-600">{inquiry.subject}</p>
-                        <p className="text-sm text-gray-500">{formatDate(inquiry.created_at)}</p>
+                        <p className="text-sm text-gray-500">{formatDate(inquiry.createdAt)}</p>
                         <div className="mt-2">
                           <p className="text-sm text-gray-700 line-clamp-2">
                             {(inquiry.message || inquiry.description || '').length > 100 
@@ -258,6 +260,13 @@ const InquiryManagement = ({ tutorId }) => {
                   <Label className="text-sm font-medium text-gray-600">Message</Label>
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-700">{selectedInquiry.message || selectedInquiry.description || 'No message provided'}</p>
+                  </div>
+                </div>
+                  
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Reply</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700">{selectedInquiry.reply_message || 'No reply provided'}</p>
                   </div>
                 </div>
                 

@@ -22,25 +22,26 @@ import {
   Eye,
   Edit
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
-const SessionManagement = ({ tutorId }) => {
+const SessionManagement = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedSession, setSelectedSession] = useState(null);
   const [showSessionModal, setShowSessionModal] = useState(false);
-
+  const { user } = useAuth();
   useEffect(() => {
     fetchSessions();
-  }, [tutorId, filter]);
+  }, [user, filter]);
 
   const fetchSessions = async () => {
     try {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
       const url = filter === 'all' 
-        ? `/api/tutor/sessions/${tutorId}`
-        : `/api/tutor/sessions/${tutorId}?status=${filter}`;
+        ? `http://localhost:5000/api/tutor/sessions/${user._id}`
+        : `http://localhost:5000/api/tutor/sessions/${user._id}?status=${filter}`;
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -57,7 +58,7 @@ const SessionManagement = ({ tutorId }) => {
 
   const updateSessionStatus = async (sessionId, newStatus) => {
     try {
-      const response = await fetch(`/api/tutor/sessions/${sessionId}`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/sessions/${sessionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +210,11 @@ const SessionManagement = ({ tutorId }) => {
                         <Calendar className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">{session.student_id.full_name}</h3>
+                      {session.student_ids.map((student, index) => (
+  <p key={index} className="text-sm font-semibold">
+    {student.user_id.full_name}
+  </p>
+))}
                         <p className="text-gray-600">{session.subject}</p>
                         <p className="text-sm text-gray-500">{formatDate(session.session_date)}</p>
                         <div className="flex items-center space-x-4 mt-2">
@@ -270,7 +275,11 @@ const SessionManagement = ({ tutorId }) => {
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Student</Label>
-                  <p className="text-lg font-semibold">{selectedSession.student_id.full_name}</p>
+                  {selectedSession.student_ids.map((student, index) => (
+  <p key={index} className="text-sm font-semibold">
+    {student.user_id.full_name}
+  </p>
+))}
                 </div>
                 
                 <div>

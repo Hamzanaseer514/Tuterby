@@ -125,7 +125,7 @@ exports.selectInterviewSlot = async (req, res) => {
     }
 
     // Save as a single Date object in preferred_interview_times (array)
-    application.preferred_interview_times = [selectedTime];
+    application.scheduled_time = selectedTime;
     application.interview_status = "Scheduled";
     await application.save();
 
@@ -264,8 +264,8 @@ exports.selectInterviewSlot = async (req, res) => {
 // };
 
 exports.approveTutorProfile = async (req, res) => {
-  const { tutor_id } = req.body;
-  const tutor = await TutorProfile.findOne({user_id:tutor_id});
+  const { user_id } = req.body;
+  const tutor = await TutorProfile.findOne({user_id:user_id});
   try {
     const profile = await TutorProfile.findOne({ _id: tutor._id });
     const application = await TutorApplication.findOne({ tutor_id:tutor._id });
@@ -289,6 +289,7 @@ exports.approveTutorProfile = async (req, res) => {
 
     // Approve tutor
     profile.profile_status = "approved";
+    profile.is_verified = true;
     user.is_verified = 'active';
 
     await profile.save();
@@ -299,7 +300,7 @@ exports.approveTutorProfile = async (req, res) => {
       "Tutor Approved",
       "Congratulations! Your tutor profile has been approved. You can now start tutoring on the platform."
     );
-
+    console.log("Tutor profile approved and email sent.");
     return res
       .status(200)
       .json({ message: "Tutor profile approved and email sent." });
@@ -315,12 +316,54 @@ exports.approveTutorProfile = async (req, res) => {
 
 };
 
-exports.rejectTutorProfile = async (req, res) => {
-  const { tutor_id, reason } = req.body;
-
+exports.partialApproveTutor = async (req, res) => {
+  const { user_id, reason } = req.body;
+  const tutor = await TutorProfile.findOne({user_id:user_id});
   try {
-    const profile = await TutorProfile.findOne({ _id: tutor_id });
-    const application = await TutorApplication.findOne({ tutor_id });
+    const profile = await TutorProfile.findOne({ _id: tutor._id });
+    const application = await TutorApplication.findOne({ tutor_id:tutor._id });
+
+    if (!profile || !application) {
+      return res.status(404).json({ message: "Tutor profile or application not found." });
+    }
+
+    const user = await User.findOne({ _id: profile.user_id });
+
+
+    // Approve tutor
+    profile.profile_status = "partial_approved";
+    profile.is_verified = true;
+    user.is_verified = 'partial_active';
+
+    await profile.save();
+    await user.save();
+
+    await sendEmail(
+      user.email,
+      "Tutor Partially Approved",
+      "Congratulations! Your tutor profile has been partially approved. You can now start tutoring on the platform."
+    );
+    console.log("Tutor profile approved and email sent.");
+    return res
+      .status(200)
+      .json({ message: "Tutor profile partially approved and email sent." });
+    // res.status(200).json({ message: "Tutor profile approved and email sent." });
+
+  } catch (err) {
+    console.error("Error approving tutor:", err);
+    return res.status(500).json({
+      message: "Failed to approve tutor profile",
+      error: err.message,
+    });
+  }
+
+};
+
+exports.rejectTutorProfile = async (req, res) => {
+  const { user_id, reason } = req.body;
+  try {
+    const profile = await TutorProfile.findOne({ user_id:user_id });
+    const application = await TutorApplication.findOne({ tutor_id:profile._id });
 
     if (!profile || !application) {
       return res.status(404).json({ message: "Tutor profile or application not found." });
@@ -331,12 +374,14 @@ exports.rejectTutorProfile = async (req, res) => {
     // Set all statuses to false
     profile.profile_status = "rejected";
     profile.rejection_reason = reason || "Not specified";
+    profile.is_verified = false;
     profile.is_background_checked = false;
     profile.is_reference_verified = false;
     profile.is_qualification_verified = false;
     application.application_status = "Rejected";
+  
+    user.is_verified = 'inactive';
 
-    user.is_verified = 'partialactive';
 
     await profile.save();
     await user.save();
@@ -344,7 +389,7 @@ exports.rejectTutorProfile = async (req, res) => {
 
     // ❗ Reject all documents
     await TutorDocument.updateMany(
-      { tutor_id },
+      { tutor_id:profile._id },
       { $set: { verification_status: "Rejected" } }
     );
     await sendEmail(
@@ -370,7 +415,6 @@ exports.getAllUsers = async (req, res) => {
     const { userType, status, search } = req.query;
     
 
-    
     let query = {};
     if (userType && userType !== 'all') {
       // Map frontend userType to database role
@@ -384,6 +428,7 @@ exports.getAllUsers = async (req, res) => {
     if (status) {
       query.is_verified = status === 'verified';
     }
+
     if (search) {
       query.$or = [
         { full_name: { $regex: search, $options: 'i' } },
@@ -411,11 +456,10 @@ exports.getAllUsers = async (req, res) => {
         email: user.email,
         phone: user.phone_number || '',
         role: user.role,
-        status: user.is_verified ? 'verified' : 'pending',
+        status: user.is_verified,
         joinDate: user.created_at || user.createdAt,
         lastActive: user.updated_at || user.updatedAt
       };
-
       if (user.role === 'tutor') {
         const tutorProfile = await TutorProfile.findOne({ user_id: user._id });
         
@@ -446,7 +490,8 @@ exports.getAllUsers = async (req, res) => {
                 second: '2-digit',
                 hour12: true,
               }),
-              scheduled: application.interview_status === 'Scheduled',
+              is_interview: application.is_interview,
+              scheduled: application.interview_status,
               completed: ['Passed', 'Failed'].includes(application.interview_status),
               result: application.interview_status === 'Passed' ? 'Passed' : application.interview_status === 'Failed' ? 'Failed' : null,
               notes: application.interview_notes || ''
@@ -465,11 +510,13 @@ exports.getAllUsers = async (req, res) => {
               )
             : [],
             backgroundCheck: tutorProfile.is_background_checked || false,
+            qualificationCheck: tutorProfile.is_qualification_verified || false,
+            referenceCheck: tutorProfile.is_reference_verified || false,
             references: documents.filter(doc => doc.document_type === 'Reference Letter').length,
             qualifications: tutorProfile.qualifications || '',
-            interviewCompleted: application ? ['Passed', 'Failed'].includes(application.interview_status) : false,
+            interviewStatus: application ? ['Passed', 'Failed'].includes(application.interview_status) : false,
             rating: tutorProfile.average_rating || null,
-            profileComplete: tutorProfile.profile_status === 'approved',
+            profileStatus: tutorProfile.profile_status === 'approved',
             applicationNotes: application ? application.admin_notes : ''
           };
         }
@@ -501,9 +548,6 @@ exports.getAllUsers = async (req, res) => {
       // Return base user if no profile found
       return baseUser;
     }));
-
-
-   
     res.status(200).json(formattedUsers);
   } catch (err) {
     console.error('Error in getAllUsers:', err);
@@ -599,6 +643,21 @@ exports.getTutorDetails = async (req, res) => {
   }
 };
 
+exports.updateInterviewToggle = async (req, res) => {
+  const { user_id } = req.params;
+  const { is_interview } = req.body;
+  const tutor = await TutorProfile.findOne({user_id:user_id});
+  if (!tutor) {
+    return res.status(404).json({ message: "Tutor not found" });
+  }
+  const application = await TutorApplication.findOne({tutor_id:tutor._id});
+  if (!application) {
+    return res.status(404).json({ message: "Tutor application not found" });
+  }
+  application.is_interview = is_interview;
+  await application.save();
+  res.status(200).json({ message: "Interview toggle updated successfully" });
+};
 
 // Complete interview with result
 exports.completeInterview = async (req, res) => {
@@ -766,6 +825,18 @@ exports.verifyDocument = async (req, res) => {
   const document = await TutorDocument.findOne({ tutor_id: tutor._id, document_type });
   if (!document) {
     return res.status(404).json({ message: "Document not found" });
+  }
+  if(document_type === "ID Proof" || document_type === "Address Proof"){
+    tutor.is_background_checked = true;
+    await tutor.save();
+  }
+  if(document_type === "Degree" || document_type==="Certificate"){
+    tutor.is_qualification_verified = true;
+    await tutor.save();
+  }
+  if(document_type === "Reference Letter"){
+    tutor.is_reference_verified = true;
+    await tutor.save();
   }
   document.verification_status = 'Approved';
   await document.save();

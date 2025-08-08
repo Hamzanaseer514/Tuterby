@@ -167,7 +167,6 @@ export const getTutorDetails = async (userId) => {
     if (!Array.isArray(details.subjects)) {
       details.subjects = [];
     }
-    console.log("details", details);
     return details;
   } catch (error) {
     console.error('Error fetching tutor details:', error);
@@ -200,9 +199,7 @@ export const completeInterview = async (tutorId, result, notes = '') => {
 
 export const getAvailableInterviewSlots = async (date) => {
   try {
-    console.log('adminService: Fetching slots for date:', date);
     const slots = await apiCall(`/interviews/available-slots?date=${date}`);
-    console.log('adminService: Received slots:', slots);
     return slots;
   } catch (error) {
     console.error('Error fetching available slots:', error);
@@ -230,18 +227,29 @@ export const updateApplicationNotes = async (tutorId, notes) => {
 };
 
 // Tutor Approval/Rejection
-export const approveTutor = async (tutorId) => {
+export const approveTutorProfile = async (user_id) => {
   return apiCall('/tutors/approve', {
     method: 'POST',
-    body: JSON.stringify({ tutor_id: tutorId }),
+    body: JSON.stringify({ user_id: user_id }),
   });
 };
 
-export const rejectTutor = async (tutorId, reason) => {
+export const partialApproveTutor = async (user_id, reason) => {
+  return apiCall('/tutors/partial-approve', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: user_id,
+      reason
+    }),
+  });
+};
+
+export const rejectTutorProfile = async (user_id, reason) => {
+
   return apiCall('/tutors/reject', {
     method: 'POST',
     body: JSON.stringify({
-      tutor_id: tutorId,
+      user_id: user_id,
       reason
     }),
   });

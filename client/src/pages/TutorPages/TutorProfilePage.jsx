@@ -425,7 +425,6 @@ const TutorProfilePage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {console.log("tutor", tutor)}
                       {tutor.qualifications.map((qualification, index) => (
                         <div key={index} className="flex items-center gap-2">
                           <GraduationCap className="w-4 h-4 text-gray-500" />

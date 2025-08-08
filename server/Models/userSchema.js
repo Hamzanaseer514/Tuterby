@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
   },
   is_verified: {
     type: String,
-    enum: ['active', 'inactive', 'partialactive'],
+    enum: ['active', 'inactive', 'partial_active'],
     default: 'inactive'
   }
 }, { timestamps: true });

@@ -18,8 +18,6 @@ import {
 import {
   getDashboardStats,
   getAllUsers,
-  approveTutor,
-  rejectTutor
 } from '../../services/adminService';
 
 // Import custom components
@@ -239,47 +237,8 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleApprove = async () => {
-    updateDashboardState({ loading: true });
-    
-    try {
-      const userId = uiState.selectedActionUser.userId || uiState.selectedActionUser.id;
-      await approveTutor(userId);
-      await loadUsers('tutors');
-      showNotification('Tutor approved successfully');
-    } catch (error) {
-      showNotification('Failed to approve tutor', 'error');
-    } finally {
-      updateDashboardState({ loading: false });
-      handleMenuClose();
-    }
-  };
-
-  const handleReject = () => {
-    updateUiState({ showRejectionDialog: true });
-    handleMenuClose();
-  };
-
-  const handleConfirmReject = async () => {
-    updateDashboardState({ loading: true });
-    
-    try {
-      const userId = uiState.selectedActionUser.userId || uiState.selectedActionUser.id;
-      await rejectTutor(userId, formState.rejectionReason);
-      await loadUsers('tutors');
-      showNotification('Tutor rejected successfully');
-    } catch (error) {
-      showNotification('Failed to reject tutor', 'error');
-    } finally {
-      updateDashboardState({ loading: false });
-      updateUiState({
-        showRejectionDialog: false,
-        selectedActionUser: null
-      });
-      updateFormState({ rejectionReason: '' });
-    }
-  };
-
+  
+  
   const handleFilterChange = (newFilters) => {
     updateUiState({ filters: newFilters });
   };

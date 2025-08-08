@@ -53,6 +53,10 @@ const tutorInquirySchema = new mongoose.Schema({
   replied_at: {
     type: Date
   },
+  reply_message: {
+    type: String,
+    required: false
+  },
   converted_to_session_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'TutoringSession'

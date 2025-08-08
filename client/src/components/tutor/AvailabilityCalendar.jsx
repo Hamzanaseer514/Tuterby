@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { 
   Card, 
@@ -37,8 +38,8 @@ const AvailabilityCalendar = () => {
   
   // Modal states
   const [showGeneralSettingsModal, setShowGeneralSettingsModal] = useState(false);
-  const [showRecurringModal, setShowRecurringModal] = useState(false);
-  const [showOneTimeModal, setShowOneTimeModal] = useState(false);
+  // const [showRecurringModal, setShowRecurringModal] = useState(false);
+  // const [showOneTimeModal, setShowOneTimeModal] = useState(false);
   const [showBlackoutModal, setShowBlackoutModal] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
   const [editingBlackout, setEditingBlackout] = useState(null);
@@ -60,17 +61,17 @@ const AvailabilityCalendar = () => {
     is_accepting_bookings: true
   });
   
-  const [recurringForm, setRecurringForm] = useState({
-    day_of_week: 1,
-    start_time: "09:00",
-    end_time: "10:00"
-  });
+  // const [recurringForm, setRecurringForm] = useState({
+  //   day_of_week: 1,
+  //   start_time: "09:00",
+  //   end_time: "10:00"
+  // });
   
-  const [oneTimeForm, setOneTimeForm] = useState({
-    date: "",
-    start_time: "09:00",
-    end_time: "10:00"
-  });
+  // const [oneTimeForm, setOneTimeForm] = useState({
+  //   date: "",
+  //   start_time: "09:00",
+  //   end_time: "10:00"
+  // });
   
   const [blackoutForm, setBlackoutForm] = useState({
     start_date: "",
@@ -86,16 +87,16 @@ const AvailabilityCalendar = () => {
   });
 
   useEffect(() => {
-    if (tutorId) {
+    if (user) {
       fetchAvailability();
     }
-  }, [tutorId]);
+  }, [user]);
 
   const fetchAvailability = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}`);
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch availability');
       }
@@ -119,7 +120,7 @@ const AvailabilityCalendar = () => {
   const handleGeneralSettingsUpdate = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/general`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}/general`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generalSettings)
@@ -148,8 +149,8 @@ const AvailabilityCalendar = () => {
     e.preventDefault();
     try {
       const url = editingSlot 
-        ? `http://localhost:5000/api/tutor/availability/${user.id}/recurring/${editingSlot._id}`
-        : `http://localhost:5000/api/tutor/availability/${user.id}/recurring`;
+        ? `http://localhost:5000/api/tutor/availability/${user._id}/recurring/${editingSlot._id}`
+        : `http://localhost:5000/api/tutor/availability/${user._id}/recurring`;
       
       const method = editingSlot ? 'PUT' : 'POST';
       
@@ -184,8 +185,8 @@ const AvailabilityCalendar = () => {
     e.preventDefault();
     try {
       const url = editingSlot 
-        ? `http://localhost:5000/api/tutor/availability/${user.id}/one-time/${editingSlot._id}`
-        : `http://localhost:5000/api/tutor/availability/${user.id}/one-time`;
+        ? `http://localhost:5000/api/tutor/availability/${user._id}/one-time/${editingSlot._id}`
+        : `http://localhost:5000/api/tutor/availability/${user._id}/one-time`;
       
       const method = editingSlot ? 'PUT' : 'POST';
       
@@ -220,8 +221,8 @@ const AvailabilityCalendar = () => {
     e.preventDefault();
     try {
       const url = editingBlackout 
-        ? `http://localhost:5000/api/tutor/availability/${user.id}/blackout/${editingBlackout._id}`
-        : `http://localhost:5000/api/tutor/availability/${user.id}/blackout`;
+        ? `http://localhost:5000/api/tutor/availability/${user._id}/blackout/${editingBlackout._id}`
+        : `http://localhost:5000/api/tutor/availability/${user._id}/blackout`;
       
       const method = editingBlackout ? 'PUT' : 'POST';
       
@@ -252,63 +253,63 @@ const AvailabilityCalendar = () => {
     }
   };
 
-  const handleDeleteRecurring = async (slotId) => {
-    if (!confirm('Are you sure you want to delete this recurring slot?')) return;
+  // const handleDeleteRecurring = async (slotId) => {
+  //   if (!confirm('Are you sure you want to delete this recurring slot?')) return;
     
-    try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/recurring/${slotId}`, {
-        method: 'DELETE'
-      });
+  //   try {
+  //     const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}/recurring/${slotId}`, {
+  //       method: 'DELETE'
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete recurring slot');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to delete recurring slot');
+  //     }
 
-      fetchAvailability();
-      toast({
-        title: "Success!",
-        description: "Recurring slot deleted successfully.",
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete recurring slot: " + err.message,
-        variant: "destructive",
-      });
-    }
-  };
+  //     fetchAvailability();
+  //     toast({
+  //       title: "Success!",
+  //       description: "Recurring slot deleted successfully.",
+  //     });
+  //   } catch (err) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to delete recurring slot: " + err.message,
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
-  const handleDeleteOneTime = async (slotId) => {
-    if (!confirm('Are you sure you want to delete this one-time slot?')) return;
+  // const handleDeleteOneTime = async (slotId) => {
+  //   if (!confirm('Are you sure you want to delete this one-time slot?')) return;
     
-    try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/one-time/${slotId}`, {
-        method: 'DELETE'
-      });
+  //   try {
+  //     const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}/one-time/${slotId}`, {
+  //       method: 'DELETE'
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete one-time slot');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to delete one-time slot');
+  //     }
 
-      fetchAvailability();
-      toast({
-        title: "Success!",
-        description: "One-time slot deleted successfully.",
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete one-time slot: " + err.message,
-        variant: "destructive",
-      });
-    }
-  };
+  //     fetchAvailability();
+  //     toast({
+  //       title: "Success!",
+  //       description: "One-time slot deleted successfully.",
+  //     });
+  //   } catch (err) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to delete one-time slot: " + err.message,
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
   const handleDeleteBlackout = async (blackoutId) => {
     if (!confirm('Are you sure you want to delete this blackout date?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user.id}/blackout/${blackoutId}`, {
+      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}/blackout/${blackoutId}`, {
         method: 'DELETE'
       });
 
@@ -330,25 +331,25 @@ const AvailabilityCalendar = () => {
     }
   };
 
-  const openEditRecurring = (slot) => {
-    setEditingSlot(slot);
-    setRecurringForm({
-      day_of_week: slot.day_of_week,
-      start_time: slot.start_time,
-      end_time: slot.end_time
-    });
-    setShowRecurringModal(true);
-  };
+  // const openEditRecurring = (slot) => {
+  //   setEditingSlot(slot);
+  //   setRecurringForm({
+  //     day_of_week: slot.day_of_week,
+  //     start_time: slot.start_time,
+  //     end_time: slot.end_time
+  //   });
+  //   setShowRecurringModal(true);
+  // };
 
-  const openEditOneTime = (slot) => {
-    setEditingSlot(slot);
-    setOneTimeForm({
-      date: new Date(slot.date).toISOString().slice(0, 16),
-      start_time: slot.start_time,
-      end_time: slot.end_time
-    });
-    setShowOneTimeModal(true);
-  };
+  // const openEditOneTime = (slot) => {
+  //   setEditingSlot(slot);
+  //   setOneTimeForm({
+  //     date: new Date(slot.date).toISOString().slice(0, 16),
+  //     start_time: slot.start_time,
+  //     end_time: slot.end_time
+  //   });
+  //   setShowOneTimeModal(true);
+  // };
 
   const openEditBlackout = (blackout) => {
     setEditingBlackout(blackout);
@@ -505,7 +506,7 @@ const AvailabilityCalendar = () => {
         </Card>
 
         {/* Recurring Availability */}
-        <Card className="mb-6">
+        {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
@@ -559,10 +560,10 @@ const AvailabilityCalendar = () => {
               <p className="text-gray-500 text-sm">No recurring availability slots set</p>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* One-time Availability */}
-        <Card className="mb-6">
+        {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
@@ -616,7 +617,7 @@ const AvailabilityCalendar = () => {
               <p className="text-gray-500 text-sm">No one-time availability slots set</p>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Blackout Dates */}
         <Card className="mb-6">
@@ -850,7 +851,7 @@ const AvailabilityCalendar = () => {
       )}
 
       {/* Recurring Slot Modal */}
-      {showRecurringModal && (
+      {/* {showRecurringModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
@@ -940,10 +941,10 @@ const AvailabilityCalendar = () => {
             </form>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* One-time Slot Modal */}
-      {showOneTimeModal && (
+      {/* {showOneTimeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
@@ -1025,7 +1026,7 @@ const AvailabilityCalendar = () => {
             </form>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Blackout Date Modal */}
       {showBlackoutModal && (

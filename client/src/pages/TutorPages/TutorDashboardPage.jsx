@@ -13,7 +13,7 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 const TutorDashboardPage = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -48,19 +48,19 @@ const TutorDashboardPage = () => {
       id: 'dashboard',
       name: 'Dashboard',
       icon: LayoutDashboard,
-      component: <TutorDashboard tutorId={tutorId} />
+      component: <TutorDashboard/>
     },
     {
       id: 'sessions',
       name: 'Sessions',
       icon: Calendar,
-      component: <SessionManagement tutorId={tutorId} />
+      component: <SessionManagement/>
     },
     {
       id: 'inquiries',
       name: 'Inquiries',
       icon: MessageSquare,
-      component: <InquiryManagement tutorId={tutorId} />
+      component: <InquiryManagement/>
     },
     {
       id: 'analytics',
@@ -78,7 +78,7 @@ const TutorDashboardPage = () => {
       id: 'availability',
       name: 'Availability',
       icon: Calendar,
-      component: <AvailabilityCalendar tutorId={tutorId} />
+      component: <AvailabilityCalendar/>
     }
   ];
 

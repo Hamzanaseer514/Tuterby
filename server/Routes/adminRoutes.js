@@ -11,6 +11,7 @@ const {
   // verifyQualifications,
   approveTutorProfile,
   rejectTutorProfile,
+  partialApproveTutor,
   verifyDocument,
   // New comprehensive admin functions
   getAllUsers,
@@ -18,22 +19,25 @@ const {
   completeInterview,
   getAvailableInterviewSlots,
   updateApplicationNotes,
-  getDashboardStats
+  getDashboardStats,
+  updateInterviewToggle
 } = require('../Controllers/adminController');
 
 // Apply authentication middleware to all admin routes
-router.use(protect);
-router.use(adminOnly);
+// router.use(protect);
+// router.use(adminOnly);
 
 // Existing routes
 router.get('/tutors/applications/pending', getAllPendingApplications);
 router.put('/tutors/interview/assign', setAvailableInterviewSlots);
 router.post('/tutors/interview/select', selectInterviewSlot);
+router.put('/tutors/:user_id/interview-toggle', updateInterviewToggle);
 // router.post('/tutors/verify/background', verifyBackgroundCheck);
 // router.post('/tutors/verify/references', verifyReferenceChecks);
 // router.post('/tutors/verify/qualifications', verifyQualifications);
 router.post('/tutors/approve', approveTutorProfile);
 router.post('/tutors/reject', rejectTutorProfile);
+router.post('/tutors/partial-approve', partialApproveTutor);
 router.post('/tutors/verify/document', verifyDocument);
 
 // New comprehensive admin routes

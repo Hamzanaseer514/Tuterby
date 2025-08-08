@@ -5,6 +5,10 @@ const tutorApplicationSchema = new mongoose.Schema({
     ref: 'TutorProfile',
     required: true
   },
+  is_interview: {
+    type: Boolean,
+    default: false
+  },
   interview_status: {
     type: String,
     enum: ['Pending', 'Scheduled', 'Passed', 'Failed'],
