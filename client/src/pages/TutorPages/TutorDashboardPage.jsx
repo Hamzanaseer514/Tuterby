@@ -4,6 +4,7 @@ import TutorDashboard from '../../components/tutor/TutorDashboard';
 import SessionManagement from '../../components/tutor/SessionManagement';
 import InquiryManagement from '../../components/tutor/InquiryManagement';
 import AvailabilityCalendar from '../../components/tutor/AvailabilityCalendar';
+import Chatting from '../../components/tutor/Chatting';
 import { Button } from '../../components/ui/button';
 import { 
   LayoutDashboard, 
@@ -79,6 +80,12 @@ const TutorDashboardPage = () => {
       name: 'Availability',
       icon: Calendar,
       component: <AvailabilityCalendar/>
+    },
+    {
+      id: 'chat',
+      name: 'Chat',
+      icon: MessageSquare,
+      component: <Chatting/>
     }
   ];
 
