@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { BASE_URL } from '@/config';
 import { 
   Card, 
   CardContent, 
@@ -47,7 +48,7 @@ const StudentDashboard = () => {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-      const response = await fetch(`http://localhost:5000/api/auth/student/dashboard/${user?._id}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/student/dashboard/${user?._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

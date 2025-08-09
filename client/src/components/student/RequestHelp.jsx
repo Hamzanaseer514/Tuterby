@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { BASE_URL } from '@/config';
 import {
   Card,
   CardContent,
@@ -102,7 +103,7 @@ const RequestHelp = () => {
         limit: 20
       });
 
-      const response = await fetch(`http://localhost:5000/api/auth/tutors/search?${params}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -141,7 +142,7 @@ const RequestHelp = () => {
         params.append('search', searchQuery.trim());
       }
 
-      const response = await fetch(`http://localhost:5000/api/auth/tutors/search?${params}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -198,7 +199,7 @@ const RequestHelp = () => {
         limit: 10,
       });
       const response = await fetch(
-        `http://localhost:5000/api/auth/student/${user?._id}/help-requests?${params.toString()}`,
+        `${BASE_URL}/api/auth/student/${user?._id}/help-requests?${params.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -272,7 +273,7 @@ const RequestHelp = () => {
         tutor_id: selectedTutor._id
       };
 
-      const response = await fetch(`http://localhost:5000/api/auth/student/${user?._id}/help-request`, {
+      const response = await fetch(`${BASE_URL}/api/auth/student/${user?._id}/help-request`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1028,4 +1029,3 @@ const RequestHelp = () => {
 };
 
 export default RequestHelp;
-

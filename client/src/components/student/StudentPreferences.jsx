@@ -255,16 +255,23 @@ const StudentPreferences = () => {
 
             <div>
               <Label htmlFor="photo_url">Profile Photo URL</Label>
-              <img
-                id="photo_url"
-                name="photo_url"
-                value={formData.photo_url}
-                onChange={handleInputChange}
-                placeholder="Enter URL for your profile photo"
-                src={formData.photo_url}
-                alt="Profile Photo"
-                className="w-10 h-10 rounded-full"
-              />
+              <div className="flex items-center gap-3">
+                <Input
+                  id="photo_url"
+                  name="photo_url"
+                  value={formData.photo_url}
+                  onChange={handleInputChange}
+                  placeholder="Enter URL for your profile photo"
+                />
+                {formData.photo_url && (
+                  <img
+                    src={formData.photo_url}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover border"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+              </div>
             </div>
 
             <div>
@@ -409,18 +416,21 @@ const StudentPreferences = () => {
                 Set your weekly availability for tutoring sessions
               </p>
 
-              {/* Example availability slots - you can expand this */}
+              {/* Weekly availability simple example */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Monday</Label>
-                  <Input type="time" value={formData.availability.monday} onChange={handleInputChange} />
-
-                </div>
-                <div>
-                  <Label>Tuesday</Label>
-                  <Input type="time" value={formData.availability.tuesday} onChange={handleInputChange} />
-                </div>
-                {/* Add more days as needed */}
+                {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day) => (
+                  <div key={day}>
+                    <Label className="capitalize">{day}</Label>
+                    <Input
+                      type="time"
+                      value={formData.availability?.[day] || ''}
+                      onChange={(e) => setFormData((prev) => ({
+                        ...prev,
+                        availability: { ...prev.availability, [day]: e.target.value },
+                      }))}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

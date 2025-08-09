@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { BASE_URL } from '@/config';
 import { 
   Card, 
   CardContent, 
@@ -52,7 +53,7 @@ const StudentSessions = () => {
         ...(statusFilter !== 'all' && { status: statusFilter })
       });
 
-      const response = await fetch(`http://localhost:5000/api/auth/student/sessions/${user?._id}?${params}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/student/sessions/${user?._id}?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
