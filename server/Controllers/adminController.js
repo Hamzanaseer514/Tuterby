@@ -264,7 +264,7 @@ exports.selectInterviewSlot = async (req, res) => {
 // };
 
 exports.approveTutorProfile = async (req, res) => {
-  const { user_id } = req.body;
+  const { user_id,reason } = req.body;
   const tutor = await TutorProfile.findOne({user_id:user_id});
   try {
     const profile = await TutorProfile.findOne({ _id: tutor._id });
@@ -352,7 +352,6 @@ exports.partialApproveTutor = async (req, res) => {
       "Tutor Partially Approved",
       "Congratulations! Your tutor profile has been partially approved with the following reason: " + reason + ". You can now start tutoring on the platform."
     );
-    console.log("Tutor profile approved and email sent.");
     return res
       .status(200)
       .json({ message: "Tutor profile partially approved and email sent." });
@@ -483,7 +482,6 @@ exports.getAllUsers = async (req, res) => {
           
           // Get application for this tutor
           const application = await TutorApplication.findOne({ tutor_id: tutorProfile._id });
-          
           return {
             ...baseUser,
             subjects: tutorProfile.subjects || [],
@@ -505,7 +503,6 @@ exports.getAllUsers = async (req, res) => {
                 second: '2-digit',
                 hour12: true,
               }),
-              is_interview: application.is_interview,
               scheduled: application.interview_status,
               completed: ['Passed', 'Failed'].includes(application.interview_status),
               result: application.interview_status === 'Passed' ? 'Passed' : application.interview_status === 'Failed' ? 'Failed' : null,
@@ -524,6 +521,7 @@ exports.getAllUsers = async (req, res) => {
                 })
               )
             : [],
+            is_interview: application.is_interview || false,
             backgroundCheck: tutorProfile.is_background_checked || false,
             qualificationCheck: tutorProfile.is_qualification_verified || false,
             referenceCheck: tutorProfile.is_reference_verified || false,

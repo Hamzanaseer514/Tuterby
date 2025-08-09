@@ -46,6 +46,7 @@ const RequestHelp = () => {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [tutor_name, setTutorName] = useState([]);
+  const [subject, setSubject] = useState("");
   const [tutorsLoading, setTutorsLoading] = useState(false);
   const [showTutorSelection, setShowTutorSelection] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,7 +152,6 @@ const RequestHelp = () => {
       if (!response.ok) {
         throw new Error('Failed to search tutors');
       }
-
       const data = await response.json();
       setTutors(data.tutors);
     } catch (error) {
@@ -392,125 +392,126 @@ const RequestHelp = () => {
           {showInquiries ? 'Hide Inquiries' : 'Show Inquiries'}
         </Button>
       </div>
-     {/* Help Requests History */}
-     {showInquiries && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Your Inquiries & Help Requests
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : helpRequests.length === 0 ? (
-                  <div className="text-center py-8">
-                    <HelpCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No inquiries or help requests yet</p>
-                    <p className="text-sm text-gray-500 mt-1">Submit your first request above</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {helpRequests.map((request) => {
-                      const tutor = tutors.find(t => t._id === request.tutor_id);
-                      return (
-                      <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
-                        }`}>
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{request.subject}</h4>
-                              <Badge variant={request.type === 'tutor_inquiry' ? 'default' : 'secondary'} className="text-xs">
-                                {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
-                              </Badge>
-                            </div>
-                            <div className='flex items-center justify-start gap-8'>
-                              <p className="text-sm text-gray-600">{request.academic_level}</p>
-                              {request.preferred_schedule && (
-                                <div className="flex items-center gap-1 text-sm text-gray-500">
-                                  <Calendar className="w-4 h-4" />
-                                  {request.preferred_schedule}
-                                </div>
-                              )}
-                            </div>
+      {/* Help Requests History */}
+      {showInquiries && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Your Inquiries & Help Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : helpRequests.length === 0 ? (
+              <div className="text-center py-8">
+                <HelpCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No inquiries or help requests yet</p>
+                <p className="text-sm text-gray-500 mt-1">Submit your first request above</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {helpRequests.map((request) => {
+                  const tutor = tutors.find(t => t._id === request.tutor_id);
+                  return (
+                    <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
+                      }`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-gray-900">{request.subject}</h4>
+                            <Badge variant={request.type === 'tutor_inquiry' ? 'default' : 'secondary'} className="text-xs">
+                              {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(request.status)}
-                            {getUrgencyBadge(request.urgency_level)}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <p className="text-sm text-gray-600 ">
-                            {request.description}
-                          </p>
-                          {request.tutor_id ? (
-                            <span className="text-blue-600 font-medium">
-                              Assigned to: {tutor.user_id.full_name}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">
-                              {request.type === 'tutor_inquiry' ? 'General inquiry' : 'No specific tutor assigned'}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Tutor reply toggle for replied requests */}
-                        {request.status === 'replied' && (
-                          <div className="mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleReplyVisibility(request._id)}
-                            >
-                              {expandedRepliesById[request._id] ? 'Hide Tutor Reply' : 'View Tutor Reply'}
-                            </Button>
-                            {expandedRepliesById[request._id] && (
-                              <div className="mt-3 p-3 border rounded-md bg-white">
-                                <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                  {request.reply_message || 'No reply message available.'}
-                                </div>
+                          <div className='flex items-center justify-start gap-8'>
+                            <p className="text-sm text-gray-600">{request.academic_level}</p>
+                            {request.preferred_schedule && (
+                              <div className="flex items-center gap-1 text-sm text-gray-500">
+                                <Calendar className="w-4 h-4" />
+                                {request.preferred_schedule}
                               </div>
                             )}
                           </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(request.status)}
+                          {getUrgencyBadge(request.urgency_level)}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <p className="text-sm text-gray-600 ">
+                          {request.description}
+                        </p>
+                        {request.tutor_id ? (
+                          <span className="text-blue-600 font-medium">
+                            Assigned to: {tutor.user_id.full_name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">
+                            {request.type === 'tutor_inquiry' ? 'General inquiry' : 'No specific tutor assigned'}
+                          </span>
                         )}
                       </div>
-                    )})}
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-center gap-2 pt-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                        >
-                          Previous
-                        </Button>
+                      {/* Tutor reply toggle for replied requests */}
+                      {request.status === 'replied' && (
+                        <div className="mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleReplyVisibility(request._id)}
+                          >
+                            {expandedRepliesById[request._id] ? 'Hide Tutor Reply' : 'View Tutor Reply'}
+                          </Button>
+                          {expandedRepliesById[request._id] && (
+                            <div className="mt-3 p-3 border rounded-md bg-white">
+                              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {request.reply_message || 'No reply message available.'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
 
-                        <span className="text-sm text-gray-600">
-                          Page {currentPage} of {totalPages}
-                        </span>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    )}
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {showTutorSelection ? (
         /* Tutor Selection Interface */
@@ -760,68 +761,69 @@ const RequestHelp = () => {
                     {helpRequests.map((request) => {
                       const tutor = tutors.find(t => t._id === request.tutor_id);
                       return (
-                      <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
-                        }`}>
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{request.subject}</h4>
-                              <Badge variant={request.type === 'tutor_inquiry' ? 'default' : 'secondary'} className="text-xs">
-                                {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
-                              </Badge>
+                        <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
+                          }`}>
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-gray-900">{request.subject}</h4>
+                                <Badge variant={request.type === 'tutor_inquiry' ? 'default' : 'secondary'} className="text-xs">
+                                  {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
+                                </Badge>
+                              </div>
+                              <div className='flex items-center justify-start gap-8'>
+                                <p className="text-sm text-gray-600">{request.academic_level}</p>
+                                {request.preferred_schedule && (
+                                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                                    <Calendar className="w-4 h-4" />
+                                    {request.preferred_schedule}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className='flex items-center justify-start gap-8'>
-                              <p className="text-sm text-gray-600">{request.academic_level}</p>
-                              {request.preferred_schedule && (
-                                <div className="flex items-center gap-1 text-sm text-gray-500">
-                                  <Calendar className="w-4 h-4" />
-                                  {request.preferred_schedule}
+                            <div className="flex items-center gap-2">
+                              {getStatusBadge(request.status)}
+                              {getUrgencyBadge(request.urgency_level)}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <p className="text-sm text-gray-600 ">
+                              {request.description}
+                            </p>
+                            {request.tutor_id ? (
+                              <span className="text-blue-600 font-medium">
+                                Assigned to: {tutor.user_id.full_name}
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">
+                                {request.type === 'tutor_inquiry' ? 'General inquiry' : 'No specific tutor assigned'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Tutor reply toggle for replied requests */}
+                          {request.status === 'replied' && (
+                            <div className="mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleReplyVisibility(request._id)}
+                              >
+                                {expandedRepliesById[request._id] ? 'Hide Tutor Reply' : 'View Tutor Reply'}
+                              </Button>
+                              {expandedRepliesById[request._id] && (
+                                <div className="mt-3 p-3 border rounded-md bg-white">
+                                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                    {request.reply_message || 'No reply message available.'}
+                                  </div>
                                 </div>
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(request.status)}
-                            {getUrgencyBadge(request.urgency_level)}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <p className="text-sm text-gray-600 ">
-                            {request.description}
-                          </p>
-                          {request.tutor_id ? (
-                            <span className="text-blue-600 font-medium">
-                              Assigned to: {tutor.user_id.full_name}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">
-                              {request.type === 'tutor_inquiry' ? 'General inquiry' : 'No specific tutor assigned'}
-                            </span>
                           )}
                         </div>
-
-                        {/* Tutor reply toggle for replied requests */}
-                        {request.status === 'replied' && (
-                          <div className="mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleReplyVisibility(request._id)}
-                            >
-                              {expandedRepliesById[request._id] ? 'Hide Tutor Reply' : 'View Tutor Reply'}
-                            </Button>
-                            {expandedRepliesById[request._id] && (
-                              <div className="mt-3 p-3 border rounded-md bg-white">
-                                <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                  {request.reply_message || 'No reply message available.'}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )})}
+                      )
+                    })}
 
                     {/* Pagination */}
                     {totalPages > 1 && (
@@ -868,11 +870,11 @@ const RequestHelp = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
 
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subject *
-                    </label>
-                    <Select value={formData.subject} onValueChange={(value) => handleInputChange('subject', value)}>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Subject *
+                      </label>
+                      {/* <Select value={formData.subject} onValueChange={(value) => handleInputChange('subject', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
@@ -881,30 +883,38 @@ const RequestHelp = () => {
                           <SelectItem key={index} value={subject}>{subject}</SelectItem>
                         ))}
                       </SelectContent>
-                    </Select>
-                  </div>
+                    </Select> */}
+<Input
+  placeholder="Enter subject"
+  // value={formData.subject || ''}
+  onChange={(e) => handleInputChange('subject', e.target.value)}
+/>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Academic Level *
-                    </label>
-                    <Select
-                      value={formData.academic_level}
-                      onValueChange={(value) => handleInputChange('academic_level', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select academic level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GCSE">GCSE</SelectItem>
-                        <SelectItem value="A-Level">A-Level</SelectItem>
-                        <SelectItem value="IB">IB</SelectItem>
-                        <SelectItem value="BTEC">BTEC</SelectItem>
-                        <SelectItem value="Undergraduate">Undergraduate</SelectItem>
-                        <SelectItem value="Postgraduate">Postgraduate</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Academic Level *
+                      </label>
+                      <Select
+                        value={formData.academic_level}
+                        onValueChange={(value) => handleInputChange('academic_level', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select academic level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="GCSE">GCSE</SelectItem>
+                          <SelectItem value="A-Level">A-Level</SelectItem>
+                          <SelectItem value="IB">IB</SelectItem>
+                          <SelectItem value="BTEC">BTEC</SelectItem>
+                          <SelectItem value="Undergraduate">Undergraduate</SelectItem>
+                          <SelectItem value="Postgraduate">Postgraduate</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -920,36 +930,36 @@ const RequestHelp = () => {
                   </div>
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Schedule
-                    </label>
-                    <Input
-                      placeholder="e.g., Weekdays after 6 PM, Weekends"
-                      value={formData.preferred_schedule}
-                      onChange={(e) => handleInputChange('preferred_schedule', e.target.value)}
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Preferred Schedule
+                      </label>
+                      <Input
+                        placeholder="e.g., Weekdays after 6 PM, Weekends"
+                        value={formData.preferred_schedule}
+                        onChange={(e) => handleInputChange('preferred_schedule', e.target.value)}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Urgency Level
-                    </label>
-                    <Select
-                      value={formData.urgency_level}
-                      onValueChange={(value) => handleInputChange('urgency_level', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low - Flexible timing</SelectItem>
-                        <SelectItem value="normal">Normal - Within a few weeks</SelectItem>
-                        <SelectItem value="high">High - Within a week</SelectItem>
-                        <SelectItem value="urgent">Urgent - ASAP</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Urgency Level
+                      </label>
+                      <Select
+                        value={formData.urgency_level}
+                        onValueChange={(value) => handleInputChange('urgency_level', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low - Flexible timing</SelectItem>
+                          <SelectItem value="normal">Normal - Within a few weeks</SelectItem>
+                          <SelectItem value="high">High - Within a week</SelectItem>
+                          <SelectItem value="urgent">Urgent - ASAP</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <Button
                     type="submit"

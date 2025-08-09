@@ -75,7 +75,6 @@ exports.registerUser = asyncHandler(async (req, res) => {
 
 
 exports.registerTutor = asyncHandler(async (req, res) => {
-  console.log("registerTutor request body:", req.body);
   const {
     full_name,
     email,
@@ -207,7 +206,6 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         fs.renameSync(oldPath, newPath);
 
         const relativePath = `/uploads/documents/${newFilename}`;
-
         const newDoc = await TutorDocument.create({
           tutor_id: tutorProfile[0]._id,
           document_type: documentType,
@@ -439,7 +437,6 @@ exports.loginUser = asyncHandler(async (req, res) => {
       maxAttempts: 5,
       lockUntil: null
     };
-    console.log(user);
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
     res.status(200).json({
