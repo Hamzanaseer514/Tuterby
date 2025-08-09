@@ -23,7 +23,7 @@ const tutoringSessionSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0.25, // Minimum 15 minutes
-    max: 8 // Maximum 8 hours per session
+    max: 8     // Maximum 8 hours per session
   },
   hourly_rate: {
     type: Number,
@@ -58,9 +58,11 @@ const tutoringSessionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for efficient queries
+// ✅ Composite index (avoid duplicate single-field tutor_id index)
 tutoringSessionSchema.index({ tutor_id: 1, status: 1 });
+
+// ✅ Supporting indexes
 tutoringSessionSchema.index({ session_date: 1 });
 tutoringSessionSchema.index({ student_ids: 1 });
 
-module.exports = mongoose.model('TutoringSession', tutoringSessionSchema); 
+module.exports = mongoose.model('TutoringSession', tutoringSessionSchema);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '@/config';
 import { 
   Card, 
   CardContent, 
@@ -96,7 +97,7 @@ const AvailabilityCalendar = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}`);
+      const response = await fetch(`${BASE_URL}/api/tutor/availability/${user._id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch availability');
       }
@@ -120,7 +121,7 @@ const AvailabilityCalendar = () => {
   const handleGeneralSettingsUpdate = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}/general`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/availability/${user._id}/general`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generalSettings)
@@ -149,8 +150,8 @@ const AvailabilityCalendar = () => {
     e.preventDefault();
     try {
       const url = editingSlot 
-        ? `http://localhost:5000/api/tutor/availability/${user._id}/recurring/${editingSlot._id}`
-        : `http://localhost:5000/api/tutor/availability/${user._id}/recurring`;
+        ? `${BASE_URL}/api/tutor/availability/${user._id}/recurring/${editingSlot._id}`
+        : `${BASE_URL}/api/tutor/availability/${user._id}/recurring`;
       
       const method = editingSlot ? 'PUT' : 'POST';
       
@@ -185,8 +186,8 @@ const AvailabilityCalendar = () => {
     e.preventDefault();
     try {
       const url = editingSlot 
-        ? `http://localhost:5000/api/tutor/availability/${user._id}/one-time/${editingSlot._id}`
-        : `http://localhost:5000/api/tutor/availability/${user._id}/one-time`;
+        ? `${BASE_URL}/api/tutor/availability/${user._id}/one-time/${editingSlot._id}`
+        : `${BASE_URL}/api/tutor/availability/${user._id}/one-time`;
       
       const method = editingSlot ? 'PUT' : 'POST';
       
@@ -221,8 +222,8 @@ const AvailabilityCalendar = () => {
     e.preventDefault();
     try {
       const url = editingBlackout 
-        ? `http://localhost:5000/api/tutor/availability/${user._id}/blackout/${editingBlackout._id}`
-        : `http://localhost:5000/api/tutor/availability/${user._id}/blackout`;
+        ? `${BASE_URL}/api/tutor/availability/${user._id}/blackout/${editingBlackout._id}`
+        : `${BASE_URL}/api/tutor/availability/${user._id}/blackout`;
       
       const method = editingBlackout ? 'PUT' : 'POST';
       
@@ -309,7 +310,7 @@ const AvailabilityCalendar = () => {
     if (!confirm('Are you sure you want to delete this blackout date?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/availability/${user._id}/blackout/${blackoutId}`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/availability/${user._id}/blackout/${blackoutId}`, {
         method: 'DELETE'
       });
 

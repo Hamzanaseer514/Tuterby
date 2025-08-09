@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword} = require("../Controllers/UserController")
-const { getStudentDashboard,updateStudentProfile, getStudentSessions,searchTutors, getTutorDetails, requestAdditionalHelp, getStudentHelpRequests ,hireTutor,sendMessage} = require("../Controllers/StudentController")
+const { getStudentDashboard,updateStudentProfile, getStudentSessions,searchTutors, getTutorDetails, requestAdditionalHelp, getStudentHelpRequests ,hireTutor,sendMessage,getAcceptedTutorsForStudent,getStudentTutorChat} = require("../Controllers/StudentController")
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
@@ -34,6 +34,8 @@ router.post("/add-admin", addAdmin)
 router.post("/forget-password", forgotPassword)
 router.put("/reset-password", resetPassword)
 router.post("/send-message", protect, sendMessage)
+router.get("/get-accepted-tutors", protect, getAcceptedTutorsForStudent);
+router.get('/getstudentchat/:tutorId', protect, getStudentTutorChat);
 
 // Student dashboard routes
 router.get("/student/dashboard/:userId", protect, getStudentDashboard);

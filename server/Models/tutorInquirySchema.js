@@ -65,6 +65,6 @@ const tutorInquirySchema = new mongoose.Schema({
 
 // Index for efficient queries
 tutorInquirySchema.index({ tutor_id: 1, status: 1 });
-tutorInquirySchema.index({ created_at: -1 });
+tutorInquirySchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('TutorInquiry', tutorInquirySchema); 

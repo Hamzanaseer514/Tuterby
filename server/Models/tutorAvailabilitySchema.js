@@ -247,7 +247,7 @@ const tutorAvailabilitySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Indexes
-tutorAvailabilitySchema.index({ tutor_id: 1 });
+// tutorAvailabilitySchema.index({ tutor_id: 1 });
 tutorAvailabilitySchema.index({ 'blackout_dates.start_date': 1, 'blackout_dates.end_date': 1 });
 
 // Method to check if a specific date/time is available

@@ -494,14 +494,21 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   const { tutorId, message } = req.body;
   const studentId = req.user._id; // logged-in student
 
+
   if (!tutorId || !message) {
     res.status(400);
     throw new Error("Tutor ID and message are required");
   }
 
+  const tutor = await TutorProfile.findById(tutorId);
+  if (!tutor) {
+    res.status(404);
+    throw new Error("Tutor not found");
+  }
+
   const newMessage = await Message.create({
     studentId,
-    tutorId,
+    tutorId: tutor.user_id,
     message,
     status: "unanswered",
   });
@@ -513,5 +520,74 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   });
 
 });
+
+exports.getAcceptedTutorsForStudent = async (req, res) => {
+  try {
+    // Step 1: Find the student document for the logged-in user
+    const student = await Student.findOne({ user_id: req.user._id })
+      .populate({
+        path: "hired_tutors.tutor",
+        model: "TutorProfile",
+        populate: {
+          path: "user_id", // if TutorProfile has a user reference for name/email
+          select: "full_name email"
+        }
+      });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found"
+      });
+    }
+
+    // Step 2: Filter only accepted tutors
+    const acceptedTutors = student.hired_tutors
+      .filter(t => t.status === "accepted" && t.tutor !== null)
+      .map(t => ({
+        tutorId: t.tutor._id,
+        full_name: t.tutor.user_id?.full_name || "Unknown",
+        email: t.tutor.user_id?.email || "",
+        subject: t.tutor.subject || "",
+        hired_at: t.hired_at
+      }));
+
+    res.json({
+      success: true,
+      data: acceptedTutors
+    });
+
+  } catch (error) {
+    console.error("Error fetching accepted tutors:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
+  }
+};
+
+exports.getStudentTutorChat = asyncHandler(async (req, res) => {
+  const studentId = req.user._id; // logged-in student
+  const { tutorId } = req.params;
+  const tutor = await TutorProfile.findById(tutorId);
+  if (!tutor) {
+    res.status(404);
+    throw new Error("Tutor not found");
+  }
+
+
+  const messages = await Message.find({ studentId, tutorId: tutor.user_id })
+    .populate("tutorId", "full_name") // populate tutor details
+    .sort({ createdAt: 1 }); // oldest first for proper chat order
+
+  res.status(200).json({
+    success: true,
+    count: messages.length,
+    data: messages,
+  });
+});
+
+
 
 

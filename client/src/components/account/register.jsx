@@ -2651,6 +2651,7 @@ import { Toast, ToastDescription, ToastProvider, ToastTitle, ToastViewport } fro
 import { UserPlus, Shield, Star } from 'lucide-react';
 import { CheckCircle, AlertCircle, FileUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '@/config';
 
 const Register = () => {
     const [activeTab, setActiveTab] = useState('student');
@@ -3033,7 +3034,7 @@ const Register = () => {
                         }
                     }
 
-                    const registerResponse = await fetch('http://localhost:5000/api/auth/register-tutor', {
+                    const registerResponse = await fetch(`${BASE_URL}/api/auth/register-tutor`, {
                         method: 'POST',
                         body: formDataToSend,
                     });
@@ -3108,7 +3109,7 @@ const Register = () => {
             let payload;
 
             if (activeTab === 'student') {
-                endpoint = 'http://localhost:5000/api/auth/register';
+                endpoint = `${BASE_URL}/api/auth/register`;
                 payload = {
                     full_name: formData.full_name,
                     email: formData.email,
@@ -3118,7 +3119,7 @@ const Register = () => {
                     academic_level: formData.academic_level,
                 };
             } else if (activeTab === 'parent') {
-                endpoint = 'http://localhost:5000/api/auth/register-parent';
+                endpoint = `${BASE_URL}/api/auth/register-parent`;
                 payload = {
                     full_name: formData.full_name,
                     email: formData.email,

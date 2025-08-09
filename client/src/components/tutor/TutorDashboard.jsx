@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '@/config';
 import {
   Card,
   CardContent,
@@ -105,7 +106,7 @@ const [sessionForm, setSessionForm] = useState({
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/tutor/dashboard/${user?._id}`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -141,7 +142,7 @@ const [sessionForm, setSessionForm] = useState({
     try {
       // Check availability before creating session
       const availabilityResponse = await fetch(
-        `http://localhost:5000/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
+        `${BASE_URL}/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
         {
           method: 'GET',
           headers: {
@@ -162,7 +163,7 @@ const [sessionForm, setSessionForm] = useState({
         }
       }
 
-      const response = await fetch('http://localhost:5000/api/tutor/sessions', {
+      const response = await fetch(`${BASE_URL}/api/tutor/sessions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +207,7 @@ const [sessionForm, setSessionForm] = useState({
   const handleUpdateSession = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/sessions/${selectedSession._id}`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/sessions/${selectedSession._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +254,7 @@ const [sessionForm, setSessionForm] = useState({
   const handleReplyToInquiry = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/inquiries/${selectedInquiry._id}/reply`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/inquiries/${selectedInquiry._id}/reply`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -320,7 +321,7 @@ const [sessionForm, setSessionForm] = useState({
   const fetchAvailableStudents = async () => {
     try {
       setLoadingStudents(true);
-      const response = await fetch(`http://localhost:5000/api/tutor/students/${user?._id}`);
+      const response = await fetch(`${BASE_URL}/api/tutor/students`);
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }

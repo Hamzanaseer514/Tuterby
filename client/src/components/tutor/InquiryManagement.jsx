@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '@/config';
 import { 
   Card, 
   CardContent, 
@@ -43,8 +44,8 @@ const InquiryManagement = () => {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
       const url = filter === 'all' 
-        ? `http://localhost:5000/api/tutor/inquiries/${user._id}`
-        : `http://localhost:5000/api/tutor/inquiries/${user._id}?status=${filter}`;
+        ? `${BASE_URL}/api/tutor/inquiries/${user._id}`
+        : `${BASE_URL}/api/tutor/inquiries/${user._id}?status=${filter}`;
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -62,7 +63,7 @@ const InquiryManagement = () => {
 
   const replyToInquiry = async (inquiryId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/inquiries/${inquiryId}/reply`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/inquiries/${inquiryId}/reply`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
