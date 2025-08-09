@@ -391,7 +391,7 @@ export default function LoginForm() {
           <CardFooter className="flex justify-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <a href="./register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Sign up
               </a>
             </p>
