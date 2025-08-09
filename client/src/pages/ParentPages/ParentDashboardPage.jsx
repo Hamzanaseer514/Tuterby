@@ -10,9 +10,9 @@ import {
   LogOut,
   User
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { useToast } from '../components/ui/use-toast';
-import ParentDashboard from '../components/parent/ParentDashboard';
+import { Button } from '../../components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
+import ParentDashboard from '../../components/parent/ParentDashboard';
 
 const ParentDashboardPage = () => {
   const { parentId } = useParams();
