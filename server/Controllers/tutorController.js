@@ -855,6 +855,90 @@ const checkAvailability = asyncHandler(async (req, res) => {
   });
 });
 
+// Get hire requests for a tutor with optional status filter
+const getHireRequests = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  const { status = 'all' } = req.query; // all | pending | accepted | rejected
+
+  const tutorProfile = await TutorProfile.findOne({ user_id });
+  if (!tutorProfile) {
+    return res.status(404).json({ message: "Tutor profile not found" });
+  }
+
+  let query;
+  if (status && status !== 'all') {
+    query = { hired_tutors: { $elemMatch: { tutor: tutorProfile._id, status } } };
+  } else {
+    query = { 'hired_tutors.tutor': tutorProfile._id };
+  }
+
+  const students = await StudentProfile.find(query)
+    .populate('user_id', 'full_name email photo_url age')
+    .select('user_id academic_level preferred_subjects hired_tutors createdAt updatedAt')
+    .lean();
+
+  const shaped = students.map((s) => {
+    const hire = (s.hired_tutors || []).find(
+      (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
+    );
+    return {
+      _id: s._id,
+      user_id: s.user_id,
+      academic_level: s.academic_level,
+      preferred_subjects: s.preferred_subjects,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      hire_for_this_tutor: hire ? { status: hire.status, hired_at: hire.hired_at } : null,
+    };
+  });
+
+  res.status(200).json({ success: true, requests: shaped });
+});
+
+// Respond to a hire request (accept or reject)
+const respondToHireRequest = asyncHandler(async (req, res) => {
+  const { user_id } = req.params; // Tutor's user id
+  const { student_profile_id, action } = req.body; // action: 'accept' | 'reject'
+
+  if (!student_profile_id || !['accept', 'reject'].includes(action)) {
+    return res.status(400).json({ message: 'student_profile_id and valid action are required' });
+  }
+
+  const tutorProfile = await TutorProfile.findOne({ user_id });
+  if (!tutorProfile) {
+    return res.status(404).json({ message: 'Tutor profile not found' });
+  }
+
+  const studentProfile = await StudentProfile.findById(student_profile_id);
+  if (!studentProfile) {
+    return res.status(404).json({ message: 'Student profile not found' });
+  }
+
+  // Find the hire record for this tutor
+  const hireRecord = studentProfile.hired_tutors.find(
+    (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
+  );
+
+  if (!hireRecord) {
+    return res.status(404).json({ message: 'Hire request not found for this tutor' });
+  }
+
+  if (hireRecord.status !== 'pending') {
+    return res.status(400).json({ message: `Request already ${hireRecord.status}` });
+  }
+
+  hireRecord.status = action === 'accept' ? 'accepted' : 'rejected';
+  await studentProfile.save();
+
+  return res.status(200).json({
+    success: true,
+    message: `Request ${action}ed successfully`,
+    student_profile_id,
+    status: hireRecord.status,
+  });
+});
+
+
 module.exports = {
   uploadDocument,
   getTutorDashboard,
@@ -872,5 +956,7 @@ module.exports = {
   updateBlackoutDate,
   removeBlackoutDate,
   getAvailableSlots,
-  checkAvailability
+  checkAvailability,
+  getHireRequests,
+  respondToHireRequest
 };

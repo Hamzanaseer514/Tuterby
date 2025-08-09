@@ -20,7 +20,6 @@ export default function LoginForm() {
   const [otpPhase, setOtpPhase] = useState(false);
   const [otp, setOtp] = useState('');
   const [userId, setUserId] = useState(null);
-  const [showDebug, setShowDebug] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, clearAllAuthData } = useAuth();
@@ -35,40 +34,8 @@ export default function LoginForm() {
     }
   }, [searchParams]);
 
-  const getCurrentStorageData = () => {
-    const localUserData = localStorage.getItem('userData');
-    const sessionUserData = sessionStorage.getItem('userData');
-    const localToken = localStorage.getItem('authToken');
-    const sessionToken = sessionStorage.getItem('authToken');
-    
-    return {
-      localStorage: {
-        userData: localUserData ? JSON.parse(localUserData) : null,
-        token: localToken ? 'Present' : 'Not found'
-      },
-      sessionStorage: {
-        userData: sessionUserData ? JSON.parse(sessionUserData) : null,
-        token: sessionToken ? 'Present' : 'Not found'
-      }
-    };
-  };
 
-  const handleClearStorage = () => {
-    clearAllAuthData();
-    setSuccess('Storage cleared successfully! Please refresh the page.');
-    setTimeout(() => {
-      setSuccess('');
-    }, 3000);
-  };
 
-  const handleClearLocalStorageOnly = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
-    setSuccess('LocalStorage cleared! SessionStorage remains.');
-    setTimeout(() => {
-      setSuccess('');
-    }, 3000);
-  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -429,17 +396,6 @@ export default function LoginForm() {
             </p>
           </CardFooter>
           
-          {/* Debug Toggle */}
-          <div className="px-6 pb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDebug(!showDebug)}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
-              {showDebug ? 'Hide Debug' : 'Show Debug'}
-            </Button>
-          </div>
         </Card>
 
         <Card className="w-full md:w-[60%] bg-white shadow-lg relative z-20">
@@ -483,40 +439,6 @@ export default function LoginForm() {
           </CardFooter>
         </Card>
       </div>
-
-      {showDebug && (
-        <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50">
-          <h3 className="text-lg font-bold mb-2">Debug Storage</h3>
-          <div className="space-y-2">
-            <p>
-              <strong>Local Storage:</strong>
-              <pre className="bg-gray-100 p-2 rounded-md text-sm">
-                {JSON.stringify(getCurrentStorageData().localStorage, null, 2)}
-              </pre>
-            </p>
-            <p>
-              <strong>Session Storage:</strong>
-              <pre className="bg-gray-100 p-2 rounded-md text-sm">
-                {JSON.stringify(getCurrentStorageData().sessionStorage, null, 2)}
-              </pre>
-            </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleClearStorage}
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Clear All Storage
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleClearLocalStorageOnly}
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Clear Local Storage Only
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

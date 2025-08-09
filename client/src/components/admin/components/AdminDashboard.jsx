@@ -18,14 +18,14 @@ import {
 import {
   getDashboardStats,
   getAllUsers,
-} from '../../services/adminService';
+} from '../../../services/adminService';
 
 // Import custom components
-import DashboardStats from './components/DashboardStats';
-import UserTable from './components/UserTable';
-import SearchAndFilterBar from './components/SearchAndFilterBar';
-import LoadingOverlay from './components/LoadingOverlay';
-import NotificationSnackbar from './components/NotificationSnackbar';
+import DashboardStats from './DashboardStats';
+import UserTable from './UserTable';
+import SearchAndFilterBar from './SearchAndFilterBar';
+import LoadingOverlay from './LoadingOverlay';
+import NotificationSnackbar from './NotificationSnackbar';
 
 // Constants
 const statusColors = {

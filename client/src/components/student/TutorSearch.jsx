@@ -182,12 +182,11 @@ const TutorSearch = () => {
     navigate(`/tutor`,{
       state: { tutorId: tutorId }
     });
-    console.log("user",user,tutorId);
 
   };
 
 
-  const handleBookSession = (tutor) => {
+  const handleHireTutor = (tutor) => {
     setSelectedTutor(tutor);
     setBookingData({
       subject: '',
@@ -204,7 +203,7 @@ const TutorSearch = () => {
     });
   };
 
-  const handleBookingSubmit = async () => {
+  const handleHireTutorSubmit = async () => {
     try {
       const token = getAuthToken();
       const response = await fetch('http://localhost:5000/api/auth/tutors/sessions', {
@@ -214,8 +213,8 @@ const TutorSearch = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          tutor_id: selectedTutor.user_id._id,
-          student_id: user._id,
+          tutor_user_id: selectedTutor.user_id._id,
+          student_user_id: user._id,
           subject: bookingData.subject,
           session_date: bookingData.session_date,
           duration_hours: bookingData.duration_hours,
@@ -224,21 +223,27 @@ const TutorSearch = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to book session');
-      }
 
       const data = await response.json();
+      const status = response.status;
+      if(status === 400){
+        toast({
+          title: "Warning",
+          description: "Tutor already hired!",
+        });
+      }
+      else if(status === 200){
       toast({
         title: "Success",
-        description: "Session booked successfully!",
+        description: "Tutor hired successfully!",
       });
+    }
       setShowBookingModal(false);
       setSelectedTutor(null);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to book session",
+        description: "Failed to hire tutor",
         variant: "destructive"
       });
     }
@@ -525,12 +530,12 @@ const TutorSearch = () => {
                         
                         <div className="flex gap-2">
                           <Button 
-                            onClick={() => handleBookSession(tutor)}
+                            onClick={() => handleHireTutor(tutor)}
                             size="sm"
                             className="flex-1"
                           >
                             <Calendar className="w-4 h-4 mr-2" />
-                            Book Session
+                            Hire Tutor
                           </Button>
                           <Button 
                             onClick={() => handleRequestHelp(tutor)}
@@ -683,11 +688,11 @@ const TutorSearch = () => {
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleBookingSubmit}
+                  onClick={handleHireTutorSubmit}
                   className="flex-1"
                   disabled={!bookingData.subject || !bookingData.session_date}
                 >
-                  Book Session
+                  Hire Tutor
                 </Button>
               </div>
             </div>

@@ -24,10 +24,10 @@ const tutorDocumentSchema = new mongoose.Schema({
     enum: ['Pending', 'Approved', 'Rejected'],
     default: 'Pending'
   },
-  notes: {
-    type: String,
-    default: ''
-  }
+  // notes: {
+  //   type: String,
+  //   default: ''
+  // }
 });
 
 module.exports = mongoose.model('TutorDocument', tutorDocumentSchema);

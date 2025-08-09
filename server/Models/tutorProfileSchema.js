@@ -65,6 +65,10 @@ const tutorProfileSchema = new mongoose.Schema({
     type: String,
     enum: ['unverified', 'pending', 'approved', 'rejected', 'partial_approved'],
     default: 'unverified'
+  },
+  profile_status_reason: {
+    type: String,
+    default: '',
   }
 }, { timestamps: true });
 

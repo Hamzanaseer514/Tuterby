@@ -273,7 +273,9 @@ exports.approveTutorProfile = async (req, res) => {
     if (!profile || !application) {
       return res.status(404).json({ message: "Tutor profile or application not found." });
     }
-
+    if(reason === ""){
+      return res.status(400).json({ message: "Reason is required." });
+    }
     const user = await User.findOne({ _id: profile.user_id });
 
     const allVerified =
@@ -290,6 +292,7 @@ exports.approveTutorProfile = async (req, res) => {
     // Approve tutor
     profile.profile_status = "approved";
     profile.is_verified = true;
+    profile.profile_status_reason = reason || "Not specified";
     user.is_verified = 'active';
 
     await profile.save();
@@ -300,7 +303,6 @@ exports.approveTutorProfile = async (req, res) => {
       "Tutor Approved",
       "Congratulations! Your tutor profile has been approved. You can now start tutoring on the platform."
     );
-    console.log("Tutor profile approved and email sent.");
     return res
       .status(200)
       .json({ message: "Tutor profile approved and email sent." });
@@ -326,6 +328,12 @@ exports.partialApproveTutor = async (req, res) => {
     if (!profile || !application) {
       return res.status(404).json({ message: "Tutor profile or application not found." });
     }
+    if (reason === ""){
+      return res.status(400).json({ message: "Reason is required." });
+    }
+    if(profile.profile_status === "partial_approved"){
+      return res.status(400).json({ message: "Tutor profile is already partially approved." });
+    }
 
     const user = await User.findOne({ _id: profile.user_id });
 
@@ -333,6 +341,7 @@ exports.partialApproveTutor = async (req, res) => {
     // Approve tutor
     profile.profile_status = "partial_approved";
     profile.is_verified = true;
+    profile.profile_status_reason = reason || "Not specified";
     user.is_verified = 'partial_active';
 
     await profile.save();
@@ -341,7 +350,7 @@ exports.partialApproveTutor = async (req, res) => {
     await sendEmail(
       user.email,
       "Tutor Partially Approved",
-      "Congratulations! Your tutor profile has been partially approved. You can now start tutoring on the platform."
+      "Congratulations! Your tutor profile has been partially approved with the following reason: " + reason + ". You can now start tutoring on the platform."
     );
     console.log("Tutor profile approved and email sent.");
     return res
@@ -368,12 +377,17 @@ exports.rejectTutorProfile = async (req, res) => {
     if (!profile || !application) {
       return res.status(404).json({ message: "Tutor profile or application not found." });
     }
-
+    if (reason === ""){
+      return res.status(400).json({ message: "Reason is required." });
+    }
+    if(profile.profile_status === "rejected"){
+      return res.status(400).json({ message: "Tutor profile is already rejected." });
+    }
     const user = await User.findOne({ _id: profile.user_id });
 
     // Set all statuses to false
     profile.profile_status = "rejected";
-    profile.rejection_reason = reason || "Not specified";
+    profile.profile_status_reason = reason || "Not specified"; 
     profile.is_verified = false;
     profile.is_background_checked = false;
     profile.is_reference_verified = false;
@@ -399,7 +413,7 @@ exports.rejectTutorProfile = async (req, res) => {
     );
 
     res.status(200).json({
-      message: "Tutor application rejected. Profile and documents updated.",
+      message: "Tutor application rejected. And Email Has been Sent to the Tutor.",
     });
   } catch (err) {
     res.status(500).json({
@@ -474,6 +488,7 @@ exports.getAllUsers = async (req, res) => {
             ...baseUser,
             subjects: tutorProfile.subjects || [],
             location: tutorProfile.location || '',
+            profileStatusReason: tutorProfile.profile_status_reason || '',
             documents: documents.map(doc => ({
               type: doc.document_type,
               url: doc.file_url || '#',
@@ -517,7 +532,7 @@ exports.getAllUsers = async (req, res) => {
             interviewStatus: application ? ['Passed', 'Failed'].includes(application.interview_status) : false,
             rating: tutorProfile.average_rating || null,
             profileStatus: tutorProfile.profile_status === 'approved',
-            applicationNotes: application ? application.admin_notes : ''
+            applicationNotes: application ? application.admin_notes : '',
           };
         }
       } else if (user.role === 'student') {

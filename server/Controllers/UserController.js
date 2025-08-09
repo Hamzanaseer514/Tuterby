@@ -439,6 +439,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
       maxAttempts: 5,
       lockUntil: null
     };
+    console.log(user);
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
     res.status(200).json({

@@ -227,33 +227,35 @@ export const updateApplicationNotes = async (tutorId, notes) => {
 };
 
 // Tutor Approval/Rejection
-export const approveTutorProfile = async (user_id) => {
+export const approveTutorProfile = async (user_id, reason) => {
   return apiCall('/tutors/approve', {
     method: 'POST',
-    body: JSON.stringify({ user_id: user_id }),
+    body: JSON.stringify({ user_id: user_id, reason: reason }),
   });
 };
 
 export const partialApproveTutor = async (user_id, reason) => {
-  return apiCall('/tutors/partial-approve', {
-    method: 'POST',
-    body: JSON.stringify({
-      user_id: user_id,
-      reason
-    }),
+  const res = await fetch("http://localhost:5000/api/admin/tutors/partial-approve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, reason }),
   });
+
+  const data = await res.json();
+  return { status: res.status, data };
 };
 
 export const rejectTutorProfile = async (user_id, reason) => {
-
-  return apiCall('/tutors/reject', {
-    method: 'POST',
-    body: JSON.stringify({
-      user_id: user_id,
-      reason
-    }),
+  const res = await fetch("http://localhost:5000/api/admin/tutors/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, reason }),
   });
+
+  const data = await res.json();
+  return { status: res.status, data };
 };
+
 
 // Background Check Verification
 // export const verifyBackgroundCheck = async (tutorId) => {

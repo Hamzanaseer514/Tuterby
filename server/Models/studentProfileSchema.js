@@ -32,9 +32,6 @@ const studentProfileSchema = new mongoose.Schema(
             "Saturday",
             "Sunday",
           ],
-          required: function () {
-            return this.role === "student";
-          },
         },
         duration: {
           type: String,
@@ -45,18 +42,33 @@ const studentProfileSchema = new mongoose.Schema(
             "5-6 hours",
             "6+ hours",
           ],
-          required: function () {
-            return this.role === "student";
-          },
         },
       },
     ],
-
     parent_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ParentProfile",
       default: null,
     },
+    // Array of tutors with status
+    hired_tutors: [
+      {
+        tutor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "TutorProfile",
+          default: null,
+        },
+        status: {
+          type: String,
+          enum: ["pending", "accepted", "rejected"],
+          default: "pending",
+        },
+        hired_at: {
+          type: Date,
+          default: Date.now,
+        }
+      }
+    ]
   },
   {
     timestamps: true,

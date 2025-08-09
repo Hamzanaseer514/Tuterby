@@ -25,7 +25,9 @@ const {
   updateBlackoutDate,
   removeBlackoutDate,
   getAvailableSlots,
-  checkAvailability
+  checkAvailability,
+  getHireRequests,
+  respondToHireRequest
 } = require('../Controllers/tutorController');
 
 // Multer config for tutor documents
@@ -80,5 +82,10 @@ router.put('/availability/:user_id/blackout/:blackout_id', updateBlackoutDate);
 router.delete('/availability/:user_id/blackout/:blackout_id', removeBlackoutDate);
 router.get('/availability/:user_id/slots', getAvailableSlots);
 router.get('/availability/:user_id/check', checkAvailability);
+
+// Hire requests
+router.get('/hire-requests/:user_id', getHireRequests);
+router.post('/hire-requests/:user_id/respond', respondToHireRequest);
+
 
 module.exports = router;

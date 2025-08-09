@@ -4,6 +4,7 @@ import TutorDashboard from '../../components/tutor/TutorDashboard';
 import SessionManagement from '../../components/tutor/SessionManagement';
 import InquiryManagement from '../../components/tutor/InquiryManagement';
 import AvailabilityCalendar from '../../components/tutor/AvailabilityCalendar';
+import StudentHireRequests from '../../components/tutor/StudentHireRequests';
 import { Button } from '../../components/ui/button';
 import { 
   LayoutDashboard, 
@@ -67,6 +68,12 @@ const TutorDashboardPage = () => {
       name: 'Analytics',
       icon: TrendingUp,
       component: <div className="p-6">Analytics coming soon...</div>
+    },
+    {
+      id: 'student-requests',
+      name: 'Student Requests',
+      icon: Settings,
+      component: <StudentHireRequests/>,
     },
     {
       id: 'settings',
