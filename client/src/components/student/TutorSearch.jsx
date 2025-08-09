@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { BASE_URL } from '@/config';
 import { 
   Card, 
   CardContent, 
@@ -83,7 +84,7 @@ const TutorSearch = () => {
         limit: 12
       });
       
-      const response = await fetch(`http://localhost:5000/api/auth/tutors/search?${params}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -125,8 +126,8 @@ const TutorSearch = () => {
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim());
       }
-      
-      const response = await fetch(`http://localhost:5000/api/auth/tutors/search?${params}`, {
+
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -206,7 +207,7 @@ const TutorSearch = () => {
   const handleHireTutorSubmit = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('http://localhost:5000/api/auth/tutors/sessions', {
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

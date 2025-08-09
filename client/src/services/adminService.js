@@ -1,7 +1,8 @@
 // services/adminService.js
 import { supabase } from '../lib/supabaseClient';
+import { BASE_URL } from '@/config';
 
-const API_BASE_URL = 'http://localhost:5000/api/admin';
+const API_BASE_URL = `${BASE_URL}/api/admin`;
 
 // Helper function to get auth token - use the same method as useAuth hook
 const getAuthToken = () => {
@@ -56,11 +57,11 @@ const getDocumentUrl = (fileUrl) => {
   
   // If it's a relative path, construct the full URL
   if (fileUrl.startsWith('/uploads/') || fileUrl.startsWith('uploads/')) {
-    return `http://localhost:5000/${fileUrl.replace(/^\/+/, '')}`;
+    return `${BASE_URL}/${fileUrl.replace(/^\/+/, '')}`;
   }
   
   // Default case - assume it's a relative path
-  return `http://localhost:5000/uploads/${fileUrl}`;
+  return `${BASE_URL}/uploads/${fileUrl}`;
 };
 
 // Dashboard Statistics
@@ -235,7 +236,7 @@ export const approveTutorProfile = async (user_id, reason) => {
 };
 
 export const partialApproveTutor = async (user_id, reason) => {
-  const res = await fetch("http://localhost:5000/api/admin/tutors/partial-approve", {
+  const res = await fetch(`${BASE_URL}/api/admin/tutors/partial-approve`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id, reason }),
@@ -246,7 +247,7 @@ export const partialApproveTutor = async (user_id, reason) => {
 };
 
 export const rejectTutorProfile = async (user_id, reason) => {
-  const res = await fetch("http://localhost:5000/api/admin/tutors/reject", {
+  const res = await fetch(`${BASE_URL}/api/admin/tutors/reject`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id, reason }),

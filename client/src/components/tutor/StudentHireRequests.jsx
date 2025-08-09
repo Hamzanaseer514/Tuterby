@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
+import { BASE_URL } from '@/config';
 
-const API_BASE_URL = 'http://localhost:5000/api/tutor';
+const API_BASE_URL = `${BASE_URL}/api/tutor`;
 
 const getAuthToken = () => sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
 

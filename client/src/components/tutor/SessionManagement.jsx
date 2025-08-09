@@ -23,6 +23,7 @@ import {
   Edit
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { BASE_URL } from '@/config';
 
 const SessionManagement = () => {
   const [sessions, setSessions] = useState([]);
@@ -40,9 +41,9 @@ const SessionManagement = () => {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
       const url = filter === 'all' 
-        ? `http://localhost:5000/api/tutor/sessions/${user._id}`
-        : `http://localhost:5000/api/tutor/sessions/${user._id}?status=${filter}`;
-      
+        ? `${BASE_URL}/api/tutor/sessions/${user._id}`
+        : `${BASE_URL}/api/tutor/sessions/${user._id}?status=${filter}`;
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch sessions');
@@ -58,7 +59,7 @@ const SessionManagement = () => {
 
   const updateSessionStatus = async (sessionId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tutor/sessions/${sessionId}`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/sessions/${sessionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

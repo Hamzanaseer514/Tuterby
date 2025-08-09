@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { BASE_URL } from '@/config';
 
 const Chatting = () => {
   const [students, setStudents] = useState([]);
@@ -15,7 +16,7 @@ const Chatting = () => {
   const fetchAllMessages = async () => {
     try {
       const res = await fetch(
-        "http://localhost:5000/api/tutor/getallmessages",
+        `${BASE_URL}/api/tutor/getallmessages`,
         {
           method: "GET",
           headers: {
@@ -51,7 +52,7 @@ const Chatting = () => {
   const fetchChatHistory = async (studentId, studentName) => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/tutor/getallmessages/${studentId}`,
+        `${BASE_URL}/api/tutor/getallmessages/${studentId}`,
         {
           method: "GET",
           headers: {
@@ -79,7 +80,7 @@ const Chatting = () => {
 
     try {
       const res = await fetch(
-        "http://localhost:5000/api/tutor/messages/reply",
+        `${BASE_URL}/api/tutor/messages/reply`,
         {
           method: "POST",
           headers: {

@@ -6,11 +6,16 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL, // tumhare React/Vite frontend ka port
+    credentials: true, // agar cookies ya authentication bhejna ho
+  })
+);
 app.use(express.json()); // For JSON requests
 app.use(express.urlencoded({ extended: true })); // For form data
 app.use(cookieParser());
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static("uploads"));
 
 // Import DB connection
 const { ConnectToDB } = require("./Configuration/db");
@@ -21,9 +26,9 @@ const tutorRoutes = require("./Routes/tutorRoutes");
 const adminRoutes = require("./Routes/adminRoutes");
 
 // Mount Routes
-app.use('/api/auth', UserRoute);
-app.use('/api/tutor', tutorRoutes);
-app.use('/api/admin', adminRoutes);
+app.use("/api/auth", UserRoute);
+app.use("/api/tutor", tutorRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handler (should be AFTER routes)
 const { errorHandler } = require("./Middleware/errorHandler");

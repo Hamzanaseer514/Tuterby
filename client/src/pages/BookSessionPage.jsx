@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { BASE_URL } from '@/config';
 import { 
   Card, 
   CardContent, 
@@ -49,8 +50,8 @@ const BookSessionPage = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      
-      const response = await fetch(`http://localhost:5000/api/auth/tutors/${tutorId}`, {
+
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/${tutorId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -89,8 +90,8 @@ const BookSessionPage = () => {
     try {
       setSubmitting(true);
       const token = getAuthToken();
-      
-      const response = await fetch(`http://localhost:5000/api/auth/book-session`, {
+
+      const response = await fetch(`${BASE_URL}/api/auth/book-session`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

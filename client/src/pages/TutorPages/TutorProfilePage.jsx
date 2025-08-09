@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { BASE_URL } from '@/config';
 
 
 
@@ -62,7 +63,7 @@ const TutorProfilePage = () => {
       setError(null);
       const token = getAuthToken();
 
-      const response = await fetch(`http://localhost:5000/api/auth/tutors/${tutorId}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/${tutorId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -135,7 +136,7 @@ const TutorProfilePage = () => {
   const handleBookingSubmit = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('http://localhost:5000/api/auth/tutors/sessions', {
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

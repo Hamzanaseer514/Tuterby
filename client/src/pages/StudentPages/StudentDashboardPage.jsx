@@ -9,12 +9,14 @@ import {
   Settings,
   LogOut,
   User,
+MessageSquare
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 import StudentDashboard from '../../components/student/StudentDashboard';
 import StudentSessions from '../../components/student/StudentSessions';
 import StudentPreferences from '../../components/student/StudentPreferences';
+import StudentChatPage from '../../components/student/StudentChatPage';
 
 const StudentDashboardPage = () => {
   const { user, logout, loading: authLoading } = useAuth();
@@ -82,6 +84,12 @@ const StudentDashboardPage = () => {
       name: 'Preferences',
       icon: Settings,
       component: <StudentPreferences />,
+    },
+    {
+      id: 'chat',
+      name: 'Chat',
+      icon: MessageSquare,
+      component: <StudentChatPage />,
     },
   ];
 
