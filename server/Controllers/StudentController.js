@@ -4,6 +4,7 @@ const Student = require("../Models/studentProfileSchema");
 const TutorProfile = require("../Models/tutorProfileSchema");
 const TutoringSession = require("../Models/tutoringSessionSchema"); // Added for student dashboard
 const TutorInquiry = require("../Models/tutorInquirySchema"); // Added for tutor search and help requests
+const Message = require("../Models/messageSchema"); // Added for messaging
 
 
 
@@ -487,6 +488,31 @@ exports.hireTutor = asyncHandler(async (req, res) => {
     await student.save();
 
     res.status(200).json({ message: "Tutor hired successfully" });
+});
+
+
+exports.sendMessage = asyncHandler(async (req, res) => {
+  const { tutorId, message } = req.body;
+  const studentId = req.user._id; // logged-in student
+
+  if (!tutorId || !message) {
+    res.status(400);
+    throw new Error("Tutor ID and message are required");
+  }
+
+  const newMessage = await Message.create({
+    studentId,
+    tutorId,
+    message,
+    status: "unanswered",
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Message sent successfully",
+    data: newMessage,
+  });
+
 });
 
 

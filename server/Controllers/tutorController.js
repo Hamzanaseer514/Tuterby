@@ -7,6 +7,7 @@ const TutorInquiry = require("../Models/tutorInquirySchema");
 const TutorAvailability = require("../Models/tutorAvailabilitySchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
+const Message = require("../Models/messageSchema"); // Importing Message model
 
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
@@ -938,6 +939,70 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
   });
 });
 
+const sendMessageResponse = asyncHandler(async (req, res) => {
+  const { messageId, response } = req.body;
+  const tutorId = req.user._id; 
+
+  if (!messageId || !response) {
+    res.status(400);
+    throw new Error("Message ID and response are required");
+  }
+
+  const messageDoc = await Message.findById(messageId);
+
+  if (!messageDoc) {
+    res.status(404);
+    throw new Error("Message not found");
+  }
+
+  // Ensure only assigned tutor can reply
+  if (messageDoc.tutorId.toString() !== tutorId.toString()) {
+    res.status(403);
+    throw new Error("You are not authorized to reply to this message");
+  }
+
+  // Update response & status
+  messageDoc.response = response;
+  messageDoc.status = "answered";
+  await messageDoc.save();
+  res.status(200).json({
+    success: true,
+    message: "Response sent successfully",
+    data: messageDoc,
+  });
+});
+
+const getTutorMessages = asyncHandler(async (req, res) => {
+  const tutorId = req.user._id; // Logged-in tutor
+
+  const messages = await Message.find({ tutorId })
+    .populate("studentId", "full_name") // sirf name & email le rahe hain
+    .sort({ createdAt: -1 }); // latest first
+
+  res.status(200).json({
+    success: true,
+    count: messages.length,
+    data: messages,
+
+  });
+});
+
+
+const getSpecificUserChat = asyncHandler(async (req, res) => {
+  const tutorId = req.user._id;
+  const { studentId } = req.params;
+
+  const messages = await Message.find({ tutorId, studentId })
+    .populate("studentId", "full_name")
+    .sort({ createdAt: 1 }); // oldest first for chat order
+
+  res.status(200).json({
+    success: true,
+    count: messages.length,
+    data: messages,
+  });
+})
+
 
 module.exports = {
   uploadDocument,
@@ -958,5 +1023,8 @@ module.exports = {
   getAvailableSlots,
   checkAvailability,
   getHireRequests,
-  respondToHireRequest
+  respondToHireRequest,
+  sendMessageResponse,
+  getTutorMessages,
+  getSpecificUserChat
 };

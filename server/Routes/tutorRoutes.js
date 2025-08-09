@@ -27,8 +27,12 @@ const {
   getAvailableSlots,
   checkAvailability,
   getHireRequests,
-  respondToHireRequest
+  respondToHireRequest,
+  sendMessageResponse,
+  getTutorMessages,
+  getSpecificUserChat
 } = require('../Controllers/tutorController');
+const {protect} = require('../Middleware/authMiddleware');
 
 // Multer config for tutor documents
 const storage = multer.diskStorage({
@@ -83,9 +87,15 @@ router.delete('/availability/:user_id/blackout/:blackout_id', removeBlackoutDate
 router.get('/availability/:user_id/slots', getAvailableSlots);
 router.get('/availability/:user_id/check', checkAvailability);
 
+
 // Hire requests
 router.get('/hire-requests/:user_id', getHireRequests);
 router.post('/hire-requests/:user_id/respond', respondToHireRequest);
+
+// Message management routes
+router.post('/messages/reply', protect, sendMessageResponse);
+router.get('/getallmessages', protect, getTutorMessages);
+router.get('/getallmessages/:studentId', protect, getSpecificUserChat);
 
 
 module.exports = router;
