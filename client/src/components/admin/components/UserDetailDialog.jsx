@@ -61,7 +61,7 @@ import {
   partialApproveTutor
 } from '../../../services/adminService';
 
-const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
+const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, showNotification }) => {
   if (!user || !open) return null;
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -71,9 +71,11 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotError, setSlotError] = useState('');
   const [schedulingStatus, setSchedulingStatus] = useState('');
-  const [isInterview, setIsInterview] = useState(user?.is_interview || false);
+  const [isInterview, setIsInterview] = useState(
+    Boolean(user?.is_interview || (user?.interviewSlots || []).some((s) => s.is_interview))
+  );
   const [profileStatusReason, setProfileStatusReason] = useState(user?.profileStatusReason || '');
-
+  const [localUser, setLocalUser] = useState(user);
   const handleInterviewToggle = async (event) => {
     const newValue = event.target.checked;
     setIsInterview(newValue);
@@ -83,6 +85,15 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_interview: newValue }),
       });
+      // reflect immediately in local state
+      setLocalUser(prev => ({
+        ...prev,
+        interviewSlots: Array.isArray(prev?.interviewSlots)
+          ? prev.interviewSlots.map(s => ({ ...s, is_interview: newValue }))
+          : [{ date: new Date().toISOString(), time: '', is_interview: newValue }]
+      }));
+      if (showNotification) showNotification('Interview toggle updated');
+      if (typeof onMutateSuccess === 'function') onMutateSuccess();
     } catch (error) {
       console.error('Failed to update interview toggle:', error);
     }
@@ -96,6 +107,8 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
 
   useEffect(() => {
     setProfileStatusReason(user?.profileStatusReason || '');
+    setLocalUser(user);
+    setIsInterview(Boolean(user?.is_interview || (user?.interviewSlots || []).some((s) => s.is_interview)));
   }, [user]);
 
   const fetchAvailableSlots = async (date) => {
@@ -134,6 +147,16 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
       const scheduledDateTimes = selectedTimes.map((time) => `${selectedDate}T${time}`);
       await setAvailableInterviewSlots(user.id, scheduledDateTimes, interviewNotes);
       setSchedulingStatus('success');
+      // reflect locally: mark a scheduled slot
+      setLocalUser(prev => ({
+        ...prev,
+        interviewSlots: scheduledDateTimes.map(dt => {
+          const [dateStr, time] = dt.split('T');
+          return { date: dateStr, time, scheduled: true, is_interview: true };
+        })
+      }));
+      if (showNotification) showNotification('Interview scheduled', 'success');
+      if (typeof onMutateSuccess === 'function') onMutateSuccess();
       setTimeout(() => {
         setSchedulingStatus('');
         setSelectedTimes([]);
@@ -151,6 +174,9 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
       alert(res.data.message);
     } else if (res.status === 200) {
       alert('Tutor profile approved successfully And Email Sent to Tutor');
+      setLocalUser(prev => ({ ...prev, status: 'verified' }));
+      if (showNotification) showNotification('Tutor approved', 'success');
+      if (typeof onMutateSuccess === 'function') onMutateSuccess();
     }
   };
 
@@ -160,6 +186,9 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
       alert(res.data.message);
     } else if (res.status === 200) {
       alert('Tutor profile partially approved successfully And Email Sent to Tutor');
+      setLocalUser(prev => ({ ...prev, status: 'pending' }));
+      if (showNotification) showNotification('Tutor partially approved', 'info');
+      if (typeof onMutateSuccess === 'function') onMutateSuccess();
     } else {
       alert(res.data.message);
     }
@@ -171,6 +200,9 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
       alert(res.data.message);
     } else if (res.status === 200) {
       alert('Tutor profile rejected successfully And Email Sent to Tutor');
+      setLocalUser(prev => ({ ...prev, status: 'rejected' }));
+      if (showNotification) showNotification('Tutor rejected', 'warning');
+      if (typeof onMutateSuccess === 'function') onMutateSuccess();
     } else {
       alert(res.data.message);
     }
@@ -202,19 +234,19 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
     }
   };
 
-  const userName = user?.name || 'Unknown User';
-  const userEmail = user?.email || 'No email provided';
-  const userPhone = user?.phone || 'No phone provided';
-  const userLocation = user?.location || 'No location provided';
-  const userJoinDate = user?.joinDate || 'Unknown';
-  const userLastActive = user?.lastActive || 'Unknown';
-  const userRating = user?.rating;
-  const userStatus = user?.status;
-  const userDocuments = user?.documents || [];
-  const userSubjects = user?.subjects || [];
-  const userChildren = user?.children || [];
-  const userSessionsCompleted = user?.sessionsCompleted || 0;
-  const userSessionsBooked = user?.sessionsBooked || 0;
+  const userName = localUser?.name || 'Unknown User';
+  const userEmail = localUser?.email || 'No email provided';
+  const userPhone = localUser?.phone || 'No phone provided';
+  const userLocation = localUser?.location || 'No location provided';
+  const userJoinDate = localUser?.joinDate || 'Unknown';
+  const userLastActive = localUser?.lastActive || 'Unknown';
+  const userRating = localUser?.rating;
+  const userStatus = localUser?.status;
+  const userDocuments = localUser?.documents || [];
+  const userSubjects = localUser?.subjects || [];
+  const userChildren = localUser?.children || [];
+  const userSessionsCompleted = localUser?.sessionsCompleted || 0;
+  const userSessionsBooked = localUser?.sessionsBooked || 0;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth TransitionComponent={Fade} transitionDuration={300}>
@@ -345,6 +377,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                               <IconButton size="small" href={doc.url} target="_blank" disabled={doc.url === '#'} title={doc.url === '#' ? 'Document not available' : 'View document'}>
                                 <CloudDownload />
                               </IconButton>
+
                               {!doc.verified && (
                                 <Button
                                   size="small"
@@ -353,7 +386,15 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                                   onClick={async () => {
                                     try {
                                       await verifyDocument(user.id, doc.type);
-                                      alert(`${doc.type} verified`);
+                                      // update local document verified flag
+                                      setLocalUser(prev => ({
+                                        ...prev,
+                                        documents: (prev?.documents || []).map(d =>
+                                          d.type === doc.type ? { ...d, verified: true } : d
+                                        )
+                                      }));
+                                      if (showNotification) showNotification(`${doc.type} verified`, 'success');
+                                      if (typeof onMutateSuccess === 'function') onMutateSuccess();
                                     } catch (err) {
                                       console.error('Verification failed:', err);
                                       alert(`Failed to verify ${doc.type}`);
@@ -383,12 +424,12 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                         <Typography variant="h6">Interview Management</Typography>
                       </Box>
                       <FormControlLabel
-                        control={<Switch checked={user.interviewSlots.map((slot) => slot.is_interview).includes(true)} onChange={handleInterviewToggle} color="primary" />}
+                        control={<Switch checked={isInterview} onChange={handleInterviewToggle} color="primary" />}
                         label="Enable Interview"
                       />
                     </Box>
                   </AccordionSummary>
-                  {user.interviewSlots.map((slot) => slot.is_interview).includes(true) && (
+                  {isInterview && (
                     <AccordionDetails>
                       <Box>
                         <Card sx={{ mb: 2, p: 2 }}>
@@ -396,9 +437,9 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                             Interview Slot Scheduled by Admin
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            {Array.isArray(user.preferredSlots) && user.preferredSlots.length > 0 && (
+                            {Array.isArray(localUser.preferredSlots) && localUser.preferredSlots.length > 0 && (
                               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: 2 }}>
-                                {user.preferredSlots.map((slot, index) => (
+                                {localUser.preferredSlots.map((slot, index) => (
                                   <Chip key={index} label={slot} variant="outlined" color="primary" size="small" />
                                 ))}
                               </Box>
@@ -411,10 +452,10 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                             Interview Slot Booked by Tutor
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            {Array.isArray(user.interviewSlots) && user.interviewSlots.length > 0 ? (
+                            {Array.isArray(localUser.interviewSlots) && localUser.interviewSlots.length > 0 ? (
                               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: 2 }}>
-                                {user.interviewSlots.map((slot, index) => {
-                                  const date = new Date(slot.date);
+                                {localUser.interviewSlots.map((slot, index) => {
+                                  const date = new Date(slot.date || slot.dateTime || slot);
                                   const formattedDate = date.toLocaleDateString();
                                   let chipColor = 'primary';
                                   if (slot.completed) {
@@ -425,7 +466,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                                   return (
                                     <Chip
                                       key={index}
-                                      label={`${formattedDate}, ${slot.time}`}
+                                      label={`${formattedDate}${slot.time ? `, ${slot.time}` : ''}`}
                                       variant="outlined"
                                       color={chipColor}
                                       size="small"
@@ -443,7 +484,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                           </Box>
                         </Card>
 
-                        {user.interviewSlots?.some((slot) => slot.scheduled) && (
+                        {localUser.interviewSlots?.some((slot) => slot.scheduled) && (
                           <Card sx={{ p: 2, mt: 2 }}>
                             <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
                               Interview Results
@@ -475,7 +516,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
                           </Card>
                         )}
 
-                        {!user.interviewSlots?.some((slot) => slot.scheduled) && (
+                        {!localUser.interviewSlots?.some((slot) => slot.scheduled) && (
                           <Card sx={{ p: 2 }}>
                             <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
                               Schedule Interview
@@ -697,13 +738,13 @@ const UserDetailDialog = ({ open, user, tabValue, onClose }) => {
         <Button onClick={handleRejectTutor} variant="contained" color="error">
           Reject Tutor
         </Button>
-        {tabValue === 'tutors' && user.status !== 'active' ? (
+        {tabValue === 'tutors' && localUser.status !== 'active' ? (
           <Button
             variant="contained"
             color="success"
             onClick={handleApproveTutor}
             disabled={
-              !userDocuments.every((d) => d.verified) || !user.backgroundCheck || !user.referenceCheck || !user.qualificationCheck
+              !userDocuments.every((d) => d.verified) || !localUser.backgroundCheck || !localUser.referenceCheck || !localUser.qualificationCheck
             }
           >
             Approve Tutor

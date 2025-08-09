@@ -474,7 +474,6 @@ exports.hireTutor = asyncHandler(async (req, res) => {
         }
     );
     if(alreadyHired){
-        console.log("alreadyHired",alreadyHired);
         return res.status(400).json({ message: "Tutor already hired. Select another tutor" });
     }
 

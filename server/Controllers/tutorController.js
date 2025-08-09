@@ -142,32 +142,57 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 };
 
 // Create a new tutoring session
+// Create a new tutoring session
 const createSession = asyncHandler(async (req, res) => {
   const { tutor_id, student_id, subject, session_date, duration_hours, hourly_rate, notes } = req.body;
+
+  // Basic validation
   if (!tutor_id || !student_id || !subject || !session_date || !duration_hours || !hourly_rate) {
     res.status(400);
     throw new Error("All required fields must be provided");
   }
-  const total_earnings = duration_hours * hourly_rate;
+
+  // Fetch student and tutor profiles
   const student = await StudentProfile.findOne({ user_id: student_id });
   const tutor = await TutorProfile.findOne({ user_id: tutor_id });
-  const student_ids = [student._id];
 
+  if (!student || !tutor) {
+    res.status(404);
+    throw new Error("Student or tutor profile not found");
+  }
+
+  // ✅ Check if student has accepted this tutor
+  const hireRecord = student.hired_tutors.find(
+    (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
+  );
+
+  if (!hireRecord) {
+    res.status(403); // Forbidden
+    throw new Error("Tutor is not authorized to create a session with this student");
+  }
+
+  // Calculate total earnings
+  const total_earnings = duration_hours * hourly_rate;
+
+  // Create session
   const session = await TutoringSession.create({
     tutor_id: tutor._id,
-    student_ids,
+    student_ids: [student._id],
     subject,
     session_date: new Date(session_date),
     duration_hours,
     hourly_rate,
     total_earnings,
-    notes: notes || ''
+    notes: notes || ""
   });
+
   res.status(201).json({
     message: "Tutoring session created successfully",
     session
   });
 });
+
+
 
 // Update session (full update)
 const updateSessionStatus = asyncHandler(async (req, res) => {
@@ -395,12 +420,31 @@ const getTutorProfile = asyncHandler(async (req, res) => {
 });
 
 // Get available students for tutor to select from
+// Get available students for tutor to select from
 const getAvailableStudents = asyncHandler(async (req, res) => {
   try {
-    const students = await StudentProfile.find()
+    const user_id = req.params.user_id; // assuming tutor is authenticated
+
+    // Find tutor profile
+    const tutorProfile = await TutorProfile.findOne({ user_id: user_id });
+    if (!tutorProfile) {
+      res.status(404);
+      throw new Error("Tutor profile not found");
+    }
+
+    // Find students who accepted this tutor
+    const students = await StudentProfile.find({
+      hired_tutors: {
+        $elemMatch: {
+          tutor: tutorProfile._id,
+          status: "accepted"
+        }
+      }
+    })
       .populate('user_id', 'full_name email age')
       .select('user_id academic_level preferred_subjects availability');
 
+    // Format response
     const formattedStudents = students.map(student => ({
       _id: student.user_id._id,
       full_name: student.user_id.full_name,
@@ -420,6 +464,8 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
     throw new Error("Failed to fetch students: " + err.message);
   }
 });
+
+
 
 // Availability Management Functions
 

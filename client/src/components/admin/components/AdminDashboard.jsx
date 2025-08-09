@@ -116,11 +116,12 @@ const AdminDashboard = () => {
         getAllUsers({ userType: uiState.tabValue }).catch(() => getMockUsers(uiState.tabValue))
       ]);
 
-      updateDashboardState({
+      setDashboardState(prev => ({
+        ...prev,
         stats: statsData,
-        users: { ...dashboardState.users, [uiState.tabValue]: usersData },
+        users: { ...prev.users, [uiState.tabValue]: usersData },
         loading: false
-      });
+      }));
 
       showNotification('Data loaded successfully');
     } catch (error) {
@@ -138,11 +139,12 @@ const AdminDashboard = () => {
           getMockDashboardStats(),
           getMockUsers(uiState.tabValue)
         ]);
-        updateDashboardState({
+        setDashboardState(prev => ({
+          ...prev,
           stats: statsData,
-          users: { ...dashboardState.users, [uiState.tabValue]: usersData },
+          users: { ...prev.users, [uiState.tabValue]: usersData },
           loading: false
-        });
+        }));
       }
     }
   };
@@ -152,10 +154,11 @@ const AdminDashboard = () => {
     
     try {
       const usersData = await getAllUsers({ userType });
-      updateDashboardState({
-        users: { ...dashboardState.users, [userType]: usersData },
+      setDashboardState(prev => ({
+        ...prev,
+        users: { ...prev.users, [userType]: usersData },
         loading: false
-      });
+      }));
 
       if (usersData.length === 0) {
         showNotification(`No ${userType} found in the database.`, 'info');
@@ -176,6 +179,10 @@ const AdminDashboard = () => {
         });
       }
     }
+  };
+
+  const handleRequestReload = () => {
+    loadUsers(uiState.tabValue);
   };
 
   // Event handlers
@@ -407,6 +414,8 @@ const AdminDashboard = () => {
             onChangePage={handleChangePage}
             onChangeRowsPerPage={handleChangeRowsPerPage}
             loading={dashboardState.loading}
+            onRequestReload={handleRequestReload}
+            showNotification={showNotification}
           />
         </Paper>
 

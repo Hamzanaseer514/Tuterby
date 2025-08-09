@@ -277,7 +277,9 @@ const UserTable = ({
   onMenuClick,
   onChangePage,
   onChangeRowsPerPage,
-  loading = false
+  loading = false,
+  onRequestReload,
+  showNotification
 }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -409,12 +411,14 @@ const UserTable = ({
 
       {/* User Detail Dialog */}
       <Suspense fallback={null}>
-      <UserDetailDialog
-        open={dialogOpen}
-        user={selectedUser}
-        tabValue={tabValue}
-        onClose={handleCloseDialog}
-      />
+        <UserDetailDialog
+          open={dialogOpen}
+          user={selectedUser}
+          tabValue={tabValue}
+          onClose={handleCloseDialog}
+          onMutateSuccess={onRequestReload}
+          showNotification={showNotification}
+        />
       </Suspense>
 
       {/* Action Menu */}

@@ -320,7 +320,7 @@ const [sessionForm, setSessionForm] = useState({
   const fetchAvailableStudents = async () => {
     try {
       setLoadingStudents(true);
-      const response = await fetch('http://localhost:5000/api/tutor/students');
+      const response = await fetch(`http://localhost:5000/api/tutor/students/${user?._id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }

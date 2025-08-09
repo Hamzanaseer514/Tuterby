@@ -69,7 +69,7 @@ router.get('/inquiries/:user_id', getTutorInquiries);
 router.put('/inquiries/:inquiry_id/reply', replyToInquiry);
 
 // Student management routes
-router.get('/students', getAvailableStudents);
+router.get('/students/:user_id', getAvailableStudents);
 
 // Availability management routes
 
