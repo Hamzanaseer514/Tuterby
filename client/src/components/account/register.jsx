@@ -2652,6 +2652,7 @@ import { UserPlus, Shield, Star } from 'lucide-react';
 import { CheckCircle, AlertCircle, FileUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BASE_URL } from '@/config';
+import { Link } from 'react-router-dom';
 
 const Register = () => {
     const [activeTab, setActiveTab] = useState('student');
@@ -3680,9 +3681,9 @@ const Register = () => {
                             <CardFooter className="flex justify-center mt-10">
                                 <p className="text-sm text-gray-600">
                                     Already have an account?{' '}
-                                    <a href="./login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                                    <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
                                         Login In
-                                    </a>
+                                    </Link>
                                 </p>
                             </CardFooter>
                         </CardContent>

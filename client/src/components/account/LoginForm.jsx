@@ -9,6 +9,7 @@ import { Shield, Star, CheckCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BASE_URL } from '@/config';
+import { Link } from 'react-router-dom';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -300,9 +301,9 @@ export default function LoginForm() {
                      </div>
 
                     <div className="text-sm">
-                      <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+                      <Link to="#" className="font-medium text-indigo-600 hover:text-indigo-500">
                         Forgot password?
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -391,9 +392,9 @@ export default function LoginForm() {
           <CardFooter className="flex justify-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <a href="./register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Sign up
-              </a>
+              </Link>
             </p>
           </CardFooter>
           
