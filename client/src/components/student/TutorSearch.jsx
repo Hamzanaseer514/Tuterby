@@ -2,23 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
-import { 
-  Search, 
-  Star, 
-  MapPin, 
-  Clock, 
-  User, 
+import {
+  Search,
+  Star,
+  MapPin,
+  Clock,
+  User,
   BookOpen,
   Filter,
   ArrowLeft,
@@ -48,10 +48,10 @@ const TutorSearch = () => {
     duration_hours: 1,
     notes: ''
   });
-  
+
   // Simple search filter
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Advanced filters
   const [filters, setFilters] = useState({
     subject: '',
@@ -73,29 +73,97 @@ const TutorSearch = () => {
     }
   }, [currentPage, filters, searchQuery]);
 
+  // Helper functions
+  const parseField = (field) => {
+    if (!field) return [];
+
+    // Handle array case like ['["Math","Physics"]']
+    if (Array.isArray(field)) {
+      if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
+        try {
+          const parsed = JSON.parse(field[0]);
+          console.log(`Parsed array field: ${field[0]} →`, parsed);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          console.warn(`Failed to parse array field: ${field[0]}`, error);
+          return [];
+        }
+      }
+      // If it's already a proper array, return as is
+      if (field.every(item => typeof item === "string")) {
+        return field;
+      }
+      return [];
+    }
+
+    // Handle string case like "["Math","Physics"]"
+    if (typeof field === "string" && field.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(field);
+        console.log(`Parsed string field: ${field} →`, parsed);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.warn(`Failed to parse string field: ${field}`, error);
+        return [];
+      }
+    }
+
+    return [];
+  };
+
+  const cleanTutorData = (tutors) => {
+    return tutors.map((tutor) => {
+      const cleaned = {
+        ...tutor,
+        subjects: parseField(tutor.subjects),
+        academic_levels_taught: parseField(tutor.academic_levels_taught),
+      };
+
+      console.log(`Cleaned tutor ${tutor.user_id?.full_name || tutor._id}:`, {
+        original: {
+          subjects: tutor.subjects,
+          academic_levels_taught: tutor.academic_levels_taught
+        },
+        cleaned: {
+          subjects: cleaned.subjects,
+          academic_levels_taught: cleaned.academic_levels_taught
+        }
+      });
+
+      return cleaned;
+    });
+  };
+
+  // Inside your loadAllTutors function
   const loadAllTutors = async () => {
     try {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-      
+
       const params = new URLSearchParams({
         page: 1,
         limit: 12
       });
-      
+
       const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to load tutors');
       }
+
       const data = await response.json();
-      setTutors(data.tutors);
+
+      // ✅ Fix subjects & academic_levels_taught here
+      const cleanedTutors = cleanTutorData(data.tutors);
+
+      setTutors(cleanedTutors);
+
       setTotalPages(data.pagination.total_pages);
       setCurrentPage(1);
     } catch (error) {
@@ -110,12 +178,13 @@ const TutorSearch = () => {
     }
   };
 
+
   const searchTutors = async () => {
     try {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-      
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: 12,
@@ -133,13 +202,16 @@ const TutorSearch = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to search tutors');
       }
-      
+
       const data = await response.json();
-      setTutors(data.tutors);
+
+      // ✅ Fix subjects & academic_levels_taught here too
+      const cleanedTutors = cleanTutorData(data.tutors);
+      setTutors(cleanedTutors);
       setTotalPages(data.pagination.total_pages);
     } catch (error) {
       setError(error.message);
@@ -180,7 +252,7 @@ const TutorSearch = () => {
   };
 
   const handleViewTutor = (tutorId) => {
-    navigate(`/tutor`,{
+    navigate(`/tutor`, {
       state: { tutorId: tutorId }
     });
 
@@ -227,18 +299,18 @@ const TutorSearch = () => {
 
       const data = await response.json();
       const status = response.status;
-      if(status === 400){
+      if (status === 400) {
         toast({
           title: "Warning",
           description: "Tutor already hired!",
         });
       }
-      else if(status === 200){
-      toast({
-        title: "Success",
-        description: "Tutor hired successfully!",
-      });
-    }
+      else if (status === 200) {
+        toast({
+          title: "Success",
+          description: "Tutor hired successfully!",
+        });
+      }
       setShowBookingModal(false);
       setSelectedTutor(null);
     } catch (error) {
@@ -254,9 +326,9 @@ const TutorSearch = () => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <Star 
-          key={i} 
-          className={`w-4 h-4 ${i <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`}
         />
       );
     }
@@ -276,8 +348,8 @@ const TutorSearch = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => navigate(`/student-dashboard`)} 
+          <Button
+            onClick={() => navigate(`/student-dashboard`)}
             variant="outline"
             size="sm"
           >
@@ -304,7 +376,7 @@ const TutorSearch = () => {
                 className="pl-10"
               />
             </div>
-            <Button 
+            <Button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               variant="outline"
               className="flex items-center gap-2"
@@ -313,7 +385,7 @@ const TutorSearch = () => {
               {showAdvancedFilters ? 'Hide' : 'Show'} Filters
             </Button>
             {(searchQuery || Object.values(filters).some(v => v)) && (
-              <Button 
+              <Button
                 onClick={clearAllFilters}
                 variant="outline"
                 size="sm"
@@ -346,7 +418,7 @@ const TutorSearch = () => {
                   onChange={(e) => handleFilterChange('subject', e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
                 <Select value={filters.academic_level} onValueChange={(value) => handleFilterChange('academic_level', value)}>
@@ -362,7 +434,7 @@ const TutorSearch = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
                 <Input
@@ -371,7 +443,7 @@ const TutorSearch = () => {
                   onChange={(e) => handleFilterChange('location', e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Rating</label>
                 <Select value={filters.min_rating} onValueChange={(value) => handleFilterChange('min_rating', value)}>
@@ -386,7 +458,7 @@ const TutorSearch = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Max Hourly Rate</label>
                 <Input
@@ -422,7 +494,7 @@ const TutorSearch = () => {
                 {searchQuery || Object.values(filters).some(v => v) ? 'No tutors found' : 'Loading tutors...'}
               </h3>
               <p className="text-gray-600 mb-4">
-                {searchQuery || Object.values(filters).some(v => v) 
+                {searchQuery || Object.values(filters).some(v => v)
                   ? 'Try adjusting your search filters or broadening your criteria'
                   : 'Please wait while we load all available tutors...'
                 }
@@ -444,7 +516,7 @@ const TutorSearch = () => {
                 )}
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tutors.map((tutor) => (
                 <Card key={tutor._id} className="hover:shadow-md transition-shadow">
@@ -453,7 +525,7 @@ const TutorSearch = () => {
                       <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                         <User className="w-8 h-8 text-blue-600" />
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -481,19 +553,24 @@ const TutorSearch = () => {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="mb-3">
-                          
-                          <div className="flex flex-wrap gap-1">
-                            {tutor.academic_levels_taught?.slice(0, 2).map((level, index) => (
+
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {tutor.academic_levels_taught?.slice(0, 3).map((level, index) => (
                               <Badge key={index} variant="secondary" className="text-xs">
                                 {level}
                               </Badge>
                             ))}
+                            {tutor.academic_levels_taught?.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{tutor.academic_levels_taught.length - 3} more
+                              </Badge>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {tutor.subjects?.map((subject, index) => (
+                            {tutor.subjects?.slice(0, 3).map((subject, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {subject}
                               </Badge>
@@ -506,16 +583,16 @@ const TutorSearch = () => {
                           </div>
 
                         </div>
-                        
 
 
-                        
+
+
                         {tutor.bio && (
                           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                             {tutor.bio}
                           </p>
                         )}
-                        
+
                         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
                           <div className="flex items-center gap-1">
                             <BookOpen className="w-4 h-4" />
@@ -528,9 +605,9 @@ const TutorSearch = () => {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex gap-2">
-                          <Button 
+                          <Button
                             onClick={() => handleHireTutor(tutor)}
                             size="sm"
                             className="flex-1"
@@ -538,7 +615,7 @@ const TutorSearch = () => {
                             <Calendar className="w-4 h-4 mr-2" />
                             Hire Tutor
                           </Button>
-                          <Button 
+                          <Button
                             onClick={() => handleRequestHelp(tutor)}
                             variant="outline"
                             size="sm"
@@ -548,9 +625,9 @@ const TutorSearch = () => {
                             Request Help
                           </Button>
                         </div>
-                        
+
                         <div className="flex gap-2 mt-2">
-                          <Button 
+                          <Button
                             onClick={() => handleViewTutor(tutor._id)}
                             variant="outline"
                             size="sm"
@@ -575,7 +652,7 @@ const TutorSearch = () => {
                 </Card>
               ))}
             </div>
-            
+
             {/* Pagination */}
             {totalPages > 1 && (
               <Card>
@@ -589,11 +666,11 @@ const TutorSearch = () => {
                     >
                       Previous
                     </Button>
-                    
+
                     <span className="text-sm text-gray-600">
                       Page {currentPage} of {totalPages}
                     </span>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -624,7 +701,7 @@ const TutorSearch = () => {
                 ×
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
@@ -639,7 +716,7 @@ const TutorSearch = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Session Date & Time</label>
                 <Input
@@ -648,7 +725,7 @@ const TutorSearch = () => {
                   onChange={(e) => setBookingData(prev => ({ ...prev, session_date: e.target.value }))}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
                 <Select value={bookingData.duration_hours.toString()} onValueChange={(value) => setBookingData(prev => ({ ...prev, duration_hours: parseFloat(value) }))}>
@@ -664,7 +741,7 @@ const TutorSearch = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
                 <Input
@@ -673,13 +750,13 @@ const TutorSearch = () => {
                   onChange={(e) => setBookingData(prev => ({ ...prev, notes: e.target.value }))}
                 />
               </div>
-              
+
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-sm text-gray-600">
                   <strong>Total Cost:</strong> £{(selectedTutor.hourly_rate * bookingData.duration_hours).toFixed(2)}
                 </p>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   onClick={() => setShowBookingModal(false)}

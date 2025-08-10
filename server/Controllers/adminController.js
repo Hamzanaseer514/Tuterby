@@ -264,7 +264,10 @@ exports.selectInterviewSlot = async (req, res) => {
 // };
 
 exports.approveTutorProfile = async (req, res) => {
+  console.log("approveTutorProfile");
+  console.log(req.body);
   const { user_id,reason } = req.body;
+  console.log(req.body);
   const tutor = await TutorProfile.findOne({user_id:user_id});
   try {
     const profile = await TutorProfile.findOne({ _id: tutor._id });
@@ -274,6 +277,7 @@ exports.approveTutorProfile = async (req, res) => {
       return res.status(404).json({ message: "Tutor profile or application not found." });
     }
     if(reason === ""){
+      console.log("Reason is required.");
       return res.status(400).json({ message: "Reason is required." });
     }
     const user = await User.findOne({ _id: profile.user_id });
@@ -479,7 +483,6 @@ exports.getAllUsers = async (req, res) => {
         if (tutorProfile) {
           // Get documents for this tutor
           const documents = await TutorDocument.find({ tutor_id: tutorProfile._id });
-          
           // Get application for this tutor
           const application = await TutorApplication.findOne({ tutor_id: tutorProfile._id });
           return {

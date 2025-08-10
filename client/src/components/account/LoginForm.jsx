@@ -52,7 +52,7 @@ export default function LoginForm() {
         },
         body: JSON.stringify({ email, password, rememberMe }),
       });
-
+console.log(response);
       const data = await response.json();
 
       if (!response.ok) {

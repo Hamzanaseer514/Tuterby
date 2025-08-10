@@ -177,6 +177,8 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
       setLocalUser(prev => ({ ...prev, status: 'verified' }));
       if (showNotification) showNotification('Tutor approved', 'success');
       if (typeof onMutateSuccess === 'function') onMutateSuccess();
+    } else {
+      alert('Tutor profile not approved');
     }
   };
 
@@ -721,24 +723,61 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
         </Zoom>
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions sx={{ gap: 2, p: 2 }}>
         {tabValue === 'tutors' && (
           <Button
             variant="outlined"
             color="primary"
             onClick={handlePartialApproveTutor}
-            sx={{ '&:hover': { backgroundColor: 'primary.main', color: 'white' } }}
+            sx={{ 
+              minHeight: 48,
+              minWidth: 160,
+              px: 3,
+              py: 1.5,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              '&:hover': { backgroundColor: 'primary.main', color: 'white' },
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
           >
             Partial Approve Tutor
           </Button>
         )}
-        <Button onClick={onClose} variant="outlined">
+        <Button 
+          onClick={onClose} 
+          variant="outlined"
+          sx={{ 
+            minHeight: 48,
+            minWidth: 120,
+            px: 3,
+            py: 1.5,
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
           Close
         </Button>
-        <Button onClick={handleRejectTutor} variant="contained" color="error">
+        <Button 
+          onClick={handleRejectTutor} 
+          variant="contained" 
+          color="error"
+          sx={{ 
+            minHeight: 48,
+            minWidth: 140,
+            px: 3,
+            py: 1.5,
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
           Reject Tutor
         </Button>
-        {tabValue === 'tutors' && localUser.status !== 'active' ? (
+        {tabValue === 'tutors' && localUser.status !== 'verified' ? (
           <Button
             variant="contained"
             color="success"
@@ -746,11 +785,34 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
             disabled={
               !userDocuments.every((d) => d.verified) || !localUser.backgroundCheck || !localUser.referenceCheck || !localUser.qualificationCheck
             }
+            sx={{ 
+              minHeight: 48,
+              minWidth: 140,
+              px: 3,
+              py: 1.5,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
           >
             Approve Tutor
           </Button>
         ) : (
-          <Button variant="contained" color="success">
+          <Button 
+            variant="contained" 
+            color="success"
+            sx={{ 
+              minHeight: 48,
+              minWidth: 140,
+              px: 3,
+              py: 1.5,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
             Tutor is verified
           </Button>
         )}

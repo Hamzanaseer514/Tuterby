@@ -71,6 +71,66 @@ const RequestHelp = () => {
     urgency_level: 'normal'
   });
 
+  // Helper function to parse array fields that might be stored as strings
+  const parseField = (field) => {
+    if (!field) return [];
+    
+    // Handle array case like ['["Math","Physics"]']
+    if (Array.isArray(field)) {
+      if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
+        try {
+          const parsed = JSON.parse(field[0]);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          console.warn(`Failed to parse array field: ${field[0]}`, error);
+          return [];
+        }
+      }
+      // If it's already a proper array, return as is
+      if (field.every(item => typeof item === "string")) {
+        return field;
+      }
+      return [];
+    }
+    
+    // Handle string case like "["Math","Physics"]"
+    if (typeof field === "string" && field.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(field);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.warn(`Failed to parse string field: ${field}`, error);
+        return [];
+      }
+    }
+    
+    return [];
+  };
+
+  // Clean tutor data to fix array display issues
+  const cleanTutorData = (tutors) => {
+    return tutors.map((tutor) => {
+      const cleaned = {
+        ...tutor,
+        subjects: parseField(tutor.subjects),
+        academic_levels_taught: parseField(tutor.academic_levels_taught),
+      };
+      
+      // console.log(`Cleaned tutor ${tutor.user_id?.full_name || tutor._id}:`, {
+      //   original: {
+      //     subjects: tutor.subjects,
+      //     academic_levels_taught: tutor.academic_levels_taught
+      //   },
+      //   cleaned: {
+      //     subjects: cleaned.subjects,
+      //     academic_levels_taught: cleaned.academic_levels_taught
+      //   }
+      // });
+      
+      return cleaned;
+    });
+  };
+
   useEffect(() => {
     if (user) {
       fetchHelpRequests();
@@ -81,13 +141,20 @@ const RequestHelp = () => {
   useEffect(() => {
     // Check if we have a selected tutor from the tutor search
     if (location.state?.selectedTutor) {
-      setSelectedTutor(location.state.selectedTutor);
+      // Clean the tutor data before setting it
+      const cleanedTutor = {
+        ...location.state.selectedTutor,
+        subjects: parseField(location.state.selectedTutor.subjects),
+        academic_levels_taught: parseField(location.state.selectedTutor.academic_levels_taught),
+      };
+      
+      setSelectedTutor(cleanedTutor);
       setShowTutorSelection(false);
       // Pre-fill form with tutor's subjects
-      if (location.state.selectedTutor.subjects?.length > 0) {
+      if (cleanedTutor.subjects?.length > 0) {
         setFormData(prev => ({
           ...prev,
-          subject: location.state.selectedTutor.subjects[0]
+          subject: cleanedTutor.subjects[0]
         }));
       }
     }
@@ -115,7 +182,7 @@ const RequestHelp = () => {
       }
 
       const data = await response.json();
-      setTutors(data.tutors);
+      setTutors(cleanTutorData(data.tutors));
     } catch (error) {
       toast({
         title: "Error",
@@ -153,7 +220,7 @@ const RequestHelp = () => {
         throw new Error('Failed to search tutors');
       }
       const data = await response.json();
-      setTutors(data.tutors);
+      setTutors(cleanTutorData(data.tutors));
     } catch (error) {
       toast({
         title: "Error",
@@ -166,13 +233,20 @@ const RequestHelp = () => {
   };
 
   const handleTutorSelect = (tutor) => {
-    setSelectedTutor(tutor);
+    // Clean the tutor data before setting it
+    const cleanedTutor = {
+      ...tutor,
+      subjects: parseField(tutor.subjects),
+      academic_levels_taught: parseField(tutor.academic_levels_taught),
+    };
+    
+    setSelectedTutor(cleanedTutor);
     setShowTutorSelection(false);
     // Pre-fill form with tutor's subjects
-    if (tutor.subjects?.length > 0) {
+    if (cleanedTutor.subjects?.length > 0) {
       setFormData(prev => ({
         ...prev,
-        subject: tutor.subjects[0]
+        subject: cleanedTutor.subjects[0]
       }));
     }
   };
@@ -632,21 +706,21 @@ const RequestHelp = () => {
                             </div>
 
                             <div className="mb-3">
-                              <div className="flex flex-wrap gap-1 mb-2">
-                                {tutor.subjects?.slice(0, 3).map((subject, index) => (
+                              <div className="flex flex-wrap gap-1 mb-3">
+                                {parseField(tutor.subjects)?.slice(0, 3).map((subject, index) => (
                                   <Badge key={index} variant="outline" className="text-xs">
                                     {subject}
                                   </Badge>
                                 ))}
-                                {tutor.subjects?.length > 3 && (
+                                {parseField(tutor.subjects)?.length > 3 && (
                                   <Badge variant="outline" className="text-xs">
-                                    +{tutor.subjects.length - 3} more
+                                    +{parseField(tutor.subjects).length - 3} more
                                   </Badge>
                                 )}
                               </div>
 
                               <div className="flex flex-wrap gap-1">
-                                {tutor.academic_levels_taught?.slice(0, 2).map((level, index) => (
+                                {parseField(tutor.academic_levels_taught)?.slice(0, 2).map((level, index) => (
                                   <Badge key={index} variant="secondary" className="text-xs">
                                     {level}
                                   </Badge>
@@ -717,7 +791,7 @@ const RequestHelp = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedTutor.subjects?.slice(0, 3).map((subject, index) => (
+                    {parseField(selectedTutor.subjects)?.slice(0, 3).map((subject, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {subject}
                       </Badge>

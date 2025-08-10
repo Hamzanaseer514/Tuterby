@@ -229,16 +229,20 @@ export const updateApplicationNotes = async (tutorId, notes) => {
 
 // Tutor Approval/Rejection
 export const approveTutorProfile = async (user_id, reason) => {
-  return apiCall('/tutors/approve', {
+  const res = await fetch(`${BASE_URL}/api/admin/tutors/approve`, {
     method: 'POST',
-    body: JSON.stringify({ user_id: user_id, reason: reason }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, reason }),
   });
+
+  const data = await res.json();
+  return { status: res.status, data };
 };
 
 export const partialApproveTutor = async (user_id, reason) => {
   const res = await fetch(`${BASE_URL}/api/admin/tutors/partial-approve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id, reason }),
   });
 

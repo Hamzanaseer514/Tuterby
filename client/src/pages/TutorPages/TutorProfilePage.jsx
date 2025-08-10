@@ -41,7 +41,7 @@ const TutorProfilePage = () => {
   const navigate = useNavigate();
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  const { getAuthToken } = useAuth();
+  const { getAuthToken, user } = useAuth();
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -81,11 +81,20 @@ const TutorProfilePage = () => {
           ? data.qualifications
           : data.qualifications?.split(',').map(q => q.trim()) || [],
         subjects: Array.isArray(data.subjects)
-          ? data.subjects
-          : JSON.parse(data.subjects[0] || '[]'),
-        academic_levels_taught: Array.isArray(data.academic_levels_taught)
-          ? data.academic_levels_taught
-          : JSON.parse(data.academic_levels_taught[0] || '[]'),
+        ? (
+            typeof data.subjects[0] === 'string' && data.subjects.length === 1
+              ? JSON.parse(data.subjects[0]) // case where it's ["[\"Math\",...]"]
+              : data.subjects
+          )
+        : [],
+    
+      academic_levels_taught: Array.isArray(data.academic_levels_taught)
+        ? (
+            typeof data.academic_levels_taught[0] === 'string' && data.academic_levels_taught.length === 1
+              ? JSON.parse(data.academic_levels_taught[0])
+              : data.academic_levels_taught
+          )
+        : [],
       };
 
       setTutor(parsedTutor);
@@ -111,6 +120,7 @@ const TutorProfilePage = () => {
 
   const handleBookSession = (tutor) => {
     setSelectedTutor(tutor);
+    console.log("tutor", tutor);
     setBookingData({
       subject: '',
       session_date: '',
@@ -133,7 +143,7 @@ const TutorProfilePage = () => {
     return stars;
   };
 
-  const handleBookingSubmit = async () => {
+  const handleHireTutorSubmit = async () => {
     try {
       const token = getAuthToken();
       const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
@@ -143,8 +153,8 @@ const TutorProfilePage = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          tutor_id: selectedTutor.user_id._id,
-          student_id: selectedTutor.user_id._id, // Change this if you use logged-in student ID instead
+          tutor_user_id: selectedTutor.user_id._id,
+          student_user_id: user._id,
           subject: bookingData.subject,
           session_date: bookingData.session_date,
           duration_hours: bookingData.duration_hours,
@@ -153,21 +163,27 @@ const TutorProfilePage = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to book session');
-      }
 
       const data = await response.json();
+      const status = response.status;
+      if(status === 400){
+        toast({
+          title: "Warning",
+          description: "Tutor already hired!",
+        });
+      }
+      else if(status === 200){
       toast({
         title: "Success",
-        description: "Session booked successfully!",
+        description: "Tutor hired successfully!",
       });
+    }
       setShowBookingModal(false);
       setSelectedTutor(null);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to book session",
+        description: "Failed to hire tutor",
         variant: "destructive"
       });
     }
@@ -229,7 +245,7 @@ const TutorProfilePage = () => {
               </Button>
               <Button onClick={() => handleBookSession(tutor)}>
                 <Calendar className="w-4 h-4 mr-2" />
-                Book Session
+                Hire Tutor 1
               </Button>
 
             </div>
@@ -238,7 +254,7 @@ const TutorProfilePage = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Book Session with {selectedTutor.user_id.full_name}</h3>
+                  <h3 className="text-lg font-semibold">Hire Tutor {selectedTutor.user_id.full_name}</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -314,11 +330,11 @@ const TutorProfilePage = () => {
                       Cancel
                     </Button>
                     <Button
-                      onClick={handleBookingSubmit}
+                      onClick={handleHireTutorSubmit}
                       className="flex-1"
                       disabled={!bookingData.subject || !bookingData.session_date}
                     >
-                      Book Session
+                      Hire Tutor
                     </Button>
                   </div>
                 </div>
@@ -516,9 +532,9 @@ const TutorProfilePage = () => {
                   <CardTitle>Get Started</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button onClick={handleBookSession} className="w-full">
+                  <Button onClick={() => (handleBookSession(tutor))} className="w-full">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Book a Session
+                    Hire Tutor 2
                   </Button>
                   <Button onClick={handleContactTutor} variant="outline" className="w-full">
                     <MessageCircle className="w-4 h-4 mr-2" />
