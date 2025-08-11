@@ -5,7 +5,6 @@ const  User  = require("../Models/userSchema");
 
 const protect = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  //  console.log("Authorization Header:", authHeader); // Debugging line
   if (authHeader && authHeader.startsWith("Bearer")) {
       try {
         const token = authHeader.split(" ")[1];

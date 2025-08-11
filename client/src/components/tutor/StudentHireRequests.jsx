@@ -46,7 +46,7 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
             <div>
               <div className="text-sm text-gray-500">Hire request</div>
               <div className="text-lg font-semibold text-gray-900">{user.full_name}</div>
-              <div className="text-sm text-gray-600">{user.email}</div>
+              {/* <div className="text-sm text-gray-600">{user.email}</div> */}
               <div className="mt-2 text-sm text-gray-700">
                 <span className="font-medium">Academic level: </span>
                 {student.academic_level || 'N/A'}

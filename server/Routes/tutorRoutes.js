@@ -30,7 +30,8 @@ const {
   respondToHireRequest,
   sendMessageResponse,
   getTutorMessages,
-  getSpecificUserChat
+  getSpecificUserChat,
+  deleteSession
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -60,9 +61,11 @@ router.get('/profile/:user_id', getTutorProfile);
 router.get('/stats/:user_id', getTutorStats);
 
 // Session management routes
-router.post('/sessions', createSession);
-router.put('/sessions/:session_id', updateSessionStatus);
-router.get('/sessions/:user_id', getTutorSessions);
+router.post('/sessions', protect, createSession);
+router.put('/sessions/update/:session_id',protect, updateSessionStatus);
+router.delete('/sessions/delete/:session_id',protect, deleteSession);
+
+router.get('/sessions/:user_id',protect,getTutorSessions);
 
 // Inquiry management routes
 router.get('/inquiries/:user_id', getTutorInquiries);

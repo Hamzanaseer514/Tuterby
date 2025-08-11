@@ -27,7 +27,7 @@ import {
   BarChart
 } from '@mui/icons-material';
 import AdminLayout from '../../components/admin/components/AdminLayout';
-
+import { Link } from 'react-router-dom';
 // Import admin service
 import {
   getDashboardStats,
@@ -213,7 +213,8 @@ const AdminDashboardPage = () => {
       chips: [
         { label: `${dashboardState.stats.tutors?.pending || 0} Pending`, color: 'warning' },
         { label: `${dashboardState.stats.tutors?.verified || 0} Verified`, color: 'success' }
-      ]
+      ],
+      link: '/admin/users'
     },
     {
       title: 'Total Students',
@@ -222,7 +223,8 @@ const AdminDashboardPage = () => {
       color: 'success.main',
       chips: [
         { label: `${dashboardState.stats.students?.active || 0} Active`, color: 'success' }
-      ]
+      ],
+      link: '/admin/users'
     },
     {
       title: 'Total Parents',
@@ -231,7 +233,8 @@ const AdminDashboardPage = () => {
       color: 'info.main',
       chips: [
         { label: `${dashboardState.stats.parents?.active || 0} Active`, color: 'success' }
-      ]
+      ],
+      link: '/admin/users'
     },
     {
       title: 'Total Sessions',
@@ -240,7 +243,8 @@ const AdminDashboardPage = () => {
       color: 'secondary.main',
       chips: [
         { label: `${dashboardState.stats.sessions?.thisMonth || 0} This Month`, color: 'primary' }
-      ]
+      ],
+      // link: '/admin/sessions'
     }
   ];
 
@@ -314,12 +318,14 @@ const AdminDashboardPage = () => {
               
               <Grid container spacing={3}>
                 {statCards.map((card, index) => (
+                  <Link to={card.link} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <StatCard
                     key={card.title}
                     {...card}
                     loading={dashboardState.loading}
                     index={index}
                   />
+                  </Link>
                 ))}
               </Grid>
             </Box>

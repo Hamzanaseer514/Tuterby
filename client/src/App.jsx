@@ -41,9 +41,7 @@ const StudentDashboardPage = lazy(() =>
 const StudentTutorSearchPage = lazy(() =>
   import("./pages/StudentPages/StudentTutorSearchPage")
 );
-const StudentRequestHelpPage = lazy(() =>
-  import("./pages/StudentPages/StudentRequestHelpPage")
-);
+
 const TutorProfilePage = lazy(() =>
   import("./pages/TutorPages/TutorProfilePage")
 );
@@ -102,10 +100,6 @@ function App() {
               <Route
                 path="/student/tutor-search"
                 element={<StudentTutorSearchPage />}
-              />
-              <Route
-                path="/student/request-help"
-                element={<StudentRequestHelpPage />}
               />
               <Route path="/tutor" element={<TutorProfilePage />} />
               <Route

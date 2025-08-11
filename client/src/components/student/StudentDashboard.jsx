@@ -163,10 +163,10 @@ const StudentDashboard = () => {
             <Search className="w-4 h-4 mr-2" />
             Find Tutors
           </Button>
-          <Button onClick={() => navigate(`/student/request-help`)}>
+          {/* <Button onClick={() => navigate(`/student/request-help`)}>
             <Plus className="w-4 h-4 mr-2" />
             Request Help
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -241,7 +241,7 @@ const StudentDashboard = () => {
                         <User className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{session.tutor_id.full_name}</p>
+                        <p className="font-medium">{session.tutor_id.user_id.full_name}</p>
                         <p className="text-sm text-gray-600">{session.subject}</p>
                         <p className="text-xs text-gray-500">
                           {formatDate(session.session_date)} at {formatTime(session.session_date)}
@@ -277,6 +277,7 @@ const StudentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {console.log("dashboardData",dashboardData)}
             {dashboardData.pastSessions.length === 0 ? (
               <div className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -291,7 +292,7 @@ const StudentDashboard = () => {
                         <User className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{session.tutor_id.full_name}</p>
+                        <p className="font-medium">{session.tutor_id.user_id.full_name}</p>
                         <p className="text-sm text-gray-600">{session.subject}</p>
                         <p className="text-xs text-gray-500">
                           {formatDate(session.session_date)}

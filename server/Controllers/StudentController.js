@@ -35,10 +35,10 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
     })
         .sort({ session_date: 1 })
         .limit(10);
-console.log("upcomingSessions",upcomingSessions)
+
     const pastSessions = await TutoringSession.find({
-        student_ids: studentProfile._id, // changed here too
-        session_date: { $lt: new Date() },
+        student_ids: studentProfile._id, 
+        // session_date: { $lt: new Date() },
         status: 'completed'
     })
     .populate({
@@ -51,7 +51,7 @@ console.log("upcomingSessions",upcomingSessions)
     })
         .sort({ session_date: -1 })
         .limit(10);
-
+    console.log("pastSessions",pastSessions)
     res.status(200).json({
         student: {
             _id: studentProfile._id,
@@ -383,8 +383,10 @@ exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
         tutor_id // Add tutor_id to destructuring
     } = req.body;
     if (!subject || !academic_level || !description) {
-        res.status(400);
-        throw new Error("Subject, academic level, and description are required");
+       return res.status(400).json({
+            success: false,
+            message: "Subject, academic level, and description are required"
+        });
     }
     const student = await Student.findOne({ user_id: userId });
     try {
@@ -401,14 +403,17 @@ exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
             type: 'additional_help'
         });
 
-        res.status(201).json({
+        return res.status(201).json({
+            success: true,
             message: "Help request submitted successfully",
             inquiry: inquiry
         });
 
     } catch (error) {
-        res.status(500);
-        throw new Error("Failed to submit help request: " + error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to submit help request: " + error.message
+        });
     }
 });
 
@@ -665,6 +670,134 @@ exports.getStudentTutorChat = asyncHandler(async (req, res) => {
         data: messages,
     });
 });
+
+// Get hired tutors for student (for StudentHelpRequests component)
+exports.getHiredTutors = asyncHandler(async (req, res) => {
+    try {
+        const studentId = req.user._id; // logged-in student
+
+        // Find the student document
+        const student = await Student.findOne({ user_id: studentId })
+            .populate({
+                path: "hired_tutors.tutor",
+                model: "TutorProfile",
+                populate: {
+                    path: "user_id",
+                    select: "full_name email photo_url"
+                }
+            });
+
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: "Student profile not found"
+            });
+        }
+
+        // Filter and format hired tutors
+        const hiredTutors = student.hired_tutors
+            .filter(hiredTutor => hiredTutor.tutor !== null) // Filter out any null tutors
+            .map(hiredTutor => {
+                const tutorProfile = hiredTutor.tutor;
+                const user = tutorProfile.user_id;
+                
+                return {
+                    _id: tutorProfile._id,
+                    tutor_id: tutorProfile._id,
+                    user_id: user,
+                    full_name: user.full_name,
+                    email: user.email,
+                    photo_url: user.photo_url,
+                    hireStatus: hiredTutor.status || 'pending',
+                    status: hiredTutor.status || 'pending',
+                    hired_at: hiredTutor.hired_at,
+                    // Tutor profile information
+                    subjects: tutorProfile.subjects || [],
+                    location: tutorProfile.location,
+                    experience: tutorProfile.experience_years,
+                    rating: tutorProfile.average_rating,
+                    hourly_rate: tutorProfile.hourly_rate,
+                    bio: tutorProfile.bio,
+                    qualifications: tutorProfile.qualifications,
+                    academic_levels_taught: tutorProfile.academic_levels_taught
+                };
+            });
+
+        res.status(200).json({
+            success: true,
+            tutors: hiredTutors,
+            total: hiredTutors.length
+        });
+
+    } catch (error) {
+        console.error("Error fetching hired tutors:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch hired tutors",
+            error: error.message
+        });
+    }
+});
+
+// Request help from hired tutor
+// exports.requestHelpFromTutor = asyncHandler(async (req, res) => {
+//     try {
+//         const { tutor_id, subject, message } = req.body;
+//         const studentId = req.user._id;
+
+//         if (!tutor_id || !subject || !message) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Tutor ID, subject, and message are required"
+//             });
+//         }
+
+//         // Verify the student has hired this tutor
+//         const student = await Student.findOne({ user_id: studentId });
+//         if (!student) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "Student profile not found"
+//             });
+//         }
+
+//         const isHired = student.hired_tutors.some(
+//             hiredTutor => hiredTutor.tutor.toString() === tutor_id
+//         );
+
+//         if (!isHired) {
+//             return res.status(403).json({
+//                 success: false,
+//                 message: "You can only request help from tutors you have hired"
+//             });
+//         }
+
+//         // Create a help request inquiry
+//         const helpRequest = await TutorInquiry.create({
+//             student_id: student._id,
+//             tutor_id: tutor_id,
+//             subject: subject,
+//             description: message,
+//             status: 'unread',
+//             type: 'help_request',
+//             urgency_level: 'normal'
+//         });
+
+//         res.status(201).json({
+//             success: true,
+//             message: "Help request sent successfully",
+//             inquiry: helpRequest
+//         });
+
+//     } catch (error) {
+//         console.error("Error sending help request:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Failed to send help request",
+//             error: error.message
+//         });
+//     }
+// });
 
 
 

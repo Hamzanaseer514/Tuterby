@@ -38,8 +38,8 @@ const tutorInquirySchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['tutor_inquiry', 'additional_help'],
-    default: 'tutor_inquiry'
+    enum: ['additional_help', 'tutor_inquiry'],
+    default: 'additional_help'
   },
   status: {
     type: String,

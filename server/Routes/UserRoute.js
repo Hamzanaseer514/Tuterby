@@ -1,7 +1,13 @@
 const express = require("express")
 const router = express.Router()
 const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword} = require("../Controllers/UserController")
-const { getStudentDashboard,updateStudentProfile, getStudentSessions,searchTutors, getTutorDetails, requestAdditionalHelp, getStudentHelpRequests ,hireTutor,sendMessage,getAcceptedTutorsForStudent,getStudentTutorChat} = require("../Controllers/StudentController")
+const { getStudentDashboard,updateStudentProfile,
+   getStudentSessions,searchTutors, getTutorDetails, 
+   requestAdditionalHelp, getStudentHelpRequests ,hireTutor,
+   sendMessage,getAcceptedTutorsForStudent,
+   getStudentTutorChat,
+   getHiredTutors,
+   requestHelpFromTutor} = require("../Controllers/StudentController")
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
@@ -50,5 +56,6 @@ router.post("/tutors/sessions", protect, hireTutor);
 
 router.post("/student/:userId/help-request", protect, requestAdditionalHelp);
 router.get("/student/:userId/help-requests", protect, getStudentHelpRequests);
+router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
 
 module.exports = router;            

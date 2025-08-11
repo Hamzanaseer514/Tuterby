@@ -20,7 +20,8 @@ import {
   Play,
   Pause,
   Eye,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
@@ -44,7 +45,8 @@ const SessionManagement = () => {
     feedback: '',
     notes: ''
   });
-  const { user } = useAuth();
+  const { user,getAuthToken } = useAuth();
+  const authToken = getAuthToken();
 
   // Common subjects for dropdown
   const commonSubjects = [
@@ -69,7 +71,12 @@ const SessionManagement = () => {
         ? `${BASE_URL}/api/tutor/sessions/${user._id}`
         : `${BASE_URL}/api/tutor/sessions/${user._id}?status=${filter}`;
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
       if (!response.ok) {
         throw new Error('Failed to fetch sessions');
       }
@@ -82,26 +89,27 @@ const SessionManagement = () => {
     }
   };
 
-  const updateSessionStatus = async (sessionId, newStatus) => {
-    try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/${sessionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+  // const updateSessionStatus = async (sessionId, newStatus) => {
+  //   try {
+  //     const response = await fetch(`${BASE_URL}/api/tutor/sessions/${sessionId}`, {
+  //       method: 'PUT',
+  //       headers: {
+  //         'Authorization': `Bearer ${authToken}`,
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ status: newStatus }),
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to update session');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to update session');
+  //     }
 
-      // Refresh sessions after update
-      fetchSessions();
-    } catch (err) {
-      console.error('Error updating session:', err);
-    }
-  };
+  //     // Refresh sessions after update
+  //     fetchSessions();
+  //   } catch (err) {
+  //     console.error('Error updating session:', err);
+  //   }
+  // };
 
   const openUpdateSessionModal = (session) => {
     setSelectedSession(session);
@@ -130,10 +138,11 @@ const SessionManagement = () => {
   const handleUpdateSession = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/${selectedSession._id}`, {
+      const response = await fetch(`${BASE_URL}/api/tutor/sessions/update/${selectedSession._id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...updateSessionForm,
@@ -161,6 +170,32 @@ const SessionManagement = () => {
       fetchSessions(); // Refresh sessions after update
     } catch (err) {
       console.error('Error updating session:', err);
+    }
+  };
+
+  const deleteSession = async (sessionId) => {
+    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/tutor/sessions/delete/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session');
+      }
+
+      // Refresh sessions after deletion
+      fetchSessions();
+    } catch (err) {
+      console.error('Error deleting session:', err);
+      alert('Failed to delete session. Please try again.');
     }
   };
 
@@ -204,60 +239,60 @@ const SessionManagement = () => {
     }
   };
 
-  const getActionButton = (session) => {
-    switch (session.status) {
-      case 'pending':
-        return (
-          <Button 
-            size="sm" 
-            onClick={() => updateSessionStatus(session._id, 'confirmed')}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            Confirm
-          </Button>
-        );
-      case 'confirmed':
-        return (
-          <Button 
-            size="sm" 
-            onClick={() => updateSessionStatus(session._id, 'in_progress')}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Start Session
-          </Button>
-        );
-      case 'in_progress':
-        return (
-          <Button 
-            size="sm" 
-            onClick={() => updateSessionStatus(session._id, 'completed')}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            Complete
-          </Button>
-        );
-      default:
-        return (
-          <div className="flex space-x-2">
-            <Button size="sm" variant="outline" onClick={() => {
-              setSelectedSession(session);
-              setShowSessionModal(true);
-            }}>
-              <Eye className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            {session.status !== 'completed' && (
-              <Button size="sm" variant="outline" onClick={() => {
-                openUpdateSessionModal(session);
-              }}>
-                <Edit className="h-4 w-4 mr-1" />
-                Update
-              </Button>
-            )}
-          </div>
-        );
-    }
-  };
+  // const getActionButton = (session) => {
+  //   switch (session.status) {
+  //     case 'pending':
+  //       return (
+  //         <Button 
+  //           size="sm" 
+  //           onClick={() => updateSessionStatus(session._id, 'confirmed')}
+  //           className="bg-green-600 hover:bg-green-700"
+  //         >
+  //           Confirm
+  //         </Button>
+  //       );
+  //     case 'confirmed':
+  //       return (
+  //         <Button 
+  //           size="sm" 
+  //           onClick={() => updateSessionStatus(session._id, 'in_progress')}
+  //           className="bg-blue-600 hover:bg-blue-700"
+  //         >
+  //           Start Session
+  //         </Button>
+  //       );
+  //     case 'in_progress':
+  //       return (
+  //         <Button 
+  //           size="sm" 
+  //           onClick={() => updateSessionStatus(session._id, 'completed')}
+  //           className="bg-purple-600 hover:bg-purple-700"
+  //         >
+  //           Complete
+  //         </Button>
+  //       );
+  //     default:
+  //       return (
+  //         <div className="flex space-x-2">
+  //           <Button size="sm" variant="outline" onClick={() => {
+  //             setSelectedSession(session);
+  //             setShowSessionModal(true);
+  //           }}>
+  //             <Eye className="h-4 w-4 mr-1" />
+  //             View
+  //           </Button>
+  //           {session.status !== 'completed' && (
+  //             <Button size="sm" variant="outline" onClick={() => {
+  //               openUpdateSessionModal(session);
+  //             }}>
+  //               <Edit className="h-4 w-4 mr-1" />
+  //               Update
+  //             </Button>
+  //           )}
+  //         </div>
+  //       );
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -338,9 +373,8 @@ const SessionManagement = () => {
                         {getStatusIcon(session.status)}
                         <span className="ml-1">{session.status}</span>
                       </Badge>
-                      {getActionButton(session)}
+                      {/* {getActionButton(session)} */}
                       <div className="flex space-x-2 ml-2">
-                      {session.status !== 'completed' && (
                         <Button 
                           size="sm" 
                           variant="outline" 
@@ -352,7 +386,6 @@ const SessionManagement = () => {
                           <Eye className="h-4 w-4 mr-1" />
                           View
                         </Button>
-                      )}
                         {session.status !== 'completed' && (
                           <Button 
                             size="sm" 
@@ -365,6 +398,15 @@ const SessionManagement = () => {
                             Update
                           </Button>
                         )}
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => deleteSession(session._id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -501,7 +543,7 @@ const SessionManagement = () => {
                   >
                     Close
                   </Button>
-                  {/* {selectedSession.status !== 'completed' && (
+                  {selectedSession.status !== 'completed' && (
                     <Button 
                       onClick={() => {
                         setShowSessionModal(false);
@@ -512,7 +554,18 @@ const SessionManagement = () => {
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Session
                     </Button>
-                  )} */}
+                  )}
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowSessionModal(false);
+                      deleteSession(selectedSession._id);
+                    }}
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Session
+                  </Button>
                 </div>
               </div>
             </div>

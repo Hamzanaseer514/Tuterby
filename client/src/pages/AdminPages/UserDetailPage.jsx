@@ -80,6 +80,8 @@ const UserDetailPage = () => {
   );
   const [profileStatusReason, setProfileStatusReason] = useState(user?.profileStatusReason || '');
   const [localUser, setLocalUser] = useState(user);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
 
   // If no user data, you might want to fetch it here
   useEffect(() => {
@@ -218,6 +220,16 @@ const UserDetailPage = () => {
     } else {
       alert(res.data.message);
     }
+  };
+
+  const handleViewDocument = (document) => {
+    setSelectedDocument(document);
+    setShowDocumentModal(true);
+  };
+
+  const handleCloseDocumentModal = () => {
+    setShowDocumentModal(false);
+    setSelectedDocument(null);
   };
 
   const getStatusColor = (status) => {
@@ -401,7 +413,12 @@ const UserDetailPage = () => {
                               }
                             />
                             <Box sx={{ display: 'flex', gap: 1 }}>
-                              <IconButton size="small" href={doc.url} target="_blank" disabled={doc.url === '#'} title={doc.url === '#' ? 'Document not available' : 'View document'}>
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleViewDocument(doc)} 
+                                disabled={doc.url === '#'} 
+                                title={doc.url === '#' ? 'Document not available' : 'View document'}
+                              >
                                 <CloudDownload />
                               </IconButton>
                               {(doc.verified === "Rejected" || doc.verified === "Pending") && (
@@ -411,7 +428,6 @@ const UserDetailPage = () => {
                                 color="success"
                                 onClick={async () => {
                                   try {
-                                      {console.log("doc",doc.verified)}
                                       await verifyDocument(user.id, doc.type);
                                       // update local document verified flag
                                       setLocalUser(prev => ({
@@ -856,6 +872,102 @@ const UserDetailPage = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* Document View Modal */}
+      {showDocumentModal && selectedDocument && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <Typography variant="h5" fontWeight="bold">
+                {selectedDocument.type} Document
+              </Typography>
+              <IconButton onClick={handleCloseDocumentModal} size="large">
+                <Cancel />
+              </IconButton>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Document Info */}
+              <Card sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Type:</strong> {selectedDocument.type}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Status:</strong> 
+                  <Chip 
+                    label={selectedDocument.verified} 
+                    color={selectedDocument.verified === 'Approved' ? 'success' : selectedDocument.verified === 'Rejected' ? 'error' : 'warning'} 
+                    size="small" 
+                    sx={{ ml: 1 }}
+                  />
+                </Typography>
+                {selectedDocument.uploadDate && (
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Uploaded:</strong> {selectedDocument.uploadDate}
+                  </Typography>
+                )}
+                {selectedDocument.notes && (
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Notes:</strong> {selectedDocument.notes}
+                  </Typography>
+                )}
+              </Card>
+
+              {/* Document Content */}
+              <div className="flex justify-center">
+                {selectedDocument.url && selectedDocument.url !== '#' ? (
+                  <div className="w-full">
+                    {selectedDocument.type?.toLowerCase().includes('image') || 
+                     selectedDocument.url?.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i) ? (
+                      // Image display
+                      <img 
+                        src={selectedDocument.url} 
+                        alt={selectedDocument.type}
+                        className="max-w-full h-auto max-h-[60vh] object-contain border rounded-lg shadow-lg"
+                        style={{ maxWidth: '100%', height: 'auto', maxHeight: '60vh' }}
+                      />
+                    ) : (
+                      // PDF or other document display
+                      <iframe
+                        src={selectedDocument.url}
+                        title={selectedDocument.type}
+                        className="w-full h-[60vh] border rounded-lg shadow-lg"
+                        style={{ width: '100%', height: '60vh' }}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <Card sx={{ p: 4, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+                    <CloudDownload sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">
+                      Document Not Available
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      The document file could not be loaded or is not accessible.
+                    </Typography>
+                  </Card>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                {selectedDocument.url && selectedDocument.url !== '#' && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<CloudDownload />}
+                    onClick={() => window.open(selectedDocument.url, '_blank')}
+                  >
+                    Download
+                  </Button>
+                )}
+                <Button variant="outlined" onClick={handleCloseDocumentModal}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

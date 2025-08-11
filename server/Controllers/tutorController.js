@@ -38,7 +38,7 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
 
   const tutor = await TutorProfile.findOne({ user_id: user_id });
-
+  tutor.subjects = tutor.subjects;
   const upcomingSessions = await TutoringSession.find({
     tutor_id: tutor._id,
     session_date: { $gte: new Date() },
@@ -105,12 +105,11 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     ]),
     calculateBookingAcceptanceRate(tutor._id)
   ]);
-
   const studentObjectIds = upcomingSessions.flatMap(session => session.student_ids);
   const students = await StudentProfile.find({ _id: { $in: studentObjectIds } });
   const students_ids = students.map(student => student.user_id);
   const users = await User.find({ _id: students_ids });
-
+  
   // ✅ Ensure session_date is returned exactly in ISO format without timezone shift
   const formatSessions = (sessions) => {
     return sessions.map(s => ({
@@ -122,6 +121,7 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   const dashboard = {
     upcomingSessions: formatSessions(upcomingSessions),
     recentSessions: formatSessions(recentSessions),
+    tutor,
     pendingInquiries,
     users,
     students,
@@ -156,8 +156,6 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 // Create a new tutoring session
 const createSession = asyncHandler(async (req, res) => {
   const { tutor_id, student_id, subject, session_date, duration_hours, hourly_rate, notes } = req.body;
-
-  console.log("session_date (raw from frontend):", duration_hours);
 
   if (!tutor_id || !student_id || !subject || !session_date || !duration_hours || !hourly_rate) {
     return res.status(400).json({ message: "All required fields must be provided" });
@@ -226,16 +224,12 @@ const createSession = asyncHandler(async (req, res) => {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
-  console.log("session_date saved in DB:", session.session_date.toISOString());
 
   return res.status(201).json({
     message: "Tutoring session created successfully",
     session
   });
 });
-
-
-
 
 const updateSessionStatus = asyncHandler(async (req, res) => {
   const { session_id } = req.params;
@@ -250,14 +244,12 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     feedback,
     notes
   } = req.body;
-
   if (!session_date || !duration_hours || !hourly_rate) {
     return res.status(400).json({
       success: false,
       message: "Date, duration, and hourly rate are required"
     });
   }
-
   try {
     const session = await TutoringSession.findById(session_id);
     if (!session) {
@@ -266,7 +258,6 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         message: "Session not found"
       });
     }
-
     // Convert frontend time to exact UTC without timezone shift
     let sessionDateExactUTC;
     if (typeof session_date === 'string') {
@@ -297,7 +288,6 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
           }
         ]
       });
-console.log("conflictingSession",conflictingSession)
       if (conflictingSession) {
         return res.status(400).json({
           success: false,
@@ -357,10 +347,6 @@ console.log("conflictingSession",conflictingSession)
     });
   }
 });
-
-
-
-
 
 
 // Get tutor's sessions with filtering
@@ -540,7 +526,7 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error("Tutor profile not found");
     }
-
+   
     // Find students who accepted this tutor
     const students = await StudentProfile.find({
       hired_tutors: {
@@ -552,7 +538,7 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
     })
       .populate('user_id', 'full_name email age')
       .select('user_id academic_level preferred_subjects availability');
-
+       
     // Format response
     const formattedStudents = students.map(student => ({
       _id: student.user_id._id,
@@ -573,8 +559,6 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
     throw new Error("Failed to fetch students: " + err.message);
   }
 });
-
-
 
 // Availability Management Functions
 
@@ -640,7 +624,6 @@ const updateGeneralAvailability = asyncHandler(async (req, res) => {
     availability
   });
 });
-
 
 // Add blackout date
 const addBlackoutDate = asyncHandler(async (req, res) => {
@@ -943,7 +926,6 @@ const getTutorMessages = asyncHandler(async (req, res) => {
   });
 });
 
-
 const getSpecificUserChat = asyncHandler(async (req, res) => {
   const tutorId = req.user._id;
   const { studentId } = req.params;
@@ -959,6 +941,50 @@ const getSpecificUserChat = asyncHandler(async (req, res) => {
   });
 })
 
+const deleteSession = asyncHandler(async (req, res) => {
+  const { session_id } = req.params;
+  const { user } = req; // Get the authenticated user from auth middleware
+
+  if (!session_id) {
+    res.status(400);
+    throw new Error("Session ID is required");
+  }
+
+  // Find the session first to check ownership
+  const session = await TutoringSession.findById(session_id);
+  
+  if (!session) {
+    res.status(404);
+    throw new Error("Session not found");
+  }
+
+  // Find the tutor profile for the authenticated user
+  const tutorProfile = await TutorProfile.findOne({ user_id: user._id });
+  if (!tutorProfile) {
+    res.status(404);
+    throw new Error("Tutor profile not found");
+  }
+
+  // Verify that the logged-in tutor owns this session
+  if (session.tutor_id.toString() !== tutorProfile._id.toString()) {
+    res.status(403);
+    throw new Error("You are not authorized to delete this session");
+  }
+
+  // Check if session can be deleted (e.g., not completed or in progress)
+  if (session.status === 'completed' || session.status === 'in_progress') {
+    res.status(400);
+    throw new Error("Cannot delete completed or in-progress sessions");
+  }
+
+  // Delete the session
+  await TutoringSession.findByIdAndDelete(session_id);
+
+  res.status(200).json({ 
+    success: true,
+    message: "Session deleted successfully" 
+  });
+});
 
 module.exports = {
   uploadDocument,
@@ -982,5 +1008,6 @@ module.exports = {
   respondToHireRequest,
   sendMessageResponse,
   getTutorMessages,
-  getSpecificUserChat
+  getSpecificUserChat,
+  deleteSession
 };

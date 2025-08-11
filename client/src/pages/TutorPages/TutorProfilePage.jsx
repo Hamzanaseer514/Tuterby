@@ -34,7 +34,7 @@ const TutorProfilePage = () => {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [bookingData, setBookingData] = useState({
     subject: '',
-    session_date: '',
+    // session_date: '',
     duration_hours: 1,
     notes: ''
   });
@@ -120,10 +120,9 @@ const TutorProfilePage = () => {
 
   const handleBookSession = (tutor) => {
     setSelectedTutor(tutor);
-    console.log("tutor", tutor);
     setBookingData({
       subject: '',
-      session_date: '',
+      // session_date: '',
       duration_hours: 1,
       notes: ''
     });
@@ -156,7 +155,7 @@ const TutorProfilePage = () => {
           tutor_user_id: selectedTutor.user_id._id,
           student_user_id: user._id,
           subject: bookingData.subject,
-          session_date: bookingData.session_date,
+          // session_date: bookingData.session_date,
           duration_hours: bookingData.duration_hours,
           hourly_rate: selectedTutor.hourly_rate,
           notes: bookingData.notes
@@ -239,13 +238,13 @@ const TutorProfilePage = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleContactTutor} variant="outline">
+              {/* <Button onClick={handleContactTutor} variant="outline">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Contact
-              </Button>
+              </Button> */}
               <Button onClick={() => handleBookSession(tutor)}>
                 <Calendar className="w-4 h-4 mr-2" />
-                Hire Tutor 1
+                Hire Tutor
               </Button>
 
             </div>
@@ -279,7 +278,7 @@ const TutorProfilePage = () => {
                     </select>
                   </div>
 
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Session Date & Time</label>
                     <input
                       type="datetime-local"
@@ -287,7 +286,7 @@ const TutorProfilePage = () => {
                       value={bookingData.session_date}
                       onChange={(e) => setBookingData(prev => ({ ...prev, session_date: e.target.value }))}
                     />
-                  </div>
+                  </div> */}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
@@ -332,7 +331,7 @@ const TutorProfilePage = () => {
                     <Button
                       onClick={handleHireTutorSubmit}
                       className="flex-1"
-                      disabled={!bookingData.subject || !bookingData.session_date}
+                      disabled={!bookingData.subject}
                     >
                       Hire Tutor
                     </Button>
@@ -500,33 +499,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-              {/* Recent Sessions */}
-              {/* {tutor.recent_sessions && tutor.recent_sessions.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Sessions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {tutor.recent_sessions.map((session) => (
-                        <div key={session._id} className="p-3 border rounded-lg">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-sm">
-                              {console.log(session)}
-                               {session.student_id.full_name} 
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(session.session_date).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">{session.subject}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )} */}
-
+        
               {/* Contact Actions */}
               <Card>
                 <CardHeader>
@@ -535,12 +508,12 @@ const TutorProfilePage = () => {
                 <CardContent className="space-y-3">
                   <Button onClick={() => (handleBookSession(tutor))} className="w-full">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Hire Tutor 2
+                    Hire Tutor
                   </Button>
-                  <Button onClick={handleContactTutor} variant="outline" className="w-full">
+                  {/* <Button onClick={handleContactTutor} variant="outline" className="w-full">
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Send Message
-                  </Button>
+                  </Button> */}
                 </CardContent>
               </Card>
             </div>

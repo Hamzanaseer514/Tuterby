@@ -18,6 +18,7 @@ import StudentDashboard from '../../components/student/StudentDashboard';
 import StudentSessions from '../../components/student/StudentSessions';
 import StudentPreferences from '../../components/student/StudentPreferences';
 import StudentChatPage from '../../components/student/StudentChatPage';
+import StudentHelpRequests from '../../components/student/StudentHelpRequests';
 
 const StudentDashboardPage = () => {
   const { user, logout, loading: authLoading } = useAuth();
@@ -91,6 +92,12 @@ const StudentDashboardPage = () => {
       name: 'Chat',
       icon: MessageSquare,
       component: <StudentChatPage />,
+    },
+    {
+      id: 'requests',
+      name: 'Requests-Help',
+      icon: MessageSquare,
+      component: <StudentHelpRequests/>,
     },
   ];
 

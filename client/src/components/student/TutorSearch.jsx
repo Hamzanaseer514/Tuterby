@@ -44,7 +44,7 @@ const TutorSearch = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [bookingData, setBookingData] = useState({
     subject: '',
-    session_date: '',
+    // session_date: '',
     duration_hours: 1,
     notes: ''
   });
@@ -183,7 +183,7 @@ const TutorSearch = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = getAuthToken();
+      const authToken = getAuthToken();
 
       const params = new URLSearchParams({
         page: currentPage,
@@ -198,7 +198,7 @@ const TutorSearch = () => {
 
       const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -264,7 +264,7 @@ const TutorSearch = () => {
     setSelectedTutor(tutor);
     setBookingData({
       subject: '',
-      session_date: '',
+      // session_date: '',
       duration_hours: 1,
       notes: ''
     });
@@ -290,7 +290,7 @@ const TutorSearch = () => {
           tutor_user_id: selectedTutor.user_id._id,
           student_user_id: user._id,
           subject: bookingData.subject,
-          session_date: bookingData.session_date,
+          // session_date: bookingData.session_date,
           duration_hours: bookingData.duration_hours,
           hourly_rate: selectedTutor.hourly_rate,
           notes: bookingData.notes
@@ -536,29 +536,29 @@ const TutorSearch = () => {
                         <div className="mb-3">
 
                           <div className="flex flex-wrap gap-1 mb-3">
-                            {tutor.academic_levels_taught?.slice(0, 3).map((level, index) => (
+                            {tutor.academic_levels_taught?.map((level, index) => (
                               <Badge key={index} variant="secondary" className="text-xs">
                                 {level}
                               </Badge>
                             ))}
-                            {tutor.academic_levels_taught?.length > 3 && (
+                            {/* {tutor.academic_levels_taught?.length > 3 && (
                               <Badge variant="outline" className="text-xs">
                                 +{tutor.academic_levels_taught.length - 3} more
                               </Badge>
-                            )}
+                            )} */}
                           </div>
 
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {tutor.subjects?.slice(0, 3).map((subject, index) => (
+                            {tutor.subjects?.map((subject, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {subject}
                               </Badge>
                             ))}
-                            {tutor.subjects?.length > 3 && (
+                            {/* {tutor.subjects?.length > 3 && (
                               <Badge variant="outline" className="text-xs">
                                 +{tutor.subjects.length - 3} more
                               </Badge>
-                            )}
+                            )} */}
                           </div>
 
                         </div>
@@ -595,18 +595,6 @@ const TutorSearch = () => {
                             Hire Tutor
                           </Button>
                           <Button
-                            onClick={() => handleRequestHelp(tutor)}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <HelpCircle className="w-4 h-4 mr-2" />
-                            Request Help
-                          </Button>
-                        </div>
-
-                        <div className="flex gap-2 mt-2">
-                          <Button
                             onClick={() => handleViewTutor(tutor._id)}
                             variant="outline"
                             size="sm"
@@ -615,16 +603,9 @@ const TutorSearch = () => {
                             <Eye className="w-4 h-4 mr-2" />
                             View Profile
                           </Button>
-                          {/* <Button 
-                            onClick={() => handleContactTutor(tutor._id)}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Contact
-                          </Button> */}
                         </div>
+
+                      
                       </div>
                     </div>
                   </CardContent>
@@ -696,14 +677,14 @@ const TutorSearch = () => {
                 </Select>
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Session Date & Time</label>
                 <Input
                   type="datetime-local"
                   value={bookingData.session_date}
                   onChange={(e) => setBookingData(prev => ({ ...prev, session_date: e.target.value }))}
                 />
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
@@ -747,7 +728,7 @@ const TutorSearch = () => {
                 <Button
                   onClick={handleHireTutorSubmit}
                   className="flex-1"
-                  disabled={!bookingData.subject || !bookingData.session_date}
+                  disabled={!bookingData.subject}
                 >
                   Hire Tutor
                 </Button>

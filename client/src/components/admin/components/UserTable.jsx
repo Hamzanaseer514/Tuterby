@@ -42,19 +42,21 @@ import {
   FileDownload,
   GridView,
   TableRows,
-  Add
+  Add,
+  Cancel,
 } from '@mui/icons-material';
 
 
 const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, index }) => {
   const getStatusIcon = (status) => {
+    console.log("status",status)
     switch (status) {
-      case 'verified':
+      case 'active':
         return <CheckCircle color="success" fontSize="small" />;
+      case 'inactive':
+        return <Cancel color="error" fontSize="small" />;
       case 'pending':
         return <Pending color="warning" fontSize="small" />;
-      case 'rejected':
-        return <Pending color="error" fontSize="small" />;
       default:
         return <Pending color="action" fontSize="small" />;
     }
@@ -152,14 +154,15 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <TableCell>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" fontWeight="medium">
-                  {user.documents?.filter(d => d.verified).length || 0}/{user.documents?.length || 0}
+
+                  {user.documents?.filter(d => d.verified ==="Approved").length || 0}/{user.documents?.length || 0}
                 </Typography>
-                {user.documents?.every(d => d.verified) ? (
+                {user.documents?.every(d => d.verified === "Approved") ? (
                   <CheckCircle color="success" fontSize="small" />
-                ) : user.documents?.some(d => d.verified) ? (
-                  <Pending color="warning" fontSize="small" />
+                ) : user.documents?.some(d => d.verified === "Rejected") ? (
+                  <Cancel color="error" fontSize="small" />
                 ) : (
-                  <Pending color="error" fontSize="small" />
+                  <Pending color="warning" fontSize="small" />
                 )}
               </Box>
             </TableCell>
@@ -341,7 +344,6 @@ const UserTable = ({
   onRefresh
 }) => {
   const navigate = useNavigate();
-  const [selectedUser, setSelectedUser] = useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedMenuUser, setSelectedMenuUser] = useState(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
@@ -351,8 +353,8 @@ const UserTable = ({
   }, [searchTerm]);
 
   const handleViewUser = (user) => {
-    navigate(`/admin/user-detail/${tabValue}`, { 
-      state: { user, tabValue } 
+    navigate(`/admin/user-detail/${tabValue}`, {
+      state: { user, tabValue }
     });
   };
 
@@ -370,14 +372,7 @@ const UserTable = ({
     setSelectedMenuUser(null);
   };
 
-  const handleSearchChange = (e) => {
-    setLocalSearchTerm(e.target.value);
-  };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    onSearch(localSearchTerm);
-  };
 
   const handleClearSearch = () => {
     setLocalSearchTerm('');
@@ -427,7 +422,7 @@ const UserTable = ({
 
   return (
     <Box sx={{ width: '100%' }}>
-      
+
 
       {/* Main Table */}
       <TableContainer
@@ -483,8 +478,8 @@ const UserTable = ({
                   <Typography variant="body1" color="text.secondary">
                     No {tabValue} found matching your criteria
                   </Typography>
-                  <Button 
-                    variant="text" 
+                  <Button
+                    variant="text"
                     onClick={handleClearSearch}
                     sx={{ mt: 1 }}
                   >
