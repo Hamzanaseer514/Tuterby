@@ -80,7 +80,6 @@ exports.registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 
 function parseArrayField(field) {
   if (!field) return [];
@@ -107,9 +106,6 @@ function parseArrayField(field) {
   return [];
 }
 
-
-=======
->>>>>>> 96713894cd66bbea0c0910cd6f5dc1a165529c69
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
     full_name,
