@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,6 +11,7 @@ import {
   BellIcon,
   UserCircleIcon
 } from '@heroicons/react/24/outline';
+import { Dashboard as DashboardIcon } from '@mui/icons-material';
 
 const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, students: 0, parents: 0 }, onTabChange }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -17,8 +19,13 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
 
 
   const handleTabChange = (newTabValue) => {
-    if (onTabChange) {
-      onTabChange({}, newTabValue);
+    if (newTabValue === 'dashboard') {
+      navigate('/admin');
+    } else if (newTabValue === 'tutors' || newTabValue === 'students' || newTabValue === 'parents') {
+      navigate('/admin/users');
+      if (onTabChange) {
+        onTabChange({}, newTabValue);
+      }
     }
     if (mobileOpen) setMobileOpen(false);
   };
@@ -31,6 +38,12 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
 
   const navItems = [
     { 
+      id: 'dashboard', 
+      icon: <DashboardIcon className="h-5 w-5" />, 
+      label: 'Dashboard', 
+      count: null 
+    },
+    { 
       id: 'tutors', 
       icon: <UserGroupIcon className="h-5 w-5" />, 
       label: 'Tutors', 
@@ -38,13 +51,13 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
     },
     { 
       id: 'students', 
-      icon: <UserIcon className="h-5 w-5" />, 
+      icon: <AcademicCapIcon className="h-5 w-5" />, 
       label: 'Students', 
       count: userCounts.students 
     },
     { 
       id: 'parents', 
-      icon: <UserGroupIcon className="h-5 w-5" />, 
+      icon: <UserIcon className="h-5 w-5" />, 
       label: 'Parents', 
       count: userCounts.parents 
     },
@@ -85,7 +98,7 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
               ))}
             </nav>
             <div className="border-t px-2 py-4">
-              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-100 mb-1">
+              <button onClick={() => navigate('/admin/settings')} className="flex items-center w-full px-4 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-100 mb-1">
                 <Cog6ToothIcon className="h-5 w-5 mr-3 text-gray-500" />
                 <span className="font-medium">Settings</span>
               </button>
@@ -132,7 +145,7 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
               ))}
             </nav>
             <div className="border-t px-2 py-4">
-              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-100 mb-1">
+              <button onClick={() => navigate('/admin/settings')} className="flex items-center w-full px-4 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-100 mb-1">
                 <Cog6ToothIcon className="h-5 w-5 mr-3 text-gray-500" />
                 <span className="font-medium">Settings</span>
               </button>
@@ -160,7 +173,7 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
               <MenuIcon className="h-6 w-6" />
             </button>
             <h1 className="text-lg font-bold text-gray-800">
-              {tabValue.charAt(0).toUpperCase() + tabValue.slice(1)} Management
+              {tabValue === 'dashboard' ? 'Dashboard' : `${tabValue.charAt(0).toUpperCase() + tabValue.slice(1)} Management`}
             </h1>
             <div className="flex items-center space-x-4">
               <button className="relative text-gray-500 hover:text-gray-700">

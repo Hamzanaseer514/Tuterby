@@ -64,7 +64,6 @@ const UserDetailPage = () => {
   const { tabValue } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  
   // Get user data from location state or fetch it
   const [user, setUser] = useState(location.state?.user || null);
     const [loading, setLoading] = useState(!location.state?.user);
@@ -840,7 +839,7 @@ const UserDetailPage = () => {
             </>
           )}
           <Button 
-            onClick={() => navigate(-1)} 
+            onClick={() => navigate('/admin/users')} 
             variant="outlined"
             sx={{ 
               minHeight: 48,

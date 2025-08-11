@@ -22,6 +22,9 @@ const Register = lazy(() => import("./components/account/register"));
 const AdminDashboard = lazy(() =>
   import("./components/admin/components/AdminDashboard")
 );
+const AdminDashboardPage = lazy(() =>
+  import("./pages/AdminPages/AdminDashboardPage")
+);
 const UserDetailPage = lazy(() =>
   import("./pages/AdminPages/UserDetailPage")
 );
@@ -46,6 +49,9 @@ const TutorProfilePage = lazy(() =>
 );
 const ParentDashboardPage = lazy(() =>
   import("./pages/ParentPages/ParentDashboardPage")
+);
+const AdminSettings = lazy(() =>
+  import("./pages/AdminPages/AdminSettings")
 );
 
 const PageLoader = () => (
@@ -79,8 +85,10 @@ function App() {
                 element={<PremiumServicePage />}
               />
               <Route path="/register" element={<Register />} />
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/users" element={<AdminDashboard />} />
               <Route path="/admin/user-detail/:tabValue" element={<UserDetailPage />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<TutorDashboardPage />} />
               <Route

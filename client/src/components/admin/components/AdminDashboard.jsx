@@ -22,7 +22,6 @@ import {
 } from '../../../services/adminService';
 
 // Import custom components
-import DashboardStats from './DashboardStats';
 import UserTable from './UserTable';
 import SearchAndFilterBar from './SearchAndFilterBar';
 import LoadingOverlay from './LoadingOverlay';
@@ -49,21 +48,26 @@ const getMockDashboardStats = () => ({
 const getMockUsers = (userType) => {
   const mockUsers = {
     tutors: [
-      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'verified', subjects: ['Math', 'Physics'], documents: [] },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'pending', subjects: ['English', 'History'], documents: [] }
+      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'verified', subjects: ['Math', 'Physics'] },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'pending', subjects: ['Chemistry', 'Biology'] },
+      { id: 3, name: 'Mike Johnson', email: 'mike@example.com', status: 'verified', subjects: ['English', 'History'] }
     ],
     students: [
-      { id: 3, name: 'Mike Johnson', email: 'mike@example.com', status: 'active', subjects: ['Math', 'Science'], sessionsCompleted: 5 },
-      { id: 4, name: 'Sarah Wilson', email: 'sarah@example.com', status: 'active', subjects: ['English', 'Art'], sessionsCompleted: 3 }
+      { id: 1, name: 'Alice Brown', email: 'alice@example.com', status: 'active', subjects: ['Math', 'Physics'] },
+      { id: 2, name: 'Bob Wilson', email: 'bob@example.com', status: 'active', subjects: ['Chemistry'] },
+      { id: 3, name: 'Carol Davis', email: 'carol@example.com', status: 'active', subjects: ['English'] }
     ],
     parents: [
-      { id: 5, name: 'David Brown', email: 'david@example.com', status: 'active', children: ['Mike Johnson', 'Sarah Wilson'], sessionsBooked: 8 },
-      { id: 6, name: 'Lisa Davis', email: 'lisa@example.com', status: 'active', children: ['Emma Wilson'], sessionsBooked: 4 }
+      { id: 1, name: 'David Miller', email: 'david@example.com', status: 'active' },
+      { id: 2, name: 'Emma Garcia', email: 'emma@example.com', status: 'active' },
+      { id: 3, name: 'Frank Rodriguez', email: 'frank@example.com', status: 'active' }
     ]
   };
   
   return mockUsers[userType] || [];
 };
+
+
 
 const AdminDashboard = () => {
   // State management
@@ -295,25 +299,7 @@ const AdminDashboard = () => {
     return matchesSearch;
   }) || [];
 
-  const getStatusCounts = () => {
-    const counts = { tutors: {}, students: {}, parents: {} };
 
-    (dashboardState.users.tutors || []).forEach(tutor => {
-      counts.tutors[tutor.status] = (counts.tutors[tutor.status] || 0) + 1;
-    });
-
-    (dashboardState.users.students || []).forEach(student => {
-      counts.students[student.status] = (counts.students[student.status] || 0) + 1;
-    });
-
-    (dashboardState.users.parents || []).forEach(parent => {
-      counts.parents[parent.status] = (counts.parents[parent.status] || 0) + 1;
-    });
-
-    return counts;
-  };
-
-  const statusCounts = getStatusCounts();
 
   return (
     <AdminLayout 
@@ -334,7 +320,7 @@ const AdminDashboard = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <DashboardIcon sx={{ mr: 2, color: 'primary.main', fontSize: 40 }} />
                   <Typography variant="h4" fontWeight="bold" color="primary">
-                    {(uiState.tabValue || 'tutors').charAt(0).toUpperCase() + (uiState.tabValue || 'tutors').slice(1)} Management
+                    User Management - {(uiState.tabValue || 'tutors').charAt(0).toUpperCase() + (uiState.tabValue || 'tutors').slice(1)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -400,18 +386,11 @@ const AdminDashboard = () => {
               </Box>
               
               <Typography variant="body1" color="text.secondary">
-                Manage {uiState.tabValue || 'tutors'}, verify documents, and monitor platform activity.
+                Manage {uiState.tabValue || 'tutors'}, verify documents, and handle user accounts.
               </Typography>
             </Box>
 
-            {/* Statistics Cards */}
-            <DashboardStats 
-              stats={dashboardState.stats}
-              statusCounts={statusCounts}
-              users={dashboardState.users}
-              loading={dashboardState.loading}
-              tabValue={uiState.tabValue}
-            />
+
 
             {/* Main Content */}
             <Paper 
