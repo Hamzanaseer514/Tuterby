@@ -52,8 +52,9 @@ export default function LoginForm() {
         },
         body: JSON.stringify({ email, password, rememberMe }),
       });
-console.log(response);
+      console.log("login response for checking", response);
       const data = await response.json();
+      console.log("login data for checking", data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
@@ -69,9 +70,19 @@ console.log(response);
         }, 1000);
         return;
       }
-
-      setUserId(data.userId);
-      setOtpPhase(true);
+      // if(data.user && data.user.role === 'student') {
+        if(data.isOtpTrue) {
+          setUserId(data.userId);
+          setOtpPhase(true);
+        }
+        else {
+          login(data.user, data.accessToken, rememberMe);
+          setSuccess('Welcome to your Student Dashboard! Redirecting...');
+          setTimeout(() => {
+            navigate(`/student-dashboard`);
+          }, 1000);
+        }
+      // }
     } catch (err) {
       setError(err.message);
     } finally {

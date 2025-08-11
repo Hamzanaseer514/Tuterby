@@ -37,6 +37,7 @@
     "react-dom": "^18.2.0",
     "react-helmet-async": "^2.0.0",
     "react-router-dom": "^6.16.0",
+    "react-toastify": "^11.0.5",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7"
   },

@@ -122,6 +122,17 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     throw new Error("Email already exists");
   }
 
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+  if (!passwordRegex.test(password)) {
+    res.status(400);
+    throw new Error(
+      "Password must be at least 8 characters long, include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character."
+    );
+  }
+
+
   // const session = await User.startSession();
   // session.startTransaction();
 
@@ -260,6 +271,17 @@ exports.registerParent = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Full name, email, and password are required");
   }
+
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+  if (!passwordRegex.test(password)) {
+    res.status(400);
+    throw new Error(
+      "Password must be at least 8 characters long, include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character."
+    );
+  }
+
   if (age < 20) {
     res.status(400);
     throw new Error("Age must be 20 or older");
@@ -270,6 +292,8 @@ exports.registerParent = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Email already exists");
   }
+
+
 
   // const session = await User.startSession();
   // session.startTransaction();
@@ -356,6 +380,17 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Student email already exists");
   }
+
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+  if (!passwordRegex.test(password)) {
+    res.status(400);
+    throw new Error(
+      "Password must be at least 8 characters long, include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character."
+    );
+  }
+
 
   // const session = await User.startSession();
   // session.startTransaction();
@@ -533,6 +568,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
       await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
       return res.status(200).json({
         message: "OTP sent to your email",
+        isOtpTrue: true,
         userId: user._id,
         email: user.email,
       });
@@ -549,6 +585,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
 
       return res.status(200).json({
         message: "Login successful (OTP not required)",
+        isOtpTrue: false,
         user: {
           _id: user._id,
           full_name: user.full_name,
@@ -574,6 +611,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
     return res.status(200).json({
+      isOtpTrue: true,
       message: "OTP sent to your email",
       userId: user._id,
       email: user.email,
@@ -672,6 +710,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   }
 
   user.isEmailVerified = true; 
+  await user.save();
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 

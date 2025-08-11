@@ -5,7 +5,7 @@ const TutorDocument = require("../Models/tutorDocumentSchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
-const EducationLevel = require("../Models/EducationLevels");
+const {EducationLevel,Subject} = require("../Models/LookupSchema");
 const Rules = require("../Models/Rules")
 const mongoose = require("mongoose");
 const sendEmail = require("../Utils/sendEmail");
@@ -905,7 +905,157 @@ exports.toggleOtpRule = asyncHandler(async (req, res) => {
   });
 });
 
+exports.getOtpStatus = asyncHandler(async (req, res) => {
+  let rule = await Rules.findOne();
+
+  if (!rule) {
+    rule = await Rules.create({ otp_rule_active: false }); 
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      otp_rule_active: rule.otp_rule_active
+    }
+  });
+});
+
+
 exports.getEducationLevels = asyncHandler(async (req, res) => {
   const levels = await EducationLevel.find().sort({ level: 1 });
   res.status(200).json(levels);
+});
+
+exports.deleteEducationLevel = asyncHandler(async (req, res) => {
+  const level = await EducationLevel.findByIdAndDelete(req.params.id);
+
+  if (!level) {
+    res.status(404);
+    throw new Error("Education level not found");
+  }
+
+
+  res.status(200).json({
+    success: true,
+    message: "Education level deleted successfully",
+  });
+});
+
+
+exports.updateEducationLevel = asyncHandler(async (req, res) => {
+  const { level } = req.body;
+  const existingLevel = await EducationLevel.findById(req.params.id);
+
+  if (!existingLevel) {
+    res.status(404);
+    throw new Error("Education level not found");
+  }
+
+  if (!level) {
+    res.status(400);
+    throw new Error("Level is required");
+  }
+
+  // Check if new level already exists (excluding current level)
+  const levelExists = await EducationLevel.findOne({ 
+    level, 
+    _id: { $ne: req.params.id } 
+  });
+
+  if (levelExists) {
+    res.status(400);
+    throw new Error("Education level already exists");
+  }
+
+  existingLevel.level = level;
+  const updatedLevel = await existingLevel.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Education level updated successfully",
+    data: updatedLevel,
+  });
+});
+
+// Al Subjects Handles Add remove update dlete ....................
+
+
+
+exports.getSubjects = asyncHandler(async (req, res) => {
+  const subjects = await Subject.find().sort({ name: 1 });
+  res.status(200).json({
+    success: true,
+    data: subjects
+  });
+});
+
+exports.addSubject = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+
+  if (!name) {
+    res.status(400);
+    throw new Error('Subject name is required');
+  }
+
+  const existingSubject = await Subject.findOne({ name });
+  if (existingSubject) {
+    res.status(400);
+    throw new Error('Subject already exists');
+  }
+
+  const subject = await Subject.create({ name });
+
+  res.status(201).json({
+    success: true,
+    message: 'Subject added successfully',
+    data: subject
+  });
+});
+
+exports.updateSubject = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  const subject = await Subject.findById(req.params.id);
+
+  if (!subject) {
+    res.status(404);
+    throw new Error('Subject not found');
+  }
+
+  if (!name) {
+    res.status(400);
+    throw new Error('Subject name is required');
+  }
+
+  const subjectExists = await Subject.findOne({ 
+    name, 
+    _id: { $ne: req.params.id } 
+  });
+
+  if (subjectExists) {
+    res.status(400);
+    throw new Error('Subject already exists');
+  }
+
+  subject.name = name;
+  const updatedSubject = await subject.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Subject updated successfully',
+    data: updatedSubject
+  });
+});
+
+exports.deleteSubject = asyncHandler(async (req, res) => {
+  const subject = await Subject.findByIdAndDelete(req.params.id);
+
+  if (!subject) {
+    res.status(404);
+    throw new Error('Subject not found');
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Subject deleted successfully'
+  });
 });

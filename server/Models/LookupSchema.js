@@ -9,4 +9,14 @@ const EducationLevelSchema = new mongoose.Schema({
 });
 
 const EducationLevel = mongoose.model("EducationLevel", EducationLevelSchema);
-module.exports = EducationLevel;
+
+
+const SubjectsSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  }
+});
+
+const Subject = mongoose.model("Subject", SubjectsSchema);
+module.exports = {Subject,EducationLevel};
