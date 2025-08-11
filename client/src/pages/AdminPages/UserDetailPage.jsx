@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import AdminLayout from '../../components/admin/components/AdminLayout';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
+  Box,
+  Typography,
   Divider,
   Grid,
   Card,
@@ -26,12 +25,12 @@ import {
   FormControlLabel,
   Alert,
   Avatar,
-  Typography,
-  Box,
   IconButton,
-  Skeleton
+  Skeleton,
+  Button,
+  Chip,
+  MenuItem
 } from '@mui/material';
-import { Fade, Chip, MenuItem } from '@mui/material';
 import {
   CheckCircle,
   Pending,
@@ -59,10 +58,17 @@ import {
   approveTutorProfile,
   rejectTutorProfile,
   partialApproveTutor
-} from '../../../services/adminService';
+} from '../../services/adminService';
 
-const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, showNotification }) => {
-  if (!user || !open) return null;
+const UserDetailPage = () => {
+  const { tabValue } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get user data from location state or fetch it
+  const [user, setUser] = useState(location.state?.user || null);
+    console.log("user",user);
+    const [loading, setLoading] = useState(!location.state?.user);
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedTimes, setSelectedTimes] = useState([]);
@@ -76,6 +82,16 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
   );
   const [profileStatusReason, setProfileStatusReason] = useState(user?.profileStatusReason || '');
   const [localUser, setLocalUser] = useState(user);
+
+  // If no user data, you might want to fetch it here
+  useEffect(() => {
+    if (!user) {
+      // Fetch user data based on userId and tabValue
+      // This would typically be an API call
+      setLoading(false);
+    }
+    }, [user]);
+
   const handleInterviewToggle = async (event) => {
     const newValue = event.target.checked;
     setIsInterview(newValue);
@@ -92,8 +108,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
           ? prev.interviewSlots.map(s => ({ ...s, is_interview: newValue }))
           : [{ date: new Date().toISOString(), time: '', is_interview: newValue }]
       }));
-      if (showNotification) showNotification('Interview toggle updated');
-      if (typeof onMutateSuccess === 'function') onMutateSuccess();
+      // You might want to show a notification here
     } catch (error) {
       console.error('Failed to update interview toggle:', error);
     }
@@ -106,9 +121,11 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
   }, [selectedDate]);
 
   useEffect(() => {
-    setProfileStatusReason(user?.profileStatusReason || '');
-    setLocalUser(user);
-    setIsInterview(Boolean(user?.is_interview || (user?.interviewSlots || []).some((s) => s.is_interview)));
+    if (user) {
+      setProfileStatusReason(user?.profileStatusReason || '');
+      setLocalUser(user);
+      setIsInterview(Boolean(user?.is_interview || (user?.interviewSlots || []).some((s) => s.is_interview)));
+    }
   }, [user]);
 
   const fetchAvailableSlots = async (date) => {
@@ -155,12 +172,10 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
           return { date: dateStr, time, scheduled: true, is_interview: true };
         })
       }));
-      if (showNotification) showNotification('Interview scheduled', 'success');
-      if (typeof onMutateSuccess === 'function') onMutateSuccess();
+      // You might want to show a notification here
       setTimeout(() => {
         setSchedulingStatus('');
         setSelectedTimes([]);
-        onClose();
       }, 2000);
     } catch (error) {
       console.error('Error scheduling interview:', error);
@@ -175,8 +190,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
     } else if (res.status === 200) {
       alert('Tutor profile approved successfully And Email Sent to Tutor');
       setLocalUser(prev => ({ ...prev, status: 'verified' }));
-      if (showNotification) showNotification('Tutor approved', 'success');
-      if (typeof onMutateSuccess === 'function') onMutateSuccess();
+      // You might want to show a notification here
     } else {
       alert('Tutor profile not approved');
     }
@@ -189,8 +203,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
     } else if (res.status === 200) {
       alert('Tutor profile partially approved successfully And Email Sent to Tutor');
       setLocalUser(prev => ({ ...prev, status: 'pending' }));
-      if (showNotification) showNotification('Tutor partially approved', 'info');
-      if (typeof onMutateSuccess === 'function') onMutateSuccess();
+      // You might want to show a notification here
     } else {
       alert(res.data.message);
     }
@@ -203,8 +216,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
     } else if (res.status === 200) {
       alert('Tutor profile rejected successfully And Email Sent to Tutor');
       setLocalUser(prev => ({ ...prev, status: 'rejected' }));
-      if (showNotification) showNotification('Tutor rejected', 'warning');
-      if (typeof onMutateSuccess === 'function') onMutateSuccess();
+      // You might want to show a notification here
     } else {
       alert(res.data.message);
     }
@@ -236,6 +248,22 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
     }
   };
 
+  if (loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography>Loading user details...</Typography>
+      </Box>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography>User not found</Typography>
+      </Box>
+    );
+  }
+
   const userName = localUser?.name || 'Unknown User';
   const userEmail = localUser?.email || 'No email provided';
   const userPhone = localUser?.phone || 'No phone provided';
@@ -251,16 +279,17 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
   const userSessionsBooked = localUser?.sessionsBooked || 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth TransitionComponent={Fade} transitionDuration={300}>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <AdminLayout tabValue={tabValue}>
+      <Box sx={{ p: 3 }}>
+        {/* Header Section */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton onClick={onClose} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {getTabIcon(tabValue)}
-              <Typography variant="h6" sx={{ ml: 1 }}>
+              <Typography variant="h4" sx={{ ml: 1 }}>
                 {userName}
               </Typography>
             </Box>
@@ -269,9 +298,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
             <Chip label={userStatus} color={getStatusColor(userStatus)} variant={userStatus === 'unverified' ? 'outlined' : 'filled'} />
           )}
         </Box>
-      </DialogTitle>
 
-      <DialogContent dividers>
         <Zoom in timeout={400}>
           <Box>
             <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)' }}>
@@ -379,8 +406,7 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
                               <IconButton size="small" href={doc.url} target="_blank" disabled={doc.url === '#'} title={doc.url === '#' ? 'Document not available' : 'View document'}>
                                 <CloudDownload />
                               </IconButton>
-
-                              {!doc.verified && (
+                              {doc.verified === "Rejected" || doc.verified === "Pending" && (
                                 <Button
                                   size="small"
                                   variant="outlined"
@@ -395,15 +421,26 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
                                           d.type === doc.type ? { ...d, verified: true } : d
                                         )
                                       }));
-                                      if (showNotification) showNotification(`${doc.type} verified`, 'success');
-                                      if (typeof onMutateSuccess === 'function') onMutateSuccess();
+                                      // You might want to show a notification here
                                     } catch (err) {
                                       console.error('Verification failed:', err);
                                       alert(`Failed to verify ${doc.type}`);
                                     }
                                   }}
+                                  title={`Verify ${doc.type} document`}
                                 >
                                   Verify
+                                </Button>
+                              )}
+                              {doc.verified === "Approved" && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="warning"
+                                  disabled
+                                  title={`${doc.type} already verified`}
+                                >
+                                  Already Verified
                                 </Button>
                               )}
                             </Box>
@@ -721,90 +758,93 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
             )}
           </Box>
         </Zoom>
-      </DialogContent>
 
-      <DialogActions sx={{ gap: 2, p: 2 }}>
-        {tabValue === 'tutors' && (
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={handlePartialApproveTutor}
-            sx={{ 
-              minHeight: 48,
-              minWidth: 160,
-              px: 3,
-              py: 1.5,
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              '&:hover': { backgroundColor: 'primary.main', color: 'white' },
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}
-          >
-            Partial Approve Tutor
-          </Button>
-        )}
-        <Button 
-          onClick={onClose} 
-          variant="outlined"
-          sx={{ 
-            minHeight: 48,
-            minWidth: 120,
-            px: 3,
-            py: 1.5,
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}
-        >
-          Close
-        </Button>
-        <Button 
-          onClick={handleRejectTutor} 
-          variant="contained" 
-          color="error"
-          sx={{ 
-            minHeight: 48,
-            minWidth: 140,
-            px: 3,
-            py: 1.5,
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}
-        >
-          Reject Tutor
-        </Button>
-        {tabValue === 'tutors' && localUser.status !== 'verified' ? (
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleApproveTutor}
-            disabled={
-              !userDocuments.every((d) => d.verified) || !localUser.backgroundCheck || !localUser.referenceCheck || !localUser.qualificationCheck
-            }
-            sx={{ 
-              minHeight: 48,
-              minWidth: 140,
-              px: 3,
-              py: 1.5,
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}
-          >
-            Approve Tutor
-          </Button>
-        ) : (
+        {/* Action Buttons */}
+        <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'center' }}>
+          {tabValue === 'tutors' && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handlePartialApproveTutor}
+              sx={{ 
+                minHeight: 48,
+                minWidth: 160,
+                px: 3,
+                py: 1.5,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                '&:hover': { backgroundColor: 'primary.main', color: 'white' },
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              Partial Approve Tutor
+            </Button>
+          )}
+         
+          {tabValue === 'tutors' && (
+            <>
+              <Button 
+                onClick={handleRejectTutor} 
+                variant="contained" 
+                color="error"
+                sx={{ 
+                  minHeight: 48,
+                  minWidth: 140,
+                  px: 3,
+                  py: 1.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+              >
+                Reject Tutor
+              </Button>
+              {localUser.profileStatus !== 'approved' ? (
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={handleApproveTutor}
+                  sx={{ 
+                    minHeight: 48,
+                    minWidth: 140,
+                    px: 3,
+                    py: 1.5,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  Approve Tutor
+                </Button>
+              ) : (
+                <Button 
+                  variant="contained" 
+                  color="success"
+                  sx={{ 
+                    minHeight: 48,
+                    minWidth: 140,
+                    px: 3,
+                    py: 1.5,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  Tutor is verified
+                </Button>
+              )}
+            </>
+          )}
           <Button 
-            variant="contained" 
-            color="success"
+            onClick={() => navigate(-1)} 
+            variant="outlined"
             sx={{ 
               minHeight: 48,
-              minWidth: 140,
+              minWidth: 120,
               px: 3,
               py: 1.5,
               fontSize: '0.875rem',
@@ -813,14 +853,12 @@ const UserDetailDialog = ({ open, user, tabValue, onClose, onMutateSuccess, show
               userSelect: 'none'
             }}
           >
-            Tutor is verified
+            Back
           </Button>
-        )}
-      </DialogActions>
-    </Dialog>
+        </Box>
+      </Box>
+    </AdminLayout>
   );
 };
 
-export default UserDetailDialog;
-
-
+export default UserDetailPage;

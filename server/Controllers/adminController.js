@@ -264,29 +264,32 @@ exports.selectInterviewSlot = async (req, res) => {
 // };
 
 exports.approveTutorProfile = async (req, res) => {
-  console.log("approveTutorProfile");
-  console.log(req.body);
   const { user_id,reason } = req.body;
-  console.log(req.body);
   const tutor = await TutorProfile.findOne({user_id:user_id});
   try {
     const profile = await TutorProfile.findOne({ _id: tutor._id });
     const application = await TutorApplication.findOne({ tutor_id:tutor._id });
+    const documents = await TutorDocument.find({tutor_id:tutor._id});
 
     if (!profile || !application) {
       return res.status(404).json({ message: "Tutor profile or application not found." });
     }
     if(reason === ""){
-      console.log("Reason is required.");
       return res.status(400).json({ message: "Reason is required." });
     }
     const user = await User.findOne({ _id: profile.user_id });
-
+    if(documents.some(doc => doc.verification_status !== "Approved")){
+      console.log(documents)
+      return res.status(400).json({ message: "All documents must be verified." });
+    }
     const allVerified =
       profile.is_background_checked &&
       profile.is_reference_verified &&
       profile.is_qualification_verified;
 
+    if (profile.profile_status === "approved") {
+      return res.status(400).json({ message: "Tutor profile is already approved." });
+    }
     if (!allVerified) {
       return res.status(400).json({
         message: "Tutor has not completed all verification steps.",
@@ -493,7 +496,7 @@ exports.getAllUsers = async (req, res) => {
             documents: documents.map(doc => ({
               type: doc.document_type,
               url: doc.file_url || '#',
-              verified: doc.verification_status === 'Approved',
+              verified: doc.verification_status,
               uploadDate: doc.uploaded_at || doc.createdAt,
               notes: doc.notes || ''
             })),
@@ -532,7 +535,7 @@ exports.getAllUsers = async (req, res) => {
             qualifications: tutorProfile.qualifications || '',
             interviewStatus: application ? ['Passed', 'Failed'].includes(application.interview_status) : false,
             rating: tutorProfile.average_rating || null,
-            profileStatus: tutorProfile.profile_status === 'approved',
+            profileStatus: tutorProfile.profile_status,
             applicationNotes: application ? application.admin_notes : '',
           };
         }

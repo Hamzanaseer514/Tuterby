@@ -46,6 +46,7 @@ const RequestHelp = () => {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [tutor_name, setTutorName] = useState([]);
+  const [tutorToUserMap, setTutorToUserMap] = useState({});
   const [subject, setSubject] = useState("");
   const [tutorsLoading, setTutorsLoading] = useState(false);
   const [showTutorSelection, setShowTutorSelection] = useState(true);
@@ -74,7 +75,7 @@ const RequestHelp = () => {
   // Helper function to parse array fields that might be stored as strings
   const parseField = (field) => {
     if (!field) return [];
-    
+
     // Handle array case like ['["Math","Physics"]']
     if (Array.isArray(field)) {
       if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
@@ -92,7 +93,7 @@ const RequestHelp = () => {
       }
       return [];
     }
-    
+
     // Handle string case like "["Math","Physics"]"
     if (typeof field === "string" && field.startsWith("[")) {
       try {
@@ -103,7 +104,7 @@ const RequestHelp = () => {
         return [];
       }
     }
-    
+
     return [];
   };
 
@@ -115,18 +116,7 @@ const RequestHelp = () => {
         subjects: parseField(tutor.subjects),
         academic_levels_taught: parseField(tutor.academic_levels_taught),
       };
-      
-      // console.log(`Cleaned tutor ${tutor.user_id?.full_name || tutor._id}:`, {
-      //   original: {
-      //     subjects: tutor.subjects,
-      //     academic_levels_taught: tutor.academic_levels_taught
-      //   },
-      //   cleaned: {
-      //     subjects: cleaned.subjects,
-      //     academic_levels_taught: cleaned.academic_levels_taught
-      //   }
-      // });
-      
+
       return cleaned;
     });
   };
@@ -147,7 +137,7 @@ const RequestHelp = () => {
         subjects: parseField(location.state.selectedTutor.subjects),
         academic_levels_taught: parseField(location.state.selectedTutor.academic_levels_taught),
       };
-      
+
       setSelectedTutor(cleanedTutor);
       setShowTutorSelection(false);
       // Pre-fill form with tutor's subjects
@@ -239,7 +229,7 @@ const RequestHelp = () => {
       subjects: parseField(tutor.subjects),
       academic_levels_taught: parseField(tutor.academic_levels_taught),
     };
-    
+
     setSelectedTutor(cleanedTutor);
     setShowTutorSelection(false);
     // Pre-fill form with tutor's subjects
@@ -273,7 +263,7 @@ const RequestHelp = () => {
         limit: 10,
       });
       const response = await fetch(
-        `${BASE_URL}/api/auth/student/${user?._id}/help-requests?${params.toString()}`,
+        `${BASE_URL}/api/auth/student/${user._id}/help-requests?${params.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -290,6 +280,7 @@ const RequestHelp = () => {
       const data = await response.json();
       setHelpRequests(data.inquiries);
       setTutorName(data.tutors);
+      setTutorToUserMap(data.tutorToUserMap || {});
       setTotalPages(data.pagination.total_pages);
     } catch (error) {
       toast({
@@ -466,6 +457,7 @@ const RequestHelp = () => {
           {showInquiries ? 'Hide Inquiries' : 'Show Inquiries'}
         </Button>
       </div>
+
       {/* Help Requests History */}
       {showInquiries && (
         <Card>
@@ -489,11 +481,13 @@ const RequestHelp = () => {
             ) : (
               <div className="space-y-4">
                 {helpRequests.map((request) => {
-                  const tutor = tutors.find(t => t._id === request.tutor_id);
+                  // Use the mapping to find the tutor user
+                  const tutorUser = tutorToUserMap[request.tutor_id];
                   return (
                     <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
                       }`}>
-                      <div className="flex items-start justify-between mb-2">
+
+                      <div className="flex items-center justify-between mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-medium text-gray-900">{request.subject}</h4>
@@ -501,10 +495,10 @@ const RequestHelp = () => {
                               {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
                             </Badge>
                           </div>
-                          <div className='flex items-center justify-start gap-8'>
+                          <div className='flex items-center gap-20 text-xs text-gray-500'>
                             <p className="text-sm text-gray-600">{request.academic_level}</p>
                             {request.preferred_schedule && (
-                              <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <div className="flex items-center text-sm text-gray-500">
                                 <Calendar className="w-4 h-4" />
                                 {request.preferred_schedule}
                               </div>
@@ -523,7 +517,7 @@ const RequestHelp = () => {
                         </p>
                         {request.tutor_id ? (
                           <span className="text-blue-600 font-medium">
-                            Assigned to: {tutor.user_id.full_name}
+                            Assigned to: {tutorUser ? tutorUser.full_name : 'Unknown Tutor'}
                           </span>
                         ) : (
                           <span className="text-gray-500">
@@ -644,14 +638,6 @@ const RequestHelp = () => {
                     </Select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                    <Input
-                      placeholder="e.g., London, Manchester"
-                      value={filters.location}
-                      onChange={(e) => handleFilterChange('location', e.target.value)}
-                    />
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -688,7 +674,7 @@ const RequestHelp = () => {
                               <div>
                                 <h3 className="font-semibold text-gray-900">{tutor.user_id.full_name}</h3>
                                 {tutor.location && (
-                                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <div className="flex items-center gap-1 text-sm text-gray-600 blur-sm">
                                     <MapPin className="w-4 h-4" />
                                     {tutor.location}
                                   </div>
@@ -774,13 +760,7 @@ const RequestHelp = () => {
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{selectedTutor.user_id.full_name}</h3>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
-                    {selectedTutor.location && (
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {selectedTutor.location}
-                      </div>
-                    )}
-                    {selectedTutor.average_rating && (
+                   {selectedTutor.average_rating && (
                       <div className="flex items-center gap-1">
                         {renderStars(selectedTutor.average_rating)}
                         <span>({selectedTutor.average_rating})</span>
@@ -810,126 +790,7 @@ const RequestHelp = () => {
           </Card>
 
 
-          {/* Help Requests History */}
-          {showInquiries && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Your Inquiries & Help Requests
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : helpRequests.length === 0 ? (
-                  <div className="text-center py-8">
-                    <HelpCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No inquiries or help requests yet</p>
-                    <p className="text-sm text-gray-500 mt-1">Submit your first request above</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {helpRequests.map((request) => {
-                      const tutor = tutors.find(t => t._id === request.tutor_id);
-                      return (
-                        <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'tutor_inquiry' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
-                          }`}>
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-gray-900">{request.subject}</h4>
-                                <Badge variant={request.type === 'tutor_inquiry' ? 'default' : 'secondary'} className="text-xs">
-                                  {request.type === 'tutor_inquiry' ? 'Tutor Inquiry' : 'Help Request'}
-                                </Badge>
-                              </div>
-                              <div className='flex items-center justify-start gap-8'>
-                                <p className="text-sm text-gray-600">{request.academic_level}</p>
-                                {request.preferred_schedule && (
-                                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                                    <Calendar className="w-4 h-4" />
-                                    {request.preferred_schedule}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(request.status)}
-                              {getUrgencyBadge(request.urgency_level)}
-                            </div>
-                          </div>
 
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <p className="text-sm text-gray-600 ">
-                              {request.description}
-                            </p>
-                            {request.tutor_id ? (
-                              <span className="text-blue-600 font-medium">
-                                Assigned to: {tutor.user_id.full_name}
-                              </span>
-                            ) : (
-                              <span className="text-gray-500">
-                                {request.type === 'tutor_inquiry' ? 'General inquiry' : 'No specific tutor assigned'}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Tutor reply toggle for replied requests */}
-                          {request.status === 'replied' && (
-                            <div className="mt-3">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleReplyVisibility(request._id)}
-                              >
-                                {expandedRepliesById[request._id] ? 'Hide Tutor Reply' : 'View Tutor Reply'}
-                              </Button>
-                              {expandedRepliesById[request._id] && (
-                                <div className="mt-3 p-3 border rounded-md bg-white">
-                                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                    {request.reply_message || 'No reply message available.'}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-center gap-2 pt-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                        >
-                          Previous
-                        </Button>
-
-                        <span className="text-sm text-gray-600">
-                          Page {currentPage} of {totalPages}
-                        </span>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           <div className="">
             {/* Request Form */}
@@ -958,11 +819,11 @@ const RequestHelp = () => {
                         ))}
                       </SelectContent>
                     </Select> */}
-<Input
-  placeholder="Enter subject"
-  // value={formData.subject || ''}
-  onChange={(e) => handleInputChange('subject', e.target.value)}
-/>
+                      <Input
+                        placeholder="Enter subject"
+                        // value={formData.subject || ''}
+                        onChange={(e) => handleInputChange('subject', e.target.value)}
+                      />
 
 
 

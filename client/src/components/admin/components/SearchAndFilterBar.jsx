@@ -65,18 +65,6 @@ const SearchAndFilterBar = ({
     setSortAnchorEl(null);
   };
 
-  const getTabIcon = (tabValue) => {
-    switch (tabValue) {
-      case 'tutors':
-        return <School fontSize="small" />;
-      case 'students':
-        return <Person fontSize="small" />;
-      case 'parents':
-        return <ContactMail fontSize="small" />;
-      default:
-        return <Person fontSize="small" />;
-    }
-  };
 
   return (
     <Fade in timeout={500}>
@@ -90,44 +78,7 @@ const SearchAndFilterBar = ({
         borderRadius: 2,
         border: '1px solid #e0e0e0'
       }}>
-        {/* Tabs Section */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={onTabChange}
-            sx={{
-              '& .MuiTab-root': {
-                minHeight: 48,
-                fontWeight: 'medium',
-                textTransform: 'none',
-                fontSize: '0.9rem'
-              },
-              '& .Mui-selected': {
-                color: 'primary.main',
-                fontWeight: 'bold'
-              }
-            }}
-          >
-            <Tab 
-              label="Tutors" 
-              value="tutors" 
-              icon={<School fontSize="small" />}
-              iconPosition="start"
-            />
-            <Tab 
-              label="Students" 
-              value="students" 
-              icon={<Person fontSize="small" />}
-              iconPosition="start"
-            />
-            <Tab 
-              label="Parents" 
-              value="parents" 
-              icon={<ContactMail fontSize="small" />}
-              iconPosition="start"
-            />
-          </Tabs>
-        </Box>
+      
 
         {/* Search and Actions Section */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

@@ -25,16 +25,30 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
         session_date: { $gte: new Date() },
         status: { $in: ['confirmed', 'pending'] }
     })
-        .populate('tutor_id', 'full_name email photo_url')
+    .populate({
+        path: "tutor_id",
+        select: "user_id", // only include user_id from TutorProfile
+        populate: {
+          path: "user_id",
+          select: "full_name email", // only include name & email from User
+        },
+    })
         .sort({ session_date: 1 })
         .limit(10);
-
+console.log("upcomingSessions",upcomingSessions)
     const pastSessions = await TutoringSession.find({
         student_ids: studentProfile._id, // changed here too
         session_date: { $lt: new Date() },
         status: 'completed'
     })
-        .populate('tutor_id', 'full_name email photo_url')
+    .populate({
+        path: "tutor_id",
+        select: "user_id", // only include user_id from TutorProfile
+        populate: {
+          path: "user_id",
+          select: "full_name email", // only include name & email from User
+        },
+    })
         .sort({ session_date: -1 })
         .limit(10);
 
@@ -71,11 +85,18 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
     }
 
     const sessions = await TutoringSession.find(query)
-        .populate('tutor_id', 'full_name email photo_url')
+        // .populate('tutor_id', 'full_name email photo_url')
+        .populate({
+            path: "tutor_id",
+            select: "user_id", // only include user_id from TutorProfile
+            populate: {
+              path: "user_id",
+              select: "full_name email", // only include name & email from User
+            },
+        })
         .sort({ session_date: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
-
     const total = await TutoringSession.countDocuments(query);
 
     res.status(200).json({
@@ -90,96 +111,110 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
 });
 
 exports.updateStudentProfile = asyncHandler(async (req, res) => {
-    const {
-        full_name,
-        phone_number,
-        photo_url,
-        age,
-        academic_level,
-        learning_goals,
-        preferred_subjects,
-        availability,
-    } = req.body;
+    try {
+        const {
+            full_name,
+            phone_number,
+            photo_url,
+            age,
+            academic_level,
+            learning_goals,
+            preferred_subjects,
+            availability,
+        } = req.body;
 
-    const { user_id } = req.params;
+        const { user_id } = req.params;
 
-    const user = await User.findById(user_id);
-    if (!user) {
-        res.status(404);
-        throw new Error("User not found");
-    }
-
-    if (phone_number !== undefined && phone_number !== "") {
-        const existingUser = await User.findOne({ phone_number });
-        if (existingUser && existingUser._id.toString() !== user_id) {
-            res.status(400);
-            throw new Error("Phone number already in use");
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: "User ID is required"
+            });
         }
-        user.phone_number = phone_number;
+
+        // ✅ Fetch user without invalid enum issues
+        const user = await User.findById(user_id).lean(); // lean() removes mongoose doc wrapping
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        if (user.role !== 'student') {
+            return res.status(403).json({
+                success: false,
+                message: "User is not a student"
+            });
+        }
+
+        // ✅ Prepare update object only with allowed fields
+        const userUpdates = {};
+        if (phone_number) {
+            const existingUser = await User.findOne({ phone_number });
+            if (existingUser && existingUser._id.toString() !== user_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Phone number already in use"
+                });
+            }
+            userUpdates.phone_number = phone_number;
+        }
+        if (full_name) userUpdates.full_name = full_name;
+        if (photo_url) userUpdates.photo_url = photo_url;
+        if (age) userUpdates.age = age;
+
+        // ✅ Update without touching is_verified
+        await User.updateOne(
+            { _id: user_id },
+            { $set: userUpdates },
+            { runValidators: true }
+        );
+
+        // Update student profile
+        const studentProfile = await Student.findOne({ user_id });
+        if (!studentProfile) {
+            return res.status(404).json({
+                success: false,
+                message: "Student profile not found"
+            });
+        }
+
+        if (academic_level) studentProfile.academic_level = academic_level;
+        if (learning_goals) studentProfile.learning_goals = learning_goals;
+        if (Array.isArray(preferred_subjects) && preferred_subjects.length > 0) {
+            studentProfile.preferred_subjects = preferred_subjects;
+        }
+        if (Array.isArray(availability) && availability.length > 0) {
+            studentProfile.availability = availability;
+        }
+
+        await studentProfile.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Student profile updated successfully",
+            user: userUpdates,
+            student: {
+                academic_level: studentProfile.academic_level,
+                learning_goals: studentProfile.learning_goals,
+                preferred_subjects: studentProfile.preferred_subjects,
+                availability: studentProfile.availability,
+            },
+        });
+
+    } catch (error) {
+        console.error("Error updating student profile:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error while updating student profile",
+            error: error.message
+        });
     }
-
-    if (full_name !== undefined && full_name !== "") {
-        user.full_name = full_name;
-    }
-
-    if (photo_url !== undefined && photo_url !== "") {
-        user.photo_url = photo_url;
-    }
-
-    if (age !== undefined) {
-        user.age = age;
-    }
-
-    await user.save();
-
-    const student = await Student.findOne({ user_id: user_id });
-    if (!student) {
-        res.status(404);
-        throw new Error("Student profile not found");
-    }
-
-    if (academic_level !== undefined && academic_level !== "") {
-        student.academic_level = academic_level;
-    }
-
-    if (learning_goals !== undefined && learning_goals !== "") {
-        student.learning_goals = learning_goals;
-    }
-
-    if (
-        preferred_subjects !== undefined &&
-        Array.isArray(preferred_subjects) &&
-        preferred_subjects.length > 0
-    ) {
-        student.preferred_subjects = preferred_subjects;
-    }
-
-    if (
-        availability !== undefined &&
-        Array.isArray(availability) &&
-        availability.length > 0
-    ) {
-        student.availability = availability;
-    }
-
-    await student.save();
-
-    res.status(200).json({
-        message: "Student profile updated successfully",
-        user: {
-            phone_number: user.phone_number,
-            photo_url: user.photo_url,
-            age: user.age,
-            full_name: user.full_name,
-        },
-        student: {
-            academic_level: student.academic_level,
-            learning_goals: student.learning_goals,
-            preferred_subjects: student.preferred_subjects,
-            availability: student.availability,
-        },
-    });
 });
+
+
 
 exports.searchTutors = asyncHandler(async (req, res) => {
     const {
@@ -421,34 +456,77 @@ exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
 
 // Get student's help requests
 exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-    const { page = 1, limit = 10, tutor_id } = req.query;
-    const student = await Student.findOne({ user_id: userId });
-    if (!student) {
-        res.status(404);
-        throw new Error("Student profile not found");
-    }
+    try {
+        const { userId } = req.params;
+        const { page = 1, limit = 10, tutor_id } = req.query;
 
-    const query = { student_id: student._id };
-
-    const total = await TutorInquiry.countDocuments(query);
-    const inquiries = await TutorInquiry.find(query)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-    const tutorIds = inquiries.map(inquiry => inquiry.tutor_id);
-    const tutorProfiles = await TutorProfile.find({ _id: { $in: tutorIds } });
-    const tutorNames = tutorProfiles.map(tutor => tutor.user_id);
-    const users = await User.find({ _id: { $in: tutorNames } });
-    res.status(200).json({
-        inquiries,
-        tutors: users,
-        pagination: {
-            current_page: parseInt(page),
-            total_pages: Math.ceil(total / parseInt(limit)),
-            total
+        // Get the base user information
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
         }
-    });
+
+        const student = await Student.findOne({ user_id: userId });
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: "Student profile not found"
+            });
+        }
+
+        const query = { student_id: student._id };
+        const total = await TutorInquiry.countDocuments(query);
+        const inquiries = await TutorInquiry.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        // Get tutor profiles and their corresponding users
+        const tutorIds = inquiries.map(inquiry => inquiry.tutor_id);
+        const tutorProfiles = await TutorProfile.find({ _id: { $in: tutorIds } });
+        const userIds = tutorProfiles.map(tutor => tutor.user_id);
+        const users = await User.find({ _id: { $in: userIds } });
+
+        // Create a mapping of TutorProfile ID to User data for easy lookup
+        const tutorToUserMap = {};
+        tutorProfiles.forEach(tutorProfile => {
+            const user = users.find(u => u._id.toString() === tutorProfile.user_id.toString());
+            if (user) {
+                tutorToUserMap[tutorProfile._id.toString()] = user;
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            user: {
+                _id: user._id,
+                full_name: user.full_name,
+                email: user.email,
+                phone_number: user.phone_number,
+                age: user.age,
+                photo_url: user.photo_url,
+                role: user.role
+            },
+            inquiries,
+            tutors: users,
+            tutorToUserMap, // Add this mapping
+            pagination: {
+                current_page: parseInt(page),
+                total_pages: Math.ceil(total / parseInt(limit)),
+                total
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching student help requests:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error while fetching help requests",
+            error: error.message
+        });
+    }
 });
 
 exports.hireTutor = asyncHandler(async (req, res) => {
@@ -473,7 +551,7 @@ exports.hireTutor = asyncHandler(async (req, res) => {
             return tutorId.toString() === tutor._id.toString();
         }
     );
-    if(alreadyHired){
+    if (alreadyHired) {
         return res.status(400).json({ message: "Tutor already hired. Select another tutor" });
     }
 
@@ -491,101 +569,101 @@ exports.hireTutor = asyncHandler(async (req, res) => {
 
 
 exports.sendMessage = asyncHandler(async (req, res) => {
-  const { tutorId, message } = req.body;
-  const studentId = req.user._id; // logged-in student
+    const { tutorId, message } = req.body;
+    const studentId = req.user._id; // logged-in student
 
 
-  if (!tutorId || !message) {
-    res.status(400);
-    throw new Error("Tutor ID and message are required");
-  }
+    if (!tutorId || !message) {
+        res.status(400);
+        throw new Error("Tutor ID and message are required");
+    }
 
-  const tutor = await TutorProfile.findById(tutorId);
-  if (!tutor) {
-    res.status(404);
-    throw new Error("Tutor not found");
-  }
+    const tutor = await TutorProfile.findById(tutorId);
+    if (!tutor) {
+        res.status(404);
+        throw new Error("Tutor not found");
+    }
 
-  const newMessage = await Message.create({
-    studentId,
-    tutorId: tutor.user_id,
-    message,
-    status: "unanswered",
-  });
+    const newMessage = await Message.create({
+        studentId,
+        tutorId: tutor.user_id,
+        message,
+        status: "unanswered",
+    });
 
-  res.status(201).json({
-    success: true,
-    message: "Message sent successfully",
-    data: newMessage,
-  });
+    res.status(201).json({
+        success: true,
+        message: "Message sent successfully",
+        data: newMessage,
+    });
 
 });
 
 exports.getAcceptedTutorsForStudent = async (req, res) => {
-  try {
-    // Step 1: Find the student document for the logged-in user
-    const student = await Student.findOne({ user_id: req.user._id })
-      .populate({
-        path: "hired_tutors.tutor",
-        model: "TutorProfile",
-        populate: {
-          path: "user_id", // if TutorProfile has a user reference for name/email
-          select: "full_name email"
+    try {
+        // Step 1: Find the student document for the logged-in user
+        const student = await Student.findOne({ user_id: req.user._id })
+            .populate({
+                path: "hired_tutors.tutor",
+                model: "TutorProfile",
+                populate: {
+                    path: "user_id", // if TutorProfile has a user reference for name/email
+                    select: "full_name email"
+                }
+            });
+
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: "Student not found"
+            });
         }
-      });
 
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found"
-      });
+        // Step 2: Filter only accepted tutors
+        const acceptedTutors = student.hired_tutors
+            .filter(t => t.status === "accepted" && t.tutor !== null)
+            .map(t => ({
+                tutorId: t.tutor._id,
+                full_name: t.tutor.user_id?.full_name || "Unknown",
+                email: t.tutor.user_id?.email || "",
+                subject: t.tutor.subject || "",
+                hired_at: t.hired_at
+            }));
+
+        res.json({
+            success: true,
+            data: acceptedTutors
+        });
+
+    } catch (error) {
+        console.error("Error fetching accepted tutors:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server Error",
+            error: error.message
+        });
     }
-
-    // Step 2: Filter only accepted tutors
-    const acceptedTutors = student.hired_tutors
-      .filter(t => t.status === "accepted" && t.tutor !== null)
-      .map(t => ({
-        tutorId: t.tutor._id,
-        full_name: t.tutor.user_id?.full_name || "Unknown",
-        email: t.tutor.user_id?.email || "",
-        subject: t.tutor.subject || "",
-        hired_at: t.hired_at
-      }));
-
-    res.json({
-      success: true,
-      data: acceptedTutors
-    });
-
-  } catch (error) {
-    console.error("Error fetching accepted tutors:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message
-    });
-  }
 };
 
 exports.getStudentTutorChat = asyncHandler(async (req, res) => {
-  const studentId = req.user._id; // logged-in student
-  const { tutorId } = req.params;
-  const tutor = await TutorProfile.findById(tutorId);
-  if (!tutor) {
-    res.status(404);
-    throw new Error("Tutor not found");
-  }
+    const studentId = req.user._id; // logged-in student
+    const { tutorId } = req.params;
+    const tutor = await TutorProfile.findById(tutorId);
+    if (!tutor) {
+        res.status(404);
+        throw new Error("Tutor not found");
+    }
 
 
-  const messages = await Message.find({ studentId, tutorId: tutor.user_id })
-    .populate("tutorId", "full_name") // populate tutor details
-    .sort({ createdAt: 1 }); // oldest first for proper chat order
+    const messages = await Message.find({ studentId, tutorId: tutor.user_id })
+        .populate("tutorId", "full_name") // populate tutor details
+        .sort({ createdAt: 1 }); // oldest first for proper chat order
 
-  res.status(200).json({
-    success: true,
-    count: messages.length,
-    data: messages,
-  });
+    res.status(200).json({
+        success: true,
+        count: messages.length,
+        data: messages,
+    });
 });
 
 

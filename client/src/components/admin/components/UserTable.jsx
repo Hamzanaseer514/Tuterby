@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -18,11 +19,32 @@ import {
   Paper,
   Menu,
   MenuItem,
-  Divider
+  Divider,
+  Button,
+  TextField,
+  InputAdornment,
+  Badge
 } from '@mui/material';
-import { Visibility, MoreVert, CheckCircle, Pending, Star, School, Person, ContactMail, Edit, Delete } from '@mui/icons-material';
-import UserDetailDialog from './UserDetailDialog';
-  
+import {
+  Visibility,
+  MoreVert,
+  CheckCircle,
+  Pending,
+  Star,
+  School,
+  Person,
+  ContactMail,
+  Edit,
+  Delete,
+  Search,
+  FilterList,
+  Refresh,
+  FileDownload,
+  GridView,
+  TableRows,
+  Add
+} from '@mui/icons-material';
+
 
 const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, index }) => {
   const getStatusIcon = (status) => {
@@ -31,27 +53,17 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
         return <CheckCircle color="success" fontSize="small" />;
       case 'pending':
         return <Pending color="warning" fontSize="small" />;
+      case 'rejected':
+        return <Pending color="error" fontSize="small" />;
       default:
         return <Pending color="action" fontSize="small" />;
-    }
-  };
-
-  const getTabIcon = (tabValue) => {
-    switch (tabValue) {
-      case 'tutors':
-        return <School fontSize="small" />;
-      case 'students':
-        return <Person fontSize="small" />;
-      case 'parents':
-        return <ContactMail fontSize="small" />;
-      default:
-        return <Person fontSize="small" />;
     }
   };
 
   return (
     <Slide direction="up" in timeout={300 + index * 50}>
       <TableRow
+        onClick={() => onViewUser(user)}
         sx={{
           '&:hover': {
             backgroundColor: 'rgba(25, 118, 210, 0.04)',
@@ -62,16 +74,22 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
       >
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar
-              sx={{
-                mr: 2,
-                background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                color: 'white',
-                fontWeight: 'bold'
-              }}
+            <Badge
+              overlap="circular"
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              badgeContent={getStatusIcon(user.status)}
             >
-              {user.name.charAt(0)}
-            </Avatar>
+              <Avatar
+                sx={{
+                  mr: 2,
+                  background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              >
+                {user.name.charAt(0)}
+              </Avatar>
+            </Badge>
             <Box>
               <Typography fontWeight="medium" variant="body1">
                 {user.name}
@@ -80,7 +98,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                 {user.email}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                {user.location}
+                {user.location || 'Location not specified'}
               </Typography>
             </Box>
           </Box>
@@ -90,8 +108,8 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {Array.isArray(user.subjects) ? (
-                  user.subjects.map(subject => (
+                {Array.isArray(user.subjects) && user.subjects.length > 0 ? (
+                  user.subjects.slice(0, 3).map(subject => (
                     <Chip
                       key={subject}
                       label={subject}
@@ -106,20 +124,28 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   ))
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    {user.subjects || 'No subjects'}
+                    No subjects
                   </Typography>
+                )}
+                {user.subjects?.length > 3 && (
+                  <Tooltip title={user.subjects.slice(3).join(', ')}>
+                    <Chip
+                      label={`+${user.subjects.length - 3}`}
+                      size="small"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </Tooltip>
                 )}
               </Box>
             </TableCell>
             <TableCell>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {getStatusIcon(user.status)}
                 <Chip
                   label={user.status}
                   color={statusColors[user.status]}
                   size="small"
                   variant={user.status === 'inactive' ? 'outlined' : 'filled'}
-                  sx={{ fontWeight: 'medium' }}
+                  sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}
                 />
               </Box>
             </TableCell>
@@ -130,23 +156,13 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                 </Typography>
                 {user.documents?.every(d => d.verified) ? (
                   <CheckCircle color="success" fontSize="small" />
-                ) : (
+                ) : user.documents?.some(d => d.verified) ? (
                   <Pending color="warning" fontSize="small" />
+                ) : (
+                  <Pending color="error" fontSize="small" />
                 )}
               </Box>
             </TableCell>
-            {/* <TableCell> */}
-            {/* <Tooltip title={user.interviewCompleted ? "Interview completed" : "Interview pending"}> */}
-            {/* <Box sx={{ display: 'flex', alignItems: 'center' }}> */}
-            {/* {getTabIcon(tabValue)} */}
-            {/* {user.interviewCompleted ? (
-                    <CheckCircle color="success" sx={{ ml: 1 }} />
-                  ) : (
-                    <Pending color="warning" sx={{ ml: 1 }} />
-                  )} */}
-            {/* </Box> */}
-            {/* </Tooltip> */}
-            {/* </TableCell> */}
           </>
         )}
 
@@ -154,31 +170,49 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {user.subjects?.map(subject => (
-                  <Chip
-                    key={subject}
-                    label={subject}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      fontSize: '0.7rem',
-                      borderColor: 'success.main',
-                      color: 'success.main'
-                    }}
-                  />
-                ))}
+                {user.subjects?.length > 0 ? (
+                  user.subjects.slice(0, 3).map(subject => (
+                    <Chip
+                      key={subject}
+                      label={subject}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: '0.7rem',
+                        borderColor: 'success.main',
+                        color: 'success.main'
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No subjects
+                  </Typography>
+                )}
+                {user.subjects?.length > 3 && (
+                  <Tooltip title={user.subjects.slice(3).join(', ')}>
+                    <Chip
+                      label={`+${user.subjects.length - 3}`}
+                      size="small"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </Tooltip>
+                )}
               </Box>
             </TableCell>
             <TableCell>
-              <Typography variant="body2" fontWeight="medium">
-                {user.sessionsCompleted || 0}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" fontWeight="medium">
+                  {user.sessionsCompleted || 0}
+                </Typography>
+                <School color="primary" fontSize="small" />
+              </Box>
             </TableCell>
             <TableCell>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Star color="warning" fontSize="small" />
-                <Typography variant="body2" sx={{ ml: 0.5, fontWeight: 'medium' }}>
-                  {user.rating || 'N/A'}
+                <Typography variant="body2" fontWeight="medium">
+                  {user.rating ? `${user.rating}/5` : 'N/A'}
                 </Typography>
               </Box>
             </TableCell>
@@ -189,25 +223,43 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {user.children?.map(child => (
-                  <Chip
-                    key={child}
-                    label={child}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      fontSize: '0.7rem',
-                      borderColor: 'info.main',
-                      color: 'info.main'
-                    }}
-                  />
-                ))}
+                {user.children?.length > 0 ? (
+                  user.children.slice(0, 3).map(child => (
+                    <Chip
+                      key={child}
+                      label={child}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: '0.7rem',
+                        borderColor: 'info.main',
+                        color: 'info.main'
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No children
+                  </Typography>
+                )}
+                {user.children?.length > 3 && (
+                  <Tooltip title={user.children.slice(3).join(', ')}>
+                    <Chip
+                      label={`+${user.children.length - 3}`}
+                      size="small"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </Tooltip>
+                )}
               </Box>
             </TableCell>
             <TableCell>
-              <Typography variant="body2" fontWeight="medium">
-                {user.sessionsBooked || 0}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" fontWeight="medium">
+                  {user.sessionsBooked || 0}
+                </Typography>
+                <School color="primary" fontSize="small" />
+              </Box>
             </TableCell>
           </>
         )}
@@ -217,7 +269,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <Tooltip title="View Details">
               <IconButton
                 onClick={() => onViewUser(user)}
-
+                size="small"
                 sx={{
                   color: 'primary.main',
                   '&:hover': {
@@ -227,25 +279,24 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   transition: 'all 0.2s ease'
                 }}
               >
-                <Visibility />
+                <Visibility fontSize="small" />
               </IconButton>
             </Tooltip>
-            {tabValue === 'tutors' && (
-              <Tooltip title="More Actions">
-                <IconButton
-                  onClick={(e) => onMenuClick(e, user)}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                      transform: 'scale(1.1)'
-                    },
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <MoreVert />
-                </IconButton>
-              </Tooltip>
-            )}
+            {/* <Tooltip title="More Actions">
+              <IconButton
+                onClick={(e) => onMenuClick(e, user)}
+                size="small"
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                    transform: 'scale(1.1)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <MoreVert fontSize="small" />
+              </IconButton>
+            </Tooltip> */}
           </Box>
         </TableCell>
       </TableRow>
@@ -259,7 +310,7 @@ const TableSkeleton = ({ rows = 5, columns = 6 }) => (
       <TableRow key={index}>
         {Array.from({ length: columns }).map((_, colIndex) => (
           <TableCell key={colIndex}>
-            <Skeleton variant="text" width="100%" height={20} />
+            <Skeleton variant="text" width="100%" height={40} />
           </TableCell>
         ))}
       </TableRow>
@@ -279,22 +330,35 @@ const UserTable = ({
   onChangeRowsPerPage,
   loading = false,
   onRequestReload,
-  showNotification
+  showNotification,
+  onSearch,
+  onFilterChange,
+  onViewModeChange,
+  viewMode = 'table',
+  searchTerm = '',
+  onExport,
+  onImport,
+  onRefresh
 }) => {
+  const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedMenuUser, setSelectedMenuUser] = useState(null);
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
 
   const handleViewUser = (user) => {
-    setSelectedUser(user);
-    setDialogOpen(true);
+    navigate(`/admin/user-detail/${tabValue}`, { 
+      state: { user, tabValue } 
+    });
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setSelectedUser(null);
-  };
+
+
+
 
   const handleMenuClick = (event, user) => {
     setMenuAnchorEl(event.currentTarget);
@@ -306,27 +370,44 @@ const UserTable = ({
     setSelectedMenuUser(null);
   };
 
-  const handleMenuAction = (action) => {
+  const handleSearchChange = (e) => {
+    setLocalSearchTerm(e.target.value);
+  };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    onSearch(localSearchTerm);
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearchTerm('');
+    onSearch('');
+  };
+
+  const handleMenuAction = (action) => {
     switch (action) {
       case 'view':
         handleViewUser(selectedMenuUser);
         break;
       case 'approve':
         // Handle approve action
+        showNotification(`${selectedMenuUser.name} approved successfully`);
         break;
       case 'reject':
         // Handle reject action
+        showNotification(`${selectedMenuUser.name} rejected`, 'warning');
         break;
       case 'edit':
         // Handle edit action
+        showNotification(`Editing ${selectedMenuUser.name}`);
         break;
       case 'delete':
+        // Handle delete action
+        showNotification(`${selectedMenuUser.name} deleted`, 'error');
         break;
       default:
         break;
     }
-
     handleMenuClose();
   };
 
@@ -345,26 +426,33 @@ const UserTable = ({
   };
 
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
+      
+
+      {/* Main Table */}
       <TableContainer
         component={Paper}
         elevation={0}
         sx={{
           borderRadius: 2,
-          border: '1px solid #e0e0e0',
-          overflow: 'hidden'
+          border: '1px solid',
+          borderColor: 'divider',
+          overflow: 'hidden',
+          backgroundColor: 'background.paper'
         }}
       >
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
+            <TableRow sx={{ backgroundColor: 'background.default' }}>
               {getTableHeaders().map((header) => (
                 <TableCell
                   key={header}
                   sx={{
                     fontWeight: 'bold',
                     color: 'text.primary',
-                    borderBottom: '2px solid #e0e0e0'
+                    borderBottom: '2px solid',
+                    borderColor: 'divider',
+                    py: 1.5
                   }}
                 >
                   {header}
@@ -374,13 +462,13 @@ const UserTable = ({
           </TableHead>
           <TableBody>
             {loading ? (
-              <TableSkeleton rows={5} columns={getTableHeaders().length} />
-            ) : (
+              <TableSkeleton rows={rowsPerPage} columns={getTableHeaders().length} />
+            ) : users.length > 0 ? (
               users
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((user, index) => (
                   <UserTableRow
-                    key={user.id}
+                    key={user.id || index}
                     user={user}
                     tabValue={tabValue}
                     statusColors={statusColors}
@@ -389,11 +477,27 @@ const UserTable = ({
                     index={index}
                   />
                 ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No {tabValue} found matching your criteria
+                  </Typography>
+                  <Button 
+                    variant="text" 
+                    onClick={handleClearSearch}
+                    sx={{ mt: 1 }}
+                  >
+                    Clear search
+                  </Button>
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
+      {/* Pagination */}
       <TablePagination
         rowsPerPageOptions={[5, 10, 25, 50]}
         component="div"
@@ -405,21 +509,14 @@ const UserTable = ({
         sx={{
           '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
             fontWeight: 'medium'
-          }
+          },
+          mt: 1
         }}
       />
 
-      {/* User Detail Dialog */}
-      <Suspense fallback={null}>
-        <UserDetailDialog
-          open={dialogOpen}
-          user={selectedUser}
-          tabValue={tabValue}
-          onClose={handleCloseDialog}
-          onMutateSuccess={onRequestReload}
-          showNotification={showNotification}
-        />
-      </Suspense>
+
+
+
 
       {/* Action Menu */}
       <Menu
@@ -429,56 +526,54 @@ const UserTable = ({
         PaperProps={{
           sx: {
             minWidth: 200,
-            mt: 1
+            mt: 1,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
           }
         }}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
       >
-        <MenuItem onClick={() => handleMenuAction('view')}>
-          <Visibility sx={{ mr: 1 }} /> View Details
+        <MenuItem onClick={() => handleMenuAction('view')} dense>
+          <Visibility sx={{ mr: 1, fontSize: '1rem' }} /> View Details
         </MenuItem>
         {tabValue === 'tutors' && (
           <>
             <MenuItem
               onClick={() => handleMenuAction('approve')}
               disabled={selectedMenuUser?.status === 'verified'}
+              dense
             >
-              <CheckCircle sx={{ mr: 1 }} /> Approve
+              <CheckCircle sx={{ mr: 1, fontSize: '1rem' }} /> Approve
             </MenuItem>
             <MenuItem
               onClick={() => handleMenuAction('reject')}
               disabled={selectedMenuUser?.status === 'rejected'}
+              dense
             >
-              <Pending sx={{ mr: 1 }} /> Reject
+              <Pending sx={{ mr: 1, fontSize: '1rem' }} /> Reject
             </MenuItem>
-            <MenuItem onClick={() => handleMenuAction('edit')}>
-              <Edit sx={{ mr: 1 }} /> Edit
+            <MenuItem onClick={() => handleMenuAction('edit')} dense>
+              <Edit sx={{ mr: 1, fontSize: '1rem' }} /> Edit
             </MenuItem>
             <Divider />
-            <MenuItem
-              onClick={() => handleMenuAction('delete')}
-              sx={{ color: 'error.main' }}
-            >
-              <Delete sx={{ mr: 1 }} /> Delete
-            </MenuItem>
           </>
         )}
-        {tabValue !== 'tutors' && (
-          <>
-            <MenuItem onClick={() => handleMenuAction('edit')}>
-              <Edit sx={{ mr: 1 }} /> Edit
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              onClick={() => handleMenuAction('delete')}
-              sx={{ color: 'error.main' }}
-            >
-              <Delete sx={{ mr: 1 }} /> Delete
-            </MenuItem>
-          </>
-        )}
+        <MenuItem
+          onClick={() => handleMenuAction('delete')}
+          sx={{ color: 'error.main' }}
+          dense
+        >
+          <Delete sx={{ mr: 1, fontSize: '1rem' }} /> Delete
+        </MenuItem>
       </Menu>
     </Box>
   );
 };
 
-export default UserTable; 
+export default UserTable;

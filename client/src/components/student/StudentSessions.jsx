@@ -219,6 +219,7 @@ const StudentSessions = () => {
         ) : (
           filteredSessions.map((session) => (
             <Card key={session._id} className="hover:shadow-md transition-shadow">
+              {console.log(session)}
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
@@ -226,9 +227,10 @@ const StudentSessions = () => {
                       <User className="w-6 h-6 text-blue-600" />
                     </div>
                     <div className="flex-1">
+                      
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {session.tutor_id.full_name}
+                          {session.tutor_id.user_id.full_name}
                         </h3>
                         {getStatusBadge(session.status)}
                       </div>

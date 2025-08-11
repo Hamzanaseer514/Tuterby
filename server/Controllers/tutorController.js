@@ -165,10 +165,20 @@ const createSession = asyncHandler(async (req, res) => {
   const hireRecord = student.hired_tutors.find(
     (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
   );
-
   if (!hireRecord) {
     res.status(403); // Forbidden
     throw new Error("Tutor is not authorized to create a session with this student");
+  }
+
+  // Check if tutor already has a session in progress
+  const existingWorkingSession = await TutoringSession.findOne({
+    tutor_id: tutor._id,
+    status: 'in_progress'
+  });
+
+  if (existingWorkingSession) {
+    res.status(400);
+    throw new Error("Cannot create new session. You already have an active session in progress.");
   }
 
   // Calculate total earnings
@@ -214,6 +224,20 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
   if (!session) {
     res.status(404);
     throw new Error("Session not found");
+  }
+
+  // Check for duplicate working sessions if this session is being set to 'in_progress'
+  if (status === 'in_progress') {
+    const existingWorkingSession = await TutoringSession.findOne({
+      tutor_id: session.tutor_id,
+      status: 'in_progress',
+      _id: { $ne: session_id } // Exclude current session
+    });
+
+    if (existingWorkingSession) {
+      res.status(400);
+      throw new Error("Cannot start this session. You already have an active session in progress.");
+    }
   }
 
   // Store old duration for tutor hours calculation
@@ -407,7 +431,7 @@ const getTutorStats = asyncHandler(async (req, res) => {
 // Get tutor profile with hours
 const getTutorProfile = asyncHandler(async (req, res) => {
   const { tutor_id } = req.params;
-
+console.log(req.params)
   const profile = await TutorProfile.findOne({ user_id: tutor_id })
     .populate('user_id', 'full_name email photo_url');
 
@@ -532,205 +556,6 @@ const updateGeneralAvailability = asyncHandler(async (req, res) => {
   });
 });
 
-// Add recurring availability slot
-// const addRecurringAvailability = asyncHandler(async (req, res) => {
-//   const { user_id } = req.params;
-//   const { day_of_week, start_time, end_time } = req.body;
-//   const tutor = await TutorProfile.findOne({ user_id });
-//   if (!tutor) {
-//     res.status(400);
-//     throw new Error("Invalid tutor ID");
-//   }
-
-//   if (!day_of_week || !start_time || !end_time) {
-//     res.status(400);
-//     throw new Error("Day of week, start time, and end time are required");
-//   }
-
-//   let availability = await TutorAvailability.findOne({ tutor_id: tutor._id });
-
-//   if (!availability) {
-//     availability = new TutorAvailability({ tutor_id: tutor._id });
-//   }
-
-//   availability.recurring_availability.push({
-//     day_of_week,
-//     start_time,
-//     end_time
-//   });
-
-//   await availability.save();
-
-//   res.status(201).json({
-//     message: "Recurring availability slot added successfully",
-//     availability
-//   });
-// });
-
-// // Update recurring availability slot
-// const updateRecurringAvailability = asyncHandler(async (req, res) => {
-//   const { user_id, slot_id } = req.params;
-//   const { day_of_week, start_time, end_time, is_active } = req.body;
-//   const tutor = await TutorProfile.findOne({ user_id });
-//   if (!tutor) {
-//     res.status(400);
-//     throw new Error("Invalid tutor ID");
-//   }
-
-//   const availability = await TutorAvailability.findOne({ tutor_id: tutor._id });
-
-//   if (!availability) {
-//     res.status(404);
-//     throw new Error("Availability record not found");
-//   }
-
-//   const slot = availability.recurring_availability.id(slot_id);
-
-//   if (!slot) {
-//     res.status(404);
-//     throw new Error("Recurring availability slot not found");
-//   }
-
-//   if (day_of_week !== undefined) slot.day_of_week = day_of_week;
-//   if (start_time !== undefined) slot.start_time = start_time;
-//   if (end_time !== undefined) slot.end_time = end_time;
-//   if (is_active !== undefined) slot.is_active = is_active;
-
-//   await availability.save();
-
-//   res.json({
-//     message: "Recurring availability slot updated successfully",
-//     availability
-//   });
-// });
-
-// // Remove recurring availability slot
-// const removeRecurringAvailability = asyncHandler(async (req, res) => {
-//   const { user_id, slot_id } = req.params;
-//   const tutor = await TutorProfile.findOne({ user_id });
-//   if (!tutor) {
-//     res.status(400);
-//     throw new Error("Invalid tutor ID");
-//   }
-
-//   const availability = await TutorAvailability.findOne({ tutor_id: tutor._id });
-
-//   if (!availability) {
-//     res.status(404);
-//     throw new Error("Availability record not found");
-//   }
-
-//   availability.recurring_availability = availability.recurring_availability.filter(
-//     slot => slot._id.toString() !== slot_id
-//   );
-
-//   await availability.save();
-
-//   res.json({
-//     message: "Recurring availability slot removed successfully",
-//     availability
-//   });
-// });
-
-// // Add one-time availability slot
-// const addOneTimeAvailability = asyncHandler(async (req, res) => {
-//   const { user_id } = req.params;
-//   const { date, start_time, end_time } = req.body;
-//   const tutor = await TutorProfile.findOne({ user_id });
-//   if (!tutor) {
-//     res.status(400);
-//     throw new Error("Invalid tutor ID");
-//   }
-
-//   if (!date || !start_time || !end_time) {
-//     res.status(400);
-//     throw new Error("Date, start time, and end time are required");
-//   }
-
-//     let availability = await TutorAvailability.findOne({ tutor_id: tutor._id });
-
-//   if (!availability) {
-//     availability = new TutorAvailability({ tutor_id: tutor._id });
-//   }
-
-//   availability.one_time_availability.push({
-//     date: new Date(date),
-//     start_time,
-//     end_time
-//   });
-
-//   await availability.save();
-
-//   res.status(201).json({
-//     message: "One-time availability slot added successfully",
-//     availability
-//   });
-// });
-
-// // Update one-time availability slot
-// const updateOneTimeAvailability = asyncHandler(async (req, res) => {
-//   const { user_id, slot_id } = req.params;
-//   const { date, start_time, end_time, is_active } = req.body;
-//   const tutor = await TutorProfile.findOne({ user_id });
-//   if (!tutor) {
-//     res.status(400);
-//     throw new Error("Invalid tutor ID");
-//   }
-
-//   const availability = await TutorAvailability.findOne({ tutor_id: tutor._id });
-
-//   if (!availability) {
-//     res.status(404);
-//     throw new Error("Availability record not found");
-//   }
-
-//   const slot = availability.one_time_availability.id(slot_id);
-
-//   if (!slot) {
-//     res.status(404);
-//     throw new Error("One-time availability slot not found");
-//   }
-
-//   if (date !== undefined) slot.date = new Date(date);
-//   if (start_time !== undefined) slot.start_time = start_time;
-//   if (end_time !== undefined) slot.end_time = end_time;
-//   if (is_active !== undefined) slot.is_active = is_active;
-
-//   await availability.save();
-
-//   res.json({
-//     message: "One-time availability slot updated successfully",
-//     availability
-//   });
-// });
-
-// // Remove one-time availability slot
-// const removeOneTimeAvailability = asyncHandler(async (req, res) => {
-//   const { user_id, slot_id } = req.params;
-//   const tutor = await TutorProfile.findOne({ user_id });
-//   if (!tutor) {
-//     res.status(400);
-//     throw new Error("Invalid tutor ID");
-//   }
-
-//   const availability = await TutorAvailability.findOne({ tutor_id: tutor._id });
-
-//   if (!availability) {
-//     res.status(404);
-//     throw new Error("Availability record not found");
-//   }
-
-//   availability.one_time_availability = availability.one_time_availability.filter(
-//     slot => slot._id.toString() !== slot_id
-//   );
-
-//   await availability.save();
-
-//   res.json({
-//     message: "One-time availability slot removed successfully",
-//     availability
-//   });
-// });
 
 // Add blackout date
 const addBlackoutDate = asyncHandler(async (req, res) => {

@@ -86,7 +86,11 @@ const [sessionForm, setSessionForm] = useState({
   const [replyMessage, setReplyMessage] = useState('');
   const [availableStudents, setAvailableStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [viewSession, setViewSession] = useState(null);
 
+  const handleViewSession = (session) => {
+    setViewSession(session);
+  } 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
@@ -321,12 +325,13 @@ const [sessionForm, setSessionForm] = useState({
   const fetchAvailableStudents = async () => {
     try {
       setLoadingStudents(true);
-      const response = await fetch(`${BASE_URL}/api/tutor/students`);
+      const response = await fetch(`${BASE_URL}/api/tutor/students/${user?._id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }
       const data = await response.json();
       setAvailableStudents(data.students);
+      
     } catch (err) {
       console.error('Error fetching students:', err);
     } finally {
@@ -609,7 +614,7 @@ const [sessionForm, setSessionForm] = useState({
                         <Edit className="h-4 w-4 mr-1" />
                         Update
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={()=>handleViewSession(session)}>
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
@@ -1140,6 +1145,141 @@ const [sessionForm, setSessionForm] = useState({
           </div>
         </div>
       )}
+
+      {/* View Session Modal */}
+      {viewSession && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Session Details</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewSession(null)}
+              >
+                <XCircle className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Session Header */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-semibold text-blue-900">
+                      {viewSession.subject}
+                    </h4>
+                    <p className="text-blue-700">
+                      {formatDate(viewSession.session_date)}
+                    </p>
+                  </div>
+                  <Badge className={getStatusColor(viewSession.status)}>
+                    {viewSession.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Student Information */}
+              <div>
+                <h5 className="text-md font-semibold mb-3 text-gray-800">Student Information</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewSession.student_ids && viewSession.student_ids.map((student, index) => (
+                    <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                      <p className="font-medium text-gray-900">
+                        {student.user_id?.full_name || 'Student Name'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {student.user_id?.email || 'Email not available'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Session Details */}
+              <div>
+                <h5 className="text-md font-semibold mb-3 text-gray-800">Session Details</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600">Duration</Label>
+                    <p className="text-lg font-semibold">
+                      {viewSession.duration_hours} hour{viewSession.duration_hours !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600">Hourly Rate</Label>
+                    <p className="text-lg font-semibold text-green-600">
+                      £{viewSession.hourly_rate}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
+                    <p className="text-lg font-semibold text-green-600">
+                      £{(viewSession.duration_hours * viewSession.hourly_rate).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600">Session Date</Label>
+                    <p className="text-lg font-semibold">
+                      {formatDate(viewSession.session_date)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {viewSession.notes && (
+                <div>
+                  <h5 className="text-md font-semibold mb-3 text-gray-800">Notes</h5>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-gray-700">{viewSession.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rating and Feedback */}
+              {viewSession.rating && (
+                <div>
+                  <h5 className="text-md font-semibold mb-3 text-gray-800">Student Feedback</h5>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="h-5 w-5 text-yellow-500 fill-current" />
+                      <span className="font-medium">{viewSession.rating}/5</span>
+                    </div>
+                    {viewSession.feedback && (
+                      <p className="text-gray-700">{viewSession.feedback}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setViewSession(null)}
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+                {viewSession.status !== 'completed' && (
+                  <Button
+                    onClick={() => {
+                      setViewSession(null);
+                      openUpdateSessionModal(viewSession);
+                    }}
+                    className="flex-1"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Session
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Toaster />
     </div>
   );

@@ -178,6 +178,7 @@ const StudentDashboard = () => {
               <Calendar className="w-8 h-8 text-blue-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Upcoming Sessions</p>
+                {console.log(dashboardData)}
                 <p className="text-2xl font-bold text-gray-900">{dashboardData.upcomingSessions.length}</p>
               </div>
             </div>
