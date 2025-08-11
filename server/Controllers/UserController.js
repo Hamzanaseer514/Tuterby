@@ -81,6 +81,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
 });
 
 
+
 function parseArrayField(field) {
   if (!field) return [];
   // Already an array of strings like ["Math", "Physics"]
@@ -105,6 +106,8 @@ function parseArrayField(field) {
   }
   return [];
 }
+
+
 
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
