@@ -80,36 +80,6 @@ exports.registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-
-function parseArrayField(field) {
-  if (!field) return [];
-  // Already an array of strings like ["Math", "Physics"]
-  if (Array.isArray(field) && field.every(item => typeof item === "string")) {
-    return field;
-  }
-  // Array with a single JSON string: ['["Math","Physics"]']
-  if (Array.isArray(field) && field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
-    try {
-      return JSON.parse(field[0]);
-    } catch {
-      return [];
-    }
-  }
-  // Plain JSON string: '["Math","Physics"]'
-  if (typeof field === "string" && field.startsWith("[")) {
-    try {
-      return JSON.parse(field);
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-
-
-=======
->>>>>>> 96713894cd66bbea0c0910cd6f5dc1a165529c69
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
     full_name,
