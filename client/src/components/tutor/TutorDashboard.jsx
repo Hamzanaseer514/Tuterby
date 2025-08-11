@@ -132,8 +132,8 @@ const [sessionForm, setSessionForm] = useState({
 
   const handleCreateSession = async (e) => {
     e.preventDefault();
-
-    // Validate that a valid student is selected
+  
+    // Validate student selection
     if (!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students') {
       toast({
         title: "Error",
@@ -142,9 +142,9 @@ const [sessionForm, setSessionForm] = useState({
       });
       return;
     }
-
+  
     try {
-      // Check availability before creating session
+      // Check availability
       const availabilityResponse = await fetch(
         `${BASE_URL}/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
         {
@@ -155,18 +155,18 @@ const [sessionForm, setSessionForm] = useState({
           }
         }
       );
-      if (availabilityResponse.ok) {
-        const availabilityData = await availabilityResponse.json();
-        if (!availabilityData.is_available) {
-          toast({
-            title: "Error",
-            description: "You are not available at the selected time. Please check your availability settings.",
-            variant: "destructive",
-          });
-          return;
-        }
+  
+      const availabilityData = await availabilityResponse.json();
+      if (!availabilityData.is_available) {
+        toast({
+          title: "Error",
+          description: "You are not available at the selected time. Please check your availability settings.",
+          variant: "destructive",
+        });
+        return;
       }
-
+  
+      // Create session
       const response = await fetch(`${BASE_URL}/api/tutor/sessions`, {
         method: 'POST',
         headers: {
@@ -178,11 +178,14 @@ const [sessionForm, setSessionForm] = useState({
           tutor_id: user?._id
         }),
       });
-
+  
+      const responseData = await response.json(); // Parse the response
+  
       if (!response.ok) {
-        throw new Error('Failed to create session');
+        throw new Error(responseData.message || 'Failed to create session');
       }
-
+  
+      // Success case
       setShowCreateSessionModal(false);
       setSessionForm({
         student_id: '',
@@ -192,17 +195,19 @@ const [sessionForm, setSessionForm] = useState({
         hourly_rate: 25,
         notes: ''
       });
-      fetchDashboardData(); // Refresh dashboard data
+      fetchDashboardData();
+      
       toast({
         title: "Success!",
         description: "Session created successfully.",
         variant: "default",
       });
+  
     } catch (err) {
-      console.error('Error creating session:', err);
+      console.error("Error creating session:", err);
       toast({
         title: "Error",
-        description: "Failed to create session: " + err.message,
+        description: err.message || "Failed to create session",
         variant: "destructive",
       });
     }
@@ -210,22 +215,32 @@ const [sessionForm, setSessionForm] = useState({
 
   const handleUpdateSession = async (e) => {
     e.preventDefault();
+    
     try {
+      // Validate required fields
+      if (!updateSessionForm.session_date || !updateSessionForm.duration_hours || !updateSessionForm.hourly_rate) {
+        throw new Error('Date, duration, and rate are required');
+      }
+  
       const response = await fetch(`${BASE_URL}/api/tutor/sessions/${selectedSession._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // Add auth header if needed
         },
         body: JSON.stringify({
           ...updateSessionForm,
           total_earnings: updateSessionForm.duration_hours * updateSessionForm.hourly_rate
         }),
       });
-
+  
+      const data = await response.json(); // Always parse response
+  
       if (!response.ok) {
-        throw new Error('Failed to update session');
+        throw new Error(data.message || 'Failed to update session');
       }
-
+  
+      // Success case
       setShowUpdateSessionModal(false);
       setSelectedSession(null);
       setUpdateSessionForm({
@@ -239,17 +254,20 @@ const [sessionForm, setSessionForm] = useState({
         feedback: '',
         notes: ''
       });
-      fetchDashboardData(); // Refresh dashboard data
+      
+      fetchDashboardData();
+      
       toast({
         title: "Success!",
-        description: "Session updated successfully.",
+        description: data.message || "Session updated successfully",
         variant: "default",
       });
+  
     } catch (err) {
       console.error('Error updating session:', err);
       toast({
         title: "Error",
-        description: "Failed to update session: " + err.message,
+        description: err.message || "Failed to update session",
         variant: "destructive",
       });
     }
@@ -340,15 +358,14 @@ const [sessionForm, setSessionForm] = useState({
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const [datePart, timePart] = dateString.split('T');
+    const time = timePart.slice(0, 5); // HH:MM
+    const [year, month, day] = datePart.split('-');
+    return `${day}-${month}-${year} ${time}`;
   };
-
+  
+  // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 09:29"
+  
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',

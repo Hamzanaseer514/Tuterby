@@ -81,12 +81,12 @@ const StudentDashboard = () => {
   };
 
   const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const [datePart, timePart] = dateString.split('T');
+    const time = timePart.slice(0, 5); 
+    return `${time}`;
   };
 
+  
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending: { variant: "secondary", icon: AlertCircle },

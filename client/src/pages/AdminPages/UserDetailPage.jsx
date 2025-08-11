@@ -67,7 +67,6 @@ const UserDetailPage = () => {
   
   // Get user data from location state or fetch it
   const [user, setUser] = useState(location.state?.user || null);
-    console.log("user",user);
     const [loading, setLoading] = useState(!location.state?.user);
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -406,13 +405,14 @@ const UserDetailPage = () => {
                               <IconButton size="small" href={doc.url} target="_blank" disabled={doc.url === '#'} title={doc.url === '#' ? 'Document not available' : 'View document'}>
                                 <CloudDownload />
                               </IconButton>
-                              {doc.verified === "Rejected" || doc.verified === "Pending" && (
+                              {(doc.verified === "Rejected" || doc.verified === "Pending") && (
                                 <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="success"
-                                  onClick={async () => {
-                                    try {
+                                size="small"
+                                variant="outlined"
+                                color="success"
+                                onClick={async () => {
+                                  try {
+                                      {console.log("doc",doc.verified)}
                                       await verifyDocument(user.id, doc.type);
                                       // update local document verified flag
                                       setLocalUser(prev => ({

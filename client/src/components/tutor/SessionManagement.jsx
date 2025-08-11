@@ -165,14 +165,15 @@ const SessionManagement = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const [datePart, timePart] = dateString.split('T');
+    const time = timePart.slice(0, 5); // HH:MM
+    const [year, month, day] = datePart.split('-');
+    return `${day}-${month}-${year} ${time}`;
   };
+  
+  // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 09:29"
+  
+  
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-GB', {

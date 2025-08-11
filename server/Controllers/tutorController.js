@@ -38,48 +38,50 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
 
   const tutor = await TutorProfile.findOne({ user_id: user_id });
+
   const upcomingSessions = await TutoringSession.find({
     tutor_id: tutor._id,
     session_date: { $gte: new Date() },
     status: { $in: ['pending', 'confirmed', 'in_progress'] }
   })
-  .populate({
-    path: 'student_ids',
-    populate: {
-      path: 'user_id',
-      select: 'full_name email'
-    }
-  })    .sort({ session_date: 1 })
+    .populate({
+      path: 'student_ids',
+      populate: {
+        path: 'user_id',
+        select: 'full_name email'
+      }
+    })
+    .sort({ session_date: 1 })
     .limit(10);
 
-  // Get pending inquiries
   const pendingInquiries = await TutorInquiry.find({
     tutor_id: tutor._id,
     status: { $in: ['unread', 'read'] }
   })
-  .populate({
-    path: 'student_id',
-    populate: {
-      path: 'user_id',
-      select: 'full_name email'
-    }
-  })    .sort({ created_at: -1 })
+    .populate({
+      path: 'student_id',
+      populate: {
+        path: 'user_id',
+        select: 'full_name email'
+      }
+    })
+    .sort({ created_at: -1 })
     .limit(10);
 
-  // Get recent sessions (last 30 days, all statuses)
   const recentSessions = await TutoringSession.find({
     tutor_id: tutor._id,
     session_date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
   })
-  .populate({
-    path: 'student_ids',
-    populate: {
-      path: 'user_id',
-      select: 'full_name email'
-    }
-  })    .sort({ session_date: -1 })
+    .populate({
+      path: 'student_ids',
+      populate: {
+        path: 'user_id',
+        select: 'full_name email'
+      }
+    })
+    .sort({ session_date: -1 })
     .limit(5);
-  // Calculate metrics
+
   const [totalHours, totalEarnings, averageRating, completedSessions] = await Promise.all([
     TutoringSession.aggregate([
       { $match: { tutor_id: tutor._id, status: 'completed' } },
@@ -96,7 +98,6 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     TutoringSession.countDocuments({ tutor_id: tutor._id, status: 'completed' })
   ]);
 
-  // Calculate response time and booking acceptance rate
   const [avgResponseTime, bookingAcceptanceRate] = await Promise.all([
     TutorInquiry.aggregate([
       { $match: { tutor_id: tutor._id, response_time_minutes: { $exists: true } } },
@@ -110,9 +111,17 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   const students_ids = students.map(student => student.user_id);
   const users = await User.find({ _id: students_ids });
 
+  // ✅ Ensure session_date is returned exactly in ISO format without timezone shift
+  const formatSessions = (sessions) => {
+    return sessions.map(s => ({
+      ...s.toObject(),
+      session_date: s.session_date ? s.session_date.toISOString() : null
+    }));
+  };
+
   const dashboard = {
-    upcomingSessions,
-    recentSessions,
+    upcomingSessions: formatSessions(upcomingSessions),
+    recentSessions: formatSessions(recentSessions),
     pendingInquiries,
     users,
     students,
@@ -127,6 +136,8 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   };
   res.json(dashboard);
 });
+
+
 
 // Calculate booking acceptance rate
 const calculateBookingAcceptanceRate = async (tutor_id) => {
@@ -146,57 +157,78 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 const createSession = asyncHandler(async (req, res) => {
   const { tutor_id, student_id, subject, session_date, duration_hours, hourly_rate, notes } = req.body;
 
-  // Basic validation
+  console.log("session_date (raw from frontend):", duration_hours);
+
   if (!tutor_id || !student_id || !subject || !session_date || !duration_hours || !hourly_rate) {
-    res.status(400);
-    throw new Error("All required fields must be provided");
+    return res.status(400).json({ message: "All required fields must be provided" });
   }
 
-  // Fetch student and tutor profiles
+  let sessionDateExactUTC;
+  if (typeof session_date === 'string') {
+    // Force interpret as UTC to prevent timezone shift
+    sessionDateExactUTC = new Date(session_date + ':00Z');
+  } else {
+    sessionDateExactUTC = new Date(session_date);
+  }
+
+  // Calculate new session end time
+  const newSessionEndTime = new Date(sessionDateExactUTC.getTime() + duration_hours * 60 * 60 * 1000);
+
+  // Fetch profiles
   const student = await StudentProfile.findOne({ user_id: student_id });
   const tutor = await TutorProfile.findOne({ user_id: tutor_id });
 
   if (!student || !tutor) {
-    res.status(404);
-    throw new Error("Student or tutor profile not found");
+    return res.status(404).json({ message: "Student or tutor profile not found" });
   }
 
-  // ✅ Check if student has accepted this tutor
+  // Authorization check
   const hireRecord = student.hired_tutors.find(
     (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
   );
   if (!hireRecord) {
-    res.status(403); // Forbidden
-    throw new Error("Tutor is not authorized to create a session with this student");
+    return res.status(403).json({ message: "Tutor is not authorized to create a session with this student" });
   }
 
-  // Check if tutor already has a session in progress
-  const existingWorkingSession = await TutoringSession.findOne({
+  // Check for overlapping in-progress session
+  const conflictingSession = await TutoringSession.findOne({
     tutor_id: tutor._id,
-    status: 'in_progress'
+    status: { $in: ['in_progress', 'pending', 'confirmed'] },
+    $expr: {
+      $and: [
+        { $lt: ['$session_date', newSessionEndTime] }, // existing start < new end
+        {
+          $gt: [
+            { $add: ['$session_date', { $multiply: ['$duration_hours', 60 * 60 * 1000] }] },
+            sessionDateExactUTC
+          ]
+        } // existing end > new start
+      ]
+    }
   });
 
-  if (existingWorkingSession) {
-    res.status(400);
-    throw new Error("Cannot create new session. You already have an active session in progress.");
+  if (conflictingSession) {
+    return res.status(400).json({
+      message: "Cannot create new session. You already have an active session in progress."
+    });
   }
-
-  // Calculate total earnings
-  const total_earnings = duration_hours * hourly_rate;
 
   // Create session
   const session = await TutoringSession.create({
     tutor_id: tutor._id,
     student_ids: [student._id],
     subject,
-    session_date: new Date(session_date),
+    session_date: sessionDateExactUTC, // exact time from frontend
     duration_hours,
     hourly_rate,
-    total_earnings,
-    notes: notes || ""
+    total_earnings: duration_hours * hourly_rate,
+    notes: notes || "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
-  res.status(201).json({
+  console.log("session_date saved in DB:", session.session_date.toISOString());
+
+  return res.status(201).json({
     message: "Tutoring session created successfully",
     session
   });
@@ -204,7 +236,7 @@ const createSession = asyncHandler(async (req, res) => {
 
 
 
-// Update session (full update)
+
 const updateSessionStatus = asyncHandler(async (req, res) => {
   const { session_id } = req.params;
   const {
@@ -213,69 +245,123 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     session_date,
     duration_hours,
     hourly_rate,
-    total_earnings,
     status,
     rating,
     feedback,
     notes
   } = req.body;
 
-  const session = await TutoringSession.findById(session_id);
-  if (!session) {
-    res.status(404);
-    throw new Error("Session not found");
-  }
-
-  // Check for duplicate working sessions if this session is being set to 'in_progress'
-  if (status === 'in_progress') {
-    const existingWorkingSession = await TutoringSession.findOne({
-      tutor_id: session.tutor_id,
-      status: 'in_progress',
-      _id: { $ne: session_id } // Exclude current session
+  if (!session_date || !duration_hours || !hourly_rate) {
+    return res.status(400).json({
+      success: false,
+      message: "Date, duration, and hourly rate are required"
     });
-
-    if (existingWorkingSession) {
-      res.status(400);
-      throw new Error("Cannot start this session. You already have an active session in progress.");
-    }
   }
 
-  // Store old duration for tutor hours calculation
-  const oldDuration = session.duration_hours;
+  try {
+    const session = await TutoringSession.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found"
+      });
+    }
 
-  // Update all fields
-  session.student_id = student_id || session.student_id;
-  session.subject = subject || session.subject;
-  session.session_date = session_date ? new Date(session_date) : session.session_date;
-  session.duration_hours = duration_hours || session.duration_hours;
-  session.hourly_rate = hourly_rate || session.hourly_rate;
-  session.total_earnings = total_earnings || session.total_earnings;
-  session.status = status || session.status;
-  session.notes = notes !== undefined ? notes : session.notes;
+    // Convert frontend time to exact UTC without timezone shift
+    let sessionDateExactUTC;
+    if (typeof session_date === 'string') {
+      sessionDateExactUTC = new Date(session_date + ':00Z');
+    } else {
+      sessionDateExactUTC = new Date(session_date);
+    }
 
-  if (status === 'completed') {
-    session.completed_at = new Date();
-    session.rating = rating;
-    session.feedback = feedback;
+    // Calculate new session's end time
+    const newSessionEndTime = new Date(sessionDateExactUTC.getTime() + duration_hours * 60 * 60 * 1000);
 
-    // Update tutor's total hours (only if duration changed)
-    if (duration_hours && duration_hours !== oldDuration) {
-      const tutorProfile = await TutorProfile.findOne({ user_id: session.tutor_id });
-      if (tutorProfile) {
-        // Remove old duration and add new duration
-        tutorProfile.tutoring_hours = tutorProfile.tutoring_hours - oldDuration + duration_hours;
-        await tutorProfile.save();
+    // Check for conflicting in-progress sessions
+    if (status === 'in_progress' || status === 'pending' || status === 'confirmed') {
+      const conflictingSession = await TutoringSession.findOne({
+        tutor_id: session.tutor_id,
+        status: { $in: ['in_progress', 'pending', 'confirmed'] },
+        _id: { $ne: session_id },
+        $or: [
+          {
+            // Case: Existing session starts before new session ends and ends after new session starts
+            session_date: { $lte: newSessionEndTime },
+            $expr: {
+              $gt: [
+                { $add: ['$session_date', { $multiply: ['$duration_hours', 60 * 60 * 1000] }] },
+                sessionDateExactUTC
+              ]
+            }
+          }
+        ]
+      });
+console.log("conflictingSession",conflictingSession)
+      if (conflictingSession) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot start this session. You already have an active session in progress."
+        });
       }
     }
+
+    // Store old duration for tutor hours update
+    const oldDuration = session.duration_hours;
+    const total_earnings = duration_hours * hourly_rate;
+
+    const updates = {
+      student_id: student_id || session.student_id,
+      subject: subject || session.subject,
+      session_date: sessionDateExactUTC, // exact time from frontend
+      duration_hours,
+      hourly_rate,
+      total_earnings,
+      status: status || session.status,
+      notes: notes !== undefined ? notes : session.notes
+    };
+
+    if (status === 'completed') {
+      updates.completed_at = new Date();
+      updates.rating = rating;
+      updates.feedback = feedback;
+
+      if (duration_hours !== oldDuration) {
+        const tutorProfile = await TutorProfile.findOne({ user_id: session.tutor_id });
+        if (tutorProfile) {
+          tutorProfile.tutoring_hours =
+            (tutorProfile.tutoring_hours || 0) - oldDuration + duration_hours;
+          await tutorProfile.save();
+        }
+      }
+    }
+
+    const updatedSession = await TutoringSession.findByIdAndUpdate(
+      session_id,
+      updates,
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Session updated successfully",
+      session: updatedSession
+    });
+
+  } catch (error) {
+    console.error('Error updating session:', error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating session",
+      error: error.message
+    });
   }
-
-  await session.save();
-
-  res.json({
-    message: "Session updated successfully",
-    session
-  });
 });
+
+
+
+
+
 
 // Get tutor's sessions with filtering
 const getTutorSessions = asyncHandler(async (req, res) => {
@@ -431,7 +517,6 @@ const getTutorStats = asyncHandler(async (req, res) => {
 // Get tutor profile with hours
 const getTutorProfile = asyncHandler(async (req, res) => {
   const { tutor_id } = req.params;
-console.log(req.params)
   const profile = await TutorProfile.findOne({ user_id: tutor_id })
     .populate('user_id', 'full_name email photo_url');
 
