@@ -5,21 +5,18 @@ const TutorProfile = require("../Models/tutorProfileSchema");
 const TutorApplication = require("../Models/tutorApplicationSchema");
 const TutorDocument = require("../Models/tutorDocumentSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
-const { generateAccessToken, generateRefreshToken } = require("../Utils/generateTokens");
+const Rules = require("../Models/Rules");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../Utils/generateTokens");
 const sendEmail = require("../Utils/sendEmail");
 const otpStore = require("../Utils/otpStore");
 const generateOtpEmail = require("../Utils/otpTempelate");
 const path = require("path");
 
 exports.registerUser = asyncHandler(async (req, res) => {
-  const {
-    full_name,
-    email,
-    password,
-    age,
-    academic_level,
-    role
-  } = req.body;
+  const { full_name, email, password, age, academic_level, role } = req.body;
 
   if (!email || !password || !age || !full_name || !academic_level) {
     res.status(400);
@@ -31,6 +28,15 @@ exports.registerUser = asyncHandler(async (req, res) => {
   if (age < 12) {
     res.status(400);
     throw new Error("Age must be 12 or older");
+  }
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+  if (!passwordRegex.test(password)) {
+    res.status(400);
+    throw new Error(
+      "Password must be at least 8 characters long, include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character."
+    );
   }
 
   const emailExists = await User.findOne({ email });
@@ -47,6 +53,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
       age,
       role: role || "student",
       is_verified: "active",
+      isEmailVerified: false
     });
 
     const student = await Student.create({
@@ -73,6 +80,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 
 function parseArrayField(field) {
   if (!field) return [];
@@ -100,6 +108,8 @@ function parseArrayField(field) {
 }
 
 
+=======
+>>>>>>> 96713894cd66bbea0c0910cd6f5dc1a165529c69
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
     full_name,
@@ -207,9 +217,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     const savedDocuments = [];
     const documentMapRaw = req.body.documentsMap;
 
-
-    if (documentMapRaw && req.files && req.files['documents']) {
-
+    if (documentMapRaw && req.files && req.files["documents"]) {
       let documentsObj;
       try {
         documentsObj = JSON.parse(documentMapRaw);
@@ -218,8 +226,12 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         throw new Error("Invalid documentsMap format");
       }
 
-      for (const [documentType, originalFileName] of Object.entries(documentsObj)) {
-        const uploadedFile = req.files['documents'].find(file => file.originalname === originalFileName);
+      for (const [documentType, originalFileName] of Object.entries(
+        documentsObj
+      )) {
+        const uploadedFile = req.files["documents"].find(
+          (file) => file.originalname === originalFileName
+        );
         if (!uploadedFile) continue;
 
         // Optionally rename file to include document type
@@ -249,10 +261,6 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         savedDocuments.push(newDoc);
       }
     }
-
-
-
-
 
     // await session.commitTransaction();
     // session.endSession();
@@ -303,16 +311,18 @@ exports.registerParent = asyncHandler(async (req, res) => {
 
   try {
     const user = await User.create(
-      [{
-        full_name,
-        email,
-        password,
-        phone_number,
-        age,
-        role: "parent",
-        photo_url,
-        is_verified: "active"
-      }],
+      [
+        {
+          full_name,
+          email,
+          password,
+          phone_number,
+          age,
+          role: "parent",
+          photo_url,
+          is_verified: "active",
+        },
+      ]
       // { session }
     );
 
@@ -413,7 +423,6 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
       ]
       // { session }
     );
-    
 
     const parentProfile = await ParentProfile.findOneAndUpdate(
       { user_id: parent_user_id },
@@ -442,40 +451,171 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
   }
 });
 
+// exports.loginUser = asyncHandler(async (req, res) => {
+//   const { email, password } = req.body;
+//   if (!email || !password) {
+//     res.status(400);
+//     throw new Error("Email and password are required");
+//   }
+//   const user = await User.findOne({ email });
+//   if (!user || !(await user.matchPassword(password))) {
+//     res.status(401);
+//     throw new Error("Invalid email or password");
+//   }
+//   if (user.is_verified === "inactive") {
+//     res.status(403);
+//     throw new Error(
+//       "User not verified. please be Patient, Admin will verify you soon"
+//     );
+//   }
+//   if (
+//     user.role === "student" ||
+//     user.role === "tutor" ||
+//     user.role === "parent"
+//   ) {
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//     otpStore[user._id] = {
+//       otp,
+//       expiresAt: Date.now() + 60000,
+//       attempts: 1,
+//       maxAttempts: 5,
+//       lockUntil: null,
+//     };
+//     const htmlContent = generateOtpEmail(otp, user.username);
+//     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
+//     res.status(200).json({
+//       message: "OTP sent to your email",
+//       userId: user._id,
+//       email: user.email,
+//     });
+//   } else if (user.role === "admin") {
+//     const accessToken = generateAccessToken(user._id);
+//     const refreshToken = generateRefreshToken(user._id);
+
+//     res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "strict",
+//       maxAge: 7 * 24 * 60 * 60 * 1000,
+//     });
+
+//     res.status(200).json({
+//       message: "Admin login successful",
+//       user: {
+//         _id: user._id,
+//         full_name: user.full_name,
+//         email: user.email,
+//         role: user.role,
+//         is_verified: user.is_verified,
+//       },
+//       accessToken,
+//     });
+
+//     res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "strict",
+//       maxAge: 7 * 24 * 60 * 60 * 1000,
+//     });
+
+//     res.status(200).json({
+//       message: "Admin login successful",
+//       user: {
+//         _id: user._id,
+//         full_name: user.full_name,
+//         email: user.email,
+//         role: user.role,
+//         is_verified: user.is_verified,
+//       },
+//       accessToken,
+//     });
+//   }
+// });
+
+
 exports.loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     res.status(400);
     throw new Error("Email and password are required");
   }
+
   const user = await User.findOne({ email });
   if (!user || !(await user.matchPassword(password))) {
     res.status(401);
     throw new Error("Invalid email or password");
   }
+
   if (user.is_verified === "inactive") {
     res.status(403);
-    throw new Error(
-      "User not verified. please be Patient, Admin will verify you soon"
-    );
+    throw new Error("User not verified. Please be patient, Admin will verify you soon");
   }
-  if (user.role === "student" || user.role === "tutor" || user.role === "parent") {
+
+  if (user.role === "student") {
+    const otpRule = await Rules.findOne();
+    const otpActive = otpRule?.otp_rule_active || false;
+
+    if (otpActive && !user.isEmailVerified) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      otpStore[user._id] = {
+        otp,
+        expiresAt: Date.now() + 60000,
+        attempts: 1,
+        maxAttempts: 5,
+        lockUntil: null,
+      };
+      const htmlContent = generateOtpEmail(otp, user.username);
+      await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
+      return res.status(200).json({
+        message: "OTP sent to your email",
+        userId: user._id,
+        email: user.email,
+      });
+    } else {
+      const accessToken = generateAccessToken(user._id);
+      const refreshToken = generateRefreshToken(user._id);
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.status(200).json({
+        message: "Login successful (OTP not required)",
+        user: {
+          _id: user._id,
+          full_name: user.full_name,
+          email: user.email,
+          role: user.role,
+          is_verified: user.is_verified,
+          isEmailVerified: user.isEmailVerified
+        },
+        accessToken,
+      });
+    }
+  }
+
+  if (user.role === "tutor" || user.role === "parent") {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[user._id] = {
       otp,
       expiresAt: Date.now() + 60000,
       attempts: 1,
       maxAttempts: 5,
-      lockUntil: null
+      lockUntil: null,
     };
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
-    res.status(200).json({
+    return res.status(200).json({
       message: "OTP sent to your email",
       userId: user._id,
       email: user.email,
     });
-  } else if (user.role === "admin") {
+  }
+
+  if (user.role === "admin") {
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
@@ -486,27 +626,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({
-      message: "Admin login successful",
-      user: {
-        _id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        is_verified: user.is_verified
-      },
-      accessToken
-    });
-
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.status(200).json({
+    return res.status(200).json({
       message: "Admin login successful",
       user: {
         _id: user._id,
@@ -514,6 +634,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
         email: user.email,
         role: user.role,
         is_verified: user.is_verified,
+        isEmailVerified: user.isEmailVerified
       },
       accessToken,
     });
@@ -565,15 +686,17 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 
   let roleData = null;
   if (user.role === "student") {
-    roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-
+    roleData = await Student.findOne({ user_id: user._id }).select(
+      "-__v -createdAt -updatedAt"
+    );
   } else if (user.role === "tutor") {
     roleData = await TutorProfile.findOne({ user_id: user._id }).select(
       "-__v -createdAt -updatedAt"
     );
   } else if (user.role === "parent") {
-    roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
-
+    roleData = await ParentProfile.findOne({ user_id: user._id }).select(
+      "-__v -createdAt -updatedAt"
+    );
   } else if (user.role === "admin") {
     roleData = {
       _id: user._id,
@@ -582,6 +705,8 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       role: user.role,
     };
   }
+
+  user.isEmailVerified = true; 
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
@@ -672,7 +797,7 @@ exports.addAdmin = asyncHandler(async (req, res) => {
         password,
         phone_number,
         role: "admin",
-        is_verified: 'active', // ✅ manually set as admin
+        is_verified: "active", // ✅ manually set as admin
       },
     ]);
 
@@ -689,7 +814,6 @@ exports.addAdmin = asyncHandler(async (req, res) => {
     throw new Error("Admin creation failed: " + error.message);
   }
 });
-
 
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -740,5 +864,3 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   res.status(200).json({ message: "Password reset successfully" });
 });
-
-

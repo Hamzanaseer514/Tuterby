@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, BookOpen, Phone, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useAuth } from "../hooks/useAuth";
 
 const navLinksData = [
   { to: "/", text: "Home", aria: "Navigate to Home page" },
@@ -94,6 +95,8 @@ const Header = () => {
     setIsMobileMenuOpen(false);
   }, []);
 
+  const { user } = useAuth();
+
   return (
     <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md dark:bg-background/60">
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
@@ -131,16 +134,32 @@ const Header = () => {
             </a>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/contact" className="" aria-label="Book a free consultation">
+            <Link
+              to="/contact"
+              className=""
+              aria-label="Book a free consultation"
+            >
               Free Consultation
             </Link>
           </Button>
-          <Button size="sm" asChild>
-            <Link to="/login" className="" aria-label="Login">
-              Login
+          {user ? (
+            <Link to="/profile" aria-label="Profile">
+              <img
+                src={
+                  user.avatar ||
+                  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                } // online default avatar
+                alt="Profile"
+                className="w-8 h-8 rounded-full object-cover"
+              />
             </Link>
-          </Button>
-
+          ) : (
+            <Button size="sm" asChild>
+              <Link to="/login" aria-label="Login">
+                Login
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="md:hidden">
@@ -205,17 +224,43 @@ const Header = () => {
                   </Link>
                 </Button>
               </motion.div>
-              <motion.div variants={mobileLinkVariants}>
-                <Button
+              {user ? (
+                <motion.div
+                  variants={mobileLinkVariants}
                   className="w-full mt-2"
-                  asChild
-                  onClick={closeMobileMenu}
                 >
-                  <Link to="/login" aria-label="Login">
-                    Login
+                  <Link
+                    to="/profile"
+                    aria-label="Profile"
+                    className="flex items-center gap-2"
+                  >
+                    <img
+                      src={
+                        user.avatar ||
+                        "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                      } // Online default avatar
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <span className="text-sm font-medium">Profile</span>
                   </Link>
-                </Button>
-              </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  variants={mobileLinkVariants}
+                  className="w-full mt-2"
+                >
+                  <Button
+                    className="w-full mt-2"
+                    asChild
+                    onClick={closeMobileMenu}
+                  >
+                    <Link to="/login" aria-label="Login">
+                      Login
+                    </Link>
+                  </Button>
+                </motion.div>
+              )}
             </nav>
           </motion.div>
         )}
