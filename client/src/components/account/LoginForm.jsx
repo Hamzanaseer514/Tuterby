@@ -119,7 +119,7 @@ console.log(response);
         else if (data.user && data.user.role === 'parent') {
           setSuccess('Welcome to your Parent Dashboard! Redirecting...');
           setTimeout(() => {
-            navigate(`/parent-dashboard/${data.user._id || data.user.id}`);
+            navigate(`/parent-dashboard`);
           }, 1000);
         } else {
           setSuccess('Welcome to your Dashboard! Redirecting...');

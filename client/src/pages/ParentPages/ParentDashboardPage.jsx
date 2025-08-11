@@ -15,7 +15,7 @@ import { useToast } from '../../components/ui/use-toast';
 import ParentDashboard from '../../components/parent/ParentDashboard';
 
 const ParentDashboardPage = () => {
-  const { parentId } = useParams();
+  // const { parentId } = useParams();
   const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,7 +45,7 @@ const ParentDashboardPage = () => {
     }
 
     // Check if the parentId in URL matches the logged-in user
-    if (user._id !== parentId) {
+    if (user._id !== user._id) {
       toast({
         title: "Access Denied",
         description: "You can only access your own dashboard",
@@ -56,7 +56,7 @@ const ParentDashboardPage = () => {
     }
 
     setLoading(false);
-  }, [user, parentId, navigate, toast, authLoading]);
+  }, [user, navigate, toast, authLoading]);
 
   const handleLogout = () => {
     logout();
@@ -68,7 +68,7 @@ const ParentDashboardPage = () => {
       id: 'dashboard',
       name: 'Dashboard',
       icon: LayoutDashboard,
-      component: <ParentDashboard parentId={parentId} />
+      component: <ParentDashboard />
     },
     {
       id: 'students',

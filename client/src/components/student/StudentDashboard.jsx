@@ -81,12 +81,12 @@ const StudentDashboard = () => {
   };
 
   const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const [datePart, timePart] = dateString.split('T');
+    const time = timePart.slice(0, 5); 
+    return `${time}`;
   };
 
+  
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending: { variant: "secondary", icon: AlertCircle },
@@ -178,6 +178,7 @@ const StudentDashboard = () => {
               <Calendar className="w-8 h-8 text-blue-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Upcoming Sessions</p>
+                {console.log(dashboardData)}
                 <p className="text-2xl font-bold text-gray-900">{dashboardData.upcomingSessions.length}</p>
               </div>
             </div>

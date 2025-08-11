@@ -359,7 +359,7 @@ const TutorProfilePage = () => {
                             {tutor.user_id.full_name}
                           </h2>
                           {tutor.location && (
-                            <div className="flex items-center gap-1 text-gray-600 mb-2">
+                            <div className="flex items-center gap-1 text-gray-600 mb-2 blur-sm">
                               <MapPin className="w-4 h-4" />
                               {tutor.location}
                             </div>
@@ -478,7 +478,7 @@ const TutorProfilePage = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Total Sessions</span>
-                    <span className="font-semibold">{tutor.total_sessions || 0}</span>
+                    <span className="font-semibold">{tutor.recent_sessions.length || 0}</span>
                   </div>
 
                   {tutor.experience_years && (
@@ -501,7 +501,7 @@ const TutorProfilePage = () => {
               </Card>
 
               {/* Recent Sessions */}
-              {tutor.recent_sessions && tutor.recent_sessions.length > 0 && (
+              {/* {tutor.recent_sessions && tutor.recent_sessions.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Recent Sessions</CardTitle>
@@ -512,7 +512,8 @@ const TutorProfilePage = () => {
                         <div key={session._id} className="p-3 border rounded-lg">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-sm">
-                              {session.student_id.full_name}
+                              {console.log(session)}
+                               {session.student_id.full_name} 
                             </span>
                             <span className="text-xs text-gray-500">
                               {new Date(session.session_date).toLocaleDateString()}
@@ -524,7 +525,7 @@ const TutorProfilePage = () => {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              )} */}
 
               {/* Contact Actions */}
               <Card>

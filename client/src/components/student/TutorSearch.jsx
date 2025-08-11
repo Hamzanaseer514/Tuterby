@@ -252,6 +252,7 @@ const TutorSearch = () => {
   };
 
   const handleViewTutor = (tutorId) => {
+    {console.log(tutorId)}
     navigate(`/tutor`, {
       state: { tutorId: tutorId }
     });
@@ -435,29 +436,7 @@ const TutorSearch = () => {
                 </Select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                <Input
-                  placeholder="e.g., London, Manchester"
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Rating</label>
-                <Select value={filters.min_rating} onValueChange={(value) => handleFilterChange('min_rating', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Any rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="4.5">4.5+ stars</SelectItem>
-                    <SelectItem value="4.0">4.0+ stars</SelectItem>
-                    <SelectItem value="3.5">3.5+ stars</SelectItem>
-                    <SelectItem value="3.0">3.0+ stars</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Max Hourly Rate</label>
@@ -533,7 +512,7 @@ const TutorSearch = () => {
                               {tutor.user_id.full_name}
                             </h3>
                             {tutor.location && (
-                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <div className="flex items-center gap-1 text-sm text-gray-600 blur-sm">
                                 <MapPin className="w-4 h-4" />
                                 {tutor.location}
                               </div>
@@ -542,8 +521,8 @@ const TutorSearch = () => {
                           <div className="text-right">
                             <p className="text-lg font-bold text-gray-900">
                               £{tutor.hourly_rate}/hr
-                            </p>
-                            {tutor.average_rating && (
+                              </p>
+                              {tutor.average_rating && (
                               <div className="flex items-center gap-1 mt-1">
                                 {renderStars(tutor.average_rating)}
                                 <span className="text-sm text-gray-600 ml-1">
