@@ -5,9 +5,12 @@ const TutorDocument = require("../Models/tutorDocumentSchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
+const EducationLevel = require("../Models/EducationLevels");
+const Rules = require("../Models/Rules")
 const mongoose = require("mongoose");
 const sendEmail = require("../Utils/sendEmail");
 const generateOtpEmail = require("../Utils/otpTempelate");
+const asyncHandler = require("express-async-handler");
 
 
 exports.getAllPendingApplications = async (req, res) => {
@@ -858,3 +861,48 @@ exports.verifyDocument = async (req, res) => {
   await document.save();
   res.status(200).json({ message: "Document verified successfully" });
 };
+
+
+// EDUCATION LEVEL AND RULES ARE ADDED.......................................
+exports.addEducationLevel = asyncHandler(async (req, res) => {
+  const { level } = req.body;
+
+  if (!level) {
+    res.status(400);
+    throw new Error("Level is required");
+  }
+
+  const existingLevel = await EducationLevel.findOne({ level });
+  if (existingLevel) {
+    res.status(400);
+    throw new Error("Education level already exists, Please Add another Education Level");
+  }
+
+  const newLevel = await EducationLevel.create({ level });
+
+  res.status(201).json({
+    message: "Education level added successfully",
+    data: newLevel,
+  });
+});
+
+exports.toggleOtpRule = asyncHandler(async (req, res) => {
+  let rule = await Rules.findOne();
+
+  if (!rule) {
+    rule = await Rules.create({ otp_rule_active: false }); 
+  }
+
+  rule.otp_rule_active = !rule.otp_rule_active;
+  await rule.save();
+
+  res.status(200).json({
+    message: "OTP rule toggled successfully",
+    data: rule,
+  });
+});
+
+exports.getEducationLevels = asyncHandler(async (req, res) => {
+  const levels = await EducationLevel.find().sort({ level: 1 });
+  res.status(200).json(levels);
+});

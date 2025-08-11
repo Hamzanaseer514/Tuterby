@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'inactive', 'partial_active'],
     default: 'inactive'
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

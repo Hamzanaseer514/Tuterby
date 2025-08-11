@@ -26,6 +26,7 @@ import UserTable from './UserTable';
 import SearchAndFilterBar from './SearchAndFilterBar';
 import LoadingOverlay from './LoadingOverlay';
 import NotificationSnackbar from './NotificationSnackbar';
+import LevelsAndToggles from './LevelsAndToggles';
 
 // Constants
 const statusColors = {
@@ -433,6 +434,8 @@ const AdminDashboard = () => {
           severity={uiState.snackbar.severity}
           onClose={() => updateUiState({ snackbar: { ...uiState.snackbar, open: false } })}
         />
+
+        
 
         {/* User Detail Dialog */}
         {/* The UserDetailDialog component is now handled within UserTable */}

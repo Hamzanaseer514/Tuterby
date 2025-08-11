@@ -20,12 +20,20 @@ const {
   getAvailableInterviewSlots,
   updateApplicationNotes,
   getDashboardStats,
-  updateInterviewToggle
+  updateInterviewToggle,
+  toggleOtpRule,
+  addEducationLevel,
+  getEducationLevels
 } = require('../Controllers/adminController');
 
 // Apply authentication middleware to all admin routes
 // router.use(protect);
 // router.use(adminOnly);
+
+// ADD RULED AND EDUCATOIN LEVEL.
+router.post('/rules/toggle-otp', toggleOtpRule);
+router.post('/education-levels', addEducationLevel);
+router.get('/education-levels', getEducationLevels);
 
 // Existing routes
 router.get('/tutors/applications/pending', getAllPendingApplications);
