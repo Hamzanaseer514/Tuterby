@@ -5,6 +5,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
 import { AnimatePresence } from "framer-motion";
 
+
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const SubjectsPage = lazy(() => import("@/pages/SubjectsPage"));
 const PricingPage = lazy(() => import("@/pages/PricingPage"));

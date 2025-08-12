@@ -80,6 +80,31 @@ exports.registerUser = asyncHandler(async (req, res) => {
   }
 });
 
+function parseArrayField(field) {
+  if (!field) return [];
+  // Already an array of strings like ["Math", "Physics"]
+  if (Array.isArray(field) && field.every(item => typeof item === "string")) {
+    return field;
+  }
+  // Array with a single JSON string: ['["Math","Physics"]']
+  if (Array.isArray(field) && field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
+    try {
+      return JSON.parse(field[0]);
+    } catch {
+      return [];
+    }
+  }
+  // Plain JSON string: '["Math","Physics"]'
+  if (typeof field === "string" && field.startsWith("[")) {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
     full_name,
@@ -157,7 +182,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     console.log("academic_levels_taught",academic_levels_taught)
     const parsedSubjects = parseArrayField(subjects);
 
-  const parsedAcademicLevels = parseArrayField(academic_levels_taught);
+    const parsedAcademicLevels = parseArrayField(academic_levels_taught);
 
  
     // Step 2: Create tutor profile
