@@ -31,6 +31,7 @@ const {
   addSubject,
   updateSubject,
   deleteSubject,
+  getAllChatsOfUsers
 } = require("../Controllers/adminController");
 
 
@@ -48,6 +49,9 @@ router.post("/subjects", addSubject);
 router.get("/subjects", getSubjects);
 router.put("/subjects/:id", updateSubject);
 router.delete("/subjects/:id", deleteSubject);
+
+// users chat
+router.get("/chats", getAllChatsOfUsers);
 
 // Existing routes
 router.get("/tutors/applications/pending", getAllPendingApplications);

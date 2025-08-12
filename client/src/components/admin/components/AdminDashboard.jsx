@@ -26,7 +26,6 @@ import UserTable from './UserTable';
 import SearchAndFilterBar from './SearchAndFilterBar';
 import LoadingOverlay from './LoadingOverlay';
 import NotificationSnackbar from './NotificationSnackbar';
-import LevelsAndToggles from './LevelsAndToggles';
 
 // Constants
 const statusColors = {

@@ -12,6 +12,7 @@ const sendEmail = require("../Utils/sendEmail");
 const generateOtpEmail = require("../Utils/otpTempelate");
 const asyncHandler = require("express-async-handler");
 
+const Message = require("../Models/messageSchema");
 
 exports.getAllPendingApplications = async (req, res) => {
   try {
@@ -1057,5 +1058,43 @@ exports.deleteSubject = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Subject deleted successfully'
+  });
+});
+
+
+// CHECKING ALL CHATS BETWEEN THE TUTOR AND STUDENT
+
+
+exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
+  // Fetch all messages and populate student and tutor details
+  const messages = await Message.find()
+    .populate('studentId', 'full_name email') // Only include name and email of student
+    .populate('tutorId', 'full_name email')  // Only include name and email of tutor
+    .sort({ createdAt: -1 });          // Sort by latest first
+
+  // Format the response data
+  const formattedMessages = messages.map(msg => ({
+    _id: msg._id,
+    student: {
+      id: msg.studentId._id,
+      full_name: msg.studentId.full_name,
+      email: msg.studentId.email
+    },
+    tutor: {
+      id: msg.tutorId._id,
+      full_name: msg.tutorId.full_name,
+      email: msg.tutorId.email
+    },
+    message: msg.message,
+    response: msg.response,
+    status: msg.status,
+    createdAt: msg.createdAt,
+    updatedAt: msg.updatedAt
+  }));
+
+  res.status(200).json({
+    success: true,
+    count: messages.length,
+    data: formattedMessages
   });
 });
