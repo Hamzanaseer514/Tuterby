@@ -961,6 +961,7 @@ import {
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import AdminLayout from "./AdminLayout";
+import { BASE_URL } from "../../../config";
 
 const ChatAdminDashboard = () => {
   const [chats, setChats] = useState([]);
@@ -974,7 +975,7 @@ const ChatAdminDashboard = () => {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await fetch("/api/admin/chats");
+        const response = await fetch(`${BASE_URL}/api/admin/chats`);
         if (!response.ok) throw new Error("Failed to fetch chats");
         const data = await response.json();
         setChats(data.data);
