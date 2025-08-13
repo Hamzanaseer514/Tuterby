@@ -5,6 +5,11 @@ const TutorProfile = require("../Models/tutorProfileSchema");
 const TutorApplication = require("../Models/tutorApplicationSchema");
 const TutorDocument = require("../Models/tutorDocumentSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
+const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
+const { EducationLevel } = require("../Models/LookupSchema");
+
 const Rules = require("../Models/Rules");
 const {
   generateAccessToken,
@@ -13,7 +18,6 @@ const {
 const sendEmail = require("../Utils/sendEmail");
 const otpStore = require("../Utils/otpStore");
 const generateOtpEmail = require("../Utils/otpTempelate");
-const path = require("path");
 
 exports.registerUser = asyncHandler(async (req, res) => {
   const { full_name, email, password, age, academic_level, role } = req.body;
@@ -82,26 +86,41 @@ exports.registerUser = asyncHandler(async (req, res) => {
 
 
 
-function parseArrayField(field) {
+
+function parseStringArray(field) {
   if (!field) return [];
-  // Already an array of strings like ["Math", "Physics"]
   if (Array.isArray(field) && field.every(item => typeof item === "string")) {
     return field;
   }
-  // Array with a single JSON string: ['["Math","Physics"]']
-  if (Array.isArray(field) && field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
-    try {
-      return JSON.parse(field[0]);
-    } catch {
-      return [];
-    }
-  }
-  // Plain JSON string: '["Math","Physics"]'
-  if (typeof field === "string" && field.startsWith("[")) {
+  if (typeof field === "string") {
     try {
       return JSON.parse(field);
     } catch {
-      return [];
+      return [field];
+    }
+  }
+  return [];
+}
+
+function parseObjectIdArray(field) {
+  if (!field) return [];
+  if (Array.isArray(field)) {
+    return field
+      .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null)
+      .filter(Boolean);
+  }
+  if (typeof field === "string") {
+    try {
+      const arr = JSON.parse(field);
+      if (Array.isArray(arr)) {
+        return arr
+          .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null)
+          .filter(Boolean);
+      }
+    } catch {
+      if (mongoose.Types.ObjectId.isValid(field)) {
+        return [new mongoose.Types.ObjectId(field)];
+      }
     }
   }
   return [];
@@ -110,6 +129,7 @@ function parseArrayField(field) {
 
 
 exports.registerTutor = asyncHandler(async (req, res) => {
+  console.log(req.body);
   const {
     full_name,
     email,
@@ -119,14 +139,18 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     photo_url,
     qualifications,
     experience_years,
-    subjects, // array of subjects
-    academic_levels_taught, // array of academic levels they will teach
-    location, // tutor's location
-    hourly_rate, // tutor's hourly rate
+    subjects,
+    academic_levels_taught,
+    location,
+    // hourly_rate,
     bio,
     code_of_conduct_agreed,
-    documentsMap,
+    documentsMap
   } = req.body;
+
+  // ========================
+  // 1️⃣ Required field check
+  // ========================
   if (
     !email ||
     !password ||
@@ -136,24 +160,29 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     !subjects ||
     !academic_levels_taught ||
     !location ||
-    !hourly_rate ||
+    // !hourly_rate ||
     !experience_years ||
     code_of_conduct_agreed === undefined ||
     !documentsMap
   ) {
     res.status(400);
-    throw new Error("All required fields must be provided ok!");
+    throw new Error("All required fields must be provided!");
   }
 
+  // ========================
+  // 2️⃣ Email uniqueness check
+  // ========================
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     res.status(400);
     throw new Error("Email already exists");
   }
 
+  // ========================
+  // 3️⃣ Password strength check
+  // ========================
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
   if (!passwordRegex.test(password)) {
     res.status(400);
     throw new Error(
@@ -161,12 +190,14 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     );
   }
 
-
-  // const session = await User.startSession();
-  // session.startTransaction();
+  // ========================
+  // 4️⃣ Transaction start
+  // ========================
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    // Step 1: Create user
+    // Step 1: Create User
     const user = await User.create(
       [
         {
@@ -177,19 +208,36 @@ exports.registerTutor = asyncHandler(async (req, res) => {
           age,
           role: "tutor",
           photo_url,
-          is_verified: "inactive", // Not verified yet
-        },
-      ]
-      // { session }
+          is_verified: "inactive"
+        }
+      ],
+      { session }
     );
-    console.log("subjects",subjects)
-    console.log("academic_levels_taught",academic_levels_taught)
-    const parsedSubjects = parseArrayField(subjects);
 
-    const parsedAcademicLevels = parseArrayField(academic_levels_taught);
+    // Step 2: Parse Subjects
+    const parsedSubjects = parseStringArray(subjects);
 
- 
-    // Step 2: Create tutor profile
+    // Step 3: Fetch Education Level Details
+    const parsedAcademicLevelIds = parseObjectIdArray(academic_levels_taught);
+    const educationLevels = await EducationLevel.find({
+      _id: { $in: parsedAcademicLevelIds }
+    }).lean();
+
+    if (educationLevels.length !== parsedAcademicLevelIds.length) {
+      throw new Error("One or more academic levels not found");
+    }
+
+    // Step 4: Build Detailed Academic Levels Array
+    const academicLevelsData = educationLevels.map(level => ({
+      educationLevel: level._id,
+      name: level.level,
+      hourlyRate: level.hourlyRate || 0,
+      monthlyRate: level.monthlyRate || 0,
+      totalSessionsPerMonth: level.totalSessionsPerMonth || 0,
+      discount: level.discount || 0
+    }));
+
+    // Step 5: Create Tutor Profile
     const tutorProfile = await TutorProfile.create(
       [
         {
@@ -198,84 +246,79 @@ exports.registerTutor = asyncHandler(async (req, res) => {
           qualifications,
           experience_years,
           subjects: parsedSubjects,
-          academic_levels_taught: parsedAcademicLevels,
+          academic_levels_taught: academicLevelsData,
           location,
-          hourly_rate: parseFloat(hourly_rate),
-          average_rating: 0, // Initialize with 0 rating
-          total_sessions: 0, // Initialize with 0 sessions
-          is_verified: false, // Not verified yet
-          is_approved: false, // Not approved yet
-        },
-      ]
-      // { session }
+          //  hourly_rate: parseFloat(hourly_rate),
+          average_rating: 0,
+          total_sessions: 0,
+          is_verified: false,
+          is_approved: false
+        }
+      ],
+      { session }
     );
-    console.log("tutorProfile",tutorProfile)
 
-    // Step 3: Create tutor application entry
+    // Step 6: Create Tutor Application Entry
     const tutorApplication = await TutorApplication.create(
       [
         {
           tutor_id: tutorProfile[0]._id,
           interview_status: "Pending",
-          code_of_conduct_agreed: code_of_conduct_agreed,
-          application_status: "Pending",
-        },
-      ]
-      // { session }
+          code_of_conduct_agreed,
+          application_status: "Pending"
+        }
+      ],
+      { session }
     );
 
+    // Step 7: Handle Tutor Documents
     const savedDocuments = [];
-    const documentMapRaw = req.body.documentsMap;
-
-    if (documentMapRaw && req.files && req.files["documents"]) {
+    if (documentsMap && req.files && req.files["documents"]) {
       let documentsObj;
       try {
-        documentsObj = JSON.parse(documentMapRaw);
-      } catch (error) {
-        res.status(400);
+        documentsObj = JSON.parse(documentsMap);
+      } catch {
         throw new Error("Invalid documentsMap format");
       }
 
-      for (const [documentType, originalFileName] of Object.entries(
-        documentsObj
-      )) {
+      for (const [documentType, originalFileName] of Object.entries(documentsObj)) {
         const uploadedFile = req.files["documents"].find(
-          (file) => file.originalname === originalFileName
+          file => file.originalname === originalFileName
         );
         if (!uploadedFile) continue;
 
-        // Optionally rename file to include document type
         const oldPath = uploadedFile.path;
         const ext = path.extname(uploadedFile.filename);
         const base = path.basename(uploadedFile.filename, ext);
-        const newFilename = `${documentType.replace(
-          /\s+/g,
-          "_"
-        )}_${base}${ext}`;
-        const fs = require("fs");
+        const newFilename = `${documentType.replace(/\s+/g, "_")}_${base}${ext}`;
         const newPath = `uploads/documents/${newFilename}`;
-
-        // Rename the file on disk
         fs.renameSync(oldPath, newPath);
 
         const relativePath = `/uploads/documents/${newFilename}`;
-        const newDoc = await TutorDocument.create({
-          tutor_id: tutorProfile[0]._id,
-          document_type: documentType,
-          file_url: relativePath,
-          uploaded_at: new Date(),
-          verified_by_admin: false,
-          verification_status: "Pending",
-        });
+        const newDoc = await TutorDocument.create(
+          [
+            {
+              tutor_id: tutorProfile[0]._id,
+              document_type: documentType,
+              file_url: relativePath,
+              uploaded_at: new Date(),
+              verified_by_admin: false,
+              verification_status: "Pending"
+            }
+          ],
+          { session }
+        );
 
-        savedDocuments.push(newDoc);
+        savedDocuments.push(newDoc[0]);
       }
     }
 
-    // await session.commitTransaction();
-    // session.endSession();
+    // Step 8: Commit Transaction
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(201).json({
+      success: true,
       message: "Tutor registered successfully",
       user: {
         _id: user[0]._id,
@@ -284,15 +327,17 @@ exports.registerTutor = asyncHandler(async (req, res) => {
         role: user[0].role,
         phone_number: user[0].phone_number,
         age: user[0].age,
-        photo_url: user[0].photo_url,
+        photo_url: user[0].photo_url
       },
       profile: tutorProfile[0],
       application: tutorApplication[0],
-      documents: savedDocuments,
+      documents: savedDocuments
     });
+
   } catch (error) {
-    // await session.abortTransaction();
-    // session.endSession();
+    // Rollback on error
+    await session.abortTransaction();
+    session.endSession();
     res.status(500);
     throw new Error("Tutor registration failed: " + error.message);
   }

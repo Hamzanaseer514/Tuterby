@@ -22,15 +22,28 @@ const tutorProfileSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  academic_levels_taught: {
-    type: [String],
-    default: []
-  },
-  hourly_rate: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
+  academic_levels_taught: [
+    {
+      educationLevel: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EducationLevel",
+        required: true
+      },
+      name: {
+        type: String,
+        required: true
+      },
+      hourlyRate: { type: Number, required: true, min: 0 },
+      totalSessionsPerMonth: { type: Number, required: true, min: 0 },
+      discount: { type: Number, default: 0, min: 0 },
+      monthlyRate: { type: Number, min: 0 }
+    }
+  ],
+  // hourly_rate: {
+  //   type: Number,
+  //   default: 0,
+  //   min: 0
+  // },
   location: {
     type: String,
     default: ''
