@@ -186,7 +186,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     console.log("academic_levels_taught",academic_levels_taught)
     const parsedSubjects = parseArrayField(subjects);
 
-  const parsedAcademicLevels = parseArrayField(academic_levels_taught);
+    const parsedAcademicLevels = parseArrayField(academic_levels_taught);
 
  
     // Step 2: Create tutor profile

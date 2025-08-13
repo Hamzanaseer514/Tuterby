@@ -5,6 +5,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
 import { AnimatePresence } from "framer-motion";
 
+
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const SubjectsPage = lazy(() => import("@/pages/SubjectsPage"));
 const PricingPage = lazy(() => import("@/pages/PricingPage"));
@@ -52,6 +53,8 @@ const AdminSettings = lazy(() =>
   import("./pages/AdminPages/AdminSettings")
 );
 
+const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
+
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
@@ -87,6 +90,7 @@ function App() {
               <Route path="/admin/users" element={<AdminDashboard />} />
               <Route path="/admin/user-detail/:tabValue" element={<UserDetailPage />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/chats" element={<Chats />} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<TutorDashboardPage />} />
               <Route

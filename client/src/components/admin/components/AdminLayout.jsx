@@ -27,6 +27,8 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
       if (onTabChange) {
         onTabChange({}, newTabValue);
       }
+    } else if (newTabValue === 'chat') {
+      navigate('/admin/chats');
     }
     if (mobileOpen) setMobileOpen(false);
   };
@@ -61,6 +63,12 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
       icon: <UserIcon className="h-5 w-5" />, 
       label: 'Parents', 
       count: userCounts.parents 
+    },
+    { 
+      id: 'chat', 
+      icon: <UserIcon className="h-5 w-5" />, 
+      label: 'Chat', 
+      count: userCounts.chat 
     },
   ];
 

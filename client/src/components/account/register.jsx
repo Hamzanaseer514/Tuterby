@@ -39,6 +39,7 @@ import { CheckCircle, AlertCircle, FileUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
+import { useSubject } from "../../hooks/useSubject";
 
 const Register = () => {
   const [activeTab, setActiveTab] = useState("student");
@@ -67,6 +68,8 @@ const Register = () => {
     preferred_subjects: [],
     availability: [],
   });
+
+  const { academicLevels, subjects } = useSubject();
 
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -137,25 +140,25 @@ const Register = () => {
     "Saturday",
     "Sunday",
   ];
-  const subjects = [
-    "Mathematics",
-    "Physics",
-    "Chemistry",
-    "Biology",
-    "English",
-    "History",
-    "Geography",
-    "Computer Science",
-    "Spanish",
-    "French",
-    "German",
-  ];
-  const academicLevels = [
-    "Primary School",
-    "Middle School",
-    "High School",
-    "College",
-  ];
+  // const subjects = [
+  //   "Mathematics",
+  //   "Physics",
+  //   "Chemistry",
+  //   "Biology",
+  //   "English",
+  //   "History",
+  //   "Geography",
+  //   "Computer Science",
+  //   "Spanish",
+  //   "French",
+  //   "German",
+  // ];
+  // const academicLevels = [
+  //   "Primary School",
+  //   "Middle School",
+  //   "High School",
+  //   "College",
+  // ];
   const teachingLevels = [
     "GCSE",
     "A-Level",
@@ -984,8 +987,8 @@ const Register = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {academicLevels.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {level}
+                            <SelectItem key={level._id} value={level.level}>
+                              {level.level}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1157,33 +1160,37 @@ const Register = () => {
                           Subjects You Teach
                         </Label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                          {subjects.map((subject) => (
-                            <div
-                              key={subject}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`tutor-${subject}`}
-                                checked={formData.subjects_taught.includes(
-                                  subject
-                                )}
-                                onCheckedChange={(checked) =>
-                                  handleSubjectChange(
-                                    subject,
-                                    checked,
-                                    "subjects_taught"
-                                  )
-                                }
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <Label
-                                htmlFor={`tutor-${subject}`}
-                                className="text-gray-700 font-normal"
+                          {subjects.length > 0 ? (
+                            subjects.map((subject) => (
+                              <div
+                                key={subject._id}
+                                className="flex items-center space-x-2"
                               >
-                                {subject}
-                              </Label>
-                            </div>
-                          ))}
+                                <Checkbox
+                                  id={`tutor-${subject._id}`}
+                                  checked={formData.subjects_taught.includes(
+                                    subject.name
+                                  )}
+                                  onCheckedChange={(checked) =>
+                                    handleSubjectChange(
+                                      subject.name,
+                                      checked,
+                                      "subjects_taught"
+                                    )
+                                  }
+                                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label
+                                  htmlFor={`tutor-${subject._id}`}
+                                  className="text-gray-700 font-normal"
+                                >
+                                  {subject.name}
+                                </Label>
+                              </div>
+                            ))
+                          ) : (
+                            <p>No subjects available ......</p>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2 mt-6">
@@ -1191,33 +1198,37 @@ const Register = () => {
                           Academic Levels You Teach
                         </Label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                          {teachingLevels.map((level) => (
-                            <div
-                              key={level}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`level-${level}`}
-                                checked={formData.academic_levels_taught.includes(
-                                  level
-                                )}
-                                onCheckedChange={(checked) =>
-                                  handleSubjectChange(
-                                    level,
-                                    checked,
-                                    "academic_levels_taught"
-                                  )
-                                }
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <Label
-                                htmlFor={`level-${level}`}
-                                className="text-gray-700 font-normal"
+                          {academicLevels.length > 0 ? (
+                            academicLevels.map((level) => (
+                              <div
+                                key={level._id}
+                                className="flex items-center space-x-2"
                               >
-                                {level}
-                              </Label>
-                            </div>
-                          ))}
+                                <Checkbox
+                                  id={`level-${level._id}`}
+                                  checked={formData.academic_levels_taught.includes(
+                                    level.level
+                                  )}
+                                  onCheckedChange={(checked) =>
+                                    handleSubjectChange(
+                                      level.level,
+                                      checked,
+                                      "academic_levels_taught"
+                                    )
+                                  }
+                                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label
+                                  htmlFor={`level-${level._id}`}
+                                  className="text-gray-700 font-normal"
+                                >
+                                  {level.level}
+                                </Label>
+                              </div>
+                            ))
+                          ) : (
+                            <p>No academic levels found</p>
+                          )}
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
