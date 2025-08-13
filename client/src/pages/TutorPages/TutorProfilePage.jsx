@@ -56,7 +56,6 @@ const TutorProfilePage = () => {
     fetchTutorDetails();
   }, [tutorId]);
 
-
   const fetchTutorDetails = async () => {
     try {
       setLoading(true);
@@ -117,7 +116,6 @@ const TutorProfilePage = () => {
     });
   };
 
-
   const handleBookSession = (tutor) => {
     setSelectedTutor(tutor);
     setBookingData({
@@ -140,6 +138,32 @@ const TutorProfilePage = () => {
       );
     }
     return stars;
+  };
+
+  const getHiringStatusBadge = (status) => {
+    if (!status) return null;
+    
+    const statusConfig = {
+      'pending': { variant: 'secondary', text: 'Request Pending' },
+      'accepted': { variant: 'default', text: 'Hired' },
+      'rejected': { variant: 'destructive', text: 'Request Rejected' }
+    };
+    
+    const config = statusConfig[status] || { variant: 'outline', text: status };
+    
+    return (
+      <Badge variant={config.variant} className="ml-2">
+        {config.text}
+      </Badge>
+    );
+  };
+
+  const formatResponseTime = (minutes) => {
+    if (!minutes || minutes === 0) return 'N/A';
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
   const handleHireTutorSubmit = async () => {
@@ -242,11 +266,32 @@ const TutorProfilePage = () => {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Contact
               </Button> */}
-              <Button onClick={() => handleBookSession(tutor)}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Hire Tutor
-              </Button>
-
+              {tutor.hiring_status?.is_hired ? (
+                <div className="flex items-center gap-2">
+                  {getHiringStatusBadge(tutor.hiring_status.status)}
+                  {tutor.hiring_status.status === 'accepted' && (
+                    <Button variant="outline" disabled>
+                      Already Hired
+                    </Button>
+                  )}
+                  {tutor.hiring_status.status === 'pending' && (
+                    <Button variant="outline" disabled>
+                      Request Pending
+                    </Button>
+                  )}
+                  {tutor.hiring_status.status === 'rejected' && (
+                    <Button onClick={() => handleBookSession(tutor)}>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Try Again
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Button onClick={() => handleBookSession(tutor)}>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Hire Tutor
+                </Button>
+              )}
             </div>
           </div>
           {showBookingModal && selectedTutor && (
@@ -452,6 +497,201 @@ const TutorProfilePage = () => {
                 </Card>
               )}
 
+              {/* Hiring Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Hiring Statistics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-600">{tutor.hiring_statistics?.total_requests || 0}</p>
+                      <p className="text-sm text-gray-600">Total Requests</p>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">{tutor.hiring_statistics?.accepted_requests || 0}</p>
+                      <p className="text-sm text-gray-600">Accepted</p>
+                    </div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <p className="text-2xl font-bold text-yellow-600">{tutor.hiring_statistics?.pending_requests || 0}</p>
+                      <p className="text-sm text-gray-600">Pending</p>
+                    </div>
+                    <div className="text-center p-3 bg-red-50 rounded-lg">
+                      <p className="text-2xl font-bold text-red-600">{tutor.hiring_statistics?.rejected_requests || 0}</p>
+                      <p className="text-sm text-gray-600">Rejected</p>
+                    </div>
+                  </div>
+                  {tutor.hiring_statistics?.acceptance_rate > 0 && (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-600">Acceptance Rate</p>
+                      <p className="text-lg font-semibold text-gray-900">{tutor.hiring_statistics.acceptance_rate}%</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Response Time Statistics */}
+              {tutor.response_statistics?.total_replied >= 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Response Time
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Average Response:</span>
+                        <span className="font-semibold">{formatResponseTime(tutor.response_statistics.average_response_time_minutes)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Fastest Response:</span>
+                        <span className="font-semibold text-green-600">{formatResponseTime(tutor.response_statistics.fastest_response_minutes)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Replied:</span>
+                        <span className="font-semibold">{tutor.response_statistics.total_replied}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Inquiry Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    Inquiry Statistics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-600">{tutor.inquiry_statistics?.total_received || 0}</p>
+                      <p className="text-sm text-gray-600">Total Received</p>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">{tutor.inquiry_statistics?.total_replied || 0}</p>
+                      <p className="text-sm text-gray-600">Total Replied</p>
+                    </div>
+                  </div>
+                  {tutor.inquiry_statistics?.reply_rate > 0 && (
+                    <div className="text-center mb-4">
+                      <p className="text-sm text-gray-600">Reply Rate</p>
+                      <p className="text-lg font-semibold text-gray-900">{tutor.inquiry_statistics.reply_rate}%</p>
+                    </div>
+                  )}
+                  {tutor.inquiry_statistics?.by_status && Object.keys(tutor.inquiry_statistics.by_status).length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">By Status:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(tutor.inquiry_statistics.by_status).map(([status, count]) => (
+                          <Badge key={status} variant="outline" className="text-xs">
+                            {status}: {count}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Student's Inquiries to This Tutor */}
+              {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5" />
+                      Your Inquiries
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {tutor.student_inquiries.map((inquiry, index) => (
+                        <div key={index} className="border-l-4 border-blue-200 pl-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-medium text-sm">{inquiry.subject} - {inquiry.academic_level}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(inquiry.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <Badge 
+                              variant={
+                                inquiry.status === 'replied' ? 'default' : 
+                                inquiry.status === 'converted_to_booking' ? 'default' :
+                                inquiry.status === 'pending' ? 'secondary' : 'outline'
+                              } 
+                              className="text-xs"
+                            >
+                              {inquiry.status}
+                            </Badge>
+                          </div>
+                          {inquiry.description && (
+                            <p className="text-sm text-gray-600 mb-2">{inquiry.description}</p>
+                          )}
+                          {inquiry.reply_message && (
+                            <div className="bg-gray-50 p-2 rounded text-sm">
+                              <p className="font-medium text-gray-700 mb-1">Tutor's Reply:</p>
+                              <p className="text-gray-600">{inquiry.reply_message}</p>
+                              {inquiry.replied_at && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Replied on: {new Date(inquiry.replied_at).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {inquiry.response_time_minutes && inquiry.response_time_minutes > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Responded in: {formatResponseTime(inquiry.response_time_minutes)}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Recent Inquiries */}
+              {tutor.recent_inquiries && tutor.recent_inquiries.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5" />
+                      Recent Inquiries
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {tutor.recent_inquiries.slice(0, 3).map((inquiry, index) => (
+                        <div key={index} className="border-l-4 border-blue-200 pl-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium text-sm">{inquiry.subject} - {inquiry.academic_level}</p>
+                              <p className="text-xs text-gray-500">{inquiry.student_name}</p>
+                            </div>
+                            <Badge variant={inquiry.status === 'replied' ? 'default' : 'secondary'} className="text-xs">
+                              {inquiry.status}
+                            </Badge>
+                          </div>
+                          {inquiry.response_time_minutes && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Responded in: {formatResponseTime(inquiry.response_time_minutes)}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Teaching Approach */}
               {tutor.teaching_approach && (
                 <Card>
@@ -469,6 +709,68 @@ const TutorProfilePage = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Current Hiring Status */}
+              {tutor.hiring_status?.is_hired && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Your Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center">
+                      {getHiringStatusBadge(tutor.hiring_status.status)}
+                      {tutor.hiring_status.hired_at && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Requested on: {new Date(tutor.hiring_status.hired_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Student's Inquiries Summary */}
+              {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5" />
+                      Your Inquiries
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center mb-3">
+                      <p className="text-2xl font-bold text-blue-600">{tutor.student_inquiries.length}</p>
+                      <p className="text-sm text-gray-600">Total Inquiries</p>
+                    </div>
+                    <div className="space-y-2">
+                      {tutor.student_inquiries.slice(0, 2).map((inquiry, index) => (
+                        <div key={index} className="text-left border-l-2 border-blue-200 pl-2">
+                          <p className="text-xs font-medium">{inquiry.subject}</p>
+                          <Badge 
+                            variant={
+                              inquiry.status === 'replied' ? 'default' : 
+                              inquiry.status === 'converted_to_booking' ? 'default' :
+                              inquiry.status === 'pending' ? 'secondary' : 'outline'
+                            } 
+                            className="text-xs mt-1"
+                          >
+                            {inquiry.status}
+                          </Badge>
+                        </div>
+                      ))}
+                      {tutor.student_inquiries.length > 2 && (
+                        <p className="text-xs text-gray-500 text-center">
+                          +{tutor.student_inquiries.length - 2} more
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Quick Stats */}
               <Card>
                 <CardHeader>
@@ -477,7 +779,7 @@ const TutorProfilePage = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Total Sessions</span>
-                    <span className="font-semibold">{tutor.recent_sessions.length || 0}</span>
+                    <span className="font-semibold">{tutor.total_sessions || 0}</span>
                   </div>
 
                   {tutor.experience_years && (
@@ -496,6 +798,13 @@ const TutorProfilePage = () => {
                       </div>
                     </div>
                   )}
+
+                  {tutor.response_statistics?.average_response_time_minutes > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Avg Response</span>
+                      <span className="font-semibold">{formatResponseTime(tutor.response_statistics.average_response_time_minutes)}</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -506,10 +815,31 @@ const TutorProfilePage = () => {
                   <CardTitle>Get Started</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button onClick={() => (handleBookSession(tutor))} className="w-full">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Hire Tutor
-                  </Button>
+                  {tutor.hiring_status?.is_hired ? (
+                    <>
+                      {tutor.hiring_status.status === 'accepted' && (
+                        <Button variant="outline" className="w-full" disabled>
+                          Already Hired
+                        </Button>
+                      )}
+                      {tutor.hiring_status.status === 'pending' && (
+                        <Button variant="outline" className="w-full" disabled>
+                          Request Pending
+                        </Button>
+                      )}
+                      {tutor.hiring_status.status === 'rejected' && (
+                        <Button onClick={() => handleBookSession(tutor)} className="w-full">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Try Again
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <Button onClick={() => handleBookSession(tutor)} className="w-full">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Hire Tutor
+                    </Button>
+                  )}
                   {/* <Button onClick={handleContactTutor} variant="outline" className="w-full">
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Send Message

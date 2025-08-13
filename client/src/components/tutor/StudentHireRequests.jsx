@@ -73,14 +73,14 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              disabled={loadingId === student._id || hire.status !== 'pending'}
+              // disabled={loadingId === student._id || hire.status !== 'pending'}
               onClick={() => onRespond(student._id, 'reject')}
             >
               {loadingId === student._id ? '...' : 'Reject'}
             </Button>
             <Button
               className="bg-blue-600 hover:bg-blue-700"
-              disabled={loadingId === student._id || hire.status !== 'pending'}
+              // disabled={loadingId === student._id || hire.status !== 'pending'}
               onClick={() => onRespond(student._id, 'accept')}
             >
               {loadingId === student._id ? '...' : 'Accept'}

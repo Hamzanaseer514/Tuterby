@@ -189,7 +189,12 @@ const UserDetailPage = () => {
       alert(res.data.message);
     } else if (res.status === 200) {
       alert('Tutor profile approved successfully And Email Sent to Tutor');
-      setLocalUser(prev => ({ ...prev, status: 'verified' }));
+      setLocalUser(prev => ({ 
+        ...prev, 
+        status: 'verified',
+        // Keep existing document verification statuses unchanged
+        documents: prev?.documents || []
+      }));
       // You might want to show a notification here
     } else {
       alert('Tutor profile not approved');
@@ -202,7 +207,12 @@ const UserDetailPage = () => {
       alert(res.data.message);
     } else if (res.status === 200) {
       alert('Tutor profile partially approved successfully And Email Sent to Tutor');
-      setLocalUser(prev => ({ ...prev, status: 'pending' }));
+      setLocalUser(prev => ({ 
+        ...prev, 
+        status: 'partial_approved',
+        // Keep existing document verification statuses unchanged
+        documents: prev?.documents || []
+      }));
       // You might want to show a notification here
     } else {
       alert(res.data.message);
@@ -215,7 +225,11 @@ const UserDetailPage = () => {
       alert(res.data.message);
     } else if (res.status === 200) {
       alert('Tutor profile rejected successfully And Email Sent to Tutor');
-      setLocalUser(prev => ({ ...prev, status: 'rejected' }));
+      setLocalUser(prev => ({ 
+        ...prev, 
+        status: 'rejected',
+        documents: (prev?.documents || []).map(doc => ({ ...doc, verified: "Pending" }))
+      }));
       // You might want to show a notification here
     } else {
       alert(res.data.message);
@@ -304,6 +318,7 @@ const UserDetailPage = () => {
               </Typography>
             </Box>
           </Box>
+          {/* {console.log(localUser.)} */}
           {userStatus && (
             <Chip label={userStatus} color={getStatusColor(userStatus)} variant={userStatus === 'unverified' ? 'outlined' : 'filled'} />
           )}
@@ -390,15 +405,16 @@ const UserDetailPage = () => {
                         {userDocuments.map((doc, index) => (
                           <ListItem key={index} sx={{ border: '1px solid #e0e0e0', borderRadius: 1, mb: 1 }}>
                             <ListItemIcon>
-                              <Description color={doc.verified ? 'success' : 'action'} />
+                              <Description color={doc.verified === "Approved" ? 'success' : doc.verified === "Rejected" ? 'error' : 'action'} />
                             </ListItemIcon>
+                            {console.log("doc",doc.verified)}
                             <ListItemText
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Typography variant="body1" fontWeight="medium">
                                     {doc.type}
                                   </Typography>
-                                  {doc.verified ? <CheckCircle color="success" fontSize="small" /> : <Pending color="warning" fontSize="small" />}
+                                  {doc.verified === "Approved" ? <CheckCircle color="success" fontSize="small" /> : doc.verified === "Rejected" ? <Cancel color="error" fontSize="small" /> : <Pending color="warning" fontSize="small" />}
                                 </Box>
                               }
                               secondary={
@@ -428,14 +444,17 @@ const UserDetailPage = () => {
                                 color="success"
                                 onClick={async () => {
                                   try {
-                                      await verifyDocument(user.id, doc.type);
-                                      // update local document verified flag
-                                      setLocalUser(prev => ({
+                                    await verifyDocument(user.id, doc.type);
+                                    // update local document verified flag
+                                    setLocalUser(prev => {
+                                      const updatedDocuments = (prev?.documents || []).map(d =>
+                                        d.type === doc.type ? { ...d, verified: "Approved" } : d
+                                      );
+                                      return {
                                         ...prev,
-                                        documents: (prev?.documents || []).map(d =>
-                                          d.type === doc.type ? { ...d, verified: true } : d
-                                        )
-                                      }));
+                                        documents: updatedDocuments
+                                      };
+                                    });
                                       // You might want to show a notification here
                                     } catch (err) {
                                       console.error('Verification failed:', err);
@@ -891,15 +910,6 @@ const UserDetailPage = () => {
               <Card sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
                 <Typography variant="body2" color="text.secondary">
                   <strong>Type:</strong> {selectedDocument.type}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Status:</strong> 
-                  <Chip 
-                    label={selectedDocument.verified} 
-                    color={selectedDocument.verified === 'Approved' ? 'success' : selectedDocument.verified === 'Rejected' ? 'error' : 'warning'} 
-                    size="small" 
-                    sx={{ ml: 1 }}
-                  />
                 </Typography>
                 {selectedDocument.uploadDate && (
                   <Typography variant="body2" color="text.secondary">
