@@ -12,7 +12,7 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { Dashboard as DashboardIcon } from '@mui/icons-material';
-import AdminSettings from "../../../pages/AdminPages/AdminSettings"
+// import AdminSettings from "../../../pages/AdminPages/AdminSettings"
 
 const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, students: 0, parents: 0 }, onTabChange }) => {
   const [mobileOpen, setMobileOpen] = useState(false);

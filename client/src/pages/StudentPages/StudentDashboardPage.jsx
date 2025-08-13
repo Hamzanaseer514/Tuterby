@@ -19,7 +19,7 @@ import StudentSessions from '../../components/student/StudentSessions';
 import StudentPreferences from '../../components/student/StudentPreferences';
 import StudentChatPage from '../../components/student/StudentChatPage';
 import StudentHelpRequests from '../../components/student/StudentHelpRequests';
-
+import MyTutors from '../../components/student/MyTutors';
 const StudentDashboardPage = () => {
   const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -98,6 +98,12 @@ const StudentDashboardPage = () => {
       name: 'Requests-Help',
       icon: MessageSquare,
       component: <StudentHelpRequests/>,
+    },
+    {
+      id: 'my-tutors',
+      name: 'My Tutors',
+      icon: User,
+      component: <MyTutors />,
     },
   ];
 

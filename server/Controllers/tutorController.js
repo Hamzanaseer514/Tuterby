@@ -818,9 +818,20 @@ const getHireRequests = asyncHandler(async (req, res) => {
     .lean();
 
   const shaped = students.map((s) => {
-    const hire = (s.hired_tutors || []).find(
+    // Find ALL hire requests from this student for this tutor
+    const allHires = (s.hired_tutors || []).filter(
       (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
     );
+    
+    // Get the most recent hire request (by hired_at timestamp)
+    const mostRecentHire = allHires.length > 0 
+      ? allHires.reduce((latest, current) => {
+          const latestTime = new Date(latest.hired_at || latest.createdAt || 0);
+          const currentTime = new Date(current.hired_at || current.createdAt || 0);
+          return currentTime > latestTime ? current : latest;
+        })
+      : null;
+
     return {
       _id: s._id,
       user_id: s.user_id,
@@ -828,7 +839,13 @@ const getHireRequests = asyncHandler(async (req, res) => {
       preferred_subjects: s.preferred_subjects,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
-      hire_for_this_tutor: hire ? { status: hire.status, hired_at: hire.hired_at } : null,
+      hire_for_this_tutor: mostRecentHire ? { 
+        status: mostRecentHire.status, 
+        hired_at: mostRecentHire.hired_at,
+        _id: mostRecentHire._id // Include the hire record ID for proper updating
+      } : null,
+      // Include count of total requests for debugging
+      total_requests: allHires.length
     };
   });
 
@@ -838,7 +855,7 @@ const getHireRequests = asyncHandler(async (req, res) => {
 // Respond to a hire request (accept or reject)
 const respondToHireRequest = asyncHandler(async (req, res) => {
   const { user_id } = req.params; // Tutor's user id
-  const { student_profile_id, action } = req.body; // action: 'accept' | 'reject'
+  const { student_profile_id, action, hire_record_id } = req.body; // action: 'accept' | 'reject'
 
   if (!student_profile_id || !['accept', 'reject'].includes(action)) {
     return res.status(400).json({ message: 'student_profile_id and valid action are required' });
@@ -854,19 +871,32 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Student profile not found' });
   }
 
-  // Find the hire record for this tutor
-  const hireRecord = studentProfile.hired_tutors.find(
-    (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
-  );
-
-  if (!hireRecord) {
-    return res.status(404).json({ message: 'Hire request not found for this tutor' });
+  // Find the specific hire record by ID if provided, otherwise find by tutor
+  let hireRecord;
+  if (hire_record_id) {
+    // Find by specific hire record ID
+    hireRecord = studentProfile.hired_tutors.id(hire_record_id);
+    if (!hireRecord || hireRecord.tutor.toString() !== tutorProfile._id.toString()) {
+      return res.status(404).json({ message: 'Hire request not found for this tutor' });
+    }
+  } else {
+    // Fallback: find by tutor (for backward compatibility)
+    hireRecord = studentProfile.hired_tutors.find(
+      (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
+    );
+    if (!hireRecord) {
+      return res.status(404).json({ message: 'Hire request not found for this tutor' });
+    }
   }
 
-  if (hireRecord.status !== 'pending') {
-    return res.status(400).json({ message: `Request already ${hireRecord.status}` });
-  }
+  // Check if request is already processed
+  // if (hireRecord.status !== 'pending') {
+  //   return res.status(400).json({ 
+  //     message: `Request already ${hireRecord.status}. Cannot ${action} a ${hireRecord.status} request.` 
+  //   });
+  // }
 
+  // Update the status
   hireRecord.status = action === 'accept' ? 'accepted' : 'rejected';
   await studentProfile.save();
 
@@ -874,6 +904,7 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     success: true,
     message: `Request ${action}ed successfully`,
     student_profile_id,
+    hire_record_id: hireRecord._id,
     status: hireRecord.status,
   });
 });

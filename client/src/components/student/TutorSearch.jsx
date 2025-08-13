@@ -27,6 +27,7 @@ import {
   Calendar,
   Plus,
   HelpCircle,
+  CheckCircle,
   X
 } from 'lucide-react';
 
@@ -143,7 +144,8 @@ const TutorSearch = () => {
 
       const params = new URLSearchParams({
         page: 1,
-        limit: 12
+        limit: 12,
+        user_id: user._id
       });
 
       const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
@@ -163,7 +165,7 @@ const TutorSearch = () => {
       const cleanedTutors = cleanTutorData(data.tutors);
 
       setTutors(cleanedTutors);
-
+      console.log("cleanedTutors",cleanedTutors)
       setTotalPages(data.pagination.total_pages);
       setCurrentPage(1);
     } catch (error) {
@@ -271,11 +273,7 @@ const TutorSearch = () => {
     setShowBookingModal(true);
   };
 
-  const handleRequestHelp = (tutor) => {
-    navigate(`/student/request-help`, {
-      state: { selectedTutor: tutor }
-    });
-  };
+
 
   const handleHireTutorSubmit = async () => {
     try {
@@ -303,13 +301,13 @@ const TutorSearch = () => {
       if (status === 400) {
         toast({
           title: "Warning",
-          description: "Tutor already hired!",
+          description: data.message,
         });
       }
       else if (status === 200) {
         toast({
           title: "Success",
-          description: "Tutor hired successfully!",
+          description: data.message,
         });
       }
       setShowBookingModal(false);
@@ -586,18 +584,38 @@ const TutorSearch = () => {
                         </div>
 
                         <div className="flex gap-2">
+                        {tutor.hire_status === "accepted" ? (
                           <Button
-                            onClick={() => handleHireTutor(tutor)}
+                            // onClick={() => handleHireTutor(tutor)}
                             size="sm"
                             className="flex-1"
                           >
-                            <Calendar className="w-4 h-4 mr-2" />
-                            Hire Tutor
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Hired
                           </Button>
+                        ) : tutor.hire_status === "pending" ? (
                           <Button
+                            size="sm"
+                            className="flex-1"
+                          >
+                            <Clock className="w-4 h-4 mr-2" />
+                            Pending
+                          </Button>
+                          ) : (
+                          <Button
+                          onClick={() => handleHireTutor(tutor)}
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Hire Tutor
+                        </Button>
+                        )}
+                        <Button
                             onClick={() => handleViewTutor(tutor._id)}
                             variant="outline"
                             size="sm"
+                            
                             className="flex-1"
                           >
                             <Eye className="w-4 h-4 mr-2" />

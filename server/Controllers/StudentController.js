@@ -214,8 +214,6 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
     }
 });
 
-
-
 exports.searchTutors = asyncHandler(async (req, res) => {
     const {
         search,
@@ -227,10 +225,18 @@ exports.searchTutors = asyncHandler(async (req, res) => {
         page = 1,
         limit = 10
     } = req.query;
+    
     try {
+        // Get current student's profile to check hiring status
+        const currentStudent = await Student.findOne({ user_id: req.user._id });
+        if (!currentStudent) {
+            res.status(404);
+            throw new Error("Student profile not found");
+        }
+
         const query = {
             // Uncomment below to restrict to verified tutors
-            is_verified: true,
+            profile_status: 'approved',
         };
         // Subject filter
         if (subjects) {
@@ -291,10 +297,16 @@ exports.searchTutors = asyncHandler(async (req, res) => {
         // Count total results
         const total = await TutorProfile.countDocuments(searchQuery);
 
-        // Format tutor output
+        // Format tutor output with hiring information
         const formattedTutors = tutors
             .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
-            .map(tutor => ({
+            .map(tutor => {
+                // Check if this tutor has been hired by the current student
+                const hireRecord = currentStudent.hired_tutors.find(
+                    hire => hire.tutor.toString() === tutor._id.toString()
+                );
+
+                return {
                 _id: tutor._id,
                 user_id: tutor.user_id,
                 subjects: tutor.subjects,
@@ -305,9 +317,13 @@ exports.searchTutors = asyncHandler(async (req, res) => {
                 location: tutor.location,
                 bio: tutor.bio,
                 qualifications: tutor.qualifications,
-                experience_years: tutor.experience_years
-            }));
-
+                    experience_years: tutor.experience_years,
+                    // Add hiring information
+                    is_hired: !!hireRecord,
+                    hire_status: hireRecord ? hireRecord.status : null,
+                    hired_at: hireRecord ? hireRecord.hired_at : null
+                };
+            });
         // Send response
         res.status(200).json({
             tutors: formattedTutors,
@@ -329,9 +345,16 @@ exports.searchTutors = asyncHandler(async (req, res) => {
 exports.getTutorDetails = asyncHandler(async (req, res) => {
     const { tutorId } = req.params;
     try {
+        // Get current student's profile to check hiring status
+        const currentStudent = await Student.findOne({ user_id: req.user._id });
+        if (!currentStudent) {
+            res.status(404);
+            throw new Error("Student profile not found");
+        }
+
         const tutor = await TutorProfile.findOne({
             _id: tutorId,
-            is_verified: true,
+            profile_status: 'approved', // Changed from is_verified to profile_status
         }).populate('user_id', 'full_name email photo_url');
 
         if (!tutor) {
@@ -345,7 +368,173 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         })
             .sort({ session_date: -1 })
             .limit(5)
-            .populate('student_ids', 'full_name');
+            .populate('student_ids', 'user_id', 'full_name email');
+
+        // Get hiring status for current student
+        const hireRecord = currentStudent.hired_tutors.find(
+            hire => hire.tutor.toString() === tutor._id.toString()
+        );
+
+        // Get tutor's hiring statistics
+        let totalHiringRequests = [];
+        try {
+            totalHiringRequests = await Student.aggregate([
+                {
+                    $match: {
+                        'hired_tutors.tutor': tutor._id
+                    }
+                },
+                {
+                    $unwind: '$hired_tutors'
+                },
+                {
+                    $match: {
+                        'hired_tutors.tutor': tutor._id
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total_requests: { $sum: 1 },
+                        accepted_requests: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$hired_tutors.status', 'accepted'] },
+                                    1,
+                                    0
+                                ]
+                            }
+                        },
+                        pending_requests: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$hired_tutors.status', 'pending'] },
+                                    1,
+                                    0
+                                ]
+                            }
+                        },
+                        rejected_requests: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$hired_tutors.status', 'rejected'] },
+                                    1,
+                                    0
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]);
+        } catch (error) {
+            console.error('Error in hiring statistics aggregation:', error);
+            totalHiringRequests = [];
+        }
+        
+        console.log(totalHiringRequests);
+        
+        // Get tutor's response time statistics from inquiries
+        let responseTimeStats = [];
+        try {
+            responseTimeStats = await TutorInquiry.aggregate([
+                {
+                    $match: {
+                        tutor_id: tutor._id,
+                        status: { $in: ['replied', 'converted_to_booking'] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total_replied: { $sum: 1 },
+                        avg_response_time: { $avg: '$response_time_minutes' },
+                        min_response_time: { $min: '$response_time_minutes' },
+                        max_response_time: { $max: '$response_time_minutes' }
+                    }
+                }
+            ]);
+        } catch (error) {
+            console.error('Error in response time statistics aggregation:', error);
+            responseTimeStats = [];
+        }
+
+        // Get total inquiries the tutor has received
+        let totalInquiriesReceived = 0;
+        try {
+            totalInquiriesReceived = await TutorInquiry.countDocuments({
+                tutor_id: tutor._id
+            });
+        } catch (error) {
+            console.error('Error counting total inquiries:', error);
+            totalInquiriesReceived = 0;
+        }
+
+        // Get inquiries by status
+        let inquiryStatusStats = [];
+        try {
+            inquiryStatusStats = await TutorInquiry.aggregate([
+                {
+                    $match: {
+                        tutor_id: tutor._id
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$status',
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+        } catch (error) {
+            console.error('Error in inquiry status statistics aggregation:', error);
+            inquiryStatusStats = [];
+        }
+
+        // Check if current student has sent any inquiries to this tutor
+        let studentInquiriesToTutor = [];
+        try {
+            studentInquiriesToTutor = await TutorInquiry.find({
+                student_id: currentStudent._id,
+                tutor_id: tutor._id
+            }).sort({ createdAt: -1 });
+        } catch (error) {
+            console.error('Error fetching student inquiries:', error);
+            studentInquiriesToTutor = [];
+        }
+
+        // Get recent inquiries to show response patterns
+        let recentInquiries = [];
+        try {
+            recentInquiries = await TutorInquiry.find({
+                tutor_id: tutor._id
+            })
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .populate('student_id', 'user_id', 'full_name email');
+        } catch (error) {
+            console.error('Error fetching recent inquiries:', error);
+            recentInquiries = [];
+        }
+
+        const hiringStats = totalHiringRequests[0] || {
+            total_requests: 0,
+            accepted_requests: 0,
+            pending_requests: 0,
+            rejected_requests: 0
+        };
+
+        const responseStats = responseTimeStats[0] || {
+            total_replied: 0,
+            avg_response_time: 0,
+            min_response_time: 0,
+            max_response_time: 0
+        };
+
+        // Process inquiry status statistics
+        const inquiryStats = {};
+        inquiryStatusStats.forEach(stat => {
+            inquiryStats[stat._id] = stat.count;
+        });
 
         const formattedTutor = {
             _id: tutor._id,
@@ -360,7 +549,69 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             qualifications: tutor.qualifications,
             experience_years: tutor.experience_years,
             teaching_approach: tutor.teaching_approach,
-            recent_sessions: recentSessions
+            recent_sessions: recentSessions,
+            
+            // Hiring status for current student
+            hiring_status: {
+                is_hired: !!hireRecord,
+                status: hireRecord ? hireRecord.status : null,
+                hired_at: hireRecord ? hireRecord.hired_at : null
+            },
+            
+            // Overall hiring statistics
+            hiring_statistics: {
+                total_requests: hiringStats.total_requests || 0,
+                accepted_requests: hiringStats.accepted_requests || 0,
+                pending_requests: hiringStats.pending_requests || 0,
+                rejected_requests: hiringStats.rejected_requests || 0,
+                acceptance_rate: (hiringStats.total_requests || 0) > 0 
+                    ? (((hiringStats.accepted_requests || 0) / (hiringStats.total_requests || 0)) * 100).toFixed(1)
+                    : 0
+            },
+            
+            // Response time statistics
+            response_statistics: {
+                total_replied: responseStats.total_replied || 0,
+                average_response_time_minutes: Math.round(responseStats.avg_response_time || 0),
+                fastest_response_minutes: responseStats.min_response_time || 0,
+                slowest_response_minutes: responseStats.max_response_time || 0
+            },
+            
+            // Inquiry statistics
+            inquiry_statistics: {
+                total_received: totalInquiriesReceived || 0,
+                total_replied: responseStats.total_replied || 0,
+                reply_rate: (totalInquiriesReceived || 0) > 0 
+                    ? (((responseStats.total_replied || 0) / (totalInquiriesReceived || 0)) * 100).toFixed(1)
+                    : 0,
+                by_status: inquiryStats
+            },
+            
+            // Current student's inquiries to this tutor
+            student_inquiries: (studentInquiriesToTutor || []).map(inquiry => ({
+                id: inquiry._id,
+                subject: inquiry.subject,
+                academic_level: inquiry.academic_level,
+                description: inquiry.description,
+                status: inquiry.status,
+                urgency_level: inquiry.urgency_level,
+                created_at: inquiry.createdAt,
+                response_time_minutes: inquiry.response_time_minutes,
+                reply_message: inquiry.reply_message,
+                replied_at: inquiry.replied_at
+            })),
+            
+            // Recent inquiries for transparency
+            recent_inquiries: (recentInquiries || []).map(inquiry => ({
+                id: inquiry._id,
+                subject: inquiry.subject,
+                academic_level: inquiry.academic_level,
+                status: inquiry.status,
+                urgency_level: inquiry.urgency_level,
+                created_at: inquiry.createdAt,
+                response_time_minutes: inquiry.response_time_minutes,
+                student_name: inquiry.student_id?.user_id?.full_name || 'Anonymous'
+            }))
         };
 
         res.json(formattedTutor);
@@ -416,48 +667,6 @@ exports.requestAdditionalHelp = asyncHandler(async (req, res) => {
         });
     }
 });
-
-// Create a general tutor inquiry
-// exports.createTutorInquiry = asyncHandler(async (req, res) => {
-//     const { studentId } = req.params;
-//     const {
-//         tutor_id,
-//         subject,
-//         academic_level,
-//         description,
-//         preferred_schedule,
-//         urgency_level = 'normal'
-//     } = req.body;
-
-//     if (!tutor_id || !subject || !academic_level || !description) {
-//         res.status(400);
-//         throw new Error("Tutor ID, subject, academic level, and description are required");
-//     }
-
-//     try {
-//         // Create a new general tutor inquiry
-//         const inquiry = await TutorInquiry.create({
-//             student_id: studentId,
-//             tutor_id: tutor_id,
-//             subject: subject,
-//             academic_level: academic_level,
-//             description: description,
-//             preferred_schedule: preferred_schedule,
-//             urgency_level: urgency_level,
-//             status: 'unread',
-//             type: 'tutor_inquiry'
-//         });
-
-//         res.status(201).json({
-//             message: "Tutor inquiry submitted successfully",
-//             inquiry: inquiry
-//         });
-
-//     } catch (error) {
-//         res.status(500);
-//         throw new Error("Failed to submit tutor inquiry: " + error.message);
-//     }
-// });
 
 // Get student's help requests
 exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
@@ -549,27 +758,59 @@ exports.hireTutor = asyncHandler(async (req, res) => {
         return res.status(404).json({ message: "Tutor profile not found" });
     }
 
-    const alreadyHired = student.hired_tutors.some(
+    // Check if tutor is already hired and what the status is
+    const existingHireIndex = student.hired_tutors.findIndex(
         (h) => {
             if (!h) return false;
             const tutorId = h.tutor ? h.tutor : h; // handle both object and raw ObjectId
             return tutorId.toString() === tutor._id.toString();
         }
     );
-    if (alreadyHired) {
-        return res.status(400).json({ message: "Tutor already hired. Select another tutor" });
+
+    if (existingHireIndex !== -1) {
+        const existingHire = student.hired_tutors[existingHireIndex];
+        
+        // If the hire request is already accepted, show "already hired" message
+        if (existingHire.status === "accepted") {
+            return res.status(400).json({ message: "Tutor already hired. Select another tutor" });
+        }
+        
+        // If there's a pending request, prevent duplicate
+        if (existingHire.status === "pending") {
+            return res.status(400).json({ message: "Hiring request already pending for this tutor" });
+        }
+        
+        // If there's a rejected request, update it to pending instead of creating new one
+        if (existingHire.status === "rejected") {
+            // Update the existing rejected request to pending
+            student.hired_tutors[existingHireIndex].status = "pending";
+            student.hired_tutors[existingHireIndex].hired_at = new Date(); // Update timestamp
+            
+            // Remove any other duplicate requests for this tutor to keep database clean
+            student.hired_tutors = student.hired_tutors.filter((hire, index) => {
+                if (index === existingHireIndex) return true; // Keep the updated one
+                if (!hire || !hire.tutor) return false; // Remove invalid entries
+                return hire.tutor.toString() !== tutor._id.toString(); // Remove other requests for this tutor
+            });
+            
+            await student.save();
+            
+            return res.status(200).json({ 
+                message: "Previous rejected request has been resubmitted successfully. The tutor will be notified." 
+            });
+        }
     }
 
-    // Push as per schema
+    // If no existing request, create a new one
     student.hired_tutors.push({
         tutor: tutor._id,
-        // status: "pending", // Optional (defaults from schema)
-        // hired_at: Date.now() // Optional (defaults from schema)
+        status: "pending", // Explicitly set status
+        hired_at: new Date() // Explicitly set timestamp
     });
 
     await student.save();
 
-    res.status(200).json({ message: "Tutor hired successfully" });
+    res.status(200).json({ message: "Tutor request sent successfully. The tutor will be notified and can accept or reject your request." });
 });
 
 
@@ -708,8 +949,8 @@ exports.getHiredTutors = asyncHandler(async (req, res) => {
                     full_name: user.full_name,
                     email: user.email,
                     photo_url: user.photo_url,
-                    hireStatus: hiredTutor.status || 'pending',
-                    status: hiredTutor.status || 'pending',
+                    hireStatus: hiredTutor.status,
+                    // status: hiredTutor.status || 'pending',
                     hired_at: hiredTutor.hired_at,
                     // Tutor profile information
                     subjects: tutorProfile.subjects || [],
@@ -739,65 +980,6 @@ exports.getHiredTutors = asyncHandler(async (req, res) => {
     }
 });
 
-// Request help from hired tutor
-// exports.requestHelpFromTutor = asyncHandler(async (req, res) => {
-//     try {
-//         const { tutor_id, subject, message } = req.body;
-//         const studentId = req.user._id;
-
-//         if (!tutor_id || !subject || !message) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Tutor ID, subject, and message are required"
-//             });
-//         }
-
-//         // Verify the student has hired this tutor
-//         const student = await Student.findOne({ user_id: studentId });
-//         if (!student) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: "Student profile not found"
-//             });
-//         }
-
-//         const isHired = student.hired_tutors.some(
-//             hiredTutor => hiredTutor.tutor.toString() === tutor_id
-//         );
-
-//         if (!isHired) {
-//             return res.status(403).json({
-//                 success: false,
-//                 message: "You can only request help from tutors you have hired"
-//             });
-//         }
-
-//         // Create a help request inquiry
-//         const helpRequest = await TutorInquiry.create({
-//             student_id: student._id,
-//             tutor_id: tutor_id,
-//             subject: subject,
-//             description: message,
-//             status: 'unread',
-//             type: 'help_request',
-//             urgency_level: 'normal'
-//         });
-
-//         res.status(201).json({
-//             success: true,
-//             message: "Help request sent successfully",
-//             inquiry: helpRequest
-//         });
-
-//     } catch (error) {
-//         console.error("Error sending help request:", error);
-//         res.status(500).json({
-//             success: false,
-//             message: "Failed to send help request",
-//             error: error.message
-//         });
-//     }
-// });
 
 
 
