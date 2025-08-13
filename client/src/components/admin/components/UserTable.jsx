@@ -49,7 +49,6 @@ import {
 
 const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, index }) => {
   const getStatusIcon = (status) => {
-    console.log("status",status)
     switch (status) {
       case 'active':
         return <CheckCircle color="success" fontSize="small" />;

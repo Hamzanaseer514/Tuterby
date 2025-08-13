@@ -218,7 +218,6 @@ const StudentSessions = () => {
         ) : (
           filteredSessions.map((session) => (
             <Card key={session._id} className="hover:shadow-md transition-shadow">
-              {console.log(session)}
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">

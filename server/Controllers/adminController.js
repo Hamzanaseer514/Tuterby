@@ -289,7 +289,6 @@ exports.approveTutorProfile = async (req, res) => {
     }
     const user = await User.findOne({ _id: profile.user_id });
     if (documents.some((doc) => doc.verification_status !== "Approved")) {
-      console.log(documents);
       return res
         .status(400)
         .json({ message: "All documents must be verified." });

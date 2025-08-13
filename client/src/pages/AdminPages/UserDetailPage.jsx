@@ -318,7 +318,6 @@ const UserDetailPage = () => {
               </Typography>
             </Box>
           </Box>
-          {/* {console.log(localUser.)} */}
           {userStatus && (
             <Chip label={userStatus} color={getStatusColor(userStatus)} variant={userStatus === 'unverified' ? 'outlined' : 'filled'} />
           )}
@@ -407,7 +406,6 @@ const UserDetailPage = () => {
                             <ListItemIcon>
                               <Description color={doc.verified === "Approved" ? 'success' : doc.verified === "Rejected" ? 'error' : 'action'} />
                             </ListItemIcon>
-                            {console.log("doc",doc.verified)}
                             <ListItemText
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

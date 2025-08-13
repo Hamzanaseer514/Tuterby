@@ -89,27 +89,7 @@ const SessionManagement = () => {
     }
   };
 
-  // const updateSessionStatus = async (sessionId, newStatus) => {
-  //   try {
-  //     const response = await fetch(`${BASE_URL}/api/tutor/sessions/${sessionId}`, {
-  //       method: 'PUT',
-  //       headers: {
-  //         'Authorization': `Bearer ${authToken}`,
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({ status: newStatus }),
-  //     });
 
-  //     if (!response.ok) {
-  //       throw new Error('Failed to update session');
-  //     }
-
-  //     // Refresh sessions after update
-  //     fetchSessions();
-  //   } catch (err) {
-  //     console.error('Error updating session:', err);
-  //   }
-  // };
 
   const openUpdateSessionModal = (session) => {
     setSelectedSession(session);

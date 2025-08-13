@@ -548,18 +548,16 @@ const Register = () => {
 
           formDataToSend.append("documentsMap", JSON.stringify(documentsMap));
 
-          console.log("Sending tutor registration with:");
-          console.log("Documents count:", documents.length);
-          console.log("Documents map:", documentsMap);
+       
 
-          // Log FormData contents for debugging
-          for (let [key, value] of formDataToSend.entries()) {
-            if (key === "documents") {
-              console.log(`${key}:`, value.name, value.type, value.size);
-            } else {
-              console.log(`${key}:`, value);
-            }
-          }
+          // // Log FormData contents for debugging
+          // for (let [key, value] of formDataToSend.entries()) {
+          //   if (key === "documents") {
+          //     console.log(`${key}:`, value.name, value.type, value.size);
+          //   } else {
+          //     console.log(`${key}:`, value);
+          //   }
+          // }
 
           const registerResponse = await fetch(
             `${BASE_URL}/api/auth/register-tutor`,
@@ -1160,7 +1158,6 @@ const Register = () => {
                           Subjects You Teach
                         </Label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                          {console.log(subjects)}
                           {subjects.length > 0 ? (
                             subjects.map((subject) => (
                               <div

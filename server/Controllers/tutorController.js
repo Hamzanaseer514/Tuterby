@@ -8,6 +8,7 @@ const TutorAvailability = require("../Models/tutorAvailabilitySchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
 const Message = require("../Models/messageSchema"); // Importing Message model
+const { EducationLevel, Subject } = require("../Models/LookupSchema");
 
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
@@ -1017,6 +1018,204 @@ const deleteSession = asyncHandler(async (req, res) => {
   });
 });
 
+// Get all verified tutors for home page display
+const getVerifiedTutors = asyncHandler(async (req, res) => {
+  try {
+    const verifiedTutors = await TutorProfile.find({ 
+      profile_status: 'approved',
+      is_verified: true 
+    })
+    .populate({
+      path: 'user_id',
+      select: 'full_name photo_url email'
+    })
+    .populate({
+      path: 'academic_levels_taught.educationLevel',
+      select: 'name'
+    })
+    .lean();
+
+    // Transform the data to include min-max hourly rates and other required fields
+    const transformedTutors = verifiedTutors.map(tutor => {
+      const user = tutor.user_id;
+      
+      // Calculate min and max hourly rates
+      let minHourlyRate = Infinity;
+      let maxHourlyRate = 0;
+      
+      if (tutor.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
+        tutor.academic_levels_taught.forEach(level => {
+          if (level.hourlyRate < minHourlyRate) minHourlyRate = level.hourlyRate;
+          if (level.hourlyRate > maxHourlyRate) maxHourlyRate = level.hourlyRate;
+        });
+      }
+
+      // If no rates found, set defaults
+      if (minHourlyRate === Infinity) minHourlyRate = 0;
+      if (maxHourlyRate === 0) maxHourlyRate = 0;
+
+      return {
+        _id: tutor._id,
+        user_id: tutor.user_id._id,
+        full_name: user.full_name,
+        photo_url: user.photo_url,
+        email: user.email,
+        bio: tutor.bio,
+        qualifications: tutor.qualifications,
+        experience_years: tutor.experience_years,
+        subjects: tutor.subjects || [],
+        academic_levels: tutor.academic_levels_taught?.map(level => ({
+          name: level.name,
+          hourlyRate: level.hourlyRate
+        })) || [],
+        min_hourly_rate: minHourlyRate,
+        max_hourly_rate: maxHourlyRate,
+        average_rating: tutor.average_rating || 0,
+        total_sessions: tutor.total_sessions || 0,
+        location: tutor.location,
+        is_background_checked: tutor.is_background_checked,
+        is_reference_verified: tutor.is_reference_verified,
+        is_qualification_verified: tutor.is_qualification_verified
+      };
+    });
+    console.log("transformedTutors",transformedTutors)
+    res.status(200).json({
+      success: true,
+      count: transformedTutors.length,
+      tutors: transformedTutors
+    });
+
+  } catch (error) {
+    console.error('Error fetching verified tutors:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch verified tutors',
+      error: error.message
+    });
+  }
+});
+
+// Get tutor settings data (education levels and subjects)
+const getTutorSettings = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    // Get tutor profile
+    const tutorProfile = await TutorProfile.findOne({ user_id })
+      .populate('academic_levels_taught.educationLevel');
+
+    if (!tutorProfile) {
+      res.status(404);
+      throw new Error("Tutor profile not found");
+    }
+
+    // Get all education levels
+    const educationLevels = await EducationLevel.find().sort({ level: 1 });
+    
+    // Get all subjects
+    const subjects = await Subject.find().sort({ name: 1 });
+
+    // Get current tutor settings for each education level
+    const currentSettings = tutorProfile.academic_levels_taught.map(level => ({
+      educationLevelId: level.educationLevel._id,
+      educationLevelName: level.educationLevel.level,
+      hourlyRate: level.hourlyRate,
+      totalSessionsPerMonth: level.totalSessionsPerMonth,
+      discount: level.discount,
+      monthlyRate: level.monthlyRate
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        educationLevels,
+        subjects: tutorProfile.subjects,
+        allSubjects: subjects,
+        currentSettings,
+        canModifyRates: true // This can be controlled by admin later
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tutor settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tutor settings',
+      error: error.message
+    });
+  }
+});
+
+// Update tutor settings (rates and sessions)
+const updateTutorSettings = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { academicLevelSettings } = req.body;
+
+    if (!academicLevelSettings || !Array.isArray(academicLevelSettings)) {
+      res.status(400);
+      throw new Error("Academic level settings are required");
+    }
+
+    // Get tutor profile
+    const tutorProfile = await TutorProfile.findOne({ user_id });
+    if (!tutorProfile) {
+      res.status(404);
+      throw new Error("Tutor profile not found");
+    }
+
+    // Update each academic level setting
+    for (const setting of academicLevelSettings) {
+      const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount } = setting;
+      
+      // Find the corresponding academic level in tutor profile
+      const levelIndex = tutorProfile.academic_levels_taught.findIndex(
+        level => level.educationLevel.toString() === educationLevelId
+      );
+        // if total session are less than minSession or greate then maxSession show message. get mix andmax session from educationLevel
+        const educationLevel = await EducationLevel.findById(educationLevelId);
+        console.log(educationLevel);
+        const minSession = educationLevel.minSession;
+        const maxSession = educationLevel.maxSession;
+        if (totalSessionsPerMonth < minSession || totalSessionsPerMonth > maxSession) {
+          res.status(400);
+          return res.json({
+            success: false,
+            message: `Total sessions per month must be between ${minSession} and ${maxSession}`
+          });
+        }
+      if (levelIndex !== -1) {
+        // Update the rates and sessions
+        tutorProfile.academic_levels_taught[levelIndex].hourlyRate = hourlyRate;
+        tutorProfile.academic_levels_taught[levelIndex].totalSessionsPerMonth = totalSessionsPerMonth;
+        tutorProfile.academic_levels_taught[levelIndex].discount = discount;
+        
+        // Calculate monthly rate
+        const gross = hourlyRate * totalSessionsPerMonth;
+        const discountAmount = (gross * discount) / 100;
+        tutorProfile.academic_levels_taught[levelIndex].monthlyRate = gross - discountAmount;
+      }
+    }
+
+    // Save the updated profile
+    await tutorProfile.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Tutor settings updated successfully",
+      data: tutorProfile.academic_levels_taught
+    });
+
+  } catch (error) {
+    console.error('Error updating tutor settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update tutor settings',
+      error: error.message
+    });
+  }
+});
+
 module.exports = {
   uploadDocument,
   getTutorDashboard,
@@ -1040,5 +1239,8 @@ module.exports = {
   sendMessageResponse,
   getTutorMessages,
   getSpecificUserChat,
-  deleteSession
+  deleteSession,
+  getVerifiedTutors,
+  getTutorSettings,
+  updateTutorSettings
 };

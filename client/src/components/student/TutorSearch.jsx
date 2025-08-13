@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
+import { Checkbox } from '../ui/checkbox';
 import { useToast } from '../ui/use-toast';
 import {
   Search,
@@ -30,6 +31,7 @@ import {
   CheckCircle,
   X
 } from 'lucide-react';
+import { useSubject } from '../../hooks/useSubject';
 
 const TutorSearch = () => {
   const { toast } = useToast();
@@ -49,9 +51,12 @@ const TutorSearch = () => {
     duration_hours: 1,
     notes: ''
   });
-
+  const { subjects, academicLevels } = useSubject();
   // Simple search filter
   const [searchQuery, setSearchQuery] = useState('');
+  const [studentProfile, setStudentProfile] = useState(null);
+  // New checkbox state for preferred subjects filter
+  const [preferredSubjectsOnly, setPreferredSubjectsOnly] = useState(false);
 
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -70,9 +75,10 @@ const TutorSearch = () => {
 
   useEffect(() => {
     if (user) {
+      getStudentProfile();
       searchTutors();
     }
-  }, [currentPage, filters, searchQuery]);
+  }, [currentPage, filters, searchQuery, preferredSubjectsOnly]);
 
   // Helper functions
   const parseField = (field) => {
@@ -83,7 +89,6 @@ const TutorSearch = () => {
       if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
         try {
           const parsed = JSON.parse(field[0]);
-          console.log(`Parsed array field: ${field[0]} →`, parsed);
           return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
           console.warn(`Failed to parse array field: ${field[0]}`, error);
@@ -101,7 +106,6 @@ const TutorSearch = () => {
     if (typeof field === "string" && field.startsWith("[")) {
       try {
         const parsed = JSON.parse(field);
-        console.log(`Parsed string field: ${field} →`, parsed);
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
         console.warn(`Failed to parse string field: ${field}`, error);
@@ -120,21 +124,22 @@ const TutorSearch = () => {
         academic_levels_taught: parseField(tutor.academic_levels_taught),
       };
 
-      console.log(`Cleaned tutor ${tutor.user_id?.full_name || tutor._id}:`, {
-        original: {
-          subjects: tutor.subjects,
-          academic_levels_taught: tutor.academic_levels_taught
-        },
-        cleaned: {
-          subjects: cleaned.subjects,
-          academic_levels_taught: cleaned.academic_levels_taught
-        }
-      });
+   
 
       return cleaned;
     });
   };
 
+  const getStudentProfile = async () => {
+    const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    setStudentProfile(data.student)
+  }
   // Inside your loadAllTutors function
   const loadAllTutors = async () => {
     try {
@@ -165,7 +170,6 @@ const TutorSearch = () => {
       const cleanedTutors = cleanTutorData(data.tutors);
 
       setTutors(cleanedTutors);
-      console.log("cleanedTutors",cleanedTutors)
       setTotalPages(data.pagination.total_pages);
       setCurrentPage(1);
     } catch (error) {
@@ -196,6 +200,11 @@ const TutorSearch = () => {
       // Add search query if provided
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim());
+      }
+
+      // Add preferred subjects filter if checkbox is checked
+      if (preferredSubjectsOnly && studentProfile.preferred_subjects) {
+        params.append('preferred_subjects_only', 'true');
       }
 
       const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
@@ -239,6 +248,7 @@ const TutorSearch = () => {
 
   const clearAllFilters = () => {
     setSearchQuery('');
+    setPreferredSubjectsOnly(false);
     setFilters({
       subject: '',
       academic_level: '',
@@ -254,7 +264,6 @@ const TutorSearch = () => {
   };
 
   const handleViewTutor = (tutorId) => {
-    {console.log(tutorId)}
     navigate(`/tutor`, {
       state: { tutorId: tutorId }
     });
@@ -383,7 +392,7 @@ const TutorSearch = () => {
               <Filter className="w-4 h-4" />
               {showAdvancedFilters ? 'Hide' : 'Show'} Filters
             </Button>
-            {(searchQuery || Object.values(filters).some(v => v)) && (
+            {(searchQuery || Object.values(filters).some(v => v) || preferredSubjectsOnly) && (
               <Button
                 onClick={clearAllFilters}
                 variant="outline"
@@ -394,6 +403,21 @@ const TutorSearch = () => {
                 Clear
               </Button>
             )}
+          </div>
+          
+          {/* Preferred Subjects Filter Checkbox */}
+          <div className="flex items-center space-x-2 mt-4">
+            <Checkbox
+              id="preferred-subjects"
+              checked={preferredSubjectsOnly}
+              onCheckedChange={setPreferredSubjectsOnly}
+            />
+            <label
+              htmlFor="preferred-subjects"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Show only tutors who teach my preferred subjects
+            </label>
           </div>
         </CardContent>
       </Card>
@@ -411,11 +435,18 @@ const TutorSearch = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                <Input
-                  placeholder="e.g., Mathematics, Physics"
-                  value={filters.subject}
-                  onChange={(e) => handleFilterChange('subject', e.target.value)}
-                />
+                <Select value={filters.subject} onValueChange={(value) => handleFilterChange('subject', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject._id} value={subject._id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -425,11 +456,11 @@ const TutorSearch = () => {
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GCSE">GCSE</SelectItem>
-                    <SelectItem value="A-Level">A-Level</SelectItem>
-                    <SelectItem value="IB">IB</SelectItem>
-                    <SelectItem value="BTEC">BTEC</SelectItem>
-                    <SelectItem value="Undergraduate">Undergraduate</SelectItem>
+                    {academicLevels.map((level) => (
+                      <SelectItem key={level._id} value={level._id}>
+                        {level.level}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -518,7 +549,7 @@ const TutorSearch = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-gray-900">
-                              £{tutor.hourly_rate}/hr
+                              £{tutor.min_hourly_rate} - £{tutor.max_hourly_rate}/hr
                               </p>
                               {tutor.average_rating && (
                               <div className="flex items-center gap-1 mt-1">

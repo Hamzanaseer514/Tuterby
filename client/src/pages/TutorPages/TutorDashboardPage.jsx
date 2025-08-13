@@ -7,6 +7,7 @@ import AvailabilityCalendar from '../../components/tutor/AvailabilityCalendar';
 import StudentHireRequests from '../../components/tutor/StudentHireRequests';
 import Chatting from '../../components/tutor/Chatting';
 import { Button } from '../../components/ui/button';
+import TutorSetting from '../../components/tutor/TutorSetting';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -80,7 +81,9 @@ const TutorDashboardPage = () => {
       id: 'settings',
       name: 'Settings',
       icon: Settings,
-      component: <div className="p-6">Settings coming soon...</div>
+      component: <div className="p-6">
+        <TutorSetting/>
+      </div>
     },
     {
       id: 'availability',

@@ -192,13 +192,13 @@ const TutorProfilePage = () => {
       if(status === 400){
         toast({
           title: "Warning",
-          description: "Tutor already hired!",
+          description: data.message,
         });
       }
       else if(status === 200){
       toast({
         title: "Success",
-        description: "Tutor hired successfully!",
+        description: data.message,
       });
     }
       setShowBookingModal(false);
@@ -206,7 +206,7 @@ const TutorProfilePage = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to hire tutor",
+        description: data.message,
         variant: "destructive"
       });
     }
@@ -420,7 +420,7 @@ const TutorProfilePage = () => {
 
                         <div className="text-right">
                           <p className="text-3xl font-bold text-gray-900">
-                            £{tutor.hourly_rate}/hr
+                            £{tutor.min_hourly_rate} - £{tutor.max_hourly_rate}/hr
                           </p>
                           {tutor.experience_years && (
                             <p className="text-sm text-gray-600">

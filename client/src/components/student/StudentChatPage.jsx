@@ -22,7 +22,6 @@ const StudentChatting = () => {
         },
       });
       const data = await res.json();
-      console.log("Accepted tutors:", data);
       if (data.success) {
         setTutors(data.data);
       }
@@ -42,7 +41,6 @@ const StudentChatting = () => {
         },
       });
       const data = await res.json();
-      console.log("Chat history:", data);
       if (data.success) {
         setChatHistory(data.data);
         setSelectedTutor(tutors.find((t) => t.tutorId === tutorId));
@@ -69,7 +67,6 @@ const StudentChatting = () => {
       });
 
       const data = await res.json();
-      console.log("Send message response:", data);
       if (data.success) {
         setChatHistory((prev) => [...prev, data.data]); // append new message
         setMessageText("");

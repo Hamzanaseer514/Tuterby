@@ -19,6 +19,7 @@ const LazyHomeBlogPreview = lazy(() => import('@/components/home/HomeBlogPreview
 const LazyFaqSection = lazy(() => import('@/components/blog/FaqSection'));
 const LazyServedCitiesSection = lazy(() => import('@/components/home/ServedCitiesSection'));
 const LazyCallToActionSection = lazy(() => import('@/components/home/CallToActionSection'));
+const LazyTutors = lazy(() => import('@/components/home/Tutors'));
 
 
 const HomePage = () => {
@@ -83,6 +84,7 @@ const HomePage = () => {
       <HeroSection />
       <Suspense fallback={<PageLoader />}>
         <LazyFeaturesSection />
+        <LazyTutors />
         <LazyHowItWorksSection />
         <LazyHomePricingHighlight />
         <LazySubjectsOverviewSection />

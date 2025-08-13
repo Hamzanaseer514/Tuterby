@@ -48,7 +48,6 @@ EducationLevelSchema.pre('save', function (next) {
   this.monthlyRate = gross - discountAmount;
   next();
 });
-
 const EducationLevel = mongoose.model("EducationLevel", EducationLevelSchema);
 
 

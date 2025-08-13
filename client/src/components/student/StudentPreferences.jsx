@@ -43,10 +43,8 @@ const StudentPreferences = () => {
   // Debug logging to see actual data structure
   useEffect(() => {
     if (academicLevels.length > 0) {
-      console.log('Academic Levels structure:', academicLevels[0]);
     }
     if (subjects.length > 0) {
-      console.log('Subjects structure:', subjects[0]);
     }
   }, [academicLevels, subjects]);
 

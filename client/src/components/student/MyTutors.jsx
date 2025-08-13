@@ -102,16 +102,6 @@ const MyTutors = () => {
     });
   };
 
-  const handleContactTutor = (tutor) => {
-    // Navigate to contact page or open chat
-    console.log('Contact tutor:', tutor);
-  };
-
-  const handleViewProfile = (tutor) => {
-    // Navigate to tutor profile
-    console.log('View profile:', tutor);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
