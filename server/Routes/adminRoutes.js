@@ -31,7 +31,8 @@ const {
   addSubject,
   updateSubject,
   deleteSubject,
-  getAllChatsOfUsers
+  getAllChatsOfUsers,
+  manageEducationLevel
 } = require("../Controllers/adminController");
 
 
@@ -43,6 +44,7 @@ router.post("/education-levels", addEducationLevel);
 router.get("/education-levels", getEducationLevels);
 router.put("/education-levels/:id", updateEducationLevel);
 router.delete("/education-levels/:id", deleteEducationLevel);
+router.put("/education-levels/:id/manage", manageEducationLevel);
 
 // Subjects
 router.post("/subjects", addSubject);

@@ -61,7 +61,7 @@ const Register = () => {
     subjects_taught: [], // New field for subjects they will teach
     academic_levels_taught: [], // New field for academic levels they will teach
     location: "", // New field for tutor's location
-    hourly_rate: "", // New field for tutor's hourly rate
+    // hourly_rate: "", 
     code_of_conduct_agreed: false,
     academic_level: "",
     learning_goals: "",
@@ -196,7 +196,7 @@ const Register = () => {
       "qualifications",
       "experience_years",
       "location",
-      "hourly_rate",
+      // "hourly_rate",
     ];
     const missingFields = requiredFields.filter((field) => !formData[field]);
 
@@ -499,7 +499,7 @@ const Register = () => {
             formData.experience_years.toString()
           );
           formDataToSend.append("location", formData.location);
-          formDataToSend.append("hourly_rate", formData.hourly_rate.toString());
+          // formDataToSend.append("hourly_rate", formData.hourly_rate.toString());
           formDataToSend.append(
             "code_of_conduct_agreed",
             formData.code_of_conduct_agreed.toString()
@@ -640,7 +640,7 @@ const Register = () => {
             subjects_taught: [],
             academic_levels_taught: [],
             location: "",
-            hourly_rate: "",
+            // hourly_rate: "",
             code_of_conduct_agreed: false,
             academic_level: "",
             learning_goals: "",
@@ -733,7 +733,7 @@ const Register = () => {
           subjects_taught: [],
           academic_levels_taught: [],
           location: "",
-          hourly_rate: "",
+          // hourly_rate: "",
           code_of_conduct_agreed: false,
           academic_level: "",
           learning_goals: "",
@@ -987,7 +987,7 @@ const Register = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {academicLevels.map((level) => (
-                            <SelectItem key={level._id} value={level.level}>
+                            <SelectItem key={level._id} value={level._id}>
                               {level.level}
                             </SelectItem>
                           ))}
@@ -1207,11 +1207,11 @@ const Register = () => {
                                 <Checkbox
                                   id={`level-${level._id}`}
                                   checked={formData.academic_levels_taught.includes(
-                                    level.level
+                                    level._id
                                   )}
                                   onCheckedChange={(checked) =>
                                     handleSubjectChange(
-                                      level.level,
+                                      level._id,
                                       checked,
                                       "academic_levels_taught"
                                     )
@@ -1246,7 +1246,7 @@ const Register = () => {
                             className="focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                           <Label
                             htmlFor="hourly_rate"
                             className="text-gray-700"
@@ -1263,7 +1263,7 @@ const Register = () => {
                             placeholder="e.g., 25"
                             className="focus:ring-2 focus:ring-blue-500"
                           />
-                        </div>
+                        </div> */}
                       </div>
                       <div className="flex items-start space-x-3 pt-2 mt-6">
                         <Checkbox
