@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
 import { useToast } from '../ui/use-toast';
+import { useSubject } from '../../hooks/useSubject';
 import {
   Save,
   ArrowLeft,
@@ -37,6 +38,17 @@ const StudentPreferences = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
+  const { academicLevels, subjects, loading: subjectsLoading } = useSubject();
+
+  // Debug logging to see actual data structure
+  useEffect(() => {
+    if (academicLevels.length > 0) {
+      console.log('Academic Levels structure:', academicLevels[0]);
+    }
+    if (subjects.length > 0) {
+      console.log('Subjects structure:', subjects[0]);
+    }
+  }, [academicLevels, subjects]);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -51,15 +63,6 @@ const StudentPreferences = () => {
   });
 
   const [newSubject, setNewSubject] = useState('');
-  const [preferences, setPreferences] = useState({
-    preferred_session_duration: '1 hour',
-    preferred_learning_style: 'visual',
-    notification_preferences: {
-      email_notifications: true,
-      session_reminders: true,
-      assignment_updates: true
-    }
-  });
 
   // Common subjects for suggestions
   const commonSubjects = [
@@ -300,23 +303,40 @@ const StudentPreferences = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="academic_level">Academic Level</Label>
-              <Select
-                value={formData.academic_level}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, academic_level: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your academic level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Primary School">Primary School</SelectItem>
-                  <SelectItem value="Middle School">Middle School</SelectItem>
-                  <SelectItem value="Secondary School">Secondary School</SelectItem>
-                  <SelectItem value="GCSE">GCSE</SelectItem>
-                  <SelectItem value="A-Level">A-Level</SelectItem>
-                  <SelectItem value="University">University</SelectItem>
-                  <SelectItem value="Adult Learning">Adult Learning</SelectItem>
-                </SelectContent>
-              </Select>
+              {subjectsLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-sm text-gray-500">Loading academic levels...</span>
+                </div>
+              ) : (
+                <>
+                  <Select
+                    value={formData.academic_level}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, academic_level: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your academic level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {academicLevels.map((level) => (
+                        <SelectItem key={level._id} value={level.level}>
+                          {level.level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-500">
+                      {academicLevels.length} levels available
+                    </span>
+                    {academicLevels.length === 0 && (
+                      <Badge variant="outline" className="text-xs text-red-600">
+                        No levels loaded
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div>
@@ -342,22 +362,61 @@ const StudentPreferences = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label>Add Subject</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter subject name"
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addSubject()}
-                />
-                <Button onClick={addSubject} size="sm">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+           
 
             <div>
+              <Label>Quick Add from Available Subjects</Label>
+              {subjectsLoading ? (
+                <div className="flex items-center justify-center p-4 mt-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-sm text-gray-500">Loading subjects...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-2 mt-3">
+                    <span className="text-sm text-gray-600">
+                      {subjects.length} subjects available
+                    </span>
+                    {subjects.length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        Showing first 20
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {subjects.slice(0, 20).map((subject) => (
+                      <Button
+                        key={subject._id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const subjectName = subject.name || subject.subject || subject;
+                          if (!formData.preferred_subjects.includes(subjectName)) {
+                            setFormData(prev => ({
+                              ...prev,
+                              preferred_subjects: [...prev.preferred_subjects, subjectName]
+                            }));
+                          }
+                        }}
+                        disabled={formData.preferred_subjects.includes(subject.name || subject.subject || subject)}
+                      >
+                        {subject.name || subject.subject || subject}
+                      </Button>
+                    ))}
+                    {subjects.length > 20 && (
+                      <Button variant="outline" size="sm" className="text-blue-600">
+                        +{subjects.length - 20} more
+                      </Button>
+                    )}
+                  </div>
+                  {subjects.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-2">No subjects available from server</p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* <div>
               <Label>Quick Add Common Subjects</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {commonSubjects.slice(0, 12).map((subject) => (
@@ -379,7 +438,7 @@ const StudentPreferences = () => {
                   </Button>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             <div>
               <Label>Your Subjects ({formData.preferred_subjects.length})</Label>

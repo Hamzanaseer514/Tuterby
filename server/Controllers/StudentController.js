@@ -772,9 +772,9 @@ exports.hireTutor = asyncHandler(async (req, res) => {
         
         // If the hire request is already accepted, show "already hired" message
         if (existingHire.status === "accepted") {
-            return res.status(400).json({ message: "Tutor already hired. Select another tutor" });
-        }
-        
+        return res.status(400).json({ message: "Tutor already hired. Select another tutor" });
+    }
+
         // If there's a pending request, prevent duplicate
         if (existingHire.status === "pending") {
             return res.status(400).json({ message: "Hiring request already pending for this tutor" });

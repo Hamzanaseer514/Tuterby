@@ -15,6 +15,7 @@ export const SubjectProvider = ({ children }) => {
         const res = await fetch(`${BASE_URL}/api/admin/subjects`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        // console.log("Fetched subjects:", data);
         console.log("Fetched subjects:", data.data);
         setSubjects(data.data);
       } catch (err) {

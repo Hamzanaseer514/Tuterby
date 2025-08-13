@@ -3,683 +3,792 @@ import {
   Box,
   Typography,
   Paper,
-  Fade,
-  Zoom,
   Grid,
   Card,
   CardContent,
-  Chip,
-  Skeleton,
+  IconButton,
   Button,
   useTheme,
   useMediaQuery,
-  Divider,
   Avatar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Divider,
+  Chip,
+  Skeleton,
+  Alert,
+  Tooltip,
   LinearProgress
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
-  TrendingUp,
   Refresh,
   School,
   Person,
   ContactMail,
   CalendarToday,
   People,
-  Assessment,
-  BarChart,
   MonetizationOn,
-  ArrowUpward,
-  ArrowDownward,
-  MoreVert,
+  TrendingUp,
+  TrendingDown,
   CheckCircle,
   PendingActions,
-  Cancel
+  Cancel,
+  Visibility,
+  Edit,
+  MoreVert,
+  Notifications,
+  Settings,
+  Assessment,
+  BarChart3,
+  Users,
+  BookOpen,
+  DollarSign,
+  Star,
+  Timer,
+  TrendingUp as GrowthIcon
 } from '@mui/icons-material';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 import { Link } from 'react-router-dom';
 import { getDashboardStats } from '../../services/adminService';
 
-// Theme colors
-const statusColors = {
-  verified: 'success',
-  pending: 'warning',
-  rejected: 'error',
-  unverified: 'default',
-  active: 'success',
-  inactive: 'default'
+// Enhanced status colors with better visual appeal
+const statusConfig = {
+  verified: { color: '#10B981', icon: CheckCircle, label: 'Verified', bgColor: '#ECFDF5' },
+  pending: { color: '#F59E0B', icon: PendingActions, label: 'Pending', bgColor: '#FFFBEB' },
+  rejected: { color: '#EF4444', icon: Cancel, label: 'Rejected', bgColor: '#FEF2F2' },
+  active: { color: '#10B981', icon: CheckCircle, label: 'Active', bgColor: '#ECFDF5' },
+  inactive: { color: '#6B7280', icon: Cancel, label: 'Inactive', bgColor: '#F9FAFB' }
 };
 
-// Mock data for development
-const getMockDashboardStats = () => ({
-  totalUsers: 1243,
-  activeUsers: 987,
-  totalSessions: 3245,
-  revenue: 45230,
-  tutors: { total: 145, pending: 23, verified: 122 },
-  students: { total: 878, active: 765 },
-  parents: { total: 220, active: 198 },
-  sessions: { total: 3245, thisMonth: 489, lastMonth: 376, change: 30 },
-  revenue: { total: 45230, thisMonth: 12800, lastMonth: 10200, change: 25 },
-  recentActivities: [
-    { id: 1, user: 'John Smith', action: 'New tutor registration', time: '2 mins ago', status: 'pending' },
-    { id: 2, user: 'Sarah Johnson', action: 'Completed profile verification', time: '15 mins ago', status: 'verified' },
-    { id: 3, user: 'Michael Brown', action: 'Scheduled new session', time: '1 hour ago', status: 'active' },
-    { id: 4, user: 'Emily Davis', action: 'Payment received', time: '3 hours ago', status: 'completed' },
-    { id: 5, user: 'Robert Wilson', action: 'Account deactivated', time: '5 hours ago', status: 'inactive' }
-  ]
+// Enhanced mock data
+const getMockData = () => ({
+  overview: {
+    totalUsers: 1243,
+    totalTutors: 145,
+    totalStudents: 878,
+    totalSessions: 3245,
+    monthlyRevenue: 12800
+  },
+  recentUsers: [
+    { id: 1, name: 'John Smith', type: 'Tutor', status: 'pending', time: '2 mins ago', avatar: 'JS' },
+    { id: 2, name: 'Sarah Johnson', type: 'Student', status: 'active', time: '15 mins ago', avatar: 'SJ' },
+    { id: 3, name: 'Michael Brown', type: 'Parent', status: 'active', time: '1 hour ago', avatar: 'MB' },
+    { id: 4, name: 'Emily Davis', type: 'Tutor', status: 'verified', time: '3 hours ago', avatar: 'ED' }
+  ],
+  quickStats: {
+    pendingApprovals: 23,
+    activeSessions: 45,
+    monthlyGrowth: 15,
+    userSatisfaction: 4.8
+  }
 });
 
-const StatCard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
-  trendValue, 
-  loading, 
-  index, 
-  color = 'primary.main',
-  link 
-}) => {
+// Enhanced Metric Card with gradients and better design
+const MetricCard = ({ title, value, icon: Icon, color = 'primary', trend, subtitle, loading, link, gradient = false }) => {
   const theme = useTheme();
-  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   
   if (loading) {
     return (
-      <Grid item xs={12} sm={6} md={3}>
-        <Card elevation={0} sx={{ 
-          height: '100%',
-          borderRadius: 3,
-          background: theme.palette.background.paper
+      <Grid item xs={12} sm={6} lg={3}>
+        <Card sx={{ 
+          height: '100%', 
+          borderRadius: 4,
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+          border: '1px solid #e2e8f0'
         }}>
-          <CardContent>
-            <Skeleton variant="text" width="60%" height={24} />
+          <CardContent sx={{ p: 3 }}>
+            <Skeleton variant="text" width="60%" height={20} />
             <Skeleton variant="text" width="40%" height={32} />
-            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-              <Skeleton variant="circular" width={20} height={20} />
-              <Skeleton variant="text" width={60} height={20} sx={{ ml: 1 }} />
-            </Box>
+            <Skeleton variant="text" width="80%" height={16} />
           </CardContent>
         </Card>
       </Grid>
     );
   }
 
-  const TrendIcon = trend === 'up' ? ArrowUpward : ArrowDownward;
-  const trendColor = trend === 'up' ? theme.palette.success.main : theme.palette.error.main;
+  const getGradient = (color) => {
+    const gradients = {
+      primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      secondary: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      success: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      warning: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      info: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+    };
+    return gradients[color] || gradients.primary;
+  };
 
-  return (
-    <Grid item xs={12} sm={6} md={3}>
-      <Zoom in timeout={300 + index * 100}>
-        <Card 
-          component={link ? Link : 'div'}
-          to={link}
-          elevation={0}
+  const content = (
+    <Card sx={{ 
+      height: '100%', 
+      borderRadius: 4,
+      background: gradient ? getGradient(color) : 'white',
+      border: gradient ? 'none' : '1px solid #e2e8f0',
+      boxShadow: gradient ? '0 20px 40px rgba(0,0,0,0.1)' : '0 4px 20px rgba(0,0,0,0.08)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      overflow: 'hidden',
+      position: 'relative',
+      '&:hover': {
+        transform: 'translateY(-8px)',
+        boxShadow: gradient ? '0 25px 50px rgba(0,0,0,0.15)' : '0 8px 30px rgba(0,0,0,0.12)'
+      }
+    }}>
+      {/* Background Pattern */}
+      {gradient && (
+        <Box sx={{
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 100,
+          height: 100,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.1)',
+          opacity: 0.6
+        }} />
+      )}
+      
+      <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          mb: 3
+        }}>
+          <Box sx={{
+            width: 56,
+            height: 56,
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: gradient ? 'rgba(255,255,255,0.2)' : theme.palette[color].light,
+            color: gradient ? 'white' : theme.palette[color].main,
+            backdropFilter: gradient ? 'blur(10px)' : 'none'
+          }}>
+            <Icon fontSize="large" />
+          </Box>
+          {trend && (
+            <Chip
+              icon={trend > 0 ? <TrendingUp /> : <TrendingDown />}
+              label={`${trend > 0 ? '+' : ''}${trend}%`}
+              size="small"
+              sx={{
+                backgroundColor: trend > 0 ? '#10B981' : '#EF4444',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '0.75rem',
+                height: 28,
+                '& .MuiChip-icon': { color: 'white' }
+              }}
+            />
+          )}
+        </Box>
+        
+        <Typography 
+          variant="h3" 
+          fontWeight="bold" 
           sx={{ 
-            height: '100%',
-            borderRadius: 3,
-            background: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.divider}`,
-            transition: 'all 0.3s ease',
-            textDecoration: 'none',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: theme.shadows[4],
-              borderColor: theme.palette[color.split('.')[0]].main
-            }
+            mb: 1,
+            color: gradient ? 'white' : 'text.primary',
+            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
           }}
         >
-          <CardContent>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              mb: 2
-            }}>
-              <Typography 
-                variant="subtitle2" 
-                color="textSecondary" 
-                fontWeight="medium"
-                sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-              >
-                {title}
-              </Typography>
-              <Box sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.palette[color.split('.')[0]].light,
-                color: theme.palette[color.split('.')[0]].main
-              }}>
-                <Icon fontSize="small" />
-              </Box>
-            </Box>
-            
-            <Typography 
-              variant="h4" 
-              fontWeight="bold" 
-              color="textPrimary" 
-              sx={{ mb: 1 }}
-            >
-              {value}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <TrendIcon 
-                sx={{ 
-                  fontSize: 16,
-                  color: trendColor,
-                  mr: 0.5
-                }} 
-              />
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: trendColor,
-                  fontWeight: 'medium'
-                }}
-              >
-                {trendValue}
-              </Typography>
-              <Typography 
-                variant="body2" 
-                color="textSecondary"
-                sx={{ ml: 1 }}
-              >
-                {trend === 'up' ? 'vs last month' : 'vs last month'}
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
-      </Zoom>
+          {value}
+        </Typography>
+        
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            mb: 1,
+            color: gradient ? 'rgba(255,255,255,0.9)' : 'text.primary',
+            fontWeight: '600'
+          }}
+        >
+          {title}
+        </Typography>
+        
+        {subtitle && (
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: gradient ? 'rgba(255,255,255,0.7)' : 'text.secondary',
+              fontSize: '0.875rem'
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Grid item xs={12} sm={6} lg={3}>
+      {link ? (
+        <Link to={link} style={{ textDecoration: 'none', color: 'inherit' }}>
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
     </Grid>
   );
 };
 
-const ActivityItem = ({ user, action, time, status, loading }) => {
+// Enhanced Activity Item with better visual design
+const ActivityItem = ({ user, type, status, time, loading, avatar }) => {
   const theme = useTheme();
   
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-        <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-        <Box sx={{ flex: 1 }}>
-          <Skeleton variant="text" width="60%" height={20} />
-          <Skeleton variant="text" width="40%" height={16} sx={{ mt: 0.5 }} />
-        </Box>
-        <Skeleton variant="rectangular" width={80} height={24} />
-      </Box>
+      <ListItem sx={{ px: 0, py: 2 }}>
+        <ListItemAvatar>
+          <Skeleton variant="circular" width={48} height={48} />
+        </ListItemAvatar>
+        <ListItemText
+          primary={<Skeleton variant="text" width="60%" height={24} />}
+          secondary={<Skeleton variant="text" width="40%" height={20} />}
+        />
+        <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 2 }} />
+      </ListItem>
     );
   }
 
-  const statusIcons = {
-    pending: <PendingActions color="warning" />,
-    verified: <CheckCircle color="success" />,
-    active: <CheckCircle color="success" />,
-    completed: <CheckCircle color="success" />,
-    inactive: <Cancel color="error" />
-  };
+  const config = statusConfig[status] || statusConfig.pending;
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      alignItems: 'center', 
+    <ListItem sx={{ 
+      px: 0, 
       py: 2,
-      '&:not(:last-child)': {
-        borderBottom: `1px solid ${theme.palette.divider}`
+      borderRadius: 2,
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        transform: 'translateX(4px)'
       }
     }}>
-      <Avatar sx={{ 
-        width: 40, 
-        height: 40, 
-        mr: 2,
-        backgroundColor: theme.palette.primary.light,
-        color: theme.palette.primary.main
-      }}>
-        {user.charAt(0)}
-      </Avatar>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="subtitle2" fontWeight="medium">
-          {user}
+      <ListItemAvatar>
+        <Avatar sx={{ 
+          width: 48, 
+          height: 48,
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          color: 'white',
+          fontWeight: 'bold',
+          fontSize: '1.1rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        }}>
+          {avatar || user.name.charAt(0)}
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText
+        primary={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+            <Typography variant="subtitle1" fontWeight="600" sx={{ color: 'text.primary' }}>
+              {user.name}
+            </Typography>
+            <Chip 
+              label={type} 
+              size="small" 
+              variant="outlined"
+              sx={{ 
+                height: 24, 
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                borderColor: theme.palette.primary.main,
+                color: theme.palette.primary.main,
+                backgroundColor: theme.palette.primary.light + '20'
+              }}
+            />
+          </Box>
+        }
+        secondary={
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+            {time}
+          </Typography>
+        }
+      />
+      <Chip
+        icon={<config.icon />}
+        label={config.label}
+        size="medium"
+        sx={{
+          backgroundColor: config.bgColor,
+          color: config.color,
+          border: `1px solid ${config.color}20`,
+          fontWeight: '600',
+          fontSize: '0.8rem',
+          height: 32,
+          '& .MuiChip-icon': { color: config.color }
+        }}
+      />
+    </ListItem>
+  );
+};
+
+// Enhanced Quick Actions with better button design
+const QuickActions = () => {
+  const theme = useTheme();
+  
+  const actions = [
+    { 
+      title: 'View Users', 
+      icon: Users, 
+      color: 'primary', 
+      link: '/admin/users',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    },
+    { 
+      title: 'Manage Sessions', 
+      icon: BookOpen, 
+      color: 'secondary', 
+      link: '/admin/sessions',
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+    },
+    { 
+      title: 'Financial Reports', 
+      icon: DollarSign, 
+      color: 'success', 
+      link: '/admin/finance',
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    },
+    { 
+      title: 'Analytics', 
+      icon: BarChart3, 
+      color: 'info', 
+      link: '/admin/analytics',
+      gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+    }
+  ];
+
+  return (
+    <Card sx={{ 
+      borderRadius: 4, 
+      border: '1px solid #e2e8f0',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+    }}>
+      <CardContent sx={{ p: 4 }}>
+        <Typography variant="h5" fontWeight="600" sx={{ mb: 3, color: 'text.primary' }}>
+          Quick Actions
         </Typography>
-        <Typography variant="body2" color="textSecondary">
-          {action}
+        <Grid container spacing={3}>
+          {actions.map((action, index) => (
+            <Grid item xs={6} sm={3} key={index}>
+              <Link to={action.link} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<action.icon />}
+                  sx={{
+                    borderRadius: 3,
+                    textTransform: 'none',
+                    height: 56,
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    background: action.gradient,
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 35px rgba(0,0,0,0.2)'
+                    }
+                  }}
+                >
+                  {action.title}
+                </Button>
+              </Link>
+            </Grid>
+          ))}
+        </Grid>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Enhanced Quick Stats with better visual design
+const QuickStatsCard = ({ data, loading }) => {
+  const theme = useTheme();
+  
+  const stats = [
+    {
+      label: 'Pending Approvals',
+      value: data?.pendingApprovals || 0,
+      icon: PendingActions,
+      color: '#F59E0B',
+      bgColor: '#FFFBEB',
+      progress: 75
+    },
+    {
+      label: 'Active Sessions',
+      value: data?.activeSessions || 0,
+      icon: Timer,
+      color: '#10B981',
+      bgColor: '#ECFDF5',
+      progress: 60
+    },
+    {
+      label: 'Monthly Growth',
+      value: `${data?.monthlyGrowth || 0}%`,
+      icon: GrowthIcon,
+      color: '#3B82F6',
+      bgColor: '#EFF6FF',
+      progress: data?.monthlyGrowth || 0
+    },
+    {
+      label: 'User Satisfaction',
+      value: data?.userSatisfaction || 0,
+      icon: Star,
+      color: '#F59E0B',
+      bgColor: '#FFFBEB',
+      progress: (data?.userSatisfaction || 0) * 20
+    }
+  ];
+
+  return (
+    <Card sx={{ 
+      borderRadius: 4, 
+      border: '1px solid #e2e8f0',
+      background: 'white',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+      height: '100%'
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'text.primary' }}>
+          Platform Insights
         </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Typography variant="caption" color="textSecondary" sx={{ mr: 1 }}>
-          {time}
-        </Typography>
-        {statusIcons[status]}
-      </Box>
-    </Box>
+        
+        {loading ? (
+          <Box>
+            {[1, 2, 3, 4].map((item) => (
+              <Box key={item} sx={{ mb: 3 }}>
+                <Skeleton variant="text" width="60%" height={24} />
+                <Skeleton variant="text" width="40%" height={20} />
+                <Skeleton variant="rectangular" width="100%" height={8} sx={{ borderRadius: 4, mt: 1 }} />
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {stats.map((stat, index) => (
+              <Box key={index}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: stat.bgColor,
+                      color: stat.color
+                    }}>
+                      <stat.icon fontSize="small" />
+                    </Box>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: '500' }}>
+                      {stat.label}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: stat.color }}>
+                    {stat.value}
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={stat.progress} 
+                  sx={{ 
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: stat.bgColor,
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 3,
+                      backgroundColor: stat.color
+                    }
+                  }} 
+                />
+              </Box>
+            ))}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
 const AdminDashboardPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [dashboardState, setDashboardState] = useState({
-    stats: {},
+  const [dashboardData, setDashboardData] = useState({
+    data: null,
     loading: true,
     error: null
   });
 
-  // Load initial data
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
-    setDashboardState(prev => ({ ...prev, loading: true, error: null }));
+    setDashboardData(prev => ({ ...prev, loading: true, error: null }));
     
     try {
       const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
       
       if (!token) {
-        throw new Error('Please login to access admin dashboard');
+        throw new Error('Authentication required');
       }
 
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const statsData = await getDashboardStats();
-      setDashboardState(prev => ({
-        ...prev,
-        stats: statsData,
-        loading: false
-      }));
+      setDashboardData({
+        data: statsData,
+        loading: false,
+        error: null
+      });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
       
-      if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
-        setDashboardState(prev => ({
-          ...prev,
-          error: 'Access denied. Please login with admin credentials.',
-          loading: false
-        }));
-      } else {
-        // Load mock data as fallback
-        const statsData = getMockDashboardStats();
-        setDashboardState(prev => ({
-          ...prev,
-          stats: statsData,
-          loading: false
-        }));
-      }
+      // Load mock data as fallback
+      const mockData = getMockData();
+      setDashboardData({
+        data: mockData,
+        loading: false,
+        error: null
+      });
     }
   };
 
-  const statCards = [
-    {
-      title: 'Total Tutors',
-      value: dashboardState.stats.tutors?.total || 0,
-      icon: School,
-      color: 'primary.main',
-      trend: dashboardState.stats.tutors?.verified > 60 ? 'up' : 'down',
-      trendValue: `${Math.round(((dashboardState.stats.tutors?.verified || 0) / (dashboardState.stats.tutors?.total || 1)) * 100)}%`,
-      link: '/admin/users'
-    },
-    {
-      title: 'Active Students',
-      value: dashboardState.stats.students?.active || 0,
-      icon: Person,
-      color: 'success.main',
-      trend: 'up',
-      trendValue: '+12%',
-      link: '/admin/users'
-    },
-    {
-      title: 'Engaged Parents',
-      value: dashboardState.stats.parents?.active || 0,
-      icon: ContactMail,
-      color: 'info.main',
-      trend: 'up',
-      trendValue: '+8%',
-      link: '/admin/users'
-    },
-    {
-      title: 'Monthly Sessions',
-      value: dashboardState.stats.sessions?.thisMonth || 0,
-      icon: CalendarToday,
-      color: 'secondary.main',
-      trend: dashboardState.stats.sessions?.change > 0 ? 'up' : 'down',
-      trendValue: `${dashboardState.stats.sessions?.change || 0}%`,
-      link: '/admin/sessions'
-    }
-  ];
-
-  const performanceCards = [
-    {
-      title: 'Total Revenue',
-      value: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()}`,
-      icon: MonetizationOn,
-      color: 'warning.main',
-      trend: dashboardState.stats.revenue?.change > 0 ? 'up' : 'down',
-      trendValue: `${dashboardState.stats.revenue?.change || 0}%`,
-      progress: 75,
-      link: '/admin/finance'
-    },
-    {
-      title: 'Active Users',
-      value: dashboardState.stats.activeUsers || 0,
-      icon: People,
-      color: 'success.main',
-      trend: 'up',
-      trendValue: '+5%',
-      progress: Math.round(((dashboardState.stats.activeUsers || 0) / (dashboardState.stats.totalUsers || 1)) * 100),
-      link: '/admin/users'
-    }
-  ];
+  const data = dashboardData.data || getMockData();
 
   return (
     <AdminLayout tabValue="dashboard">
-      <Box sx={{ p: isMobile ? 2 : 3 }}>
-        <Fade in timeout={800}>
-          <Box>
-            {/* Header Section */}
-            <Box sx={{ 
-              mb: 4,
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              justifyContent: 'space-between'
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
+      <Box sx={{ p: isMobile ? 2 : 3, maxWidth: '1400px', mx: 'auto' }}>
+        {/* Enhanced Header */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            mb: 3
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
                 alignItems: 'center',
-                mb: isMobile ? 2 : 0
+                justifyContent: 'center',
+                color: 'white',
+                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)'
               }}>
-                <Box sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.palette.primary.light,
-                  color: theme.palette.primary.main,
-                  mr: 2
-                }}>
-                  <DashboardIcon fontSize="medium" />
-                </Box>
-                <Box>
-                  <Typography variant="h5" fontWeight="bold">
-                    Dashboard Overview
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {new Date().toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </Typography>
-                </Box>
+                <DashboardIcon fontSize="large" />
               </Box>
-              
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  onClick={loadDashboardData}
-                  disabled={dashboardState.loading}
-                  startIcon={<Refresh />}
-                  sx={{
-                    borderRadius: 3,
-                    textTransform: 'none',
-                    fontWeight: 'medium',
-                    px: 3
-                  }}
-                >
-                  Refresh
-                </Button>
+              <Box>
+                <Typography variant="h3" fontWeight="bold" sx={{ mb: 1, color: 'text.primary' }}>
+                  Dashboard
+                </Typography>
+                <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: '400' }}>
+                  Welcome back! Here's what's happening with your platform.
+                </Typography>
               </Box>
             </Box>
-
-            {/* Main Statistics Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {statCards.map((card, index) => (
-                <StatCard
-                  key={card.title}
-                  {...card}
-                  loading={dashboardState.loading}
-                  index={index}
-                />
-              ))}
-            </Grid>
-
-            {/* Performance Section */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {performanceCards.map((card, index) => (
-                <Grid item xs={12} md={6} key={index}>
-                  <Zoom in timeout={400 + index * 100}>
-                    <Card 
-                      component={Link}
-                      to={card.link}
-                      elevation={0}
-                      sx={{ 
-                        height: '100%',
-                        borderRadius: 3,
-                        background: theme.palette.background.paper,
-                        border: `1px solid ${theme.palette.divider}`,
-                        transition: 'all 0.3s ease',
-                        textDecoration: 'none',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: theme.shadows[4],
-                          borderColor: theme.palette[card.color.split('.')[0]].main
-                        }
-                      }}
-                    >
-                      <CardContent>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between',
-                          mb: 2
-                        }}>
-                          <Typography 
-                            variant="subtitle2" 
-                            color="textSecondary" 
-                            fontWeight="medium"
-                            sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                          >
-                            {card.title}
-                          </Typography>
-                          <Box sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: theme.palette[card.color.split('.')[0]].light,
-                            color: theme.palette[card.color.split('.')[0]].main
-                          }}>
-                            <card.icon fontSize="small" />
-                          </Box>
-                        </Box>
-                        
-                        <Typography 
-                          variant="h4" 
-                          fontWeight="bold" 
-                          color="textPrimary" 
-                          sx={{ mb: 1 }}
-                        >
-                          {card.value}
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          {card.trend === 'up' ? (
-                            <ArrowUpward sx={{ color: theme.palette.success.main, fontSize: 16, mr: 0.5 }} />
-                          ) : (
-                            <ArrowDownward sx={{ color: theme.palette.error.main, fontSize: 16, mr: 0.5 }} />
-                          )}
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              color: card.trend === 'up' ? theme.palette.success.main : theme.palette.error.main,
-                              fontWeight: 'medium'
-                            }}
-                          >
-                            {card.trendValue}
-                          </Typography>
-                        </Box>
-                        
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={card.progress} 
-                          sx={{ 
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: theme.palette.grey[200],
-                            '& .MuiLinearProgress-bar': {
-                              borderRadius: 4,
-                              backgroundColor: theme.palette[card.color.split('.')[0]].main
-                            }
-                          }} 
-                        />
-                      </CardContent>
-                    </Card>
-                  </Zoom>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Recent Activity and Stats Section */}
-            <Grid container spacing={3}>
-              {/* Recent Activity */}
-              <Grid item xs={12} md={6}>
-                <Card 
-                  elevation={0}
+            
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Tooltip title="Refresh Data">
+                <IconButton
+                  onClick={loadDashboardData}
+                  disabled={dashboardData.loading}
                   sx={{ 
-                    height: '100%',
-                    borderRadius: 3,
-                    background: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`
+                    width: 48,
+                    height: 48,
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'white',
+                    '&:hover': { 
+                      backgroundColor: '#f8fafc',
+                      transform: 'scale(1.05)'
+                    },
+                    transition: 'all 0.2s ease'
                   }}
                 >
-                  <CardContent>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 2
-                    }}>
-                      <Typography variant="h6" fontWeight="medium">
-                        Recent Activities
-                      </Typography>
-                      <Button 
-                        size="small" 
-                        endIcon={<MoreVert />}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        View All
-                      </Button>
-                    </Box>
-                    
-                    {dashboardState.loading ? (
-                      <>
-                        <ActivityItem loading />
-                        <ActivityItem loading />
-                        <ActivityItem loading />
-                      </>
-                    ) : (
-                      dashboardState.stats.recentActivities?.map((activity, index) => (
-                        <ActivityItem
-                          key={index}
-                          user={activity.user}
-                          action={activity.action}
-                          time={activity.time}
-                          status={activity.status}
-                        />
-                      )) || (
-                        <Box sx={{ 
-                          height: 200, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center' 
-                        }}>
-                          <Typography color="textSecondary">
-                            No recent activities found
-                          </Typography>
-                        </Box>
-                      )
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              {/* Platform Stats */}
-              <Grid item xs={12} md={6}>
-                <Card 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 3,
-                    background: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`
-                  }}
-                >
-                  <CardContent>
-                    <Typography variant="h6" fontWeight="medium" sx={{ mb: 3 }}>
-                      Platform Statistics
-                    </Typography>
-                    
-                    {dashboardState.loading ? (
-                      <Box>
-                        <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
-                      </Box>
-                    ) : (
-                      <Box sx={{ 
-                        height: 200, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        textAlign: 'center'
-                      }}>
-                        <BarChart sx={{ 
-                          fontSize: 60, 
-                          color: theme.palette.primary.main,
-                          mb: 2
-                        }} />
-                        <Typography variant="body1" color="textSecondary" sx={{ mb: 1 }}>
-                          Detailed analytics coming soon
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          We're working on comprehensive visualization tools
-                        </Typography>
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            {/* Error Display */}
-            {dashboardState.error && (
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 3, 
-                  mt: 3, 
-                  borderRadius: 3,
-                  backgroundColor: theme.palette.error.light,
-                  border: `1px solid ${theme.palette.error.light}`,
-                  color: theme.palette.error.dark
-                }}
-              >
-                <Typography variant="body1">
-                  {dashboardState.error}
-                </Typography>
-              </Paper>
-            )}
+                  <Refresh />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Notifications">
+                <IconButton sx={{ 
+                  width: 48,
+                  height: 48,
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  '&:hover': { 
+                    backgroundColor: '#f8fafc',
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}>
+                  <Notifications />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Settings">
+                <IconButton sx={{ 
+                  width: 48,
+                  height: 48,
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  '&:hover': { 
+                    backgroundColor: '#f8fafc',
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}>
+                  <Settings />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
-        </Fade>
+        </Box>
+
+        {/* Enhanced Main Metrics Grid */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <MetricCard
+            title="Total Users"
+            value={data.overview?.totalUsers?.toLocaleString() || '0'}
+            icon={People}
+            color="primary"
+            trend={12}
+            subtitle="Active platform users"
+            loading={dashboardData.loading}
+            link="/admin/users"
+            gradient={true}
+          />
+          <MetricCard
+            title="Total Tutors"
+            value={data.overview?.totalTutors?.toLocaleString() || '0'}
+            icon={School}
+            color="secondary"
+            trend={8}
+            subtitle="Verified and pending"
+            loading={dashboardData.loading}
+            link="/admin/users"
+            gradient={true}
+          />
+          <MetricCard
+            title="Total Students"
+            value={data.overview?.totalStudents?.toLocaleString() || '0'}
+            icon={Person}
+            color="success"
+            trend={15}
+            subtitle="Active learners"
+            loading={dashboardData.loading}
+            link="/admin/users"
+            gradient={true}
+          />
+          <MetricCard
+            title="Monthly Revenue"
+            value={`$${data.overview?.monthlyRevenue?.toLocaleString() || '0'}`}
+            icon={MonetizationOn}
+            color="warning"
+            trend={25}
+            subtitle="This month's earnings"
+            loading={dashboardData.loading}
+            link="/admin/finance"
+            gradient={true}
+          />
+        </Grid>
+
+        {/* Enhanced Quick Actions */}
+        <Box sx={{ mb: 4 }}>
+          <QuickActions />
+        </Box>
+
+        {/* Enhanced Content Grid */}
+        <Grid container spacing={3}>
+          {/* Enhanced Recent Users */}
+          <Grid item xs={12} lg={8}>
+            <Card sx={{ 
+              borderRadius: 4, 
+              border: '1px solid #e2e8f0',
+              background: 'white',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 3
+                }}>
+                  <Typography variant="h5" fontWeight="600" sx={{ color: 'text.primary' }}>
+                    Recent User Activity
+                  </Typography>
+                  <Button 
+                    component={Link}
+                    to="/admin/users"
+                    size="medium" 
+                    endIcon={<MoreVert />}
+                    sx={{ 
+                      textTransform: 'none',
+                      fontWeight: '600',
+                      borderRadius: 2,
+                      px: 3
+                    }}
+                  >
+                    View All
+                  </Button>
+                </Box>
+                
+                {dashboardData.loading ? (
+                  <Box>
+                    {[1, 2, 3, 4].map((item) => (
+                      <ActivityItem key={item} loading />
+                    ))}
+                  </Box>
+                ) : (
+                  <List sx={{ p: 0 }}>
+                    {data.recentUsers?.map((user, index) => (
+                      <React.Fragment key={user.id}>
+                        <ActivityItem
+                          user={user}
+                          type={user.type}
+                          status={user.status}
+                          time={user.time}
+                          avatar={user.avatar}
+                        />
+                        {index < data.recentUsers.length - 1 && <Divider />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Enhanced Quick Stats */}
+          <Grid item xs={12} lg={4}>
+            <QuickStatsCard data={data.quickStats} loading={dashboardData.loading} />
+          </Grid>
+        </Grid>
+
+        {/* Enhanced Error Display */}
+        {dashboardData.error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mt: 3, 
+              borderRadius: 3,
+              fontSize: '1rem',
+              '& .MuiAlert-icon': { fontSize: '1.5rem' }
+            }}
+            onClose={() => setDashboardData(prev => ({ ...prev, error: null }))}
+          >
+            {dashboardData.error}
+          </Alert>
+        )}
       </Box>
     </AdminLayout>
   );
