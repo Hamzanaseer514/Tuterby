@@ -127,7 +127,6 @@ const TutorDashboard = () => {
     if (typeof field === "string" && field.startsWith("[")) {
       try {
         const parsed = JSON.parse(field);
-        // console.log(`Parsed string field: ${field} →`, parsed);
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
         console.warn(`Failed to parse string field: ${field}`, error);
@@ -161,8 +160,6 @@ const TutorDashboard = () => {
       const data = await response.json();
       setDashboardData(data);
       setParsedSubjects(parseField(data.tutor.subjects))
-      // console.log("subjects",parsed_subjects)
-      // console.log("dashboardData",data.tutor.)
     } catch (err) {
       console.error('Dashboard fetch error:', err);
       setError(err.message);

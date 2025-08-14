@@ -7,7 +7,8 @@ const { getStudentDashboard,updateStudentProfile,
    sendMessage,getAcceptedTutorsForStudent,
    getStudentTutorChat,
    getHiredTutors,
-   requestHelpFromTutor} = require("../Controllers/StudentController")
+   requestHelpFromTutor,
+   getStudentProfile} = require("../Controllers/StudentController")
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
@@ -26,8 +27,9 @@ const storage = multer.diskStorage({
   });
   
   const upload = multer({ storage });
-  
 
+
+router.get("/student/profile/:userId", protect, getStudentProfile);
 router.post("/register", registerUser)
 router.put("/updatestudent/:user_id", updateStudentProfile)  
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);

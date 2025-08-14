@@ -1,0 +1,765 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Button,
+  Chip,
+  Rating,
+  Avatar,
+  Skeleton,
+  Alert,
+  useTheme,
+  useMediaQuery,
+  Tooltip,
+  IconButton,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Slider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  InputAdornment,
+  Paper
+} from '@mui/material';
+import {
+  School,
+  LocationOn,
+  Star,
+  Work,
+  Person,
+  CheckCircle,
+  Schedule,
+  TrendingUp
+} from '@mui/icons-material';
+import { BookOpen, Sparkles } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { Snackbar, Alert as MuiAlert } from '@mui/material';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+const TutorCard = ({ tutor, onHire, loading, user }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const formatPrice = (price) => {
+    // if (!price || price === 0) return 'Contact for pricing';
+    return `£${price}/hr`;
+  };
+
+  const getPriceRange = () => {
+    if (tutor.min_hourly_rate === 0 && tutor.max_hourly_rate === 0) {
+      return 'Contact for pricing';
+    }
+    if (tutor.min_hourly_rate === tutor.max_hourly_rate) {
+      return `£${tutor.min_hourly_rate}/hr`;
+    }
+    return `£${tutor.min_hourly_rate} - £${tutor.max_hourly_rate}/hr`;
+  };
+
+  return (
+    <Card 
+      elevation={0}
+      sx={{ 
+        height: '100%',
+        borderRadius: 3,
+        border: `1px solid ${theme.palette.divider}`,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: theme.shadows[8],
+          borderColor: theme.palette.primary.main
+        }
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        {/* Header with photo and basic info */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+          <Avatar
+            src={tutor.photo_url || '/images/london10.jpg'}
+            alt={tutor.full_name}
+            sx={{ 
+              width: 80, 
+              height: 80, 
+              mr: 2,
+              border: `3px solid ${theme.palette.primary.light}`
+            }}
+          />
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
+              {tutor.full_name}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Rating 
+                value={tutor.average_rating || 0} 
+                readOnly 
+                size="small"
+                sx={{ color: theme.palette.warning.main }}
+              />
+              <Typography variant="body2" color="textSecondary">
+                ({tutor.average_rating || 0})
+              </Typography>
+            </Box>
+            {tutor.location && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <LocationOn fontSize="small" color="action" />
+                <Typography variant="body2" color="textSecondary">
+                  {tutor.location}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* Qualifications and Experience */}
+        <Box sx={{ mb: 2 }}>
+          {tutor.qualifications && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <School fontSize="small" color="primary" />
+              <Typography variant="body2" color="textSecondary">
+                {tutor.qualifications}
+              </Typography>
+            </Box>
+          )}
+          {tutor.experience_years > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Work fontSize="small" color="primary" />
+              <Typography variant="body2" color="textSecondary">
+                {tutor.experience_years} years experience
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Subjects */}
+        {tutor.subjects && tutor.subjects.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+              Subjects:
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {tutor.subjects.slice(0, 3).map((subject, index) => (
+                <Chip
+                  key={index}
+                  label={subject}
+                  size="small"
+                  variant="outlined"
+                  sx={{ 
+                    fontSize: '0.75rem',
+                    borderColor: theme.palette.primary.main,
+                    color: theme.palette.primary.main
+                  }}
+                />
+              ))}
+              {tutor.subjects.length > 3 && (
+                <Chip
+                  label={`+${tutor.subjects.length - 3} more`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {/* Academic Levels and Pricing */}
+        {tutor.academic_levels && tutor.academic_levels.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+              Academic Levels:
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {tutor.academic_levels.slice(0, 2).map((level, index) => (
+                <Chip
+                  key={index}
+                  label={`${level.name} - ${formatPrice(level.hourlyRate)}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              ))}
+              {tutor.academic_levels.length > 2 && (
+                <Chip
+                  label={`+${tutor.academic_levels.length - 2} more`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {/* Stats */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 2,
+          p: 2,
+          backgroundColor: theme.palette.grey[50],
+          borderRadius: 2
+        }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" fontWeight="bold" color="primary.main">
+              {tutor.total_sessions || 0}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Sessions
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" fontWeight="bold" color="success.main">
+              {getPriceRange()}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Hourly Rate
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Verification Badges */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          {tutor.is_background_checked && (
+            <Tooltip title="Background Checked">
+              <Chip
+                icon={<CheckCircle />}
+                label="Background Checked"
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{ fontSize: '0.7rem' }}
+              />
+            </Tooltip>
+          )}
+          {tutor.is_qualification_verified && (
+            <Tooltip title="Qualifications Verified">
+              <Chip
+                icon={<CheckCircle />}
+                label="Qualified"
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{ fontSize: '0.7rem' }}
+              />
+            </Tooltip>
+          )}
+        </Box>
+
+        {/* Hire Button */}
+        <Button
+          variant={!user || user.role !== 'student' ? 'outlined' : 'contained'}
+          fullWidth
+          onClick={() => onHire(tutor)}
+          disabled={loading}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 'bold',
+            py: 1.5,
+            ...(user && user.role === 'student' ? {
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              '&:hover': {
+                background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                transform: 'translateY(-2px)'
+              }
+            } : {
+              borderColor: theme.palette.grey[400],
+              color: theme.palette.grey[600],
+              '&:hover': {
+                borderColor: theme.palette.grey[600],
+                backgroundColor: theme.palette.grey[50]
+              }
+            })
+          }}
+        >
+          {loading ? 'Processing...' : 
+            !user ? 'Login to Hire' : 
+            user.role !== 'student' ? 'Students Only' : 
+            'Hire This Tutor'
+          }
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+const Tutors = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  const [tutors, setTutors] = useState([]);
+  const [filteredTutors, setFilteredTutors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [hireLoading, setHireLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    searchName: '',
+    subject: '',
+    academicLevel: '',
+    minRating: 0,
+    maxRating: 5,
+    minPrice: 0,
+    maxPrice: 1000
+  });
+
+  useEffect(() => {
+    fetchVerifiedTutors();
+  }, []);
+
+  // Apply filters whenever tutors or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [tutors, filters]);
+
+  const applyFilters = () => {
+    let filtered = [...tutors];
+
+    // Filter by name search
+    if (filters.searchName) {
+      filtered = filtered.filter(tutor =>
+        tutor.full_name.toLowerCase().includes(filters.searchName.toLowerCase())
+      );
+    }
+
+    // Filter by subject
+    if (filters.subject) {
+      filtered = filtered.filter(tutor =>
+        tutor.subjects.some(subject =>
+          subject.toLowerCase().includes(filters.subject.toLowerCase())
+        )
+      );
+    }
+
+    // Filter by academic level
+    if (filters.academicLevel) {
+      filtered = filtered.filter(tutor =>
+        tutor.academic_levels.some(level =>
+          level.name.toLowerCase().includes(filters.academicLevel.toLowerCase())
+        )
+      );
+    }
+
+    // Filter by rating range
+    filtered = filtered.filter(tutor =>
+      tutor.average_rating >= filters.minRating && tutor.average_rating <= filters.maxRating
+    );
+
+    // Filter by price range
+    filtered = filtered.filter(tutor =>
+      tutor.min_hourly_rate >= filters.minPrice && tutor.max_hourly_rate <= filters.maxPrice
+    );
+
+    setFilteredTutors(filtered);
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      searchName: '',
+      subject: '',
+      academicLevel: '',
+      minRating: 0,
+      maxRating: 5,
+      minPrice: 0,
+      maxPrice: 1000
+    });
+  };
+
+  const fetchVerifiedTutors = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/tutor/verified`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tutors');
+      }
+      
+      const data = await response.json();
+      setTutors(data.tutors || []);
+    } catch (error) {
+      console.error('Error fetching tutors:', error);
+      setError('Failed to load tutors. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const handleHire = async (tutor) => {
+    if (!isAuthenticated()) {
+      // Redirect to login page if not authenticated
+      navigate('/login', { 
+        state: { 
+          from: '/tutors',
+          message: 'Please login to hire a tutor'
+        }
+      });
+      return;
+    }
+
+    // Check if the authenticated user is a student
+    if (user?.role !== 'student') {
+      setSnackbar({
+        open: true,
+        message: 'Only students can hire tutors. Please login with a student account.',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    try {
+      setHireLoading(true);
+
+      // Redirect to student dashboard
+      navigate('/student/tutor-search', {
+        state: {
+          tutor: tutor
+        }
+      })
+
+    } catch (error) {
+      console.error('Error hiring tutor:', error);
+      setSnackbar({
+        open: true,
+        message: error.message || "Failed to hire tutor. Please try again.",
+        severity: 'error'
+      });
+    } finally {
+      setHireLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ py: 6, px: isMobile ? 2 : 4 }}>
+       <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-primary mx-auto mb-2" />
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">
+          Tutors of  <span className="gradient-text">TutorNearby</span>
+          </h2>
+          <p className="text-md md:text-lg text-muted-foreground max-w-2xl mx-auto">
+          Discover qualified and experienced tutors who have been thoroughly verified and background checked
+          </p>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <Grid item xs={12} sm={6} md={4} key={item}>
+              <Card sx={{ height: '100%', borderRadius: 3 }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', mb: 2 }}>
+                    <Skeleton variant="circular" width={80} height={80} sx={{ mr: 2 }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton variant="text" width="60%" height={24} />
+                      <Skeleton variant="text" width="40%" height={20} />
+                      <Skeleton variant="text" width="50%" height={16} />
+                    </Box>
+                  </Box>
+                  <Skeleton variant="text" width="100%" height={16} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="80%" height={16} sx={{ mb: 2 }} />
+                  <Skeleton variant="rectangular" width="100%" height={60} sx={{ borderRadius: 1, mb: 2 }} />
+                  <Skeleton variant="rectangular" width="100%" height={48} sx={{ borderRadius: 2 }} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ py: 6, px: isMobile ? 2 : 4 }}>
+      {/* Header */}
+      <Box sx={{ textAlign: 'center', mb: 6 }}>
+      <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-primary mx-auto mb-2" />
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">
+          Tutors of  <span className="gradient-text">TutorNearby</span>
+          </h2>
+          <p className="text-md md:text-lg text-muted-foreground max-w-2xl mx-auto">
+            Discover qualified and experienced tutors who have been thoroughly verified and background checked
+          </p>
+      </Box>
+
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Filter Section */}
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+        <Accordion defaultExpanded sx={{ boxShadow: 'none' }}>
+          <AccordionSummary
+            expandIcon={<TrendingUp />}
+            sx={{ 
+              '& .MuiAccordionSummary-content': { 
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }
+            }}
+          >
+            <Typography variant="h6" fontWeight="600">
+              🔍 Filter & Search Tutors
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              {filteredTutors.length} of {tutors.length} tutors found
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Grid container spacing={3}>
+              {/* Name Search */}
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Search by Name"
+                  value={filters.searchName}
+                  onChange={(e) => handleFilterChange('searchName', e.target.value)}
+                  placeholder="Enter tutor name..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* Subject Filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Filter by Subject"
+                  value={filters.subject}
+                  onChange={(e) => handleFilterChange('subject', e.target.value)}
+                  placeholder="e.g., Math, Science..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BookOpen size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* Academic Level Filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Filter by Academic Level"
+                  value={filters.academicLevel}
+                  onChange={(e) => handleFilterChange('academicLevel', e.target.value)}
+                  placeholder="e.g., GCSE, A-Level..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <School fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* Rating Range */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                    Rating Range: {filters.minRating} - {filters.maxRating}
+                  </Typography>
+                  <Slider
+                    value={[filters.minRating, filters.maxRating]}
+                    onChange={(event, newValue) => {
+                      handleFilterChange('minRating', newValue[0]);
+                      handleFilterChange('maxRating', newValue[1]);
+                    }}
+                    valueLabelDisplay="auto"
+                    min={0}
+                    max={5}
+                    step={0.5}
+                    marks={[
+                      { value: 0, label: '0' },
+                      { value: 5, label: '5' }
+                    ]}
+                  />
+                </Box>
+              </Grid>
+
+              {/* Price Range */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                    Price Range: £{filters.minPrice} - £{filters.maxPrice}/hr
+                  </Typography>
+                  <Slider
+                    value={[filters.minPrice, filters.maxPrice]}
+                    onChange={(event, newValue) => {
+                      handleFilterChange('minPrice', newValue[0]);
+                      handleFilterChange('maxPrice', newValue[1]);
+                    }}
+                    valueLabelDisplay="auto"
+                    min={0}
+                    max={1000}
+                    step={10}
+                    marks={[
+                      { value: 0, label: '£0' },
+                      { value: 500, label: '£500' },
+                      { value: 1000, label: '£1000' }
+                    ]}
+                  />
+                </Box>
+              </Grid>
+
+              {/* Clear Filters Button */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={clearFilters}
+                  sx={{ 
+                    height: 56,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: '600'
+                  }}
+                >
+                  🗑️ Clear All Filters
+                </Button>
+              </Grid>
+            </Grid>
+          </AccordionDetails>
+        </Accordion>
+      </Paper>
+
+      {/* Tutors Grid */}
+      {filteredTutors.length > 0 ? (
+        <Grid container spacing={3}>
+          {filteredTutors.map((tutor) => (
+            <Grid item xs={12} sm={6} md={4} key={tutor._id}>
+              <TutorCard 
+                tutor={tutor} 
+                onHire={handleHire}
+                loading={hireLoading}
+                user={user}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      ) : tutors.length > 0 ? (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 8,
+          backgroundColor: theme.palette.grey[50],
+          borderRadius: 3
+        }}>
+          <School sx={{ fontSize: 60, color: theme.palette.grey[400], mb: 2 }} />
+          <Typography variant="h6" color="textSecondary" sx={{ mb: 1 }}>
+            No tutors match your filters
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Try adjusting your search criteria or clear all filters to see all available tutors.
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={clearFilters}
+            sx={{ mt: 2, borderRadius: 2, textTransform: 'none' }}
+          >
+            Clear All Filters
+          </Button>
+        </Box>
+      ) : (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 8,
+          backgroundColor: theme.palette.grey[50],
+          borderRadius: 3
+        }}>
+          <School sx={{ fontSize: 60, color: theme.palette.grey[400], mb: 2 }} />
+          <Typography variant="h6" color="textSecondary" sx={{ mb: 1 }}>
+            No tutors available at the moment
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Please check back later or contact us for more information.
+          </Typography>
+        </Box>
+      )}
+
+      {/* Call to Action */}
+      {filteredTutors.length > 0 && (
+        <Box sx={{ 
+          textAlign: 'center', 
+          mt: 6,
+          p: 4,
+          backgroundColor: theme.palette.primary.light,
+          borderRadius: 3
+        }}>
+          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, color: 'white' }}>
+            Ready to Start Learning?
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, color: 'white' }}>
+            Choose from our verified tutors and begin your learning journey today.
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => navigate('/subjects')}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              px: 4,
+              py: 1.5,
+              backgroundColor: 'white',
+              color: theme.palette.primary.main,
+              '&:hover': {
+                backgroundColor: theme.palette.grey[100]
+              }
+            }}
+          >
+            Explore Subjects
+          </Button>
+        </Box>
+      )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MuiAlert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default Tutors;

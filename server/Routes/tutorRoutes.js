@@ -31,7 +31,10 @@ const {
   sendMessageResponse,
   getTutorMessages,
   getSpecificUserChat,
-  deleteSession
+  deleteSession,
+  getVerifiedTutors,
+  getTutorSettings,
+  updateTutorSettings
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -51,6 +54,9 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+// Public routes (no authentication required)
+router.get('/verified', getVerifiedTutors);
 
 // Document upload route
 router.post('/upload-document', upload.single('document'), uploadDocument);
@@ -78,12 +84,6 @@ router.get('/students/:user_id', getAvailableStudents);
 
 router.get('/availability/:user_id', getTutorAvailability);
 router.put('/availability/:user_id/general', updateGeneralAvailability);
-// router.post('/availability/:user_id/recurring', addRecurringAvailability);
-// router.put('/availability/:user_id/recurring/:slot_id', updateRecurringAvailability);
-// router.delete('/availability/:user_id/recurring/:slot_id', removeRecurringAvailability);
-// router.post('/availability/:user_id/one-time', addOneTimeAvailability);
-// router.put('/availability/:user_id/one-time/:slot_id', updateOneTimeAvailability);
-// router.delete('/availability/:user_id/one-time/:slot_id', removeOneTimeAvailability);
 router.post('/availability/:user_id/blackout', addBlackoutDate);
 router.put('/availability/:user_id/blackout/:blackout_id', updateBlackoutDate);
 router.delete('/availability/:user_id/blackout/:blackout_id', removeBlackoutDate);
@@ -100,5 +100,8 @@ router.post('/messages/reply', protect, sendMessageResponse);
 router.get('/getallmessages', protect, getTutorMessages);
 router.get('/getallmessages/:studentId', protect, getSpecificUserChat);
 
+// Tutor settings routes
+router.get('/settings/:user_id', getTutorSettings);
+router.put('/settings/update/:user_id', protect, updateTutorSettings);
 
 module.exports = router;

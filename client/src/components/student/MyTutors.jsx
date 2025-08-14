@@ -102,16 +102,6 @@ const MyTutors = () => {
     });
   };
 
-  const handleContactTutor = (tutor) => {
-    // Navigate to contact page or open chat
-    console.log('Contact tutor:', tutor);
-  };
-
-  const handleViewProfile = (tutor) => {
-    // Navigate to tutor profile
-    console.log('View profile:', tutor);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -126,15 +116,15 @@ const MyTutors = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gray-50">
+            <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Tutors</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             {/* <Button onClick={fetchHiredTutors}>Try Again</Button> */}
           </div>
+            </div>
         </div>
-      </div>
     );
   }
 

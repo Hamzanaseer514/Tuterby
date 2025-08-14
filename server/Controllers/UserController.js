@@ -129,7 +129,6 @@ function parseObjectIdArray(field) {
 
 
 exports.registerTutor = asyncHandler(async (req, res) => {
-  console.log(req.body);
   const {
     full_name,
     email,

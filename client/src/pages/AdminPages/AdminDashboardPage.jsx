@@ -562,54 +562,7 @@ const AdminDashboardPage = () => {
                     border: `1px solid ${theme.palette.divider}`
                   }}
                 >
-                  <CardContent>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 2
-                    }}>
-                      <Typography variant="h6" fontWeight="medium">
-                        Recent Activities
-                      </Typography>
-                      <Button 
-                        size="small" 
-                        endIcon={<MoreVert />}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        View All
-                      </Button>
-                    </Box>
-                    
-                    {dashboardState.loading ? (
-                      <>
-                        <ActivityItem loading />
-                        <ActivityItem loading />
-                        <ActivityItem loading />
-                      </>
-                    ) : (
-                      dashboardState.stats.recentActivities?.map((activity, index) => (
-                        <ActivityItem
-                          key={index}
-                          user={activity.user}
-                          action={activity.action}
-                          time={activity.time}
-                          status={activity.status}
-                        />
-                      )) || (
-                        <Box sx={{ 
-                          height: 200, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center' 
-                        }}>
-                          <Typography color="textSecondary">
-                            No recent activities found
-                          </Typography>
-                        </Box>
-                      )
-                    )}
-                  </CardContent>
+             
                 </Card>
               </Grid>
               
@@ -624,38 +577,7 @@ const AdminDashboardPage = () => {
                     border: `1px solid ${theme.palette.divider}`
                   }}
                 >
-                  <CardContent>
-                    <Typography variant="h6" fontWeight="medium" sx={{ mb: 3 }}>
-                      Platform Statistics
-                    </Typography>
-                    
-                    {dashboardState.loading ? (
-                      <Box>
-                        <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
-                      </Box>
-                    ) : (
-                      <Box sx={{ 
-                        height: 200, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        textAlign: 'center'
-                      }}>
-                        <BarChart sx={{ 
-                          fontSize: 60, 
-                          color: theme.palette.primary.main,
-                          mb: 2
-                        }} />
-                        <Typography variant="body1" color="textSecondary" sx={{ mb: 1 }}>
-                          Detailed analytics coming soon
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          We're working on comprehensive visualization tools
-                        </Typography>
-                      </Box>
-                    )}
-                  </CardContent>
+                
                 </Card>
               </Grid>
             </Grid>

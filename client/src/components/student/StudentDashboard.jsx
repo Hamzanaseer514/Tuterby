@@ -178,7 +178,6 @@ const StudentDashboard = () => {
               <Calendar className="w-8 h-8 text-blue-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Upcoming Sessions</p>
-                {console.log(dashboardData)}
                 <p className="text-2xl font-bold text-gray-900">{dashboardData.upcomingSessions.length}</p>
               </div>
             </div>
@@ -277,7 +276,6 @@ const StudentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {console.log("dashboardData",dashboardData)}
             {dashboardData.pastSessions.length === 0 ? (
               <div className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />

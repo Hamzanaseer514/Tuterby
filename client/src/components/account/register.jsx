@@ -39,7 +39,7 @@ import { CheckCircle, AlertCircle, FileUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
-import { useSubject } from "../../hooks/useSubject";
+import { useSubject} from "../../hooks/useSubject";
 
 const Register = () => {
   const [activeTab, setActiveTab] = useState("student");
@@ -548,18 +548,16 @@ const Register = () => {
 
           formDataToSend.append("documentsMap", JSON.stringify(documentsMap));
 
-          console.log("Sending tutor registration with:");
-          console.log("Documents count:", documents.length);
-          console.log("Documents map:", documentsMap);
+       
 
-          // Log FormData contents for debugging
-          for (let [key, value] of formDataToSend.entries()) {
-            if (key === "documents") {
-              console.log(`${key}:`, value.name, value.type, value.size);
-            } else {
-              console.log(`${key}:`, value);
-            }
-          }
+          // // Log FormData contents for debugging
+          // for (let [key, value] of formDataToSend.entries()) {
+          //   if (key === "documents") {
+          //     console.log(`${key}:`, value.name, value.type, value.size);
+          //   } else {
+          //     console.log(`${key}:`, value);
+          //   }
+          // }
 
           const registerResponse = await fetch(
             `${BASE_URL}/api/auth/register-tutor`,
@@ -1331,14 +1329,14 @@ const Register = () => {
                                     </p>
                                   </div>
                                 </div>
-                                <Button
+                                {/* <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeDocument(doc)}
                                   className="text-red-500 hover:text-red-600"
                                 >
                                   <X className="h-4 w-4" />
-                                </Button>
+                                </Button> */}
                               </div>
                             ))}
                           </div>
@@ -1442,7 +1440,7 @@ const Register = () => {
             open={isDocDialogOpen && currentDocumentIndex === index}
             onOpenChange={handleDialogOpenChange}
           >
-            <DialogContent className="max-w-2xl rounded-xl">
+            <DialogContent className="max-w-2xl rounded-xl [&>button]:hidden">
               <DialogHeader>
                 <DialogTitle className="text-xl text-gray-800 flex items-center gap-2">
                   <div className="p-2 bg-blue-100 rounded-full">
@@ -1705,7 +1703,7 @@ const Register = () => {
                       >
                         {loading ? (
                           <>
-                            <svg
+                            {/* <svg
                               className="animate-spin h-4 w-4 text-white"
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
@@ -1724,8 +1722,8 @@ const Register = () => {
                                 fill="currentColor"
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                               ></path>
-                            </svg>
-                            Processing...
+                            </svg> */}
+                            I cant Processing...
                           </>
                         ) : areAllDocumentsUploaded() ? (
                           <>

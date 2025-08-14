@@ -52,9 +52,7 @@ export default function LoginForm() {
         },
         body: JSON.stringify({ email, password, rememberMe }),
       });
-      console.log("login response for checking", response);
       const data = await response.json();
-      console.log("login data for checking", data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');

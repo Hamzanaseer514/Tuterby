@@ -15,7 +15,6 @@ export const SubjectProvider = ({ children }) => {
         const res = await fetch(`${BASE_URL}/api/admin/subjects`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        console.log("Fetched subjects:", data.data);
         setSubjects(data.data);
       } catch (err) {
         console.error("Error fetching subjects:", err);
@@ -27,7 +26,6 @@ export const SubjectProvider = ({ children }) => {
         const res = await fetch(`${BASE_URL}/api/admin/education-levels`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        console.log("Fetched academic levels:", data);
         setAcademicLevels(data);
       } catch (err) {
         console.error("Error fetching academic levels:", err);
