@@ -656,7 +656,7 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../../components/admin/components/AdminLayout";
 import { BASE_URL } from "@/config";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 
 const AdminSettings = () => {
   // State for OTP settings
@@ -1729,6 +1729,7 @@ const AdminSettings = () => {
           </div>
         )}
       </div>
+      <ToastContainer />
     </AdminLayout>
   );
 };

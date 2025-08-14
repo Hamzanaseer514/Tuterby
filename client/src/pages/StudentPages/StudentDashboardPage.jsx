@@ -33,20 +33,20 @@ const StudentDashboardPage = () => {
       return;
     }
 
-    if (!user) {
+    if (!user ) {
       navigate('/login');
       return;
     }
 
-    if (user.role !== 'student') {
-      toast({
-        title: 'Access Denied',
-        description: 'This dashboard is only for students',
-        variant: 'destructive',
-      });
-      navigate('/');
-      return;
-    }
+    // if (user.role !== 'student') {
+    //   toast({
+    //     title: 'Access Denied',
+    //     description: 'This dashboard is only for students',
+    //     variant: 'destructive',
+    //   });
+    //   navigate('/');
+    //   return;
+    // }
 
     setLoading(false);
   }, [user, navigate, toast, authLoading]);

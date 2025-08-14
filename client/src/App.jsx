@@ -1,10 +1,10 @@
 import React, { Suspense, lazy } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
 import { AnimatePresence } from "framer-motion";
-
+import ProtectedRoute from "./Middleware/ProtectedRoute";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const SubjectsPage = lazy(() => import("@/pages/SubjectsPage"));
@@ -55,6 +55,8 @@ const AdminSettings = lazy(() =>
 
 const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
 
+const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
+
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
@@ -86,30 +88,54 @@ function App() {
                 element={<PremiumServicePage />}
               />
               <Route path="/register" element={<Register />} />
-              <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin/users" element={<AdminDashboard />} />
-              <Route path="/admin/user-detail/:tabValue" element={<UserDetailPage />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
-              <Route path="/admin/chats" element={<Chats />} />
+              <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboardPage />
+              </ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>} />
+              <Route path="/admin/user-detail/:tabValue" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <UserDetailPage />
+              </ProtectedRoute>} />
+              <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <AdminSettings />
+              </ProtectedRoute>} />
+              <Route path="/admin/chats" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <Chats />
+              </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
-              <Route path="/tutor-dashboard" element={<TutorDashboardPage />} />
+              <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>
+                <TutorDashboardPage />
+              </ProtectedRoute>} />
               <Route
                 path="/tutor-dashboard/availability"
-                element={<TutorAvailabilityPage />}
+                element={<ProtectedRoute allowedRoles={["tutor"]}>
+                  <TutorAvailabilityPage />
+                </ProtectedRoute>}
               />
               <Route
                 path="/student-dashboard/"
-                element={<StudentDashboardPage />}
+                element={<ProtectedRoute allowedRoles={["student"]}>
+                  <StudentDashboardPage />
+                </ProtectedRoute>}
               />
               <Route
                 path="/student/tutor-search"
-                element={<StudentTutorSearchPage />}
+                element={<ProtectedRoute allowedRoles={["student"]}>
+                  <StudentTutorSearchPage />
+                </ProtectedRoute>}
               />
-              <Route path="/tutor" element={<TutorProfilePage />} />
+              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["tutor"]}>
+                <TutorProfilePage />
+              </ProtectedRoute>} />
               <Route
                 path="/parent-dashboard"
-                element={<ParentDashboardPage />}
+                element={<ProtectedRoute allowedRoles={["parent"]}>
+                  <ParentDashboardPage />
+                </ProtectedRoute>}
               />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AnimatePresence>
         </Suspense>

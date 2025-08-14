@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, BookOpen, Phone, MessageCircle } from "lucide-react";
+import { Menu, X, BookOpen, Phone, MessageCircle, User, LogOut, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../hooks/useAuth";
-
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 const navLinksData = [
   { to: "/", text: "Home", aria: "Navigate to Home page" },
   { to: "/subjects", text: "Subjects", aria: "Explore our tutoring subjects" },
@@ -40,6 +41,12 @@ const mobileLinkVariants = {
   hidden: { opacity: 0, x: -20 },
   visible: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: 20 },
+};
+
+const dropdownVariants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
 };
 
 const whatsAppNumber = "07466436417";
@@ -83,6 +90,97 @@ const MobileNavItem = React.memo(({ to, text, onClick, aria }) => (
     </NavLink>
   </motion.div>
 ));
+
+const UserDropdown = ({ user, onClose }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const toggleDropdown = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    logout();
+    onClose();
+    toast.success("Logged out successfully");
+    navigate("/");
+  }, [logout, onClose, navigate]);
+
+  const getDashboardPath = () => {
+    switch(user?.role) {
+      case 'admin':
+        return '/admin';
+      case 'tutor':
+        return '/tutor-dashboard';
+      case 'student':
+        return '/student-dashboard';
+      default:
+        return '/profile';
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={toggleDropdown}
+        className="flex items-center gap-2 focus:outline-none"
+        aria-label="User menu"
+      >
+        <img
+          src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+          alt="Profile"
+          className="w-8 h-8 rounded-full object-cover border-2 border-primary"
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            variants={dropdownVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="absolute right-0 mt-2 w-48 bg-background rounded-md shadow-lg py-1 z-50 border"
+          >
+            <div className="px-4 py-2 border-b">
+              <p className="text-sm font-medium">{user.name || user.email}</p>
+              <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+            </div>
+            <Link
+              to={getDashboardPath()}
+              className="flex items-center px-4 py-2 text-sm hover:bg-accent w-full text-left"
+              onClick={() => {
+                setIsOpen(false);
+                onClose();
+              }}
+            >
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Dashboard
+            </Link>
+            <Link
+              to="/profile"
+              className="flex items-center px-4 py-2 text-sm hover:bg-accent w-full text-left"
+              onClick={() => {
+                setIsOpen(false);
+                onClose();
+              }}
+            >
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 text-sm hover:bg-accent w-full text-left"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -143,16 +241,7 @@ const Header = () => {
             </Link>
           </Button>
           {user ? (
-            <Link to="/profile" aria-label="Profile">
-              <img
-                src={
-                  user.avatar ||
-                  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                } // online default avatar
-                alt="Profile"
-                className="w-8 h-8 rounded-full object-cover"
-              />
-            </Link>
+            <UserDropdown user={user} onClose={closeMobileMenu} />
           ) : (
             <Button size="sm" asChild>
               <Link to="/login" aria-label="Login">
@@ -220,31 +309,48 @@ const Header = () => {
                   onClick={closeMobileMenu}
                 >
                   <Link to="/contact" aria-label="Book a free consultation">
-                    Free Consultat
+                    Free Consultation
                   </Link>
                 </Button>
               </motion.div>
               {user ? (
-                <motion.div
-                  variants={mobileLinkVariants}
-                  className="w-full mt-2"
-                >
-                  <Link
-                    to="/profile"
-                    aria-label="Profile"
-                    className="flex items-center gap-2"
-                  >
-                    <img
-                      src={
-                        user.avatar ||
-                        "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                      } // Online default avatar
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <span className="text-sm font-medium">Profile</span>
-                  </Link>
-                </motion.div>
+                <>
+                  <motion.div variants={mobileLinkVariants} className="w-full">
+                    <Link
+                      to={user.role === 'admin' ? '/admin' : 
+                          user.role === 'tutor' ? '/tutor-dashboard' : 
+                          user.role === 'student' ? '/student-dashboard' : '/profile'}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:text-primary"
+                      onClick={closeMobileMenu}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </motion.div>
+                  <motion.div variants={mobileLinkVariants} className="w-full">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:text-primary"
+                      onClick={closeMobileMenu}
+                    >
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  </motion.div>
+                  <motion.div variants={mobileLinkVariants} className="w-full">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start px-4 py-2 text-sm font-medium hover:text-primary"
+                      onClick={() => {
+                        logout();
+                        closeMobileMenu();
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </motion.div>
+                </>
               ) : (
                 <motion.div
                   variants={mobileLinkVariants}
