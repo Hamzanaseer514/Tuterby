@@ -61,7 +61,6 @@ const TutorProfilePage = () => {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-
       const response = await fetch(`${BASE_URL}/api/auth/tutors/${tutorId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -74,26 +73,46 @@ const TutorProfilePage = () => {
       }
 
       const data = await response.json();
+
+      const normalizeList = (value) => {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+          if (value.length === 1 && typeof value[0] === 'string') {
+            const str = value[0].trim();
+            if (str.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(str);
+                return Array.isArray(parsed) ? parsed : [str];
+              } catch {
+                return [value[0]];
+              }
+            }
+            return [value[0]];
+          }
+          return value;
+        }
+        if (typeof value === 'string') {
+          const str = value.trim();
+          if (str.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(str);
+              return Array.isArray(parsed) ? parsed : [str];
+            } catch {
+              return [value];
+            }
+          }
+          return [value];
+        }
+        return [];
+      };
+
       const parsedTutor = {
         ...data,
         qualifications: Array.isArray(data.qualifications)
           ? data.qualifications
           : data.qualifications?.split(',').map(q => q.trim()) || [],
-        subjects: Array.isArray(data.subjects)
-        ? (
-            typeof data.subjects[0] === 'string' && data.subjects.length === 1
-              ? JSON.parse(data.subjects[0]) // case where it's ["[\"Math\",...]"]
-              : data.subjects
-          )
-        : [],
-    
-      academic_levels_taught: Array.isArray(data.academic_levels_taught)
-        ? (
-            typeof data.academic_levels_taught[0] === 'string' && data.academic_levels_taught.length === 1
-              ? JSON.parse(data.academic_levels_taught[0])
-              : data.academic_levels_taught
-          )
-        : [],
+        subjects: normalizeList(data.subjects),
+        academic_levels_taught: normalizeList(data.academic_levels_taught),
       };
 
       setTutor(parsedTutor);
@@ -110,11 +129,6 @@ const TutorProfilePage = () => {
     }
   };
 
-  const handleContactTutor = () => {
-    navigate(`/student/request-help`, {
-      state: { selectedTutor: tutor }
-    });
-  };
 
   const handleBookSession = (tutor) => {
     setSelectedTutor(tutor);

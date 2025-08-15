@@ -49,7 +49,8 @@ const TutorSearch = () => {
     subject: '',
     // session_date: '',
     duration_hours: 1,
-    notes: ''
+    notes: '',
+    academic_level: ''
   });
   const { subjects, academicLevels } = useSubject();
   // Simple search filter
@@ -139,6 +140,7 @@ const TutorSearch = () => {
     });
     const data = await response.json();
     setStudentProfile(data.student)
+    console.log("studentProfile", data.student)
   }
   // Inside your loadAllTutors function
   const loadAllTutors = async () => {
@@ -277,7 +279,8 @@ const TutorSearch = () => {
       subject: '',
       // session_date: '',
       duration_hours: 1,
-      notes: ''
+      notes: '',
+      academic_level: ''
     });
     setShowBookingModal(true);
   };
@@ -287,6 +290,12 @@ const TutorSearch = () => {
   const handleHireTutorSubmit = async () => {
     try {
       const token = getAuthToken();
+      // Try to resolve academic_level_id by matching the label in global academicLevels
+      let academic_level_id = null;
+      if (bookingData.academic_level) {
+        const match = (academicLevels || []).find(l => l.level === bookingData.academic_level || l._id === bookingData.academic_level);
+        if (match) academic_level_id = match._id;
+      }
       const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
         method: 'POST',
         headers: {
@@ -297,9 +306,7 @@ const TutorSearch = () => {
           tutor_user_id: selectedTutor.user_id._id,
           student_user_id: user._id,
           subject: bookingData.subject,
-          // session_date: bookingData.session_date,
-          duration_hours: bookingData.duration_hours,
-          hourly_rate: selectedTutor.hourly_rate,
+          academic_level_id,
           notes: bookingData.notes
         })
       });
@@ -714,41 +721,44 @@ const TutorSearch = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                <Select value={bookingData.subject} onValueChange={(value) => setBookingData(prev => ({ ...prev, subject: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedTutor.subjects?.map((subject, index) => (
-                      <SelectItem key={index} value={subject}>{subject}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const tutorSubjects = Array.isArray(selectedTutor?.subjects) ? selectedTutor.subjects : [];
+                  const studentSubjects = Array.isArray(studentProfile?.preferred_subjects) ? studentProfile.preferred_subjects : [];
+                  const subjectOptions = Array.from(new Set([...(tutorSubjects || []), ...(studentSubjects || [])].filter(Boolean)));
+                  return (
+                    <Select value={bookingData.subject} onValueChange={(value) => setBookingData(prev => ({ ...prev, subject: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjectOptions.map((subject, index) => (
+                          <SelectItem key={index} value={subject}>{subject}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
 
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Session Date & Time</label>
-                <Input
-                  type="datetime-local"
-                  value={bookingData.session_date}
-                  onChange={(e) => setBookingData(prev => ({ ...prev, session_date: e.target.value }))}
-                />
-              </div> */}
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
-                <Select value={bookingData.duration_hours.toString()} onValueChange={(value) => setBookingData(prev => ({ ...prev, duration_hours: parseFloat(value) }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0.5">30 minutes</SelectItem>
-                    <SelectItem value="1">1 hour</SelectItem>
-                    <SelectItem value="1.5">1.5 hours</SelectItem>
-                    <SelectItem value="2">2 hours</SelectItem>
-                    <SelectItem value="3">3 hours</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
+                {(() => {
+                  const tutorLevels = Array.isArray(selectedTutor?.academic_levels_taught) ? selectedTutor.academic_levels_taught : [];
+                  const studentLevels = Array.isArray(studentProfile?.academic_level) ? studentProfile.academic_level : [];
+                  const levelOptions = Array.from(new Set([...(tutorLevels || []), ...(studentLevels || [])].filter(Boolean)));
+                  return (
+                    <Select value={bookingData.academic_level} onValueChange={(value) => setBookingData(prev => ({ ...prev, academic_level: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select academic level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {levelOptions.map((level, index) => (
+                          <SelectItem key={index} value={level}>{level}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
 
               <div>
@@ -758,12 +768,6 @@ const TutorSearch = () => {
                   value={bookingData.notes}
                   onChange={(e) => setBookingData(prev => ({ ...prev, notes: e.target.value }))}
                 />
-              </div>
-
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  <strong>Total Cost:</strong> £{(selectedTutor.hourly_rate * bookingData.duration_hours).toFixed(2)}
-                </p>
               </div>
 
               <div className="flex gap-2">
@@ -777,7 +781,7 @@ const TutorSearch = () => {
                 <Button
                   onClick={handleHireTutorSubmit}
                   className="flex-1"
-                  disabled={!bookingData.subject}
+                  disabled={!bookingData.subject || !bookingData.academic_level}
                 >
                   Hire Tutor
                 </Button>

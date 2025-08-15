@@ -143,7 +143,7 @@ const UserDropdown = ({ user, onClose }) => {
             className="absolute right-0 mt-2 w-48 bg-background rounded-md shadow-lg py-1 z-50 border"
           >
             <div className="px-4 py-2 border-b">
-              <p className="text-sm font-medium">{user.name || user.email}</p>
+              <p className="text-sm font-medium">{user.full_name || user.email}</p>
               <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
             </div>
             <Link
@@ -157,7 +157,7 @@ const UserDropdown = ({ user, onClose }) => {
               <LayoutDashboard className="h-4 w-4 mr-2" />
               Dashboard
             </Link>
-            <Link
+            {/* <Link
               to="/profile"
               className="flex items-center px-4 py-2 text-sm hover:bg-accent w-full text-left"
               onClick={() => {
@@ -167,7 +167,7 @@ const UserDropdown = ({ user, onClose }) => {
             >
               <User className="h-4 w-4 mr-2" />
               Profile
-            </Link>
+            </Link> */}
             <button
               onClick={handleLogout}
               className="flex items-center px-4 py-2 text-sm hover:bg-accent w-full text-left"

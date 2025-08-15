@@ -406,6 +406,7 @@ exports.searchTutors = asyncHandler(async (req, res) => {
 
 exports.getTutorDetails = asyncHandler(async (req, res) => {
     const { tutorId } = req.params;
+    console.log("tutorId", tutorId)
     try {
         // Get current student's profile to check hiring status
         const currentStudent = await Student.findOne({ user_id: req.user._id });
@@ -827,7 +828,7 @@ exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
 });
 
 exports.hireTutor = asyncHandler(async (req, res) => {
-    const { tutor_user_id, student_user_id } = req.body;
+    const { tutor_user_id, student_user_id, subject, academic_level_id } = req.body;
 
     // Find profiles
     const student = await Student.findOne({ user_id: student_user_id });
@@ -868,6 +869,9 @@ exports.hireTutor = asyncHandler(async (req, res) => {
             // Update the existing rejected request to pending
             student.hired_tutors[existingHireIndex].status = "pending";
             student.hired_tutors[existingHireIndex].hired_at = new Date(); // Update timestamp
+            if (subject) student.hired_tutors[existingHireIndex].subject = subject;
+            // if (academic_level) student.hired_tutors[existingHireIndex].academic_level = academic_level;
+            if (academic_level_id) student.hired_tutors[existingHireIndex].academic_level_id = academic_level_id;
 
             // Remove any other duplicate requests for this tutor to keep database clean
             student.hired_tutors = student.hired_tutors.filter((hire, index) => {
@@ -887,6 +891,9 @@ exports.hireTutor = asyncHandler(async (req, res) => {
     // If no existing request, create a new one
     student.hired_tutors.push({
         tutor: tutor._id,
+        subject: subject || "",
+        // academic_level: academic_level || "",
+        academic_level_id: academic_level_id || null,
         status: "pending", // Explicitly set status
         hired_at: new Date() // Explicitly set timestamp
     });

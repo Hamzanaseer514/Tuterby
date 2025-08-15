@@ -125,7 +125,7 @@ function App() {
                   <StudentTutorSearchPage />
                 </ProtectedRoute>}
               />
-              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["tutor"]}>
+              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>
                 <TutorProfilePage />
               </ProtectedRoute>} />
               <Route

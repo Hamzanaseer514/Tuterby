@@ -73,18 +73,18 @@ const TutorDashboardPage = () => {
       group: 'teaching',
       name: 'Teaching',
       items: [
-        {
-          id: 'dashboard',
-          name: 'Dashboard',
-          icon: LayoutDashboard,
-          component: <TutorDashboard/>
-        },
-        {
-          id: 'sessions',
-          name: 'Sessions',
-          icon: Calendar,
-          component: <SessionManagement/>
-        },
+    {
+      id: 'dashboard',
+      name: 'Dashboard',
+      icon: LayoutDashboard,
+      component: <TutorDashboard/>
+    },
+    {
+      id: 'sessions',
+      name: 'Sessions',
+      icon: Calendar,
+      component: <SessionManagement/>
+    },
         {
           id: 'availability',
           name: 'Availability',
@@ -103,12 +103,12 @@ const TutorDashboardPage = () => {
       group: 'communication',
       name: 'Communication',
       items: [
-        {
-          id: 'inquiries',
-          name: 'Inquiries',
-          icon: MessageSquare,
-          component: <InquiryManagement/>
-        },
+    {
+      id: 'inquiries',
+      name: 'Inquiries',
+      icon: MessageSquare,
+      component: <InquiryManagement/>
+    },
         {
           id: 'chat',
           name: 'Chat',
@@ -121,13 +121,13 @@ const TutorDashboardPage = () => {
       group: 'account',
       name: 'Account',
       items: [
-        {
-          id: 'analytics',
-          name: 'Analytics',
-          icon: TrendingUp,
-          component: <div className="p-6">Analytics coming soon...</div>
-        },
-        {
+    {
+      id: 'analytics',
+      name: 'Analytics',
+      icon: TrendingUp,
+      component: <div className="p-6">Analytics coming soon...</div>
+    },
+    {
           id: 'resources',
           name: 'Resources',
           icon: BookOpen,
@@ -138,11 +138,11 @@ const TutorDashboardPage = () => {
           name: 'Help Center',
           icon: HelpCircle,
           component: <div className="p-6">Help center coming soon...</div>
-        },
-        {
-          id: 'settings',
-          name: 'Settings',
-          icon: Settings,
+    },
+    {
+      id: 'settings',
+      name: 'Settings',
+      icon: Settings,
           component: <TutorSetting/>
         }
       ]
@@ -226,14 +226,14 @@ const TutorDashboardPage = () => {
         </nav>
 
         <div className="p-4 border-t">
-          <Button
+              <Button 
             variant="ghost"
             className="w-full justify-start gap-2 text-gray-700 hover:bg-gray-100"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
             Logout
-          </Button>
+              </Button>
         </div>
       </aside>
 
@@ -256,9 +256,9 @@ const TutorDashboardPage = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
                   <p className="text-xs text-gray-500">Tutor Account</p>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
 
             <nav className="flex-1 overflow-y-auto p-2">
               {sidebarItems.map((group) => (
@@ -280,8 +280,8 @@ const TutorDashboardPage = () => {
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeTab === item.id;
-                        return (
-                          <button
+              return (
+                <button
                             key={item.id}
                             onClick={() => {
                               setActiveTab(item.id);
@@ -299,9 +299,9 @@ const TutorDashboardPage = () => {
                               isActive ? "text-blue-600" : "text-gray-500"
                             )} />
                             <span>{item.name}</span>
-                          </button>
-                        );
-                      })}
+                </button>
+              );
+            })}
                     </div>
                   )}
                 </div>
@@ -317,9 +317,9 @@ const TutorDashboardPage = () => {
                 <LogOut className="h-4 w-4" />
                 Logout
               </Button>
-            </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Main Content */}
@@ -349,11 +349,11 @@ const TutorDashboardPage = () => {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
-          {activeComponent}
-        </main>
+        {activeComponent}
+      </main>
       </div>
     </div>
   );
 };
 
-export default TutorDashboardPage;
+export default TutorDashboardPage; 

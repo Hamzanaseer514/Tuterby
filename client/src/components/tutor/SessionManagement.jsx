@@ -49,7 +49,7 @@ const SessionManagement = () => {
     notes: ''
   });
   const [sessionForm, setSessionForm] = useState({
-    student_id: '',
+    student_ids: [],
     subject: '',
     academic_level: '',
     session_date: '',
@@ -76,6 +76,7 @@ const SessionManagement = () => {
       fetchAvailableStudents();
       fetchTutorSubjects();
     }
+    console.log("availableStudents", availableStudents)
   }, [user]);
 
   // Open modals based on navigation state (from Dashboard)
@@ -92,13 +93,57 @@ const SessionManagement = () => {
   }, [location?.state, availableStudents]);
 
   useEffect(() => {
-    if (availableStudents.length > 0 && !sessionForm.student_id) {
+    if (availableStudents.length > 0 && (!sessionForm.student_ids || sessionForm.student_ids.length === 0)) {
+      // keep rate 0 until level is chosen
       setSessionForm(prev => ({
         ...prev,
-        hourly_rate: availableStudents[0]?.hourly_rate || 0
+        hourly_rate: 0
       }));
     }
   }, [availableStudents]);
+
+  // Derive hourly rate from selected academic level (tutor's rate per level)
+  useEffect(() => {
+    if (!sessionForm.academic_level) return;
+    // Find any student's academic_levels entry that matches the selected level to get hourlyRate
+    let derivedRate = null;
+    for (const studentUserId of sessionForm.student_ids || []) {
+      const student = availableStudents.find(s => s._id === studentUserId);
+      console.log("student", student)
+      const match = student?.academic_levels?.find(l => l?._id === sessionForm.academic_level);
+      console.log("match", match)
+      if (match) {
+        // Prefer tutor-specific hourly rate from backend if provided (array form)
+        if (Array.isArray(student?.hourly_rate) && student.hourly_rate.length === 1) {
+          const hr = parseFloat(student.hourly_rate[0]);
+          if (Number.isFinite(hr)) {
+            derivedRate = hr;
+            break;
+          }
+        }
+        // Fallback to education-level hourlyRate field if available
+        if (typeof match.hourlyRate === 'number') {
+          derivedRate = match.hourlyRate;
+          break;
+        }
+      }
+    }
+    if (derivedRate === null) {
+      // fallback: search across all students
+      for (const s of availableStudents) {
+        const match = s?.academic_levels?.find(l => l?._id === sessionForm.academic_level);
+        if (match) {
+          if (Array.isArray(s?.hourly_rate) && s.hourly_rate.length === 1) {
+            const hr = parseFloat(s.hourly_rate[0]);
+            if (Number.isFinite(hr)) { derivedRate = hr; break; }
+          }
+          if (typeof match.hourlyRate === 'number') { derivedRate = match.hourlyRate; break; }
+        }
+      }
+      // console.log("derivedRate", derivedRate)
+    }
+    setSessionForm(prev => ({ ...prev, hourly_rate: derivedRate ?? 0 }));
+  }, [sessionForm.academic_level, sessionForm.student_ids, availableStudents]);
 
   const fetchSessions = async () => {
     try {
@@ -181,6 +226,7 @@ const SessionManagement = () => {
         throw new Error('Failed to fetch students');
       }
       const data = await response.json();
+      console.log("data", data)
       setAvailableStudents(data.students || []);
       if (data.academic_levels && Array.isArray(data.academic_levels)) {
         setAcademicLevels(data.academic_levels);
@@ -303,8 +349,8 @@ const SessionManagement = () => {
   const handleCreateSession = async (e) => {
     e.preventDefault();
     try {
-      if (!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students') {
-        alert('Please select a valid student');
+      if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
+        alert('Please select at least one student');
         return;
       }
 
@@ -328,8 +374,14 @@ const SessionManagement = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...sessionForm,
           tutor_id: user?._id,
+          student_ids: sessionForm.student_ids,
+          subject: sessionForm.subject,
+          academic_level: sessionForm.academic_level,
+          session_date: sessionForm.session_date,
+          duration_hours: sessionForm.duration_hours,
+          hourly_rate: sessionForm.hourly_rate,
+          notes: sessionForm.notes,
         }),
       });
       const responseData = await response.json();
@@ -338,12 +390,12 @@ const SessionManagement = () => {
       }
       setShowCreateSessionModal(false);
       setSessionForm({
-        student_id: '',
+        student_ids: [],
         subject: '',
         academic_level: '',
         session_date: '',
         duration_hours: 1,
-        hourly_rate: availableStudents[0]?.hourly_rate || 0,
+        hourly_rate: 0,
         notes: ''
       });
       fetchSessions();
@@ -477,15 +529,15 @@ const SessionManagement = () => {
                         <Calendar className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        {session.student_ids.map((student, index) => (
+                        {/* {session.student_ids.map((student, index) => (
                           <p key={index} className="text-sm font-semibold">
                             {student.user_id.full_name}
                           </p>
-                        ))}
-                        <p className="text-gray-600">{session.subject}</p>
-                        <p className="text-xs text-gray-600">Level: {session.academic_level_name || (typeof session.academic_level === 'object' && session.academic_level.level) || '—'}</p>
-                        <p className="text-sm text-gray-500">{formatDate(session.session_date)}</p>
-                        <div className="flex items-center space-x-4 mt-2">
+                        ))} */}
+                        <p className="text-gray-600 font-bold">{session.subject}</p>
+                        <p className="text-xs text-gray-600 font-semibold mt-1">Level: {session.academic_level_name || (typeof session.academic_level === 'object' && session.academic_level.level) || '—'}</p>
+                        <p className="text-sm text-gray-500 mt-1">{formatDate(session.session_date)}</p>
+                        <div className="flex items-center space-x-4 mt-1">
                           <span className="text-sm text-gray-600">
                             <Clock className="h-3 w-3 inline mr-1" />
                             {session.duration_hours} hours
@@ -580,7 +632,7 @@ const SessionManagement = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-lg font-semibold text-blue-900">
-                        {selectedSession.subject}
+                      {selectedSession.academic_level_name || (typeof selectedSession.academic_level === 'object' && selectedSession.academic_level.level) || '—'} -   {selectedSession.subject} 
                       </h4>
                       <p className="text-blue-700">
                         {formatDate(selectedSession.session_date)}
@@ -607,12 +659,6 @@ const SessionManagement = () => {
                         </p>
                       </div>
                     ))}
-                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <Label className="text-sm font-medium text-gray-600">Academic Level</Label>
-                      <p className="text-lg font-semibold">
-                        {selectedSession.academic_level_name || (typeof selectedSession.academic_level === 'object' && selectedSession.academic_level.level) || '—'}
-                      </p>
-                    </div>
                   </div>
                 </div>
 
@@ -943,61 +989,60 @@ const SessionManagement = () => {
             </div>
             <form onSubmit={handleCreateSession} className="space-y-4">
               <div>
-                <Label htmlFor="student_id">Select Student</Label>
-                <Select
-                  value={sessionForm.student_id}
-                  onValueChange={(value) => {
-                    const selectedStudent = availableStudents.find(student => student._id === value);
-                    setSessionForm({
-                      ...sessionForm,
-                      student_id: value,
-                      subject: '',
-                      hourly_rate: selectedStudent?.hourly_rate || sessionForm.hourly_rate,
-                    });
-                    if (selectedStudent && selectedStudent.preferred_subjects) {
-                      if (Array.isArray(selectedStudent.preferred_subjects)) {
-                        setSelectedStudentSubjects(selectedStudent.preferred_subjects);
-                        setSelectedStudentAcademicLevels(selectedStudent.academic_levels || []);
-                      } else if (typeof selectedStudent.preferred_subjects === 'string') {
-                        setSelectedStudentSubjects([selectedStudent.preferred_subjects]);
-                        setSelectedStudentAcademicLevels(selectedStudent.academic_levels || []);
-                      } else {
-                        setSelectedStudentSubjects([]);
-                        setSelectedStudentAcademicLevels([]);
-                      }
-                    } else {
-                      setSelectedStudentSubjects([]);
-                      setSelectedStudentAcademicLevels([]);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a student" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <Label htmlFor="student_ids">Select Students</Label>
+                <div className="border rounded-md p-2 max-h-56 overflow-auto">
                     {loadingStudents ? (
-                      <SelectItem value="loading" disabled>Loading students...</SelectItem>
-                    ) : availableStudents.length > 0 ? (
-                      availableStudents.map((student) => (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.full_name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-students" disabled>No students available</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                    <div className="p-2 text-sm text-gray-500">Loading students...</div>
+                  ) : (
+                    (availableStudents || []).map((student) => {
+                      const checked = (sessionForm.student_ids || []).includes(student._id);
+                      return (
+                        <label key={student._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={checked}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              let next = new Set(sessionForm.student_ids || []);
+                              if (isChecked) next.add(student._id); else next.delete(student._id);
+                              const nextArray = Array.from(next);
+                              setSessionForm({ ...sessionForm, student_ids: nextArray, subject: sessionForm.subject });
+
+                              // Aggregate subjects and academic levels from selected students
+                              const selected = availableStudents.filter(s => nextArray.includes(s._id));
+                              const subjectsSet = new Set();
+                              const levelMap = new Map();
+                              selected.forEach(s => {
+                                if (Array.isArray(s.preferred_subjects)) s.preferred_subjects.forEach(x => subjectsSet.add(x));
+                                (s.academic_levels || []).forEach(l => {
+                                  if (l && l._id) levelMap.set(l._id, l);
+                                });
+                              });
+                              setSelectedStudentSubjects(Array.from(subjectsSet));
+                              setSelectedStudentAcademicLevels(Array.from(levelMap.values()));
+                            }}
+                          />
+                          <span className="text-sm">{student.full_name}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                  {(!loadingStudents && availableStudents.length === 0) && (
+                    <div className="p-2 text-sm text-gray-500">No students available</div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">You can select multiple students for a group session.</p>
               </div>
               <div>
                 <Label htmlFor="subject">Subject</Label>
                 <Select
                   value={sessionForm.subject}
                   onValueChange={(value) => setSessionForm({ ...sessionForm, subject: value })}
-                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                  disabled={!sessionForm.student_ids || sessionForm.student_ids.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={sessionForm.student_id ? 'Select subject' : 'Select a student first'} />
+                    <SelectValue placeholder={(sessionForm.student_ids || []).length > 0 ? 'Select subject' : 'Select student(s) first'} />
                   </SelectTrigger>
                   <SelectContent>
                     {(() => {
@@ -1023,10 +1068,10 @@ const SessionManagement = () => {
                 <Select
                   value={sessionForm.academic_level}
                   onValueChange={(value) => setSessionForm({ ...sessionForm, academic_level: value })}
-                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                  disabled={!sessionForm.student_ids || sessionForm.student_ids.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={sessionForm.student_id ? 'Select academic level' : 'Select a student first'} />
+                    <SelectValue placeholder={(sessionForm.student_ids || []).length > 0 ? 'Select academic level' : 'Select student(s) first'} />
                   </SelectTrigger>
                   <SelectContent>
                     {(() => {
@@ -1114,7 +1159,7 @@ const SessionManagement = () => {
                 <Button
                   type="submit"
                   className="flex-1"
-                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                  disabled={!sessionForm.student_ids || sessionForm.student_ids.length === 0}
                 >
                   Create Session
                 </Button>

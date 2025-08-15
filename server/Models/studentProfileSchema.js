@@ -58,6 +58,15 @@ const studentProfileSchema = new mongoose.Schema(
           ref: "TutorProfile",
           default: null,
         },
+        subject: {
+          type: String,
+          default: "",
+        },
+        academic_level_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "EducationLevel",
+          default: null,
+        },
         status: {
           type: String,
           enum: ["pending", "accepted", "rejected"],

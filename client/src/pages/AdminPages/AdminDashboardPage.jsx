@@ -2,63 +2,43 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
-  Fade,
-  Zoom,
   Grid,
   Card,
   CardContent,
-  Chip,
   Skeleton,
   Button,
   useTheme,
   useMediaQuery,
   Divider,
-  Avatar,
-  LinearProgress,
-  IconButton,
-  Menu,
-  MenuItem,
-  Stack
+  alpha,
+  Chip
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon,
-  TrendingUp,
-  Refresh,
   School,
   Person,
-  ContactMail,
-  CalendarToday,
-  People,
-  Assessment,
-  BarChart,
+  Groups,
+  BookOnline,
   MonetizationOn,
   ArrowUpward,
   ArrowDownward,
-  MoreVert,
-  CheckCircle,
-  PendingActions,
-  Cancel,
-  ArrowRightAlt,
-  Notifications,
-  Email,
-  Forum,
-  Receipt
+  Refresh
 } from '@mui/icons-material';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart, 
+  Pie, 
+  Cell
+} from 'recharts';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 import { Link } from 'react-router-dom';
 import { getDashboardStats } from '../../services/adminService';
-import { DoughnutChart, LineChart } from '../../components/admin/components/Charts';
-
-// Theme colors
-const statusColors = {
-  verified: 'success',
-  pending: 'warning',
-  rejected: 'error',
-  unverified: 'default',
-  active: 'success',
-  inactive: 'default'
-};
 
 const StatCard = ({ 
   title, 
@@ -67,21 +47,21 @@ const StatCard = ({
   trend, 
   trendValue, 
   loading, 
-  index, 
   color = 'primary',
-  link 
+  link,
+  secondaryValue
 }) => {
   const theme = useTheme();
-  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   
   if (loading) {
     return (
-      <Grid item xs={12} sm={6} md={3}>
+      <Grid item xs={12} sm={6} lg={3}>
         <Card elevation={0} sx={{ 
           height: '100%',
-          borderRadius: 3,
+          borderRadius: '12px',
           background: theme.palette.background.paper,
-          boxShadow: theme.shadows[1]
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          border: `1px solid ${theme.palette.divider}`
         }}>
           <CardContent>
             <Skeleton variant="text" width="60%" height={24} />
@@ -100,159 +80,127 @@ const StatCard = ({
   const trendColor = trend === 'up' ? theme.palette.success.main : theme.palette.error.main;
 
   return (
-    <Grid item xs={12} sm={6} md={3}>
-      <Zoom in timeout={300 + index * 100}>
-        <Card 
-          component={link ? Link : 'div'}
-          to={link}
-          elevation={0}
-          sx={{ 
-            height: '100%',
-            borderRadius: 3,
-            background: theme.palette.background.paper,
-            boxShadow: theme.shadows[1],
-            transition: 'all 0.3s ease',
-            textDecoration: 'none',
-            borderLeft: `4px solid ${theme.palette[color].main}`,
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: theme.shadows[4],
-              backgroundColor: theme.palette[color].lightest
-            }
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              mb: 2
+    <Grid item xs={12} sm={6} lg={3}>
+      <Card 
+        component={link ? Link : 'div'}
+        to={link}
+        elevation={0}
+        sx={{ 
+          height: '100%',
+          borderRadius: '12px',
+          background: theme.palette.background.paper,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          transition: 'all 0.2s ease',
+          border: `1px solid ${theme.palette.divider}`,
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            borderColor: alpha(theme.palette[color].main, 0.5),
+            background: alpha(theme.palette[color].main, 0.02)
+          }
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            mb: 2,
+            gap: 2
+          }}>
+            <Box sx={{
+              width: 48,
+              height: 48,
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: alpha(theme.palette[color].main, 0.1),
+              color: theme.palette[color].main,
+              flexShrink: 0
             }}>
+              <Icon fontSize="medium" />
+            </Box>
+            
+            <Box sx={{ flex: 1 }}>
               <Typography 
                 variant="subtitle2" 
                 color="text.secondary" 
-                fontWeight="medium"
-                sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
+                fontWeight="500"
+                sx={{ mb: 0.5 }}
               >
                 {title}
               </Typography>
-              <Box sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.palette[color].light,
-                color: theme.palette[color].main
-              }}>
-                <Icon fontSize="small" />
-              </Box>
+              <Typography 
+                variant="h4" 
+                fontWeight="700" 
+                color="text.primary"
+                sx={{ lineHeight: 1.2 }}
+              >
+                {value}
+              </Typography>
             </Box>
+          </Box>
+          
+          <Divider sx={{ my: 1.5 }} />
+          
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            {secondaryValue && (
+              <Typography variant="caption" color="text.secondary">
+                {secondaryValue}
+              </Typography>
+            )}
             
-            <Typography 
-              variant="h4" 
-              fontWeight="bold" 
-              color="text.primary" 
-              sx={{ mb: 1 }}
-            >
-              {value}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <TrendIcon 
-                sx={{ 
-                  fontSize: 16,
-                  color: trendColor,
-                  mr: 0.5
-                }} 
-              />
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              ml: 'auto'
+            }}>
+              <TrendIcon sx={{ 
+                fontSize: 16, 
+                color: trendColor,
+                mr: 0.5 
+              }} />
               <Typography 
                 variant="body2" 
-                sx={{ 
-                  color: trendColor,
-                  fontWeight: 'medium'
-                }}
+                fontWeight="500"
+                color={trendColor}
               >
                 {trendValue}
               </Typography>
-              <Typography 
-                variant="caption" 
-                color="text.secondary"
-                sx={{ ml: 1 }}
-              >
-                vs last month
-              </Typography>
             </Box>
-          </CardContent>
-        </Card>
-      </Zoom>
+          </Box>
+        </CardContent>
+      </Card>
     </Grid>
   );
 };
 
-const ActivityItem = ({ user, action, time, status, loading }) => {
-  const theme = useTheme();
-  
-  if (loading) {
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-        <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-        <Box sx={{ flex: 1 }}>
-          <Skeleton variant="text" width="60%" height={20} />
-          <Skeleton variant="text" width="40%" height={16} sx={{ mt: 0.5 }} />
-        </Box>
-        <Skeleton variant="rectangular" width={80} height={24} />
-      </Box>
+      <Card elevation={3} sx={{ 
+        background: 'rgba(255, 255, 255, 0.95)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+      }}>
+        <Typography variant="subtitle2" fontWeight={600}>{label}</Typography>
+        {payload.map((entry, index) => (
+          <Typography key={index} variant="body2" sx={{ 
+            color: entry.color,
+            mt: 0.5
+          }}>
+            {entry.name}: {entry.value}
+          </Typography>
+        ))}
+      </Card>
     );
   }
-
-  const statusIcons = {
-    pending: <PendingActions color="warning" />,
-    verified: <CheckCircle color="success" />,
-    active: <CheckCircle color="success" />,
-    completed: <CheckCircle color="success" />,
-    inactive: <Cancel color="error" />
-  };
-
-  return (
-    <Box sx={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      py: 2,
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: theme.palette.action.hover
-      },
-      '&:not(:last-child)': {
-        borderBottom: `1px solid ${theme.palette.divider}`
-      }
-    }}>
-      <Avatar sx={{ 
-        width: 40, 
-        height: 40, 
-        mr: 2,
-        backgroundColor: theme.palette.primary.light,
-        color: theme.palette.primary.main
-      }}>
-        {user.charAt(0)}
-      </Avatar>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="subtitle2" fontWeight="medium">
-          {user}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {action}
-        </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
-          {time}
-        </Typography>
-        {statusIcons[status]}
-      </Box>
-    </Box>
-  );
+  return null;
 };
 
 const AdminDashboardPage = () => {
@@ -264,7 +212,6 @@ const AdminDashboardPage = () => {
     error: null
   });
 
-  // Load initial data
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -273,15 +220,6 @@ const AdminDashboardPage = () => {
     setDashboardState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('Please login to access admin dashboard');
-      }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const statsData = await getDashboardStats();
       setDashboardState(prev => ({
         ...prev,
@@ -289,7 +227,6 @@ const AdminDashboardPage = () => {
         loading: false
       }));
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
       setDashboardState(prev => ({
         ...prev,
         error: error.message,
@@ -298,564 +235,226 @@ const AdminDashboardPage = () => {
     }
   };
 
-  // Mock data for demo purposes
-  const mockStats = {
-    totalUsers: 1243,
-    activeUsers: 987,
-    totalSessions: 3245,
-    revenue: 45230,
-    tutors: { total: 145, pending: 23, verified: 122 },
-    students: { total: 878, active: 765 },
-    parents: { total: 220, active: 198 },
-    sessions: { total: 3245, thisMonth: 489, lastMonth: 376, change: 30 },
-    revenue: { total: 45230, thisMonth: 12800, lastMonth: 10200, change: 25 },
-    recentActivities: [
-      { id: 1, user: 'John Smith', action: 'New tutor registration', time: '2 mins ago', status: 'pending' },
-      { id: 2, user: 'Sarah Johnson', action: 'Completed profile verification', time: '15 mins ago', status: 'verified' },
-      { id: 3, user: 'Michael Brown', action: 'Scheduled new session', time: '1 hour ago', status: 'active' },
-      { id: 4, user: 'Emily Davis', action: 'Payment received', time: '3 hours ago', status: 'completed' },
-      { id: 5, user: 'Robert Wilson', action: 'Account deactivated', time: '5 hours ago', status: 'inactive' }
-    ],
-    userDistribution: {
-      tutors: 145,
-      students: 878,
-      parents: 220
-    },
-    revenueData: [
-      { month: 'Jan', revenue: 4000 },
-      { month: 'Feb', revenue: 3000 },
-      { month: 'Mar', revenue: 6000 },
-      { month: 'Apr', revenue: 8000 },
-      { month: 'May', revenue: 5000 },
-      { month: 'Jun', revenue: 10000 },
-      { month: 'Jul', revenue: 12800 }
-    ]
-  };
-
-  const stats = dashboardState.loading ? mockStats : dashboardState.stats;
-
   const statCards = [
     {
       title: 'Total Tutors',
-      value: stats.tutors?.total || 0,
+      value: dashboardState.stats.tutors?.total || 0,
       icon: School,
       color: 'primary',
-      trend: stats.tutors?.verified > 60 ? 'up' : 'down',
-      trendValue: `${Math.round(((stats.tutors?.verified || 0) / (stats.tutors?.total || 1)) * 100)}%`,
+      trend: dashboardState.stats.tutors?.verified > 60 ? 'up' : 'down',
+      trendValue: `${Math.round(((dashboardState.stats.tutors?.verified || 0) / (dashboardState.stats.tutors?.total || 1)) * 100)}%`,
+      secondaryValue: `${dashboardState.stats.tutors?.verified || 0} verified`,
       link: '/admin/tutors'
     },
     {
       title: 'Active Students',
-      value: stats.students?.active || 0,
+      value: dashboardState.stats.students?.active || 0,
       icon: Person,
       color: 'success',
       trend: 'up',
       trendValue: '+12%',
+      secondaryValue: `${dashboardState.stats.students?.newThisMonth || 0} new`,
       link: '/admin/students'
     },
     {
       title: 'Engaged Parents',
-      value: stats.parents?.active || 0,
-      icon: ContactMail,
+      value: dashboardState.stats.parents?.active || 0,
+      icon: Groups,
       color: 'info',
       trend: 'up',
       trendValue: '+8%',
+      secondaryValue: `${dashboardState.stats.parents?.linkedAccounts || 0} linked`,
       link: '/admin/parents'
     },
     {
-      title: 'Monthly Sessions',
-      value: stats.sessions?.thisMonth || 0,
-      icon: CalendarToday,
-      color: 'secondary',
-      trend: stats.sessions?.change > 0 ? 'up' : 'down',
-      trendValue: `${stats.sessions?.change || 0}%`,
-      link: '/admin/sessions'
-    }
-  ];
-
-  const performanceCards = [
-    {
-      title: 'Total Revenue',
-      value: `$${(stats.revenue?.total || 0).toLocaleString()}`,
+      title: 'Monthly Revenue',
+      value: `$${(dashboardState.stats.revenue?.thisMonth || 0).toLocaleString()}`,
       icon: MonetizationOn,
       color: 'warning',
-      trend: stats.revenue?.change > 0 ? 'up' : 'down',
-      trendValue: `${stats.revenue?.change || 0}%`,
-      progress: 75,
+      trend: dashboardState.stats.revenue?.change > 0 ? 'up' : 'down',
+      trendValue: `${dashboardState.stats.revenue?.change || 0}%`,
+      secondaryValue: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()} total`,
       link: '/admin/finance'
-    },
-    {
-      title: 'Active Users',
-      value: stats.activeUsers || 0,
-      icon: People,
-      color: 'success',
-      trend: 'up',
-      trendValue: '+5%',
-      progress: Math.round(((stats.activeUsers || 0) / (stats.totalUsers || 1)) * 100),
-      link: '/admin/users'
     }
   ];
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+  // Prepare data for charts
+  const userGrowthData = [
+    { name: 'Students', active: dashboardState.stats.students?.active || 0, new: dashboardState.stats.students?.newThisMonth || 0 },
+    { name: 'Tutors', active: dashboardState.stats.tutors?.verified || 0, new: (dashboardState.stats.tutors?.total || 0) - (dashboardState.stats.tutors?.verified || 0) },
+    { name: 'Parents', active: dashboardState.stats.parents?.active || 0, new: dashboardState.stats.parents?.linkedAccounts || 0 },
+  ];
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const revenueData = [
+    { name: 'This Month', value: dashboardState.stats.revenue?.thisMonth || 0 },
+    { name: 'Last Month', value: (dashboardState.stats.revenue?.thisMonth || 0) - ((dashboardState.stats.revenue?.change || 0) / 100 * (dashboardState.stats.revenue?.thisMonth || 0)) },
+    { name: 'Target', value: (dashboardState.stats.revenue?.thisMonth || 0) * 1.2 },
+  ];
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const COLORS = [
+    theme.palette.primary.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.info.main
+  ];
 
   return (
     <AdminLayout tabValue="dashboard">
       <Box sx={{ p: isMobile ? 2 : 3 }}>
-        <Fade in timeout={800}>
+        <Box sx={{ 
+          mb: 4,
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          justifyContent: 'space-between'
+        }}>
           <Box>
-            {/* Header Section */}
-            <Box sx={{ 
-              mb: 4,
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              justifyContent: 'space-between'
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                mb: isMobile ? 2 : 0
-              }}>
-                <Box sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.palette.primary.light,
-                  color: theme.palette.primary.main,
-                  mr: 2
-                }}>
-                  <DashboardIcon fontSize="medium" />
-                </Box>
-                <Box>
-                  <Typography variant="h5" fontWeight="bold">
-                    Dashboard Overview
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {new Date().toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  onClick={loadDashboardData}
-                  disabled={dashboardState.loading}
-                  startIcon={<Refresh />}
-                  sx={{
-                    borderRadius: 3,
-                    textTransform: 'none',
-                    fontWeight: 'medium',
-                    px: 3
-                  }}
-                >
-                  Refresh Data
-                </Button>
-              </Box>
-            </Box>
-
-            {/* Main Statistics Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {statCards.map((card, index) => (
-                <StatCard
-                  key={card.title}
-                  {...card}
-                  loading={dashboardState.loading}
-                  index={index}
-                />
-              ))}
-            </Grid>
-
-            {/* Performance Section */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {performanceCards.map((card, index) => (
-                <Grid item xs={12} md={6} key={index}>
-                  <Zoom in timeout={400 + index * 100}>
-                    <Card 
-                      component={Link}
-                      to={card.link}
-                      elevation={0}
-                      sx={{ 
-                        height: '100%',
-                        borderRadius: 3,
-                        background: theme.palette.background.paper,
-                        boxShadow: theme.shadows[1],
-                        transition: 'all 0.3s ease',
-                        textDecoration: 'none',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: theme.shadows[4],
-                          backgroundColor: theme.palette[card.color].lightest
-                        }
-                      }}
-                    >
-                      <CardContent>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between',
-                          mb: 2
-                        }}>
-                          <Typography 
-                            variant="subtitle2" 
-                            color="text.secondary" 
-                            fontWeight="medium"
-                            sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                          >
-                            {card.title}
-                          </Typography>
-                          <Box sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: theme.palette[card.color].light,
-                            color: theme.palette[card.color].main
-                          }}>
-                            <card.icon fontSize="small" />
-                          </Box>
-                        </Box>
-                        
-                        <Typography 
-                          variant="h4" 
-                          fontWeight="bold" 
-                          color="text.primary" 
-                          sx={{ mb: 1 }}
-                        >
-                          {card.value}
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          {card.trend === 'up' ? (
-                            <ArrowUpward sx={{ color: theme.palette.success.main, fontSize: 16, mr: 0.5 }} />
-                          ) : (
-                            <ArrowDownward sx={{ color: theme.palette.error.main, fontSize: 16, mr: 0.5 }} />
-                          )}
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              color: card.trend === 'up' ? theme.palette.success.main : theme.palette.error.main,
-                              fontWeight: 'medium'
-                            }}
-                          >
-                            {card.trendValue}
-                          </Typography>
-                        </Box>
-                        
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={card.progress} 
-                          sx={{ 
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: theme.palette.grey[200],
-                            '& .MuiLinearProgress-bar': {
-                              borderRadius: 4,
-                              backgroundColor: theme.palette[card.color].main
-                            }
-                          }} 
-                        />
-                      </CardContent>
-                    </Card>
-                  </Zoom>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Charts and Recent Activity Section */}
-            <Grid container spacing={3}>
-              {/* User Distribution Chart */}
-              <Grid item xs={12} md={6}>
-                <Card 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 3,
-                    background: theme.palette.background.paper,
-                    boxShadow: theme.shadows[1]
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 3
-                    }}>
-                      <Typography variant="h6" fontWeight="bold">
-                        User Distribution
-                      </Typography>
-                      <IconButton size="small" onClick={handleClick}>
-                        <MoreVert />
-                      </IconButton>
-                      <Menu
-                        anchorEl={anchorEl}
-                        open={open}
-                        onClose={handleClose}
-                      >
-                        <MenuItem onClick={handleClose}>View Details</MenuItem>
-                        <MenuItem onClick={handleClose}>Download Data</MenuItem>
-                      </Menu>
-                    </Box>
-                    <Box sx={{ height: 300 }}>
-                      <DoughnutChart 
-                        data={{
-                          labels: ['Tutors', 'Students', 'Parents'],
-                          datasets: [
-                            {
-                              data: [
-                                stats.userDistribution?.tutors || 0,
-                                stats.userDistribution?.students || 0,
-                                stats.userDistribution?.parents || 0
-                              ],
-                              backgroundColor: [
-                                theme.palette.primary.main,
-                                theme.palette.success.main,
-                                theme.palette.info.main
-                              ],
-                              borderWidth: 0
-                            }
-                          ]
-                        }} 
-                      />
-                    </Box>
-                    <Stack direction="row" spacing={2} justifyContent="center" mt={2}>
-                      <Chip 
-                        label={`Tutors: ${stats.userDistribution?.tutors || 0}`} 
-                        size="small" 
-                        sx={{ 
-                          backgroundColor: theme.palette.primary.light,
-                          color: theme.palette.primary.main
-                        }} 
-                      />
-                      <Chip 
-                        label={`Students: ${stats.userDistribution?.students || 0}`} 
-                        size="small" 
-                        sx={{ 
-                          backgroundColor: theme.palette.success.light,
-                          color: theme.palette.success.main
-                        }} 
-                      />
-                      <Chip 
-                        label={`Parents: ${stats.userDistribution?.parents || 0}`} 
-                        size="small" 
-                        sx={{ 
-                          backgroundColor: theme.palette.info.light,
-                          color: theme.palette.info.main
-                        }} 
-                      />
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              {/* Revenue Trend Chart */}
-              <Grid item xs={12} md={6}>
-                <Card 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    borderRadius: 3,
-                    background: theme.palette.background.paper,
-                    boxShadow: theme.shadows[1]
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 3
-                    }}>
-                      <Typography variant="h6" fontWeight="bold">
-                        Revenue Trend
-                      </Typography>
-                      <Button 
-                        size="small" 
-                        endIcon={<ArrowRightAlt />}
-                        component={Link}
-                        to="/admin/finance"
-                      >
-                        View All
-                      </Button>
-                    </Box>
-                    <Box sx={{ height: 300 }}>
-                      <LineChart 
-                        data={{
-                          labels: stats.revenueData?.map(item => item.month) || [],
-                          datasets: [
-                            {
-                              label: 'Revenue',
-                              data: stats.revenueData?.map(item => item.revenue) || [],
-                              borderColor: theme.palette.warning.main,
-                              backgroundColor: theme.palette.warning.light,
-                              tension: 0.3,
-                              fill: true
-                            }
-                          ]
-                        }} 
-                      />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            {/* Recent Activity Section */}
-            <Grid container spacing={3} sx={{ mt: 0 }}>
-              <Grid item xs={12}>
-                <Card 
-                  elevation={0}
-                  sx={{ 
-                    borderRadius: 3,
-                    background: theme.palette.background.paper,
-                    boxShadow: theme.shadows[1]
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 3
-                    }}>
-                      <Typography variant="h6" fontWeight="bold">
-                        Recent Activities
-                      </Typography>
-                      <Button 
-                        size="small" 
-                        endIcon={<ArrowRightAlt />}
-                        component={Link}
-                        to="/admin/activities"
-                      >
-                        View All
-                      </Button>
-                    </Box>
-                    
-                    <Box>
-                      {dashboardState.loading ? (
-                        Array(5).fill().map((_, index) => (
-                          <ActivityItem key={index} loading />
-                        ))
-                      ) : (
-                        stats.recentActivities?.map((activity, index) => (
-                          <ActivityItem
-                            key={index}
-                            user={activity.user}
-                            action={activity.action}
-                            time={activity.time}
-                            status={activity.status}
-                          />
-                        ))
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            {/* Quick Actions */}
-            <Grid container spacing={3} sx={{ mt: 0 }}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                  Quick Actions
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={3}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="primary"
-                      startIcon={<Email />}
-                      component={Link}
-                      to="/admin/messages"
-                      sx={{ py: 2, borderRadius: 2 }}
-                    >
-                      Send Message
-                    </Button>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="secondary"
-                      startIcon={<Notifications />}
-                      component={Link}
-                      to="/admin/notifications"
-                      sx={{ py: 2, borderRadius: 2 }}
-                    >
-                      Create Alert
-                    </Button>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="info"
-                      startIcon={<Forum />}
-                      component={Link}
-                      to="/admin/support"
-                      sx={{ py: 2, borderRadius: 2 }}
-                    >
-                      Support Tickets
-                    </Button>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="warning"
-                      startIcon={<Receipt />}
-                      component={Link}
-                      to="/admin/invoices"
-                      sx={{ py: 2, borderRadius: 2 }}
-                    >
-                      Generate Invoice
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Error Display */}
-            {dashboardState.error && (
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 3, 
-                  mt: 3, 
-                  borderRadius: 3,
-                  backgroundColor: theme.palette.error.light,
-                  border: `1px solid ${theme.palette.error.light}`,
-                  color: theme.palette.error.dark
-                }}
-              >
-                <Typography variant="body1">
-                  {dashboardState.error}
-                </Typography>
-              </Paper>
-            )}
+            <Typography variant="h5" fontWeight="700" sx={{ mb: 0.5 }}>
+              Dashboard Overview
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </Typography>
           </Box>
-        </Fade>
+          
+          <Button
+            variant="outlined"
+            onClick={loadDashboardData}
+            disabled={dashboardState.loading}
+            startIcon={<Refresh />}
+            sx={{
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: '500',
+              px: 3,
+              mt: isMobile ? 2 : 0
+            }}
+          >
+            Refresh
+          </Button>
+        </Box>
+
+        {/* Stats Cards Section */}
+        <Grid container spacing={3}>
+          {statCards.map((card, index) => (
+            <StatCard
+              key={index}
+              {...card}
+              loading={dashboardState.loading}
+            />
+          ))}
+        </Grid>
+
+        {/* Charts Section */}
+        {!dashboardState.loading && (
+          <Grid container spacing={3} sx={{ mt: 1 }}>
+            {/* User Growth Bar Chart */}
+            <Grid item xs={12} md={8}>
+              <Card elevation={0} sx={{ 
+                borderRadius: '12px',
+                height: '100%',
+                background: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.divider}`
+              }}>
+                <CardContent>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    User Growth Overview
+                  </Typography>
+                  <Box sx={{ height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={userGrowthData}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                        <Bar dataKey="active" name="Active Users" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="new" name="New This Month" fill={theme.palette.success.main} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Revenue Pie Chart */}
+            <Grid item xs={12} md={4}>
+              <Card elevation={0} sx={{ 
+                borderRadius: '12px',
+                height: '100%',
+                background: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.divider}`
+              }}>
+                <CardContent>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    Revenue Breakdown
+                  </Typography>
+                  <Box sx={{ height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={revenueData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {revenueData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
+                          contentStyle={{
+                            borderRadius: '8px',
+                            border: 'none',
+                            boxShadow: theme.shadows[3]
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Error Display */}
+        {dashboardState.error && (
+          <Card 
+            elevation={0}
+            sx={{ 
+              mt: 3,
+              borderRadius: '12px',
+              border: `1px solid ${theme.palette.error.light}`,
+              backgroundColor: alpha(theme.palette.error.main, 0.05)
+            }}
+          >
+            <CardContent>
+              <Typography color="error">
+                {dashboardState.error}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
       </Box>
     </AdminLayout>
   );

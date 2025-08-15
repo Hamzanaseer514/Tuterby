@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import { BASE_URL } from '@/config';
+import { useSubject } from '../../hooks/useSubject';
+
 
 const API_BASE_URL = `${BASE_URL}/api/tutor`;
 
@@ -32,6 +34,11 @@ const authFetch = async (url, options = {}) => {
 const StudentCard = ({ student, onRespond, loadingId }) => {
   const user = student.user_id || {};
   const hire = student.hire_for_this_tutor || { status: 'pending' };
+  const { academicLevels } = useSubject();
+  const academic_level_name = academicLevels.find(s => s._id === hire.academic_level_id)?.level;
+  const student_academic_level_name = academicLevels.find(s => s._id === student.academic_level)?.level;
+
+
 
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow border border-gray-200">
@@ -44,12 +51,11 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
               className="h-12 w-12 rounded-full object-cover ring-2 ring-gray-100"
             />
             <div>
-              <div className="text-sm text-gray-500">Hire request</div>
               <div className="text-lg font-semibold text-gray-900">{user.full_name}</div>
               {/* <div className="text-sm text-gray-600">{user.email}</div> */}
               <div className="mt-2 text-sm text-gray-700">
                 <span className="font-medium">Academic level: </span>
-                {student.academic_level || 'N/A'}
+                {student_academic_level_name || 'N/A'}
               </div>
               {Array.isArray(student.preferred_subjects) && student.preferred_subjects.length > 0 && (
                 <div className="mt-1 text-sm text-gray-700">
@@ -57,6 +63,8 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
                   {student.preferred_subjects.slice(0, 5).join(', ')}
                 </div>
               )}
+
+              <div className="mt-2 text-sm text-gray-700">Hire For: {academic_level_name}- {hire.subject}</div>
               <div className="mt-2">
                 {hire.status === 'accepted' && (
                   <Badge variant="success">Accepted</Badge>
@@ -102,6 +110,7 @@ const StudentHireRequests = () => {
   const [status, setStatus] = useState('all'); // all | pending | accepted | rejected
   const [respondingId, setRespondingId] = useState(null);
 
+
   const fetchRequests = async () => {
     if (!user?._id) return;
     setLoading(true);
@@ -111,6 +120,7 @@ const StudentHireRequests = () => {
       if (status) query.set('status', status);
       const data = await authFetch(`${API_BASE_URL}/hire-requests/${user._id}?${query.toString()}`);
       setRequests(Array.isArray(data.requests) ? data.requests : []);
+      console.log("requests", data.requests)
     } catch (e) {
       setError(e.message || 'Failed to load requests');
     } finally {

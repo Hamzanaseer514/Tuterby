@@ -57,11 +57,14 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     .limit(10);
 
 
+  // Only keep valid ObjectIds
   const academicLevelIds = upcomingSessions
     .flatMap(s => s.student_ids.map(st => st.academic_level))
-    .filter(Boolean);
+    .filter(id => mongoose.Types.ObjectId.isValid(id));
 
-  const educationLevels = await EducationLevel.find({ _id: { $in: academicLevelIds } });
+  const educationLevels = academicLevelIds.length
+    ? await EducationLevel.find({ _id: { $in: academicLevelIds } })
+    : [];
 
   const sessionsWithLevelNames = upcomingSessions.map(s => {
     // Ensure session is a plain object
@@ -198,11 +201,19 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
   return totalInquiries > 0 ? (convertedInquiries / totalInquiries) * 100 : 0;
 };
 
-// Create a new tutoring session
+// Create a new tutoring session (supports single or multiple students)
 const createSession = asyncHandler(async (req, res) => {
-  const { tutor_id, student_id, subject, academic_level, session_date, duration_hours, hourly_rate, notes } = req.body;
+  const { tutor_id, student_id, student_ids, subject, academic_level, session_date, duration_hours, hourly_rate, notes } = req.body;
 
-  if (!tutor_id || !student_id || !subject || !session_date || !duration_hours || !hourly_rate || !academic_level) {
+  // Normalize students: accept legacy single student_id or new array student_ids (both are student user_ids)
+  let studentUserIds = [];
+  if (Array.isArray(student_ids) && student_ids.length > 0) {
+    studentUserIds = student_ids;
+  } else if (student_id) {
+    studentUserIds = [student_id];
+  }
+
+  if (!tutor_id || studentUserIds.length === 0 || !subject || !session_date || duration_hours === undefined || hourly_rate === undefined || !academic_level) {
     return res.status(400).json({ message: "All required fields must be provided" });
   }
   let sessionDateExactUTC;
@@ -217,24 +228,30 @@ const createSession = asyncHandler(async (req, res) => {
   const newSessionEndTime = new Date(sessionDateExactUTC.getTime() + duration_hours * 60 * 60 * 1000);
 
   // Fetch profiles
-  const student = await StudentProfile.findOne({ user_id: student_id });
+  const students = await StudentProfile.find({ user_id: { $in: studentUserIds } });
   const tutor = await TutorProfile.findOne({ user_id: tutor_id });
   const tutor_total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id });
-  const allowed_session =tutor.academic_levels_taught.find(level => level.educationLevel.toString() === academic_level.toString());
-  if(tutor_total_sessions >= allowed_session.totalSessionsPerMonth){
+  const allowed_session = tutor.academic_levels_taught.find(level => level.educationLevel.toString() === academic_level.toString());
+  if (tutor_total_sessions >= allowed_session.totalSessionsPerMonth) {
     return res.status(400).json({ message: `You have reached the maximum number ${allowed_session.totalSessionsPerMonth} of sessions for this academic level for this month` });
   }
 
-  if (!student || !tutor) {
-    return res.status(404).json({ message: "Student or tutor profile not found" });
+  if (!tutor) {
+    return res.status(404).json({ message: "Tutor profile not found" });
+  }
+  if (!students || students.length === 0) {
+    return res.status(404).json({ message: "Student profile(s) not found" });
   }
 
   // Authorization check
-  const hireRecord = student.hired_tutors.find(
-    (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
-  );
-  if (!hireRecord) {
-    return res.status(403).json({ message: "Tutor is not authorized to create a session with this student" });
+  // Ensure authorization for all selected students
+  for (const student of students) {
+    const hireRecord = (student.hired_tutors || []).find(
+      (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
+    );
+    if (!hireRecord) {
+      return res.status(403).json({ message: "Tutor is not authorized to create a session with one or more selected students" });
+    }
   }
 
   // Check for overlapping in-progress session
@@ -261,15 +278,20 @@ const createSession = asyncHandler(async (req, res) => {
   }
 
   // Create session
+  // Normalize hourly rate (could be number or [number])
+  const hourlyRateNumber = Array.isArray(hourly_rate)
+    ? parseFloat(hourly_rate[0])
+    : parseFloat(hourly_rate);
+
   const session = await TutoringSession.create({
     tutor_id: tutor._id,
-    student_ids: [student._id],
+    student_ids: students.map(s => s._id),
     subject,
     academic_level: new mongoose.Types.ObjectId(academic_level),
     session_date: sessionDateExactUTC, // exact time from frontend
     duration_hours,
-    hourly_rate: hourly_rate[0],
-    total_earnings: duration_hours * hourly_rate[0],
+    hourly_rate: Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : 0,
+    total_earnings: duration_hours * (Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : 0),
     notes: notes || "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
@@ -659,7 +681,6 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
   }
 });
 
-// Availability Management Functions
 
 // Get tutor's availability settings
 const getTutorAvailability = asyncHandler(async (req, res) => {
@@ -941,6 +962,8 @@ const getHireRequests = asyncHandler(async (req, res) => {
       hire_for_this_tutor: mostRecentHire ? {
         status: mostRecentHire.status,
         hired_at: mostRecentHire.hired_at,
+        academic_level_id: mostRecentHire.academic_level_id,
+        subject: mostRecentHire.subject,
         _id: mostRecentHire._id // Include the hire record ID for proper updating
       } : null,
       // Include count of total requests for debugging

@@ -41,21 +41,17 @@ const TutorDashboard = () => {
   const token = getAuthToken();
   const [parsed_subjects, setParsedSubjects] = useState([]);
 
-
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Modal states
-  const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
-  const [showUpdateSessionModal, setShowUpdateSessionModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
 
   // Form states
   const [sessionForm, setSessionForm] = useState({
-    student_ids: [], // was student_id
+    student_ids: [],
     subject: '',
     academic_level: '',
     session_date: '',
@@ -63,23 +59,10 @@ const TutorDashboard = () => {
     hourly_rate: '',
     notes: ''
   });
-  const [selectedStudentSubjects, setSelectedStudentSubjects] = useState([]);
-  const [selectedStudentAcademicLevels, setSelectedStudentAcademicLevels] = useState([]);
-  const [academic_levels, setAcademicLevels] = useState([
-    'Primary', 'Secondary', 'GCSE', 'A-Level', 'University', 'Adult Learner'
-  ]);
 
-  const [updateSessionForm, setUpdateSessionForm] = useState({
-    student_id: [],
-    subject: '',
-    session_date: '',
-    duration_hours: '',
-    hourly_rate: '',
-    status: '',
-    rating: '',
-    feedback: '',
-    notes: ''
-  });
+
+
+
   const [replyMessage, setReplyMessage] = useState('');
   const [availableStudents, setAvailableStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -90,10 +73,7 @@ const TutorDashboard = () => {
   }
 
   const parseField = (field) => {
-    
     if (!field) return [];
-
-    // Handle array case like ['["Math","Physics"]']
     if (Array.isArray(field)) {
       if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
         try {
@@ -103,14 +83,11 @@ const TutorDashboard = () => {
           return [];
         }
       }
-      // If it's already a proper array, return as is
       if (field.every(item => typeof item === "string")) {
         return field;
       }
       return [];
     }
-
-    // Handle string case like "["Math","Physics"]"
     if (typeof field === "string" && field.startsWith("[")) {
       try {
         const parsed = JSON.parse(field);
@@ -122,9 +99,9 @@ const TutorDashboard = () => {
     }
     return [];
   };
+
   useEffect(() => {
     if (user && user._id) {
-      // First fetch dashboard data, then fetch available students
       const initializeData = async () => {
         await fetchDashboardData();
         await fetchAvailableStudents();
@@ -134,7 +111,7 @@ const TutorDashboard = () => {
           academic_level: '',
           session_date: '',
           duration_hours: 1,
-          hourly_rate: 0, // Will be updated when students are loaded
+          hourly_rate: 0,
         });
       };
       initializeData();
@@ -143,7 +120,6 @@ const TutorDashboard = () => {
     }
   }, [user]);
   
-  // Update session form when available students are loaded
   useEffect(() => {
     if (availableStudents.length > 0 && !sessionForm.student_id) {
       setSessionForm(prev => ({
@@ -152,7 +128,6 @@ const TutorDashboard = () => {
       }));
     }
   }, [availableStudents]);
-
 
   const fetchDashboardData = useCallback(async () => {
     if (!user) {
@@ -185,8 +160,6 @@ const TutorDashboard = () => {
     }
   }, [user, token]);
 
-
-
   const handleReplyToInquiry = async (e) => {
     e.preventDefault();
     try {
@@ -205,7 +178,7 @@ const TutorDashboard = () => {
       setShowReplyModal(false);
       setSelectedInquiry(null);
       setReplyMessage('');
-      fetchDashboardData(); // Refresh dashboard data
+      fetchDashboardData();
       toast({
         title: "Success!",
         description: "Reply sent successfully.",
@@ -220,8 +193,6 @@ const TutorDashboard = () => {
       });
     }
   };
-
-
 
   const openReplyModal = (inquiry) => {
     setSelectedInquiry(inquiry);
@@ -243,7 +214,6 @@ const TutorDashboard = () => {
       setAvailableStudents(data.students || []);
       if (data.academic_levels && Array.isArray(data.academic_levels)) {
         setAcademicLevels(data.academic_levels);
-      } else {
       }
     } catch (err) {
       console.error('Error fetching students:', err);
@@ -254,12 +224,10 @@ const TutorDashboard = () => {
 
   const formatDate = (dateString) => {
     const [datePart, timePart] = dateString.split('T');
-    const time = timePart.slice(0, 5); // HH:MM
+    const time = timePart.slice(0, 5);
     const [year, month, day] = datePart.split('-');
     return `${day}-${month}-${year} ${time}`;
   };
-
-  // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 09:29"
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-GB', {
@@ -269,23 +237,23 @@ const TutorDashboard = () => {
   };
 
   const formatHours = (hours) => {
-    return `${Math.round(hours)} hours taught`;
+    return `${Math.round(hours)} hours`;
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'confirmed': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
+      case 'pending': return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'cancelled': return 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -293,8 +261,8 @@ const TutorDashboard = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-md">
+          <AlertCircle className="h-12 w-12 text-rose-500 mb-4 mx-auto" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
           <p className="text-gray-600 mb-4">
             {error === 'Tutor ID is required'
@@ -303,7 +271,9 @@ const TutorDashboard = () => {
             }
           </p>
           {error !== 'Tutor ID is required' && (
-            <Button onClick={fetchDashboardData}>Try Again</Button>
+            <Button onClick={fetchDashboardData} className="bg-primary hover:bg-primary/90">
+              Try Again
+            </Button>
           )}
         </div>
       </div>
@@ -315,27 +285,26 @@ const TutorDashboard = () => {
   const { upcomingSessions, recentSessions, pendingInquiries, metrics, users, students } = dashboardData;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl">
+    <div className="min-h-screen bg-slate-50 p-6 dark:bg-slate-900">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Tutor Dashboard</h1>
-          <p className="text-gray-600">Manage your tutoring business and track your performance</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tutor Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your tutoring business and track your performance</p>
         </div>
-
-
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          {/* Total Hours Card */}
+          <Card className="bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Clock className="h-6 w-6 text-blue-600" />
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                  <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Hours</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Hours Taught</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatHours(metrics.totalHours)}
                   </p>
                 </div>
@@ -343,15 +312,16 @@ const TutorDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Total Earnings Card */}
+          <Card className="bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Earnings</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Earnings ($)</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatCurrency(metrics.totalEarnings)}
                   </p>
                 </div>
@@ -359,15 +329,16 @@ const TutorDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Average Rating Card */}
+          <Card className="bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Star className="h-6 w-6 text-yellow-600" />
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
+                  <Star className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Average Rating</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Rating</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {metrics.averageRating.toFixed(1)}/5
                   </p>
                 </div>
@@ -375,15 +346,16 @@ const TutorDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Completed Sessions Card */}
+          <Card className="bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Users className="h-6 w-6 text-purple-600" />
+                <div className="p-3 bg-violet-100 dark:bg-violet-900/50 rounded-lg">
+                  <Users className="h-6 w-6 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Completed Sessions</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completed Sessions</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {metrics.completedSessions}
                   </p>
                 </div>
@@ -394,33 +366,34 @@ const TutorDashboard = () => {
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2" />
+          {/* Performance Metrics Card */}
+          <Card className="bg-white dark:bg-slate-800 shadow-sm">
+            <CardHeader className="border-b border-gray-200 dark:border-slate-700">
+              <CardTitle className="flex items-center text-lg font-semibold text-gray-900 dark:text-white">
+                <TrendingUp className="h-5 w-5 mr-2 text-primary" />
                 Performance Metrics
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Response Time</span>
-                  <span className="text-sm font-semibold">
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-slate-700">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Response Time</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {metrics.avgResponseTime > 0
                       ? `${Math.round(metrics.avgResponseTime)} minutes`
                       : 'No data'
                     }
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Booking Acceptance Rate</span>
-                  <span className="text-sm font-semibold">
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-slate-700">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Booking Acceptance Rate</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {metrics.bookingAcceptanceRate.toFixed(1)}%
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Average Session Duration</span>
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Session Duration</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {metrics.completedSessions > 0
                       ? `${(metrics.totalHours / metrics.completedSessions).toFixed(1)} hours`
                       : 'No data'
@@ -431,23 +404,27 @@ const TutorDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+          {/* Recent Inquiries Card */}
+          <Card className="bg-white dark:bg-slate-800 shadow-sm">
+            <CardHeader className="border-b border-gray-200 dark:border-slate-700">
+              <CardTitle className="flex items-center justify-between text-lg font-semibold text-gray-900 dark:text-white">
                 <div className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
+                  <MessageSquare className="h-5 w-5 mr-2 text-primary" />
                   Recent Inquiries
                 </div>
+                <Badge variant="secondary" className="bg-primary/10 text-primary">
+                  {pendingInquiries.length} New
+                </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {pendingInquiries.length > 0 ? (
                 <div className="space-y-3">
                   {pendingInquiries.slice(0, 3).map((inquiry) => (
-                    <div key={inquiry._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={inquiry._id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg">
                       <div>
-                        <p className="font-medium text-sm">{inquiry.student_id.user_id.full_name}</p>
-                        <p className="text-xs text-gray-600">{inquiry.subject}</p>
+                        <p className="font-medium text-sm text-gray-900 dark:text-white">{inquiry.student_id.user_id.full_name}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{inquiry.subject}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant={inquiry.status === 'unread' ? 'destructive' : 'secondary'}>
@@ -457,6 +434,7 @@ const TutorDashboard = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => openReplyModal(inquiry)}
+                          className="border-primary text-primary hover:bg-primary/10"
                         >
                           <Reply className="h-3 w-3 mr-1" />
                           Reply
@@ -465,57 +443,64 @@ const TutorDashboard = () => {
                     </div>
                   ))}
                   {pendingInquiries.length > 3 && (
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full text-primary hover:bg-primary/10"
+                      onClick={() => navigate('/tutor/inquiries')}
+                    >
                       View All ({pendingInquiries.length})
                     </Button>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm">No pending inquiries</p>
+                <div className="text-center py-4">
+                  <MessageSquare className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No pending inquiries</p>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
 
         {/* Upcoming Sessions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+        <Card className="bg-white dark:bg-slate-800 shadow-sm">
+          <CardHeader className="border-b border-gray-200 dark:border-slate-700">
+            <CardTitle className="flex items-center justify-between text-lg font-semibold text-gray-900 dark:text-white">
               <div className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2" />
+                <Calendar className="h-5 w-5 mr-2 text-primary" />
                 Upcoming Sessions
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {upcomingSessions.length > 0 ? (
               <div className="space-y-4">
                 {upcomingSessions.map((session) => (
-                  console.log('Session:', session),
-                  <div key={session._id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={session._id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                     <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <Clock className="h-4 w-4 text-blue-600" />
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-full">
+                        <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <p className="font-medium">{(session.student_ids || []).map((student, index) => (
-                          <p key={index} className="text-sm font-semibold">
-                            {student.user_id.full_name}
-                          </p>
-                        ))}</p>
-                        <p className="text-sm text-gray-600">{session.subject}</p>
-                        <p className="text-xs text-gray-600">Level: {session.academic_level_name || '—'}</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">{session.subject}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold">Level: {session.academic_level_name || '—'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                           Duration: {session.duration_hours}h • Rate: {formatCurrency(session.hourly_rate)} • Total: {formatCurrency((session.duration_hours || 0) * (session.hourly_rate || 0))}
                         </p>
-                        <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Badge className={getStatusColor(session.status)}>
                         {session.status}
                       </Badge>
-                      <Button size="sm" variant="outline" onClick={() => handleViewSession(session)}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleViewSession(session)}
+                        className="border-primary text-primary hover:bg-primary/10"
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
@@ -525,11 +510,11 @@ const TutorDashboard = () => {
               </div>
             ) : (
               <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-500">No upcoming sessions</p>
-                <p className="text-sm text-gray-400 mt-1">Your schedule is clear for now</p>
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No upcoming sessions</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Your schedule is clear for now</p>
                 <Button
-                  className="mt-4"
+                  className="mt-4 bg-primary hover:bg-primary/90"
                   onClick={() => navigate('/tutor/sessions', { state: { action: 'create' } })}
                 >
                   <Plus className="h-4 w-4 mr-1" />
@@ -542,36 +527,28 @@ const TutorDashboard = () => {
 
         {/* Recent Sessions */}
         {recentSessions && recentSessions.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="h-5 w-5 mr-2" />
+          <Card className="mt-6 bg-white dark:bg-slate-800 shadow-sm">
+            <CardHeader className="border-b border-gray-200 dark:border-slate-700">
+              <CardTitle className="flex items-center text-lg font-semibold text-gray-900 dark:text-white">
+                <Clock className="h-5 w-5 mr-2 text-primary" />
                 Recent Sessions (Last 30 Days)
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="space-y-3">
                 {recentSessions.map((session) => (
-                  <div key={session._id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={session._id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-gray-100 rounded-full">
-                        <Calendar className="h-3 w-3 text-gray-600" />
+                      <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-full">
+                        <Calendar className="h-3 w-3 text-gray-600 dark:text-gray-400" />
                       </div>
                       <div>
-                        <p className="font-medium">
-                          {(session.student_ids || []).map((student, index) => (
-                            <p key={index} className="text-sm font-semibold">
-                              {student.user_id.full_name}
-                            </p>
-                          ))}
-                        </p>
-
-                        <p className="text-xs text-gray-600">{session.subject}</p>
-                        <p className="text-xs text-gray-600">Level: {session.academic_level_name || '—'}</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">{session.subject}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold">Level: {session.academic_level_name || '—'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                           Duration: {session.duration_hours}h • Rate: {formatCurrency(session.hourly_rate)} • Total: {formatCurrency((session.duration_hours || 0) * (session.hourly_rate || 0))}
                         </p>
-                        <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -579,8 +556,8 @@ const TutorDashboard = () => {
                         {session.status}
                       </Badge>
                       {session.rating && (
-                        <div className="flex items-center text-xs text-gray-600">
-                          <Star className="h-3 w-3 text-yellow-500 mr-1" />
+                        <div className="flex items-center text-xs font-medium text-gray-900 dark:text-white">
+                          <Star className="h-3 w-3 text-amber-500 fill-current mr-1" />
                           {session.rating}/5
                         </div>
                       )}
@@ -596,38 +573,39 @@ const TutorDashboard = () => {
       {/* Reply to Inquiry Modal */}
       {showReplyModal && selectedInquiry && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Reply to Inquiry</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reply to Inquiry</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowReplyModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <XCircle className="h-4 w-4" />
+                <XCircle className="h-5 w-5" />
               </Button>
             </div>
 
             <form onSubmit={handleReplyToInquiry} className="space-y-4">
               <div>
-                <Label className="text-sm font-medium text-gray-600">From</Label>
-                <p className="text-lg font-semibold">{selectedInquiry.student_id.user_id.full_name}</p>
+                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">From</Label>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">{selectedInquiry.student_id.user_id.full_name}</p>
               </div>
 
               <div>
-                <Label className="text-sm font-medium text-gray-600">Subject</Label>
-                <p className="text-lg">{selectedInquiry.subject}</p>
+                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Subject</Label>
+                <p className="text-lg text-gray-900 dark:text-white">{selectedInquiry.subject}</p>
               </div>
 
               <div>
-                <Label className="text-sm font-medium text-gray-600">Original Message</Label>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-700">{selectedInquiry.message}</p>
+                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Original Message</Label>
+                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{selectedInquiry.message}</p>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="reply-message" className="text-sm font-medium text-gray-600">
+                <Label htmlFor="reply-message" className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Your Reply
                 </Label>
                 <Textarea
@@ -635,7 +613,7 @@ const TutorDashboard = () => {
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                   placeholder="Type your reply here..."
-                  className="mt-1"
+                  className="mt-1 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
                   rows={4}
                   required
                 />
@@ -646,14 +624,14 @@ const TutorDashboard = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowReplyModal(false)}
-                  className="flex-1"
+                  className="flex-1 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={!replyMessage.trim()}
-                  className="flex-1"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   Send Reply
                 </Button>
@@ -666,13 +644,14 @@ const TutorDashboard = () => {
       {/* View Session Modal */}
       {viewSession && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold">Session Details</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Session Details</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewSession(null)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <XCircle className="h-5 w-5" />
               </Button>
@@ -680,13 +659,13 @@ const TutorDashboard = () => {
 
             <div className="space-y-6">
               {/* Session Header */}
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-lg font-semibold text-blue-900">
+                    <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
                       {viewSession.subject}
                     </h4>
-                    <p className="text-blue-700">
+                    <p className="text-blue-700 dark:text-blue-400">
                       {formatDate(viewSession.session_date)}
                     </p>
                   </div>
@@ -698,21 +677,21 @@ const TutorDashboard = () => {
 
               {/* Student Information */}
               <div>
-                <h5 className="text-md font-semibold mb-3 text-gray-800">Student Information</h5>
+                <h5 className="text-md font-semibold mb-3 text-gray-900 dark:text-white">Student Information</h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {viewSession.student_ids && viewSession.student_ids.map((student, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                      <p className="font-medium text-gray-900">
+                    <div key={index} className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                      <p className="font-medium text-gray-900 dark:text-white">
                         {student.user_id?.full_name || 'Student Name'}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {student.user_id?.email || 'Email not available'}
                       </p>
                     </div>
                   ))}
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                    <Label className="text-sm font-medium text-gray-600">Academic Level</Label>
-                    <p className="text-lg font-semibold">
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Academic Level</Label>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
                       {viewSession.academic_level_name || '—'}
                     </p>
                   </div>
@@ -721,29 +700,29 @@ const TutorDashboard = () => {
 
               {/* Session Details */}
               <div>
-                <h5 className="text-md font-semibold mb-3 text-gray-800">Session Details</h5>
+                <h5 className="text-md font-semibold mb-3 text-gray-900 dark:text-white">Session Details</h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <Label className="text-sm font-medium text-gray-600">Duration</Label>
-                    <p className="text-lg font-semibold">
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Duration</Label>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
                       {viewSession.duration_hours} hour{viewSession.duration_hours !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <Label className="text-sm font-medium text-gray-600">Hourly Rate</Label>
-                    <p className="text-lg font-semibold text-green-600">
-                      £{viewSession.hourly_rate}
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Hourly Rate</Label>
+                    <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(viewSession.hourly_rate)}
                     </p>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
-                    <p className="text-lg font-semibold text-green-600">
-                      £{(viewSession.duration_hours * viewSession.hourly_rate).toFixed(2)}
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Earnings</Label>
+                    <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(viewSession.duration_hours * viewSession.hourly_rate)}
                     </p>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <Label className="text-sm font-medium text-gray-600">Session Date</Label>
-                    <p className="text-lg font-semibold">
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Session Date</Label>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
                       {formatDate(viewSession.session_date)}
                     </p>
                   </div>
@@ -753,9 +732,9 @@ const TutorDashboard = () => {
               {/* Notes */}
               {viewSession.notes && (
                 <div>
-                  <h5 className="text-md font-semibold mb-3 text-gray-800">Notes</h5>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-gray-700">{viewSession.notes}</p>
+                  <h5 className="text-md font-semibold mb-3 text-gray-900 dark:text-white">Notes</h5>
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                    <p className="text-gray-700 dark:text-gray-300">{viewSession.notes}</p>
                   </div>
                 </div>
               )}
@@ -763,19 +742,18 @@ const TutorDashboard = () => {
               {/* Rating and Feedback */}
               {viewSession.rating && (
                 <div>
-                  <h5 className="text-md font-semibold mb-3 text-gray-800">Student Feedback</h5>
-                  <div className="bg-gray-50 p-3 rounded-lg">
+                  <h5 className="text-md font-semibold mb-3 text-gray-900 dark:text-white">Student Feedback</h5>
+                  <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                      <span className="font-medium">{viewSession.rating}/5</span>
+                      <Star className="h-5 w-5 text-amber-500 fill-current" />
+                      <span className="font-medium text-gray-900 dark:text-white">{viewSession.rating}/5</span>
                     </div>
                     {viewSession.feedback && (
-                      <p className="text-gray-700">{viewSession.feedback}</p>
+                      <p className="text-gray-700 dark:text-gray-300">{viewSession.feedback}</p>
                     )}
                   </div>
                 </div>
               )}
-
             </div>
           </div>
         </div>
