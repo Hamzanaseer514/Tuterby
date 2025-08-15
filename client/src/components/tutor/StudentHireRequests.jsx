@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { BASE_URL } from '@/config';
 import { useSubject } from '../../hooks/useSubject';
+import { Loader2 } from 'lucide-react';
 
 
 const API_BASE_URL = `${BASE_URL}/api/tutor`;
@@ -83,14 +84,14 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
               // disabled={loadingId === student._id || hire.status !== 'pending'}
               onClick={() => onRespond(student._id, 'reject')}
             >
-              {loadingId === student._id ? '...' : 'Reject'}
+              {loadingId === student._id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
             </Button>
             <Button
               className="bg-blue-600 hover:bg-blue-700"
               // disabled={loadingId === student._id || hire.status !== 'pending'}
               onClick={() => onRespond(student._id, 'accept')}
             >
-              {loadingId === student._id ? '...' : 'Accept'}
+              {loadingId === student._id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Accept'}
             </Button>
           </div>
         </div>
@@ -112,8 +113,11 @@ const StudentHireRequests = () => {
 
   const fetchRequests = async () => {
     if (!user?._id) return;
-    setLoading(true);
     setError('');
+    if (!requests.length) {
+      setLoading(true); // only show full "loading" if first time
+    }
+    
     try {
       const query = new URLSearchParams();
       if (status) query.set('status', status);
@@ -218,6 +222,13 @@ const StudentHireRequests = () => {
       {!loading && !error && filtered.length === 0 && (
         <div className="py-24 text-center text-gray-500">No pending hire requests.</div>
       )}
+
+{loading && requests.length > 0 && (
+  <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+    <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+  </div>
+)}
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((student) => (

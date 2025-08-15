@@ -1,5 +1,9 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+
 import Layout from "@/components/Layout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
@@ -69,6 +73,7 @@ function App() {
     <>
       <ScrollToTop />
       <Layout>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
         <Suspense fallback={<PageLoader />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>

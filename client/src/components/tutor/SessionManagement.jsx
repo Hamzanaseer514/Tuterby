@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
 import {
   Card,
@@ -322,11 +323,11 @@ const SessionManagement = () => {
           total_earnings: updateSessionForm.duration_hours * updateSessionForm.hourly_rate
         }),
       });
-
+      const responseData = await response.json();
       if (!response.ok) {
-        throw new Error('Failed to update session');
+        throw new Error(responseData.message || 'Failed to update session');
       }
-
+      toast.success('Session updated successfully');
       setShowUpdateSessionModal(false);
       setSelectedSession(null);
       setUpdateSessionForm({
@@ -343,6 +344,7 @@ const SessionManagement = () => {
       fetchSessions(); // Refresh sessions after update
     } catch (err) {
       console.error('Error updating session:', err);
+      toast.error(err.message || 'Failed to update session');
     }
   };
 
@@ -350,7 +352,7 @@ const SessionManagement = () => {
     e.preventDefault();
     try {
       if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
-        alert('Please select at least one student');
+        toast.error('Please select at least one student');
         return;
       }
 
@@ -363,7 +365,7 @@ const SessionManagement = () => {
       });
       const availabilityData = await availabilityResponse.json();
       if (!availabilityData.is_available) {
-        alert('You are not available at the selected time. Please check your availability settings.');
+        toast.error('You are not available at the selected time. Please check your availability settings.');
         return;
       }
 
@@ -388,6 +390,7 @@ const SessionManagement = () => {
       if (!response.ok) {
         throw new Error(responseData.message || 'Failed to create session');
       }
+      toast.success('Session created successfully');
       setShowCreateSessionModal(false);
       setSessionForm({
         student_ids: [],
@@ -401,14 +404,12 @@ const SessionManagement = () => {
       fetchSessions();
     } catch (err) {
       console.error('Error creating session:', err);
-      alert(err.message || 'Failed to create session');
+        toast.error(err.message || 'Failed to create session');
     }
   };
 
   const deleteSession = async (sessionId) => {
-    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-      return;
-    }
+  
 
     try {
       const response = await fetch(`${BASE_URL}/api/tutor/sessions/delete/${sessionId}`, {
@@ -422,10 +423,11 @@ const SessionManagement = () => {
       if (!response.ok) {
         throw new Error(responseData.message || 'Failed to delete session');
       }
+      toast.success('Session deleted successfully');
       // Refresh sessions after deletion
       fetchSessions();
     } catch (err) {
-      alert(err.message || 'Failed to delete session. Please try again.');
+      toast.error(err.message || 'Failed to delete session. Please try again.');
     }
   };
 
