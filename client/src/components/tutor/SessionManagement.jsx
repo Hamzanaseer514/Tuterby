@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  Star, 
+import {
+  Calendar,
+  Clock,
+  DollarSign,
+  Star,
   CheckCircle,
   XCircle,
   Play,
@@ -34,9 +35,11 @@ const SessionManagement = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showUpdateSessionModal, setShowUpdateSessionModal] = useState(false);
+  const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
   const [updateSessionForm, setUpdateSessionForm] = useState({
     student_id: [],
     subject: '',
+    academic_level: '',
     session_date: '',
     duration_hours: '',
     hourly_rate: '',
@@ -45,38 +48,72 @@ const SessionManagement = () => {
     feedback: '',
     notes: ''
   });
-  const { user,getAuthToken } = useAuth();
+  const [sessionForm, setSessionForm] = useState({
+    student_id: '',
+    subject: '',
+    academic_level: '',
+    session_date: '',
+    duration_hours: 1,
+    hourly_rate: 0,
+    notes: ''
+  });
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [parsed_subjects, setParsedSubjects] = useState([]);
+  const [selectedStudentSubjects, setSelectedStudentSubjects] = useState([]);
+  const [selectedStudentAcademicLevels, setSelectedStudentAcademicLevels] = useState([]);
+  const [academic_levels, setAcademicLevels] = useState([]);
+  const { user, getAuthToken } = useAuth();
   const authToken = getAuthToken();
-
-  // Common subjects for dropdown
-  const commonSubjects = [
-    'Mathematics', 'English', 'Science', 'Physics', 'Chemistry', 'Biology',
-    'History', 'Geography', 'Economics', 'Business Studies', 'Computer Science',
-    'Art', 'Music', 'Physical Education', 'Religious Studies', 'Modern Languages',
-    'French', 'German', 'Spanish', 'Latin', 'Greek', 'Psychology', 'Sociology',
-    'Philosophy', 'Literature', 'Creative Writing', 'Statistics', 'Accounting',
-    'Law', 'Medicine', 'Engineering', 'Architecture', 'Design', 'Drama',
-    'Media Studies', 'Politics', 'International Relations', 'Environmental Science'
-  ];
+  const location = useLocation();
 
   useEffect(() => {
     fetchSessions();
   }, [user, filter]);
 
+  useEffect(() => {
+    if (user && user._id) {
+      fetchAvailableStudents();
+      fetchTutorSubjects();
+    }
+  }, [user]);
+
+  // Open modals based on navigation state (from Dashboard)
+  useEffect(() => {
+    if (!location?.state) return;
+    const { action, session } = location.state || {};
+    if (action === 'create') {
+      setShowCreateSessionModal(true);
+    } else if (action === 'update' && session) {
+      // Ensure students are loaded before opening to populate fields
+      if (availableStudents.length === 0) return;
+      openUpdateSessionModal(session);
+    }
+  }, [location?.state, availableStudents]);
+
+  useEffect(() => {
+    if (availableStudents.length > 0 && !sessionForm.student_id) {
+      setSessionForm(prev => ({
+        ...prev,
+        hourly_rate: availableStudents[0]?.hourly_rate || 0
+      }));
+    }
+  }, [availableStudents]);
+
   const fetchSessions = async () => {
     try {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
-      const url = filter === 'all' 
+      const url = filter === 'all'
         ? `${BASE_URL}/api/tutor/sessions/${user._id}`
         : `${BASE_URL}/api/tutor/sessions/${user._id}?status=${filter}`;
 
       const response = await fetch(url, {
         headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch sessions');
       }
@@ -89,20 +126,130 @@ const SessionManagement = () => {
     }
   };
 
+  const parseField = (field) => {
+    if (!field) return [];
+    if (Array.isArray(field)) {
+      if (field.length === 1 && typeof field[0] === 'string' && field[0].startsWith('[')) {
+        try {
+          const parsed = JSON.parse(field[0]);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+      if (field.every(item => typeof item === 'string')) {
+        return field;
+      }
+      return [];
+    }
+    if (typeof field === 'string' && field.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(field);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const fetchTutorSubjects = useCallback(async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const parsed = parseField(data?.tutor?.subjects);
+      setParsedSubjects(parsed);
+      if (Array.isArray(data?.academic_levels)) {
+        setAcademicLevels(data.academic_levels);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [user, authToken]);
+
+  const fetchAvailableStudents = useCallback(async () => {
+    try {
+      setLoadingStudents(true);
+      const response = await fetch(`${BASE_URL}/api/tutor/students/${user._id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+      const data = await response.json();
+      setAvailableStudents(data.students || []);
+      if (data.academic_levels && Array.isArray(data.academic_levels)) {
+        setAcademicLevels(data.academic_levels);
+      }
+    } catch (err) {
+      console.error('Error fetching students:', err);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, [user]);
+
 
 
   const openUpdateSessionModal = (session) => {
     setSelectedSession(session);
-    
+
     // Extract student data from session
     const sessionStudent = session.student_ids[0]; // Assuming single student for now
     const studentId = sessionStudent?._id;
     const studentName = sessionStudent?.user_id?.full_name;
-    
+
+    // Find the student in availableStudents to get their subjects and academic levels
+    const availableStudent = availableStudents.find(s => s._id === studentId);
+
+    if (availableStudent) {
+      if (Array.isArray(availableStudent.preferred_subjects)) {
+        setSelectedStudentSubjects(availableStudent.preferred_subjects);
+      } else if (typeof availableStudent.preferred_subjects === 'string') {
+        setSelectedStudentSubjects([availableStudent.preferred_subjects]);
+      } else {
+        setSelectedStudentSubjects([]);
+      }
+
+      if (Array.isArray(availableStudent.academic_levels)) {
+        setSelectedStudentAcademicLevels(availableStudent.academic_levels);
+      } else {
+        setSelectedStudentAcademicLevels([]);
+      }
+    } else {
+      // Fallback to session data
+      if (sessionStudent?.preferred_subjects) {
+        if (Array.isArray(sessionStudent.preferred_subjects)) {
+          setSelectedStudentSubjects(sessionStudent.preferred_subjects);
+        } else if (typeof sessionStudent.preferred_subjects === 'string') {
+          setSelectedStudentSubjects([sessionStudent.preferred_subjects]);
+        } else {
+          setSelectedStudentSubjects([]);
+        }
+      } else {
+        setSelectedStudentSubjects([]);
+      }
+      if (sessionStudent?.academic_level) {
+        if (Array.isArray(sessionStudent.academic_level)) {
+          setSelectedStudentAcademicLevels(sessionStudent.academic_level);
+        } else if (typeof sessionStudent.academic_level === 'string') {
+          setSelectedStudentAcademicLevels([sessionStudent.academic_level]);
+        } else {
+          setSelectedStudentAcademicLevels([]);
+        }
+      } else {
+        setSelectedStudentAcademicLevels([]);
+      }
+    }
+
     setUpdateSessionForm({
       student_id: [studentId],
       full_name: [studentName],
       subject: session.subject,
+      academic_level: session.academic_level || '',
       session_date: new Date(session.session_date).toISOString().slice(0, 16),
       duration_hours: session.duration_hours,
       hourly_rate: session.hourly_rate || 25,
@@ -120,9 +267,9 @@ const SessionManagement = () => {
     try {
       const response = await fetch(`${BASE_URL}/api/tutor/sessions/update/${selectedSession._id}`, {
         method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...updateSessionForm,
@@ -150,6 +297,59 @@ const SessionManagement = () => {
       fetchSessions(); // Refresh sessions after update
     } catch (err) {
       console.error('Error updating session:', err);
+    }
+  };
+
+  const handleCreateSession = async (e) => {
+    e.preventDefault();
+    try {
+      if (!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students') {
+        alert('Please select a valid student');
+        return;
+      }
+
+      const availabilityResponse = await fetch(`${BASE_URL}/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const availabilityData = await availabilityResponse.json();
+      if (!availabilityData.is_available) {
+        alert('You are not available at the selected time. Please check your availability settings.');
+        return;
+      }
+
+      const response = await fetch(`${BASE_URL}/api/tutor/sessions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...sessionForm,
+          tutor_id: user?._id,
+        }),
+      });
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to create session');
+      }
+      setShowCreateSessionModal(false);
+      setSessionForm({
+        student_id: '',
+        subject: '',
+        academic_level: '',
+        session_date: '',
+        duration_hours: 1,
+        hourly_rate: availableStudents[0]?.hourly_rate || 0,
+        notes: ''
+      });
+      fetchSessions();
+    } catch (err) {
+      console.error('Error creating session:', err);
+      alert(err.message || 'Failed to create session');
     }
   };
 
@@ -185,10 +385,10 @@ const SessionManagement = () => {
     const [year, month, day] = datePart.split('-');
     return `${day}-${month}-${year} ${time}`;
   };
-  
+
   // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 09:29"
-  
-  
+
+
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-GB', {
@@ -219,61 +419,6 @@ const SessionManagement = () => {
     }
   };
 
-  // const getActionButton = (session) => {
-  //   switch (session.status) {
-  //     case 'pending':
-  //       return (
-  //         <Button 
-  //           size="sm" 
-  //           onClick={() => updateSessionStatus(session._id, 'confirmed')}
-  //           className="bg-green-600 hover:bg-green-700"
-  //         >
-  //           Confirm
-  //         </Button>
-  //       );
-  //     case 'confirmed':
-  //       return (
-  //         <Button 
-  //           size="sm" 
-  //           onClick={() => updateSessionStatus(session._id, 'in_progress')}
-  //           className="bg-blue-600 hover:bg-blue-700"
-  //         >
-  //           Start Session
-  //         </Button>
-  //       );
-  //     case 'in_progress':
-  //       return (
-  //         <Button 
-  //           size="sm" 
-  //           onClick={() => updateSessionStatus(session._id, 'completed')}
-  //           className="bg-purple-600 hover:bg-purple-700"
-  //         >
-  //           Complete
-  //         </Button>
-  //       );
-  //     default:
-  //       return (
-  //         <div className="flex space-x-2">
-  //           <Button size="sm" variant="outline" onClick={() => {
-  //             setSelectedSession(session);
-  //             setShowSessionModal(true);
-  //           }}>
-  //             <Eye className="h-4 w-4 mr-1" />
-  //             View
-  //           </Button>
-  //           {session.status !== 'completed' && (
-  //             <Button size="sm" variant="outline" onClick={() => {
-  //               openUpdateSessionModal(session);
-  //             }}>
-  //               <Edit className="h-4 w-4 mr-1" />
-  //               Update
-  //             </Button>
-  //           )}
-  //         </div>
-  //       );
-  //   }
-  // };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -288,7 +433,16 @@ const SessionManagement = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Session Management</h1>
-          <p className="text-gray-600">Manage your tutoring sessions and track progress</p>
+          <div className="flex items-center justify-between">
+            <p className="text-gray-600">Manage your tutoring sessions and track progress</p>
+            <Button
+              size="sm"
+              onClick={() => setShowCreateSessionModal(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Create Session
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -323,12 +477,13 @@ const SessionManagement = () => {
                         <Calendar className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                      {session.student_ids.map((student, index) => (
-  <p key={index} className="text-sm font-semibold">
-    {student.user_id.full_name}
-  </p>
-))}
+                        {session.student_ids.map((student, index) => (
+                          <p key={index} className="text-sm font-semibold">
+                            {student.user_id.full_name}
+                          </p>
+                        ))}
                         <p className="text-gray-600">{session.subject}</p>
+                        <p className="text-xs text-gray-600">Level: {session.academic_level_name || (typeof session.academic_level === 'object' && session.academic_level.level) || '—'}</p>
                         <p className="text-sm text-gray-500">{formatDate(session.session_date)}</p>
                         <div className="flex items-center space-x-4 mt-2">
                           <span className="text-sm text-gray-600">
@@ -355,9 +510,9 @@ const SessionManagement = () => {
                       </Badge>
                       {/* {getActionButton(session)} */}
                       <div className="flex space-x-2 ml-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => {
                             setSelectedSession(session);
                             setShowSessionModal(true);
@@ -367,9 +522,9 @@ const SessionManagement = () => {
                           View
                         </Button>
                         {session.status !== 'completed' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => {
                               openUpdateSessionModal(session);
                             }}
@@ -378,9 +533,9 @@ const SessionManagement = () => {
                             Update
                           </Button>
                         )}
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => deleteSession(session._id)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                         >
@@ -410,15 +565,15 @@ const SessionManagement = () => {
             <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">Session Details</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowSessionModal(false)}
                 >
                   <XCircle className="h-5 w-5" />
                 </Button>
               </div>
-              
+
               <div className="space-y-6">
                 {/* Session Header */}
                 <div className="bg-blue-50 p-4 rounded-lg">
@@ -452,6 +607,12 @@ const SessionManagement = () => {
                         </p>
                       </div>
                     ))}
+                     <div className="bg-gray-50 p-3 rounded-lg">
+                      <Label className="text-sm font-medium text-gray-600">Academic Level</Label>
+                      <p className="text-lg font-semibold">
+                        {selectedSession.academic_level_name || (typeof selectedSession.academic_level === 'object' && selectedSession.academic_level.level) || '—'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -516,15 +677,15 @@ const SessionManagement = () => {
 
                 {/* Actions */}
                 <div className="flex space-x-3 pt-4 border-t">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setShowSessionModal(false)}
                     className="flex-1"
                   >
                     Close
                   </Button>
                   {selectedSession.status !== 'completed' && (
-                    <Button 
+                    <Button
                       onClick={() => {
                         setShowSessionModal(false);
                         openUpdateSessionModal(selectedSession);
@@ -535,8 +696,8 @@ const SessionManagement = () => {
                       Edit Session
                     </Button>
                   )}
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setShowSessionModal(false);
                       deleteSession(selectedSession._id);
@@ -578,6 +739,26 @@ const SessionManagement = () => {
                   </div>
                 </div>
 
+                <div>
+                  <Label htmlFor="academic_level">Academic Level</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm font-semibold">
+                      {(() => {
+                        // accept id string, populated object, or legacy name string
+                        const level = updateSessionForm.academic_level;
+                        if (!level) return 'Academic Level';
+                        if (typeof level === 'string') {
+                          const found = (selectedStudentAcademicLevels || []).find(l => l._id === level || l._id?.toString() === level);
+                          return found?.level || level;
+                        }
+                        if (typeof level === 'object') {
+                          return level.level || 'Academic Level';
+                        }
+                        return 'Academic Level';
+                      })()}
+                    </p>
+                  </div>
+                </div>
                 {/* Subject Selection */}
                 <div>
                   <Label htmlFor="subject">Subject</Label>
@@ -589,11 +770,21 @@ const SessionManagement = () => {
                       <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
                     <SelectContent>
-                      {commonSubjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {subject}
-                        </SelectItem>
-                      ))}
+                      {(() => {
+                        const allSubjects = new Set();
+                        if (updateSessionForm.subject) allSubjects.add(updateSessionForm.subject);
+                        if (selectedStudentSubjects.length > 0) {
+                          selectedStudentSubjects.forEach(s => allSubjects.add(s));
+                        }
+                        if (parsed_subjects && parsed_subjects.length > 0) {
+                          parsed_subjects.forEach(s => allSubjects.add(s));
+                        }
+                        return Array.from(allSubjects).sort().map(subject => (
+                          <SelectItem key={`update-subject-${subject}`} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ));
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>
@@ -636,28 +827,12 @@ const SessionManagement = () => {
                 {/* Hourly Rate */}
                 <div>
                   <Label htmlFor="hourly_rate">Hourly Rate (£)</Label>
-                  <Select
-                    value={updateSessionForm.hourly_rate.toString()}
-                    onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, hourly_rate: parseFloat(value) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select hourly rate" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">£15</SelectItem>
-                      <SelectItem value="20">£20</SelectItem>
-                      <SelectItem value="25">£25</SelectItem>
-                      <SelectItem value="30">£30</SelectItem>
-                      <SelectItem value="35">£35</SelectItem>
-                      <SelectItem value="40">£40</SelectItem>
-                      <SelectItem value="45">£45</SelectItem>
-                      <SelectItem value="50">£50</SelectItem>
-                      <SelectItem value="60">£60</SelectItem>
-                      <SelectItem value="75">£75</SelectItem>
-                      <SelectItem value="100">£100</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm font-semibold">
+                      {updateSessionForm.hourly_rate || 'Hourly Rate'}
+                    </p>
+                  </div>                
+                  </div>
 
                 {/* Status */}
                 <div>
@@ -752,6 +927,202 @@ const SessionManagement = () => {
           </div>
         )}
       </div>
+      {/* Create Session Modal */}
+      {showCreateSessionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Create New Session</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCreateSessionModal(false)}
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleCreateSession} className="space-y-4">
+              <div>
+                <Label htmlFor="student_id">Select Student</Label>
+                <Select
+                  value={sessionForm.student_id}
+                  onValueChange={(value) => {
+                    const selectedStudent = availableStudents.find(student => student._id === value);
+                    setSessionForm({
+                      ...sessionForm,
+                      student_id: value,
+                      subject: '',
+                      hourly_rate: selectedStudent?.hourly_rate || sessionForm.hourly_rate,
+                    });
+                    if (selectedStudent && selectedStudent.preferred_subjects) {
+                      if (Array.isArray(selectedStudent.preferred_subjects)) {
+                        setSelectedStudentSubjects(selectedStudent.preferred_subjects);
+                        setSelectedStudentAcademicLevels(selectedStudent.academic_levels || []);
+                      } else if (typeof selectedStudent.preferred_subjects === 'string') {
+                        setSelectedStudentSubjects([selectedStudent.preferred_subjects]);
+                        setSelectedStudentAcademicLevels(selectedStudent.academic_levels || []);
+                      } else {
+                        setSelectedStudentSubjects([]);
+                        setSelectedStudentAcademicLevels([]);
+                      }
+                    } else {
+                      setSelectedStudentSubjects([]);
+                      setSelectedStudentAcademicLevels([]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingStudents ? (
+                      <SelectItem value="loading" disabled>Loading students...</SelectItem>
+                    ) : availableStudents.length > 0 ? (
+                      availableStudents.map((student) => (
+                        <SelectItem key={student._id} value={student._id}>
+                          {student.full_name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-students" disabled>No students available</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="subject">Subject</Label>
+                <Select
+                  value={sessionForm.subject}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, subject: value })}
+                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={sessionForm.student_id ? 'Select subject' : 'Select a student first'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const allSubjects = new Set();
+                      if (selectedStudentSubjects.length > 0) {
+                        selectedStudentSubjects.forEach(subject => allSubjects.add(subject));
+                      }
+                      if (parsed_subjects && parsed_subjects.length > 0) {
+                        parsed_subjects.forEach(subject => allSubjects.add(subject));
+                      }
+                      return Array.from(allSubjects).sort().map(subject => (
+                        <SelectItem key={`subject-${subject}`} value={subject}>
+                          {subject}
+                        </SelectItem>
+                      ));
+                    })()}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="academic_level">Academic Level</Label>
+                <Select
+                  value={sessionForm.academic_level}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, academic_level: value })}
+                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={sessionForm.student_id ? 'Select academic level' : 'Select a student first'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const levels = Array.isArray(selectedStudentAcademicLevels) ? selectedStudentAcademicLevels : [];
+                      return levels.map((levelObj) => (
+                        <SelectItem key={`level-${levelObj._id}`} value={levelObj._id}>
+                          {levelObj.level}
+                        </SelectItem>
+                      ));
+                    })()}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="session_date">Session Date & Time</Label>
+                <Input
+                  id="session_date"
+                  type="datetime-local"
+                  value={sessionForm.session_date}
+                  onChange={(e) => setSessionForm({ ...sessionForm, session_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="duration_hours">Duration (hours)</Label>
+                <Select
+                  value={sessionForm.duration_hours.toString()}
+                  onValueChange={(value) => setSessionForm({ ...sessionForm, duration_hours: parseFloat(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.5">30 minutes</SelectItem>
+                    <SelectItem value="1">1 hour</SelectItem>
+                    <SelectItem value="1.5">1.5 hours</SelectItem>
+                    <SelectItem value="2">2 hours</SelectItem>
+                    <SelectItem value="2.5">2.5 hours</SelectItem>
+                    <SelectItem value="3">3 hours</SelectItem>
+                    <SelectItem value="3.5">3.5 hours</SelectItem>
+                    <SelectItem value="4">4 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="hourly_rate">Hourly Rate (£)</Label>
+                <Input
+                  id="hourly_rate"
+                  type="number"
+                  value={sessionForm.hourly_rate}
+                  required
+                  disabled={true}
+                />
+              </div>
+              <div>
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  value={sessionForm.notes}
+                  onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Add any additional notes about the session or link to the session"
+                />
+              </div>
+
+              {sessionForm.duration_hours && sessionForm.hourly_rate && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
+                  <p className="text-lg font-semibold text-green-600">
+                    £{(sessionForm.duration_hours * sessionForm.hourly_rate).toFixed(2)}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateSessionModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
+                >
+                  Create Session
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BASE_URL } from '@/config';
 import {
@@ -42,16 +42,6 @@ const TutorDashboard = () => {
   const [parsed_subjects, setParsedSubjects] = useState([]);
 
 
-  // Common subjects for dropdown
-  const commonSubjects = [
-    'Mathematics', 'English', 'Science', 'Physics', 'Chemistry', 'Biology',
-    'History', 'Geography', 'Economics', 'Business Studies', 'Computer Science',
-    'Art', 'Music', 'Physical Education', 'Religious Studies', 'Modern Languages',
-    'French', 'German', 'Spanish', 'Latin', 'Greek', 'Psychology', 'Sociology',
-    'Philosophy', 'Literature', 'Creative Writing', 'Statistics', 'Accounting',
-    'Law', 'Medicine', 'Engineering', 'Architecture', 'Design', 'Drama',
-    'Media Studies', 'Politics', 'International Relations', 'Environmental Science'
-  ];
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,12 +57,17 @@ const TutorDashboard = () => {
   const [sessionForm, setSessionForm] = useState({
     student_ids: [], // was student_id
     subject: '',
+    academic_level: '',
     session_date: '',
     duration_hours: 1,
-    hourly_rate: 25,
+    hourly_rate: '',
     notes: ''
   });
   const [selectedStudentSubjects, setSelectedStudentSubjects] = useState([]);
+  const [selectedStudentAcademicLevels, setSelectedStudentAcademicLevels] = useState([]);
+  const [academic_levels, setAcademicLevels] = useState([
+    'Primary', 'Secondary', 'GCSE', 'A-Level', 'University', 'Adult Learner'
+  ]);
 
   const [updateSessionForm, setUpdateSessionForm] = useState({
     student_id: [],
@@ -92,17 +87,10 @@ const TutorDashboard = () => {
 
   const handleViewSession = (session) => {
     setViewSession(session);
-  } 
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-      fetchAvailableStudents();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+  }
 
   const parseField = (field) => {
+    
     if (!field) return [];
 
     // Handle array case like ['["Math","Physics"]']
@@ -112,7 +100,6 @@ const TutorDashboard = () => {
           const parsed = JSON.parse(field[0]);
           return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
-          console.warn(`Failed to parse array field: ${field[0]}`, error);
           return [];
         }
       }
@@ -133,11 +120,41 @@ const TutorDashboard = () => {
         return [];
       }
     }
-
     return [];
   };
+  useEffect(() => {
+    if (user && user._id) {
+      // First fetch dashboard data, then fetch available students
+      const initializeData = async () => {
+        await fetchDashboardData();
+        await fetchAvailableStudents();
+        setSessionForm({
+          student_id: '',
+          subject: '',
+          academic_level: '',
+          session_date: '',
+          duration_hours: 1,
+          hourly_rate: 0, // Will be updated when students are loaded
+        });
+      };
+      initializeData();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+  
+  // Update session form when available students are loaded
+  useEffect(() => {
+    if (availableStudents.length > 0 && !sessionForm.student_id) {
+      setSessionForm(prev => ({
+        ...prev,
+        hourly_rate: availableStudents[0]?.hourly_rate || 0
+      }));
+    }
+  }, [availableStudents]);
 
-  const fetchDashboardData = async () => {
+
+  const fetchDashboardData = useCallback(async () => {
     if (!user) {
       setError('Tutor ID is required');
       setLoading(false);
@@ -159,157 +176,16 @@ const TutorDashboard = () => {
       }
       const data = await response.json();
       setDashboardData(data);
-      setParsedSubjects(parseField(data.tutor.subjects))
+      const parsed = parseField(data.tutor.subjects);
+      setParsedSubjects(parsed);
     } catch (err) {
-      console.error('Dashboard fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, token]);
 
-  const handleCreateSession = async (e) => {
-    e.preventDefault();
-  
-    // Validate student selection
-    if (!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students') {
-      toast({
-        title: "Error",
-        description: "Please select a valid student",
-        variant: "destructive",
-      });
-      return;
-    }
-  
-    try {
-      // Check availability
-      const availabilityResponse = await fetch(
-        `${BASE_URL}/api/tutor/availability/${user?._id}/check?date=${sessionForm.session_date}&duration_minutes=${sessionForm.duration_hours * 60}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-  
-      const availabilityData = await availabilityResponse.json();
-      if (!availabilityData.is_available) {
-        toast({
-          title: "Error",
-          description: "You are not available at the selected time. Please check your availability settings.",
-          variant: "destructive",
-        });
-        return;
-      }
-  
-      // Create session
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...sessionForm,
-          tutor_id: user?._id
-        }),
-      });
-  
-      const responseData = await response.json(); // Parse the response
-  
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to create session');
-      }
-  
-      // Success case
-      setShowCreateSessionModal(false);
-      setSessionForm({
-        student_id: '',
-        subject: '',
-        session_date: '',
-        duration_hours: 1,
-        hourly_rate: 25,
-        notes: ''
-      });
-      fetchDashboardData();
-      
-      toast({
-        title: "Success!",
-        description: "Session created successfully.",
-        variant: "default",
-      });
-  
-    } catch (err) {
-      console.error("Error creating session:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to create session",
-        variant: "destructive",
-      });
-    }
-  };
 
-  const handleUpdateSession = async (e) => {
-    e.preventDefault();
-    
-    try {
-      // Validate required fields
-      if (!updateSessionForm.session_date || !updateSessionForm.duration_hours || !updateSessionForm.hourly_rate) {
-        throw new Error('Date, duration, and rate are required');
-      }
-  
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/${selectedSession._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // Add auth header if needed
-        },
-        body: JSON.stringify({
-          ...updateSessionForm,
-          total_earnings: updateSessionForm.duration_hours * updateSessionForm.hourly_rate
-        }),
-      });
-  
-      const data = await response.json(); // Always parse response
-  
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update session');
-      }
-  
-      // Success case
-      setShowUpdateSessionModal(false);
-      setSelectedSession(null);
-      setUpdateSessionForm({
-        student_id: '',
-        subject: '',
-        session_date: '',
-        duration_hours: '',
-        hourly_rate: '',
-        status: '',
-        rating: '',
-        feedback: '',
-        notes: ''
-      });
-      
-      fetchDashboardData();
-      
-      toast({
-        title: "Success!",
-        description: data.message || "Session updated successfully",
-        variant: "default",
-      });
-  
-    } catch (err) {
-      console.error('Error updating session:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to update session",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleReplyToInquiry = async (e) => {
     e.preventDefault();
@@ -345,54 +221,36 @@ const TutorDashboard = () => {
     }
   };
 
-  const openUpdateSessionModal = (session) => {
-  
-    
-    setSelectedSession(session);
-    
-    // Extract student data from session
-    const sessionStudent = session.student_ids[0]; // Assuming single student for now
-    const studentId = sessionStudent?._id;
-    const studentName = sessionStudent?.user_id?.full_name;
-    
-    
-    setUpdateSessionForm({
-      student_id: [studentId],
-      full_name: [studentName],
-      subject: session.subject,
-      session_date: new Date(session.session_date).toISOString().slice(0, 16),
-      duration_hours: session.duration_hours,
-      hourly_rate: session.hourly_rate,
-      status: session.status,
-      rating: session.rating || '',
-      feedback: session.feedback || '',
-      notes: session.notes || ''
-    });
 
-
-    setShowUpdateSessionModal(true);
-  };
 
   const openReplyModal = (inquiry) => {
     setSelectedInquiry(inquiry);
     setShowReplyModal(true);
   };
 
-  const fetchAvailableStudents = async () => {
+  const fetchAvailableStudents = useCallback(async () => {
+    if (!user?._id) {
+      return;
+    }
+    
     try {
       setLoadingStudents(true);
-      const response = await fetch(`${BASE_URL}/api/tutor/students/${user?._id}`);
+      const response = await fetch(`${BASE_URL}/api/tutor/students/${user._id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }
       const data = await response.json();
-      setAvailableStudents(data.students);
+      setAvailableStudents(data.students || []);
+      if (data.academic_levels && Array.isArray(data.academic_levels)) {
+        setAcademicLevels(data.academic_levels);
+      } else {
+      }
     } catch (err) {
       console.error('Error fetching students:', err);
     } finally {
       setLoadingStudents(false);
     }
-  };
+  }, [user]);
 
   const formatDate = (dateString) => {
     const [datePart, timePart] = dateString.split('T');
@@ -400,9 +258,9 @@ const TutorDashboard = () => {
     const [year, month, day] = datePart.split('-');
     return `${day}-${month}-${year} ${time}`;
   };
-  
+
   // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 09:29"
-  
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -436,7 +294,7 @@ const TutorDashboard = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
           <p className="text-gray-600 mb-4">
             {error === 'Tutor ID is required'
@@ -458,7 +316,7 @@ const TutorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Tutor Dashboard</h1>
@@ -532,7 +390,7 @@ const TutorDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>  
+        </div>
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -627,32 +485,29 @@ const TutorDashboard = () => {
                 <Calendar className="h-5 w-5 mr-2" />
                 Upcoming Sessions
               </div>
-              <Button
-                size="sm"
-                onClick={() => setShowCreateSessionModal(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Create Session
-              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingSessions.length > 0 ? (
               <div className="space-y-4">
                 {upcomingSessions.map((session) => (
+                  console.log('Session:', session),
                   <div key={session._id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
                       <div className="p-2 bg-blue-100 rounded-full">
                         <Clock className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{session.student_ids.map((student, index) => (
+                        <p className="font-medium">{(session.student_ids || []).map((student, index) => (
                           <p key={index} className="text-sm font-semibold">
                             {student.user_id.full_name}
                           </p>
                         ))}</p>
                         <p className="text-sm text-gray-600">{session.subject}</p>
+                        <p className="text-xs text-gray-600">Level: {session.academic_level_name || '—'}</p>
+                        <p className="text-xs text-gray-600">
+                          Duration: {session.duration_hours}h • Rate: {formatCurrency(session.hourly_rate)} • Total: {formatCurrency((session.duration_hours || 0) * (session.hourly_rate || 0))}
+                        </p>
                         <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
                     </div>
@@ -660,15 +515,7 @@ const TutorDashboard = () => {
                       <Badge className={getStatusColor(session.status)}>
                         {session.status}
                       </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openUpdateSessionModal(session)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Update
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={()=>handleViewSession(session)}>
+                      <Button size="sm" variant="outline" onClick={() => handleViewSession(session)}>
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
@@ -678,12 +525,12 @@ const TutorDashboard = () => {
               </div>
             ) : (
               <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Calendar className="h-12 w-12 text-gray-400 mb-4" />
                 <p className="text-gray-500">No upcoming sessions</p>
                 <p className="text-sm text-gray-400 mt-1">Your schedule is clear for now</p>
                 <Button
                   className="mt-4"
-                  onClick={() => setShowCreateSessionModal(true)}
+                  onClick={() => navigate('/tutor/sessions', { state: { action: 'create' } })}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Create Your First Session
@@ -712,7 +559,7 @@ const TutorDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium">
-                          {session.student_ids.map((student, index) => (
+                          {(session.student_ids || []).map((student, index) => (
                             <p key={index} className="text-sm font-semibold">
                               {student.user_id.full_name}
                             </p>
@@ -720,6 +567,10 @@ const TutorDashboard = () => {
                         </p>
 
                         <p className="text-xs text-gray-600">{session.subject}</p>
+                        <p className="text-xs text-gray-600">Level: {session.academic_level_name || '—'}</p>
+                        <p className="text-xs text-gray-600">
+                          Duration: {session.duration_hours}h • Rate: {formatCurrency(session.hourly_rate)} • Total: {formatCurrency((session.duration_hours || 0) * (session.hourly_rate || 0))}
+                        </p>
                         <p className="text-xs text-gray-500">{formatDate(session.session_date)}</p>
                       </div>
                     </div>
@@ -741,457 +592,6 @@ const TutorDashboard = () => {
           </Card>
         )}
       </div>
-
-      {/* Create Session Modal */}
-      {showCreateSessionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Create New Session</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCreateSessionModal(false)}
-          >
-                <XCircle className="h-4 w-4" />
-              </Button>
-            </div>
-            <form onSubmit={handleCreateSession} className="space-y-4">
-              <div>
-                <Label htmlFor="student_id">Select Student</Label>
-                <Select
-                  value={sessionForm.student_id}
-                  onValueChange={(value) => {
-                    const selectedStudent = availableStudents.find(student => student._id === value);
-                    setSessionForm({ ...sessionForm, student_id: value, subject: '' });
-                    if (selectedStudent && selectedStudent.preferred_subjects) {
-                      // Handle both string and array formats for subjects
-                      if (Array.isArray(selectedStudent.preferred_subjects)) {
-                        setSelectedStudentSubjects(selectedStudent.preferred_subjects);
-                      } else if (typeof selectedStudent.preferred_subjects === 'string') {
-                        setSelectedStudentSubjects([selectedStudent.preferred_subjects]);
-                      } else {
-                        setSelectedStudentSubjects([]);
-                      }
-                    } else {
-                      setSelectedStudentSubjects([]);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a student" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingStudents ? (
-                      <SelectItem value="loading" disabled>Loading students...</SelectItem>
-                    ) : availableStudents.length > 0 ? (
-                      availableStudents.map((student) => (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.full_name} 
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-students" disabled>No students available</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="subject">Subject</Label>
-                <Select
-                  value={sessionForm.subject}
-                  onValueChange={(value) => setSessionForm({ ...sessionForm, subject: value })}
-                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={sessionForm.student_id ? "Select subject" : "Select a student first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedStudentSubjects.length > 0 && (
-                      <>
-                        {selectedStudentSubjects.map((subject) => (
-                          <SelectItem key={subject} value={subject}>
-                            {subject}
-                          </SelectItem>
-                        ))}
-                      </>
-                    )}
-                    
-                    {/* Show tutor's subjects if available */}
-                    {parsed_subjects && parsed_subjects.length > 0 && (
-                      <>
-                        {parsed_subjects.map((subject) => (
-                          <SelectItem key={subject} value={subject}>
-                            {subject}
-                          </SelectItem>
-                        ))}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="session_date">Session Date & Time</Label>
-                <Input
-                  id="session_date"
-                  type="datetime-local"
-                  value={sessionForm.session_date}
-                  onChange={(e) => setSessionForm({ ...sessionForm, session_date: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="duration_hours">Duration (hours)</Label>
-                <Select
-                  value={sessionForm.duration_hours.toString()}
-                  onValueChange={(value) => setSessionForm({ ...sessionForm, duration_hours: parseFloat(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0.5">30 minutes</SelectItem>
-                    <SelectItem value="1">1 hour</SelectItem>
-                    <SelectItem value="1.5">1.5 hours</SelectItem>
-                    <SelectItem value="2">2 hours</SelectItem>
-                    <SelectItem value="2.5">2.5 hours</SelectItem>
-                    <SelectItem value="3">3 hours</SelectItem>
-                    <SelectItem value="3.5">3.5 hours</SelectItem>
-                    <SelectItem value="4">4 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="hourly_rate">Hourly Rate (£)</Label>
-                <Select
-                  value={sessionForm.hourly_rate.toString()}
-                  onValueChange={(value) => setSessionForm({ ...sessionForm, hourly_rate: parseFloat(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select hourly rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">£15</SelectItem>
-                    <SelectItem value="20">£20</SelectItem>
-                    <SelectItem value="25">£25</SelectItem>
-                    <SelectItem value="30">£30</SelectItem>
-                    <SelectItem value="35">£35</SelectItem>
-                    <SelectItem value="40">£40</SelectItem>
-                    <SelectItem value="45">£45</SelectItem>
-                    <SelectItem value="50">£50</SelectItem>
-                    <SelectItem value="60">£60</SelectItem>
-                    <SelectItem value="75">£75</SelectItem>
-                    <SelectItem value="100">£100</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={sessionForm.notes}
-                  onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
-                  rows={3}
-                  placeholder="Add any additional notes about the session..."
-                />
-              </div>
-
-              {/* Total Earnings Display */}
-              {sessionForm.duration_hours && sessionForm.hourly_rate && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
-                  <p className="text-lg font-semibold text-green-600">
-                    £{(sessionForm.duration_hours * sessionForm.hourly_rate).toFixed(2)}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex space-x-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateSessionModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={!sessionForm.student_id || sessionForm.student_id === 'loading' || sessionForm.student_id === 'no-students'}
-                >
-                  Create Session
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Update Session Modal */}
-      {showUpdateSessionModal && selectedSession && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Update Session</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowUpdateSessionModal(false)}
-              >
-                <XCircle className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <form onSubmit={handleUpdateSession} className="space-y-4">
-              {/* Student Selection */}
-              <div>
-                <Label htmlFor="full_name">Student</Label>
-                <Select
-                  value={updateSessionForm.student_id[0] || ""}
-                  onValueChange={(value) => {
-                    const selectedStudent = availableStudents.find(student => student._id === value);
-                    setUpdateSessionForm({ 
-                      ...updateSessionForm, 
-                      student_id: [value],
-                      full_name: selectedStudent ? [selectedStudent.full_name] : []
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select student">
-                      {updateSessionForm.full_name[0] || "Select student"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Add current session student if not in available students */}
-                    {updateSessionForm.student_id[0] && 
-                     !availableStudents.find(s => s._id === updateSessionForm.student_id[0]) && (
-                      <SelectItem value={updateSessionForm.student_id[0]}>
-                        {updateSessionForm.full_name[0]} (Current)
-                      </SelectItem>
-                    )}
-                    {availableStudents.map((student) => {
-                      return (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.full_name}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Subject Selection */}
-              <div>
-                <Label htmlFor="subject">Subject</Label>
-                <Select
-                  value={updateSessionForm.subject}
-                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, subject: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Show current session subject first */}
-                    {updateSessionForm.subject && (
-                      <>
-                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100">
-                          Current Subject
-                        </div>
-                        <SelectItem value={updateSessionForm.subject}>
-                          {updateSessionForm.subject}
-                        </SelectItem>
-                        <div className="border-t my-1"></div>
-                      </>
-                    )}
-                    
-                    {/* Show tutor's subjects if available */}
-                    {dashboardData?.tutor?.subjects && dashboardData.tutor.subjects.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100">
-                          Your Teaching Subjects
-                        </div>
-                        {dashboardData.tutor.subjects.map((subject) => (
-                          <SelectItem key={subject} value={subject}>
-                            {subject}
-                          </SelectItem>
-                        ))}
-                        <div className="border-t my-1"></div>
-                      </>
-                    )}
-                    
-                    {/* Show all common subjects */}
-                    <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100">
-                      All Available Subjects
-                    </div>
-                    {commonSubjects.map((subject) => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Session Date & Time */}
-              <div>
-                <Label htmlFor="session_date">Session Date & Time</Label>
-                <Input
-                  id="session_date"
-                  type="datetime-local"
-                  value={updateSessionForm.session_date}
-                  onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
-                  required
-                />
-              </div>
-
-              {/* Duration */}
-              <div>
-                <Label htmlFor="duration_hours">Duration (hours)</Label>
-                <Select
-                  value={updateSessionForm.duration_hours.toString()}
-                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, duration_hours: parseFloat(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0.5">30 minutes</SelectItem>
-                    <SelectItem value="1">1 hour</SelectItem>
-                    <SelectItem value="1.5">1.5 hours</SelectItem>
-                    <SelectItem value="2">2 hours</SelectItem>
-                    <SelectItem value="2.5">2.5 hours</SelectItem>
-                    <SelectItem value="3">3 hours</SelectItem>
-                    <SelectItem value="3.5">3.5 hours</SelectItem>
-                    <SelectItem value="4">4 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Hourly Rate */}
-              <div>
-                <Label htmlFor="hourly_rate">Hourly Rate (£)</Label>
-                <Select
-                  value={updateSessionForm.hourly_rate.toString()}
-                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, hourly_rate: parseFloat(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select hourly rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">£15</SelectItem>
-                    <SelectItem value="20">£20</SelectItem>
-                    <SelectItem value="25">£25</SelectItem>
-                    <SelectItem value="30">£30</SelectItem>
-                    <SelectItem value="35">£35</SelectItem>
-                    <SelectItem value="40">£40</SelectItem>
-                    <SelectItem value="45">£45</SelectItem>
-                    <SelectItem value="50">£50</SelectItem>
-                    <SelectItem value="60">£60</SelectItem>
-                    <SelectItem value="75">£75</SelectItem>
-                    <SelectItem value="100">£100</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Status */}
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={updateSessionForm.status}
-                  onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={updateSessionForm.notes}
-                  onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, notes: e.target.value })}
-                  rows={3}
-                  placeholder="Add any additional notes about the session..."
-                />
-              </div>
-
-              {/* Rating and Feedback (only for completed sessions) */}
-              {updateSessionForm.status === 'completed' && (
-                <>
-                  <div>
-                    <Label htmlFor="rating">Rating (1-5)</Label>
-                    <Select
-                      value={updateSessionForm.rating.toString()}
-                      onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, rating: parseFloat(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select rating" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Poor</SelectItem>
-                        <SelectItem value="2">2 - Fair</SelectItem>
-                        <SelectItem value="3">3 - Good</SelectItem>
-                        <SelectItem value="4">4 - Very Good</SelectItem>
-                        <SelectItem value="5">5 - Excellent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="feedback">Feedback</Label>
-                    <Textarea
-                      id="feedback"
-                      value={updateSessionForm.feedback}
-                      onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, feedback: e.target.value })}
-                      rows={3}
-                      placeholder="Add feedback about the session..."
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Total Earnings Display */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
-                <p className="text-lg font-semibold text-green-600">
-                  £{(updateSessionForm.duration_hours * updateSessionForm.hourly_rate).toFixed(2)}
-                </p>
-              </div>
-
-              <div className="flex space-x-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowUpdateSessionModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1">
-                  Update Session
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Reply to Inquiry Modal */}
       {showReplyModal && selectedInquiry && (
@@ -1310,6 +710,12 @@ const TutorDashboard = () => {
                       </p>
                     </div>
                   ))}
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-600">Academic Level</Label>
+                    <p className="text-lg font-semibold">
+                      {viewSession.academic_level_name || '—'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1370,28 +776,6 @@ const TutorDashboard = () => {
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex space-x-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setViewSession(null)}
-                  className="flex-1"
-                >
-                  Close
-                </Button>
-                {viewSession.status !== 'completed' && (
-                  <Button
-                    onClick={() => {
-                      setViewSession(null);
-                      openUpdateSessionModal(viewSession);
-                    }}
-                    className="flex-1"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Session
-                  </Button>
-                )}
-              </div>
             </div>
           </div>
         </div>

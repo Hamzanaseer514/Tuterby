@@ -19,6 +19,11 @@ const tutoringSessionSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  academic_level: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'EducationLevel',
+    required: true
+  },
   duration_hours: {
     type: Number,
     required: true,

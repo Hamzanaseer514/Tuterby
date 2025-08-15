@@ -259,7 +259,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
           variant={!user || user.role !== 'student' ? 'outlined' : 'contained'}
           fullWidth
           onClick={() => onHire(tutor)}
-          disabled={loading}
+          // disabled={loading}
           sx={{
             borderRadius: 2,
             textTransform: 'none',
@@ -282,7 +282,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
           }}
         >
           {loading ? 'Processing...' : 
-            !user ? 'Login to Hire' : 
+            !user ? 'Hire This Tutor' : 
             user.role !== 'student' ? 'Students Only' : 
             'Hire This Tutor'
           }
@@ -707,7 +707,7 @@ const Tutors = () => {
       )}
 
       {/* Call to Action */}
-      {filteredTutors.length > 0 && (
+      {/* {filteredTutors.length > 0 && (
         <Box sx={{ 
           textAlign: 'center', 
           mt: 6,
@@ -741,7 +741,7 @@ const Tutors = () => {
             Explore Subjects
           </Button>
         </Box>
-      )}
+      )} */}
 
       {/* Snackbar for notifications */}
       <Snackbar

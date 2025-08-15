@@ -428,16 +428,17 @@ const UserTable = ({
         component={Paper}
         elevation={0}
         sx={{
-          borderRadius: 2,
+          borderRadius: 3,
           border: '1px solid',
           borderColor: 'divider',
           overflow: 'hidden',
-          backgroundColor: 'background.paper'
+          bgcolor: 'background.paper',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
         }}
       >
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'background.default' }}>
+            <TableRow sx={{ bgcolor: 'background.default' }}>
               {getTableHeaders().map((header) => (
                 <TableCell
                   key={header}
@@ -446,7 +447,8 @@ const UserTable = ({
                     color: 'text.primary',
                     borderBottom: '2px solid',
                     borderColor: 'divider',
-                    py: 1.5
+                    py: 1.5,
+                    letterSpacing: 0.2
                   }}
                 >
                   {header}

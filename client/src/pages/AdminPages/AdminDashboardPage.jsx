@@ -15,7 +15,11 @@ import {
   useMediaQuery,
   Divider,
   Avatar,
-  LinearProgress
+  LinearProgress,
+  IconButton,
+  Menu,
+  MenuItem,
+  Stack
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -34,11 +38,17 @@ import {
   MoreVert,
   CheckCircle,
   PendingActions,
-  Cancel
+  Cancel,
+  ArrowRightAlt,
+  Notifications,
+  Email,
+  Forum,
+  Receipt
 } from '@mui/icons-material';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 import { Link } from 'react-router-dom';
 import { getDashboardStats } from '../../services/adminService';
+import { DoughnutChart, LineChart } from '../../components/admin/components/Charts';
 
 // Theme colors
 const statusColors = {
@@ -50,26 +60,6 @@ const statusColors = {
   inactive: 'default'
 };
 
-// Mock data for development
-const getMockDashboardStats = () => ({
-  totalUsers: 1243,
-  activeUsers: 987,
-  totalSessions: 3245,
-  revenue: 45230,
-  tutors: { total: 145, pending: 23, verified: 122 },
-  students: { total: 878, active: 765 },
-  parents: { total: 220, active: 198 },
-  sessions: { total: 3245, thisMonth: 489, lastMonth: 376, change: 30 },
-  revenue: { total: 45230, thisMonth: 12800, lastMonth: 10200, change: 25 },
-  recentActivities: [
-    { id: 1, user: 'John Smith', action: 'New tutor registration', time: '2 mins ago', status: 'pending' },
-    { id: 2, user: 'Sarah Johnson', action: 'Completed profile verification', time: '15 mins ago', status: 'verified' },
-    { id: 3, user: 'Michael Brown', action: 'Scheduled new session', time: '1 hour ago', status: 'active' },
-    { id: 4, user: 'Emily Davis', action: 'Payment received', time: '3 hours ago', status: 'completed' },
-    { id: 5, user: 'Robert Wilson', action: 'Account deactivated', time: '5 hours ago', status: 'inactive' }
-  ]
-});
-
 const StatCard = ({ 
   title, 
   value, 
@@ -78,7 +68,7 @@ const StatCard = ({
   trendValue, 
   loading, 
   index, 
-  color = 'primary.main',
+  color = 'primary',
   link 
 }) => {
   const theme = useTheme();
@@ -90,7 +80,8 @@ const StatCard = ({
         <Card elevation={0} sx={{ 
           height: '100%',
           borderRadius: 3,
-          background: theme.palette.background.paper
+          background: theme.palette.background.paper,
+          boxShadow: theme.shadows[1]
         }}>
           <CardContent>
             <Skeleton variant="text" width="60%" height={24} />
@@ -119,17 +110,18 @@ const StatCard = ({
             height: '100%',
             borderRadius: 3,
             background: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.divider}`,
+            boxShadow: theme.shadows[1],
             transition: 'all 0.3s ease',
             textDecoration: 'none',
+            borderLeft: `4px solid ${theme.palette[color].main}`,
             '&:hover': {
               transform: 'translateY(-4px)',
               boxShadow: theme.shadows[4],
-              borderColor: theme.palette[color.split('.')[0]].main
+              backgroundColor: theme.palette[color].lightest
             }
           }}
         >
-          <CardContent>
+          <CardContent sx={{ p: 3 }}>
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -138,7 +130,7 @@ const StatCard = ({
             }}>
               <Typography 
                 variant="subtitle2" 
-                color="textSecondary" 
+                color="text.secondary" 
                 fontWeight="medium"
                 sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
               >
@@ -151,8 +143,8 @@ const StatCard = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: theme.palette[color.split('.')[0]].light,
-                color: theme.palette[color.split('.')[0]].main
+                backgroundColor: theme.palette[color].light,
+                color: theme.palette[color].main
               }}>
                 <Icon fontSize="small" />
               </Box>
@@ -161,7 +153,7 @@ const StatCard = ({
             <Typography 
               variant="h4" 
               fontWeight="bold" 
-              color="textPrimary" 
+              color="text.primary" 
               sx={{ mb: 1 }}
             >
               {value}
@@ -185,11 +177,11 @@ const StatCard = ({
                 {trendValue}
               </Typography>
               <Typography 
-                variant="body2" 
-                color="textSecondary"
+                variant="caption" 
+                color="text.secondary"
                 sx={{ ml: 1 }}
               >
-                {trend === 'up' ? 'vs last month' : 'vs last month'}
+                vs last month
               </Typography>
             </Box>
           </CardContent>
@@ -228,6 +220,10 @@ const ActivityItem = ({ user, action, time, status, loading }) => {
       display: 'flex', 
       alignItems: 'center', 
       py: 2,
+      transition: 'all 0.2s',
+      '&:hover': {
+        backgroundColor: theme.palette.action.hover
+      },
       '&:not(:last-child)': {
         borderBottom: `1px solid ${theme.palette.divider}`
       }
@@ -245,12 +241,12 @@ const ActivityItem = ({ user, action, time, status, loading }) => {
         <Typography variant="subtitle2" fontWeight="medium">
           {user}
         </Typography>
-        <Typography variant="body2" color="textSecondary">
+        <Typography variant="body2" color="text.secondary">
           {action}
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Typography variant="caption" color="textSecondary" sx={{ mr: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
           {time}
         </Typography>
         {statusIcons[status]}
@@ -294,60 +290,85 @@ const AdminDashboardPage = () => {
       }));
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
-      
-      if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
-        setDashboardState(prev => ({
-          ...prev,
-          error: 'Access denied. Please login with admin credentials.',
-          loading: false
-        }));
-      } else {
-        // Load mock data as fallback
-        const statsData = getMockDashboardStats();
-        setDashboardState(prev => ({
-          ...prev,
-          stats: statsData,
-          loading: false
-        }));
-      }
+      setDashboardState(prev => ({
+        ...prev,
+        error: error.message,
+        loading: false
+      }));
     }
   };
+
+  // Mock data for demo purposes
+  const mockStats = {
+    totalUsers: 1243,
+    activeUsers: 987,
+    totalSessions: 3245,
+    revenue: 45230,
+    tutors: { total: 145, pending: 23, verified: 122 },
+    students: { total: 878, active: 765 },
+    parents: { total: 220, active: 198 },
+    sessions: { total: 3245, thisMonth: 489, lastMonth: 376, change: 30 },
+    revenue: { total: 45230, thisMonth: 12800, lastMonth: 10200, change: 25 },
+    recentActivities: [
+      { id: 1, user: 'John Smith', action: 'New tutor registration', time: '2 mins ago', status: 'pending' },
+      { id: 2, user: 'Sarah Johnson', action: 'Completed profile verification', time: '15 mins ago', status: 'verified' },
+      { id: 3, user: 'Michael Brown', action: 'Scheduled new session', time: '1 hour ago', status: 'active' },
+      { id: 4, user: 'Emily Davis', action: 'Payment received', time: '3 hours ago', status: 'completed' },
+      { id: 5, user: 'Robert Wilson', action: 'Account deactivated', time: '5 hours ago', status: 'inactive' }
+    ],
+    userDistribution: {
+      tutors: 145,
+      students: 878,
+      parents: 220
+    },
+    revenueData: [
+      { month: 'Jan', revenue: 4000 },
+      { month: 'Feb', revenue: 3000 },
+      { month: 'Mar', revenue: 6000 },
+      { month: 'Apr', revenue: 8000 },
+      { month: 'May', revenue: 5000 },
+      { month: 'Jun', revenue: 10000 },
+      { month: 'Jul', revenue: 12800 }
+    ]
+  };
+
+  const stats = dashboardState.loading ? mockStats : dashboardState.stats;
 
   const statCards = [
     {
       title: 'Total Tutors',
-      value: dashboardState.stats.tutors?.total || 0,
+      value: stats.tutors?.total || 0,
       icon: School,
-      color: 'primary.main',
-      trend: dashboardState.stats.tutors?.verified > 60 ? 'up' : 'down',
-      trendValue: `${Math.round(((dashboardState.stats.tutors?.verified || 0) / (dashboardState.stats.tutors?.total || 1)) * 100)}%`,
-      link: '/admin/users'
+      color: 'primary',
+      trend: stats.tutors?.verified > 60 ? 'up' : 'down',
+      trendValue: `${Math.round(((stats.tutors?.verified || 0) / (stats.tutors?.total || 1)) * 100)}%`,
+      link: '/admin/tutors'
     },
     {
       title: 'Active Students',
-      value: dashboardState.stats.students?.active || 0,
+      value: stats.students?.active || 0,
       icon: Person,
-      color: 'success.main',
+      color: 'success',
       trend: 'up',
       trendValue: '+12%',
-      link: '/admin/users'
+      link: '/admin/students'
     },
     {
       title: 'Engaged Parents',
-      value: dashboardState.stats.parents?.active || 0,
+      value: stats.parents?.active || 0,
       icon: ContactMail,
-      color: 'info.main',
+      color: 'info',
       trend: 'up',
       trendValue: '+8%',
-      link: '/admin/users'
+      link: '/admin/parents'
     },
     {
       title: 'Monthly Sessions',
-      value: dashboardState.stats.sessions?.thisMonth || 0,
+      value: stats.sessions?.thisMonth || 0,
       icon: CalendarToday,
-      color: 'secondary.main',
-      trend: dashboardState.stats.sessions?.change > 0 ? 'up' : 'down',
-      trendValue: `${dashboardState.stats.sessions?.change || 0}%`,
+      color: 'secondary',
+      trend: stats.sessions?.change > 0 ? 'up' : 'down',
+      trendValue: `${stats.sessions?.change || 0}%`,
       link: '/admin/sessions'
     }
   ];
@@ -355,25 +376,36 @@ const AdminDashboardPage = () => {
   const performanceCards = [
     {
       title: 'Total Revenue',
-      value: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()}`,
+      value: `$${(stats.revenue?.total || 0).toLocaleString()}`,
       icon: MonetizationOn,
-      color: 'warning.main',
-      trend: dashboardState.stats.revenue?.change > 0 ? 'up' : 'down',
-      trendValue: `${dashboardState.stats.revenue?.change || 0}%`,
+      color: 'warning',
+      trend: stats.revenue?.change > 0 ? 'up' : 'down',
+      trendValue: `${stats.revenue?.change || 0}%`,
       progress: 75,
       link: '/admin/finance'
     },
     {
       title: 'Active Users',
-      value: dashboardState.stats.activeUsers || 0,
+      value: stats.activeUsers || 0,
       icon: People,
-      color: 'success.main',
+      color: 'success',
       trend: 'up',
       trendValue: '+5%',
-      progress: Math.round(((dashboardState.stats.activeUsers || 0) / (dashboardState.stats.totalUsers || 1)) * 100),
+      progress: Math.round(((stats.activeUsers || 0) / (stats.totalUsers || 1)) * 100),
       link: '/admin/users'
     }
   ];
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   return (
     <AdminLayout tabValue="dashboard">
@@ -410,7 +442,7 @@ const AdminDashboardPage = () => {
                   <Typography variant="h5" fontWeight="bold">
                     Dashboard Overview
                   </Typography>
-                  <Typography variant="body2" color="textSecondary">
+                  <Typography variant="body2" color="text.secondary">
                     {new Date().toLocaleDateString('en-US', { 
                       weekday: 'long', 
                       year: 'numeric', 
@@ -434,7 +466,7 @@ const AdminDashboardPage = () => {
                     px: 3
                   }}
                 >
-                  Refresh
+                  Refresh Data
                 </Button>
               </Box>
             </Box>
@@ -464,13 +496,13 @@ const AdminDashboardPage = () => {
                         height: '100%',
                         borderRadius: 3,
                         background: theme.palette.background.paper,
-                        border: `1px solid ${theme.palette.divider}`,
+                        boxShadow: theme.shadows[1],
                         transition: 'all 0.3s ease',
                         textDecoration: 'none',
                         '&:hover': {
                           transform: 'translateY(-4px)',
                           boxShadow: theme.shadows[4],
-                          borderColor: theme.palette[card.color.split('.')[0]].main
+                          backgroundColor: theme.palette[card.color].lightest
                         }
                       }}
                     >
@@ -483,7 +515,7 @@ const AdminDashboardPage = () => {
                         }}>
                           <Typography 
                             variant="subtitle2" 
-                            color="textSecondary" 
+                            color="text.secondary" 
                             fontWeight="medium"
                             sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
                           >
@@ -496,8 +528,8 @@ const AdminDashboardPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            backgroundColor: theme.palette[card.color.split('.')[0]].light,
-                            color: theme.palette[card.color.split('.')[0]].main
+                            backgroundColor: theme.palette[card.color].light,
+                            color: theme.palette[card.color].main
                           }}>
                             <card.icon fontSize="small" />
                           </Box>
@@ -506,7 +538,7 @@ const AdminDashboardPage = () => {
                         <Typography 
                           variant="h4" 
                           fontWeight="bold" 
-                          color="textPrimary" 
+                          color="text.primary" 
                           sx={{ mb: 1 }}
                         >
                           {card.value}
@@ -538,7 +570,7 @@ const AdminDashboardPage = () => {
                             backgroundColor: theme.palette.grey[200],
                             '& .MuiLinearProgress-bar': {
                               borderRadius: 4,
-                              backgroundColor: theme.palette[card.color.split('.')[0]].main
+                              backgroundColor: theme.palette[card.color].main
                             }
                           }} 
                         />
@@ -549,9 +581,9 @@ const AdminDashboardPage = () => {
               ))}
             </Grid>
 
-            {/* Recent Activity and Stats Section */}
+            {/* Charts and Recent Activity Section */}
             <Grid container spacing={3}>
-              {/* Recent Activity */}
+              {/* User Distribution Chart */}
               <Grid item xs={12} md={6}>
                 <Card 
                   elevation={0}
@@ -559,14 +591,84 @@ const AdminDashboardPage = () => {
                     height: '100%',
                     borderRadius: 3,
                     background: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`
+                    boxShadow: theme.shadows[1]
                   }}
                 >
-             
+                  <CardContent>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      mb: 3
+                    }}>
+                      <Typography variant="h6" fontWeight="bold">
+                        User Distribution
+                      </Typography>
+                      <IconButton size="small" onClick={handleClick}>
+                        <MoreVert />
+                      </IconButton>
+                      <Menu
+                        anchorEl={anchorEl}
+                        open={open}
+                        onClose={handleClose}
+                      >
+                        <MenuItem onClick={handleClose}>View Details</MenuItem>
+                        <MenuItem onClick={handleClose}>Download Data</MenuItem>
+                      </Menu>
+                    </Box>
+                    <Box sx={{ height: 300 }}>
+                      <DoughnutChart 
+                        data={{
+                          labels: ['Tutors', 'Students', 'Parents'],
+                          datasets: [
+                            {
+                              data: [
+                                stats.userDistribution?.tutors || 0,
+                                stats.userDistribution?.students || 0,
+                                stats.userDistribution?.parents || 0
+                              ],
+                              backgroundColor: [
+                                theme.palette.primary.main,
+                                theme.palette.success.main,
+                                theme.palette.info.main
+                              ],
+                              borderWidth: 0
+                            }
+                          ]
+                        }} 
+                      />
+                    </Box>
+                    <Stack direction="row" spacing={2} justifyContent="center" mt={2}>
+                      <Chip 
+                        label={`Tutors: ${stats.userDistribution?.tutors || 0}`} 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: theme.palette.primary.light,
+                          color: theme.palette.primary.main
+                        }} 
+                      />
+                      <Chip 
+                        label={`Students: ${stats.userDistribution?.students || 0}`} 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: theme.palette.success.light,
+                          color: theme.palette.success.main
+                        }} 
+                      />
+                      <Chip 
+                        label={`Parents: ${stats.userDistribution?.parents || 0}`} 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: theme.palette.info.light,
+                          color: theme.palette.info.main
+                        }} 
+                      />
+                    </Stack>
+                  </CardContent>
                 </Card>
               </Grid>
               
-              {/* Platform Stats */}
+              {/* Revenue Trend Chart */}
               <Grid item xs={12} md={6}>
                 <Card 
                   elevation={0}
@@ -574,11 +676,163 @@ const AdminDashboardPage = () => {
                     height: '100%',
                     borderRadius: 3,
                     background: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`
+                    boxShadow: theme.shadows[1]
                   }}
                 >
-                
+                  <CardContent>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      mb: 3
+                    }}>
+                      <Typography variant="h6" fontWeight="bold">
+                        Revenue Trend
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        endIcon={<ArrowRightAlt />}
+                        component={Link}
+                        to="/admin/finance"
+                      >
+                        View All
+                      </Button>
+                    </Box>
+                    <Box sx={{ height: 300 }}>
+                      <LineChart 
+                        data={{
+                          labels: stats.revenueData?.map(item => item.month) || [],
+                          datasets: [
+                            {
+                              label: 'Revenue',
+                              data: stats.revenueData?.map(item => item.revenue) || [],
+                              borderColor: theme.palette.warning.main,
+                              backgroundColor: theme.palette.warning.light,
+                              tension: 0.3,
+                              fill: true
+                            }
+                          ]
+                        }} 
+                      />
+                    </Box>
+                  </CardContent>
                 </Card>
+              </Grid>
+            </Grid>
+
+            {/* Recent Activity Section */}
+            <Grid container spacing={3} sx={{ mt: 0 }}>
+              <Grid item xs={12}>
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    borderRadius: 3,
+                    background: theme.palette.background.paper,
+                    boxShadow: theme.shadows[1]
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      mb: 3
+                    }}>
+                      <Typography variant="h6" fontWeight="bold">
+                        Recent Activities
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        endIcon={<ArrowRightAlt />}
+                        component={Link}
+                        to="/admin/activities"
+                      >
+                        View All
+                      </Button>
+                    </Box>
+                    
+                    <Box>
+                      {dashboardState.loading ? (
+                        Array(5).fill().map((_, index) => (
+                          <ActivityItem key={index} loading />
+                        ))
+                      ) : (
+                        stats.recentActivities?.map((activity, index) => (
+                          <ActivityItem
+                            key={index}
+                            user={activity.user}
+                            action={activity.action}
+                            time={activity.time}
+                            status={activity.status}
+                          />
+                        ))
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            {/* Quick Actions */}
+            <Grid container spacing={3} sx={{ mt: 0 }}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                  Quick Actions
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6} sm={3}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      startIcon={<Email />}
+                      component={Link}
+                      to="/admin/messages"
+                      sx={{ py: 2, borderRadius: 2 }}
+                    >
+                      Send Message
+                    </Button>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<Notifications />}
+                      component={Link}
+                      to="/admin/notifications"
+                      sx={{ py: 2, borderRadius: 2 }}
+                    >
+                      Create Alert
+                    </Button>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="info"
+                      startIcon={<Forum />}
+                      component={Link}
+                      to="/admin/support"
+                      sx={{ py: 2, borderRadius: 2 }}
+                    >
+                      Support Tickets
+                    </Button>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="warning"
+                      startIcon={<Receipt />}
+                      component={Link}
+                      to="/admin/invoices"
+                      sx={{ py: 2, borderRadius: 2 }}
+                    >
+                      Generate Invoice
+                    </Button>
+                  </Grid>
+                </Grid>
               </Grid>
             </Grid>
 

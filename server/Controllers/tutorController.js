@@ -52,8 +52,36 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
         select: 'full_name email'
       }
     })
+    .populate({ path: 'academic_level', select: 'level' })
     .sort({ session_date: 1 })
     .limit(10);
+
+
+  const academicLevelIds = upcomingSessions
+    .flatMap(s => s.student_ids.map(st => st.academic_level))
+    .filter(Boolean);
+
+  const educationLevels = await EducationLevel.find({ _id: { $in: academicLevelIds } });
+
+  const sessionsWithLevelNames = upcomingSessions.map(s => {
+    // Ensure session is a plain object
+    const sObj = typeof s.toObject === 'function' ? s.toObject() : s;
+
+    sObj.student_ids = (sObj.student_ids || []).map(st => {
+      // Ensure student is a plain object
+      const stObj = typeof st.toObject === 'function' ? st.toObject() : st;
+
+      stObj.academic_level_name = educationLevels.find(
+        el => el._id.toString() === stObj.academic_level
+      )?.level || null;
+
+      return stObj;
+    });
+
+    return sObj;
+  });
+
+
 
   const pendingInquiries = await TutorInquiry.find({
     tutor_id: tutor._id,
@@ -75,11 +103,9 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   })
     .populate({
       path: 'student_ids',
-      populate: {
-        path: 'user_id',
-        select: 'full_name email'
-      }
+      populate: { path: 'user_id', select: 'full_name email' }
     })
+    .populate({ path: 'academic_level', select: 'level' })
     .sort({ session_date: -1 })
     .limit(5);
 
@@ -110,17 +136,36 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
   const students = await StudentProfile.find({ _id: { $in: studentObjectIds } });
   const students_ids = students.map(student => student.user_id);
   const users = await User.find({ _id: students_ids });
-  
-  // ✅ Ensure session_date is returned exactly in ISO format without timezone shift
+
+  // ✅ Ensure session objects are preserved and session_date is ISO string
   const formatSessions = (sessions) => {
-    return sessions.map(s => ({
-      ...s.toObject(),
-      session_date: s.session_date ? s.session_date.toISOString() : null
-    }));
+    return sessions.map((s) => {
+      const o = typeof s.toObject === 'function' ? s.toObject() : s;
+      // If academic_level is an ObjectId string, resolve name from preloaded levels
+      let academic_level_name = null;
+      if (o.academic_level && typeof o.academic_level === 'string') {
+        const looksLikeObjectId = /^[a-fA-F0-9]{24}$/.test(o.academic_level);
+        if (looksLikeObjectId) {
+          const match = educationLevels.find(el => el._id.toString() === o.academic_level);
+          academic_level_name = match ? match.level : null;
+        } else {
+          // Backward compatibility: old sessions stored the level name directly
+          academic_level_name = o.academic_level;
+        }
+      } else if (o.academic_level && typeof o.academic_level === 'object' && o.academic_level.level) {
+        academic_level_name = o.academic_level.level;
+        o.academic_level = o.academic_level._id?.toString?.() || o.academic_level; // normalize to id for client if needed
+      }
+      return {
+        ...o,
+        session_date: o.session_date ? new Date(o.session_date).toISOString() : null,
+        academic_level_name,
+      };
+    });
   };
 
   const dashboard = {
-    upcomingSessions: formatSessions(upcomingSessions),
+    upcomingSessions: formatSessions(sessionsWithLevelNames),
     recentSessions: formatSessions(recentSessions),
     tutor,
     pendingInquiries,
@@ -154,14 +199,12 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 };
 
 // Create a new tutoring session
-// Create a new tutoring session
 const createSession = asyncHandler(async (req, res) => {
-  const { tutor_id, student_id, subject, session_date, duration_hours, hourly_rate, notes } = req.body;
+  const { tutor_id, student_id, subject, academic_level, session_date, duration_hours, hourly_rate, notes } = req.body;
 
-  if (!tutor_id || !student_id || !subject || !session_date || !duration_hours || !hourly_rate) {
+  if (!tutor_id || !student_id || !subject || !session_date || !duration_hours || !hourly_rate || !academic_level) {
     return res.status(400).json({ message: "All required fields must be provided" });
   }
-
   let sessionDateExactUTC;
   if (typeof session_date === 'string') {
     // Force interpret as UTC to prevent timezone shift
@@ -176,6 +219,11 @@ const createSession = asyncHandler(async (req, res) => {
   // Fetch profiles
   const student = await StudentProfile.findOne({ user_id: student_id });
   const tutor = await TutorProfile.findOne({ user_id: tutor_id });
+  const tutor_total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id });
+  const allowed_session =tutor.academic_levels_taught.find(level => level.educationLevel.toString() === academic_level.toString());
+  if(tutor_total_sessions >= allowed_session.totalSessionsPerMonth){
+    return res.status(400).json({ message: `You have reached the maximum number ${allowed_session.totalSessionsPerMonth} of sessions for this academic level for this month` });
+  }
 
   if (!student || !tutor) {
     return res.status(404).json({ message: "Student or tutor profile not found" });
@@ -217,10 +265,11 @@ const createSession = asyncHandler(async (req, res) => {
     tutor_id: tutor._id,
     student_ids: [student._id],
     subject,
+    academic_level: new mongoose.Types.ObjectId(academic_level),
     session_date: sessionDateExactUTC, // exact time from frontend
     duration_hours,
-    hourly_rate,
-    total_earnings: duration_hours * hourly_rate,
+    hourly_rate: hourly_rate[0],
+    total_earnings: duration_hours * hourly_rate[0],
     notes: notes || "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
@@ -237,6 +286,7 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
   const {
     student_id,
     subject,
+    academic_level,
     session_date,
     duration_hours,
     hourly_rate,
@@ -299,14 +349,38 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
 
     // Store old duration for tutor hours update
     const oldDuration = session.duration_hours;
-    const total_earnings = duration_hours * hourly_rate;
+
+    // Normalize academic_level: accept ObjectId string, populated object, or legacy name
+    let normalizedAcademicLevel = session.academic_level;
+    if (academic_level !== undefined && academic_level !== null && academic_level !== '') {
+      if (typeof academic_level === 'object' && academic_level._id) {
+        normalizedAcademicLevel = new mongoose.Types.ObjectId(academic_level._id);
+      } else if (typeof academic_level === 'string') {
+        const isObjectId = /^[a-fA-F0-9]{24}$/.test(academic_level);
+        if (isObjectId) {
+          normalizedAcademicLevel = new mongoose.Types.ObjectId(academic_level);
+        } else {
+          const foundLevel = await EducationLevel.findOne({ level: academic_level });
+          if (foundLevel) {
+            normalizedAcademicLevel = foundLevel._id;
+          }
+        }
+      }
+    }
+
+    // Normalize hourly rate (could be number or [number])
+    const hourlyRateNumber = Array.isArray(hourly_rate)
+      ? parseFloat(hourly_rate[0])
+      : parseFloat(hourly_rate);
+    const total_earnings = duration_hours * (Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : session.hourly_rate);
 
     const updates = {
       student_id: student_id || session.student_id,
       subject: subject || session.subject,
+      academic_level: normalizedAcademicLevel,
       session_date: sessionDateExactUTC, // exact time from frontend
       duration_hours,
-      hourly_rate,
+      hourly_rate: Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : session.hourly_rate,
       total_earnings,
       status: status || session.status,
       notes: notes !== undefined ? notes : session.notes
@@ -368,13 +442,14 @@ const getTutorSessions = asyncHandler(async (req, res) => {
   }
 
   const sessions = await TutoringSession.find(query)
-  .populate({
-    path: 'student_ids',
-    populate: {
-      path: 'user_id',
-      select: 'full_name email'
-    }
-  })
+    .populate({
+      path: 'student_ids',
+      populate: {
+        path: 'user_id',
+        select: 'full_name email'
+      }
+    })
+    .populate({ path: 'academic_level', select: 'level' })
     .sort({ session_date: -1 })
     .limit(parseInt(limit))
     .skip((parseInt(page) - 1) * parseInt(limit));
@@ -407,7 +482,7 @@ const getTutorInquiries = asyncHandler(async (req, res) => {
   if (status && status !== 'all') {
     query.status = status;
   }
-  
+
   const inquiries = await TutorInquiry.find(query)
     .populate({
       path: 'student_id',
@@ -527,7 +602,7 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error("Tutor profile not found");
     }
-   
+
     // Find students who accepted this tutor
     const students = await StudentProfile.find({
       hired_tutors: {
@@ -539,18 +614,41 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
     })
       .populate('user_id', 'full_name email age')
       .select('user_id academic_level preferred_subjects availability');
-       
-    // Format response
-    const formattedStudents = students.map(student => ({
-      _id: student.user_id._id,
-      full_name: student.user_id.full_name,
-      email: student.user_id.email,
-      age: student.user_id.age,
-      academic_level: student.academic_level,
-      preferred_subjects: student.preferred_subjects,
-      availability: student.availability
-    }));
 
+    const academic_level_id = students.flatMap(student => Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level]).filter(Boolean);
+    const academicLevels = await EducationLevel.find({ _id: { $in: academic_level_id } });
+    const levelMap = new Map(academicLevels.map(l => [l._id.toString(), { _id: l._id.toString(), level: l.level, hourlyRate: l.hourlyRate }]));
+    const tutor_hourly_rates = tutorProfile.academic_levels_taught
+      .filter(level => academic_level_id.some(id => id && id.toString() === level.educationLevel.toString()))
+      .map(level => level.hourlyRate);
+    let hourly_rate;
+    if (tutor_hourly_rates) {
+      hourly_rate = tutor_hourly_rates;
+    } else {
+      hourly_rate = academicLevels.map(level => level.hourlyRate);
+    }
+
+    // Format response
+    const formattedStudents = students.map(student => {
+      const rawIds = Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level];
+      const academic_levels = rawIds
+        .filter(Boolean)
+        .map(id => levelMap.get(id.toString()))
+        .filter(Boolean);
+      return {
+        _id: student.user_id._id,
+        full_name: student.user_id.full_name,
+        email: student.user_id.email,
+        age: student.user_id.age,
+        // Back-compat: names array
+        academic_level: academic_levels.map(l => l.level),
+        // New: detailed array with ids
+        academic_levels,
+        preferred_subjects: student.preferred_subjects,
+        availability: student.availability,
+        hourly_rate: hourly_rate
+      };
+    });
     res.json({
       students: formattedStudents,
       total: formattedStudents.length
@@ -576,7 +674,7 @@ const getTutorAvailability = asyncHandler(async (req, res) => {
 
   // If no availability record exists, create a default one
   if (!availability) {
-    availability = await TutorAvailability.create({ tutor_id: tutor._id  });
+    availability = await TutorAvailability.create({ tutor_id: tutor._id });
   }
 
   res.json(availability);
@@ -823,14 +921,14 @@ const getHireRequests = asyncHandler(async (req, res) => {
     const allHires = (s.hired_tutors || []).filter(
       (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
     );
-    
+
     // Get the most recent hire request (by hired_at timestamp)
-    const mostRecentHire = allHires.length > 0 
+    const mostRecentHire = allHires.length > 0
       ? allHires.reduce((latest, current) => {
-          const latestTime = new Date(latest.hired_at || latest.createdAt || 0);
-          const currentTime = new Date(current.hired_at || current.createdAt || 0);
-          return currentTime > latestTime ? current : latest;
-        })
+        const latestTime = new Date(latest.hired_at || latest.createdAt || 0);
+        const currentTime = new Date(current.hired_at || current.createdAt || 0);
+        return currentTime > latestTime ? current : latest;
+      })
       : null;
 
     return {
@@ -840,8 +938,8 @@ const getHireRequests = asyncHandler(async (req, res) => {
       preferred_subjects: s.preferred_subjects,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
-      hire_for_this_tutor: mostRecentHire ? { 
-        status: mostRecentHire.status, 
+      hire_for_this_tutor: mostRecentHire ? {
+        status: mostRecentHire.status,
         hired_at: mostRecentHire.hired_at,
         _id: mostRecentHire._id // Include the hire record ID for proper updating
       } : null,
@@ -912,7 +1010,7 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
 
 const sendMessageResponse = asyncHandler(async (req, res) => {
   const { messageId, response } = req.body;
-  const tutorId = req.user._id; 
+  const tutorId = req.user._id;
 
   if (!messageId || !response) {
     res.status(400);
@@ -984,7 +1082,7 @@ const deleteSession = asyncHandler(async (req, res) => {
 
   // Find the session first to check ownership
   const session = await TutoringSession.findById(session_id);
-  
+
   if (!session) {
     res.status(404);
     throw new Error("Session not found");
@@ -1012,37 +1110,37 @@ const deleteSession = asyncHandler(async (req, res) => {
   // Delete the session
   await TutoringSession.findByIdAndDelete(session_id);
 
-  res.status(200).json({ 
+  res.status(200).json({
     success: true,
-    message: "Session deleted successfully" 
+    message: "Session deleted successfully"
   });
 });
 
 // Get all verified tutors for home page display
 const getVerifiedTutors = asyncHandler(async (req, res) => {
   try {
-    const verifiedTutors = await TutorProfile.find({ 
+    const verifiedTutors = await TutorProfile.find({
       profile_status: 'approved',
-      is_verified: true 
+      is_verified: true
     })
-    .populate({
-      path: 'user_id',
-      select: 'full_name photo_url email'
-    })
-    .populate({
-      path: 'academic_levels_taught.educationLevel',
-      select: 'name'
-    })
-    .lean();
+      .populate({
+        path: 'user_id',
+        select: 'full_name photo_url email'
+      })
+      .populate({
+        path: 'academic_levels_taught.educationLevel',
+        select: 'name'
+      })
+      .lean();
 
     // Transform the data to include min-max hourly rates and other required fields
     const transformedTutors = verifiedTutors.map(tutor => {
       const user = tutor.user_id;
-      
+
       // Calculate min and max hourly rates
       let minHourlyRate = Infinity;
       let maxHourlyRate = 0;
-      
+
       if (tutor.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
         tutor.academic_levels_taught.forEach(level => {
           if (level.hourlyRate < minHourlyRate) minHourlyRate = level.hourlyRate;
@@ -1078,7 +1176,6 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
         is_qualification_verified: tutor.is_qualification_verified
       };
     });
-    console.log("transformedTutors",transformedTutors)
     res.status(200).json({
       success: true,
       count: transformedTutors.length,
@@ -1103,7 +1200,6 @@ const getTutorSettings = asyncHandler(async (req, res) => {
     // Get tutor profile
     const tutorProfile = await TutorProfile.findOne({ user_id })
       .populate('academic_levels_taught.educationLevel');
-
     if (!tutorProfile) {
       res.status(404);
       throw new Error("Tutor profile not found");
@@ -1111,7 +1207,7 @@ const getTutorSettings = asyncHandler(async (req, res) => {
 
     // Get all education levels
     const educationLevels = await EducationLevel.find().sort({ level: 1 });
-    
+    const tutor_prmision = tutorProfile.academic_levels_taught.map(level => level.educationLevel.isTutorCanChangeRate)
     // Get all subjects
     const subjects = await Subject.find().sort({ name: 1 });
 
@@ -1122,7 +1218,7 @@ const getTutorSettings = asyncHandler(async (req, res) => {
       hourlyRate: level.hourlyRate,
       totalSessionsPerMonth: level.totalSessionsPerMonth,
       discount: level.discount,
-      monthlyRate: level.monthlyRate
+      monthlyRate: level.monthlyRate,
     }));
 
     res.status(200).json({
@@ -1132,7 +1228,7 @@ const getTutorSettings = asyncHandler(async (req, res) => {
         subjects: tutorProfile.subjects,
         allSubjects: subjects,
         currentSettings,
-        canModifyRates: true // This can be controlled by admin later
+        canModifyRates: tutor_prmision // This can be controlled by admin later
       }
     });
 
@@ -1167,29 +1263,38 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
     // Update each academic level setting
     for (const setting of academicLevelSettings) {
       const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount } = setting;
-      
+
       // Find the corresponding academic level in tutor profile
       const levelIndex = tutorProfile.academic_levels_taught.findIndex(
         level => level.educationLevel.toString() === educationLevelId
       );
-        // if total session are less than minSession or greate then maxSession show message. get mix andmax session from educationLevel
-        const educationLevel = await EducationLevel.findById(educationLevelId);
-        console.log(educationLevel);
-        const minSession = educationLevel.minSession;
-        const maxSession = educationLevel.maxSession;
-        if (totalSessionsPerMonth < minSession || totalSessionsPerMonth > maxSession) {
-          res.status(400);
-          return res.json({
-            success: false,
-            message: `Total sessions per month must be between ${minSession} and ${maxSession}`
-          });
-        }
+
+      // if total session are less than minSession or greate then maxSession show message. get mix andmax session from educationLevel
+      const educationLevel = await EducationLevel.findById(educationLevelId);
+      const minSession = educationLevel.minSession;
+      const maxSession = educationLevel.maxSession;
+      const tutor_prmision = educationLevel.isTutorCanChangeRate
+      if (tutor_prmision === false) {
+        res.status(400);
+        return res.json({
+          success: false,
+          message: `You are not authorized to change the rates for this academic level`
+        });
+      }
+      if (totalSessionsPerMonth < minSession || totalSessionsPerMonth > maxSession) {
+        res.status(400);
+        return res.json({
+          success: false,
+          message: `Total sessions per month must be between ${minSession} and ${maxSession}`
+        });
+      }
+
       if (levelIndex !== -1) {
         // Update the rates and sessions
         tutorProfile.academic_levels_taught[levelIndex].hourlyRate = hourlyRate;
         tutorProfile.academic_levels_taught[levelIndex].totalSessionsPerMonth = totalSessionsPerMonth;
         tutorProfile.academic_levels_taught[levelIndex].discount = discount;
-        
+
         // Calculate monthly rate
         const gross = hourlyRate * totalSessionsPerMonth;
         const discountAmount = (gross * discount) / 100;

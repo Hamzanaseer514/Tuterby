@@ -12,10 +12,11 @@ const TutorSetting = () => {
     const { user , getAuthToken } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [savingStates, setSavingStates] = useState({});
     const [settings, setSettings] = useState(null);
     const [editedSettings, setEditedSettings] = useState([]);
     const token = getAuthToken();
+
     useEffect(() => {
         if (user?._id) {
             fetchTutorSettings();
@@ -35,6 +36,13 @@ const TutorSetting = () => {
             if (data.success) {
                 setSettings(data.data);
                 setEditedSettings(data.data.currentSettings);
+                // Initialize saving states for each level
+                const initialSavingStates = {};
+                data.data.currentSettings.forEach(setting => {
+                    initialSavingStates[setting.educationLevelId] = false;
+                });
+                setSavingStates(initialSavingStates);
+                console.log("data.data.canModifyRates", data.data.canModifyRates)
             } else {
                 toast({
                     title: "Error",
@@ -70,19 +78,23 @@ const TutorSetting = () => {
         return gross - discountAmount;
     };
 
-    const handleSave = async () => {
+    const handleSaveLevel = async (levelId) => {
         try {
-            setSaving(true);
+            setSavingStates(prev => ({ ...prev, [levelId]: true }));
             
-            // Calculate monthly rates for all settings
-            const settingsWithMonthlyRates = editedSettings.map(setting => ({
-                ...setting,
+            // Find the specific setting to save
+            const settingToSave = editedSettings.find(setting => setting.educationLevelId === levelId);
+            if (!settingToSave) return;
+
+            // Calculate monthly rate for this specific setting
+            const settingWithMonthlyRate = {
+                ...settingToSave,
                 monthlyRate: calculateMonthlyRate(
-                    setting.hourlyRate, 
-                    setting.totalSessionsPerMonth, 
-                    setting.discount
+                    settingToSave.hourlyRate, 
+                    settingToSave.totalSessionsPerMonth, 
+                    settingToSave.discount
                 )
-            }));
+            };
 
             const response = await fetch(`${BASE_URL}/api/tutor/settings/update/${user._id}`, {
                 method: 'PUT',
@@ -91,7 +103,7 @@ const TutorSetting = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    academicLevelSettings: settingsWithMonthlyRates
+                    academicLevelSettings: [settingWithMonthlyRate]
                 })
             });
 
@@ -100,7 +112,7 @@ const TutorSetting = () => {
             if (data.success) {
                 toast({
                     title: "Success",
-                    description: "Settings updated successfully",
+                    description: `${settingToSave.educationLevelName} settings updated successfully`,
                 });
                 // Refresh the data
                 fetchTutorSettings();
@@ -119,7 +131,7 @@ const TutorSetting = () => {
                 variant: "destructive"
             });
         } finally {
-            setSaving(false);
+            setSavingStates(prev => ({ ...prev, [levelId]: false }));
         }
     };
 
@@ -179,7 +191,8 @@ const TutorSetting = () => {
                     <CardHeader>
                         <CardTitle>Education Levels & Rates</CardTitle>
                         <CardDescription>
-                            Configure your hourly rates, monthly sessions, and discounts for each education level
+                            Configure your hourly rates, monthly sessions, and discounts for each education level. 
+                            Each level can be saved individually.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -187,10 +200,18 @@ const TutorSetting = () => {
                             <div className="space-y-6">
                                 {editedSettings.map((setting, index) => (
                                     <div key={setting.educationLevelId} className="border rounded-lg p-6 bg-gray-50">
-                                        <div className="mb-4">
+                                        <div className="mb-4 flex justify-between items-start">
                                             <h3 className="text-lg font-semibold text-gray-900 mb-2">
                                                 {setting.educationLevelName}
                                             </h3>
+                                            <Button 
+                                                onClick={() => handleSaveLevel(setting.educationLevelId)}
+                                                disabled={savingStates[setting.educationLevelId]}
+                                                size="sm"
+                                                className="ml-4"
+                                            >
+                                                {savingStates[setting.educationLevelId] ? 'Saving...' : 'Save Level'}
+                                            </Button>
                                         </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -246,16 +267,6 @@ const TutorSetting = () => {
                                         </div>
                                     </div>
                                 ))}
-                                
-                                <div className="flex justify-end pt-4">
-                                    <Button 
-                                        onClick={handleSave} 
-                                        disabled={saving}
-                                        className="px-8"
-                                    >
-                                        {saving ? 'Saving...' : 'Save Changes'}
-                                    </Button>
-                                </div>
                             </div>
                         ) : (
                             <p className="text-gray-500 text-center py-8">

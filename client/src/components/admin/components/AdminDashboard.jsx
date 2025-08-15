@@ -37,36 +37,6 @@ const statusColors = {
   inactive: 'default'
 };
 
-// Mock data functions
-const getMockDashboardStats = () => ({
-  totalUsers: 150,
-  activeUsers: 120,
-  totalSessions: 450,
-  revenue: 12500
-});
-
-const getMockUsers = (userType) => {
-  const mockUsers = {
-    tutors: [
-      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'verified', subjects: ['Math', 'Physics'] },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'pending', subjects: ['Chemistry', 'Biology'] },
-      { id: 3, name: 'Mike Johnson', email: 'mike@example.com', status: 'verified', subjects: ['English', 'History'] }
-    ],
-    students: [
-      { id: 1, name: 'Alice Brown', email: 'alice@example.com', status: 'active', subjects: ['Math', 'Physics'] },
-      { id: 2, name: 'Bob Wilson', email: 'bob@example.com', status: 'active', subjects: ['Chemistry'] },
-      { id: 3, name: 'Carol Davis', email: 'carol@example.com', status: 'active', subjects: ['English'] }
-    ],
-    parents: [
-      { id: 1, name: 'David Miller', email: 'david@example.com', status: 'active' },
-      { id: 2, name: 'Emma Garcia', email: 'emma@example.com', status: 'active' },
-      { id: 3, name: 'Frank Rodriguez', email: 'frank@example.com', status: 'active' }
-    ]
-  };
-  
-  return mockUsers[userType] || [];
-};
-
 
 
 const AdminDashboard = () => {
@@ -144,8 +114,8 @@ const AdminDashboard = () => {
       }
 
       const [statsData, usersData] = await Promise.all([
-        getDashboardStats().catch(() => getMockDashboardStats()),
-        getAllUsers({ userType: uiState.tabValue || 'tutors' }).catch(() => getMockUsers(uiState.tabValue || 'tutors'))
+        getDashboardStats(),
+        getAllUsers({ userType: uiState.tabValue || 'tutors' })
       ]);
 
       setDashboardState(prev => ({
@@ -165,11 +135,11 @@ const AdminDashboard = () => {
           window.location.href = '/login';
         }, 2000);
       } else {
-        showNotification('Failed to load real data. Using mock data.', 'warning');
+        showNotification('Failed to load real data.', 'warning');
         // Load mock data as fallback
         const [statsData, usersData] = await Promise.all([
-          getMockDashboardStats(),
-          getMockUsers(uiState.tabValue || 'tutors')
+          getDashboardStats(),
+          getAllUsers({ userType: uiState.tabValue || 'tutors' })
         ]);
         setDashboardState(prev => ({
           ...prev,
@@ -247,12 +217,6 @@ const AdminDashboard = () => {
     console.log("AdminDashboard - handleViewUser called with user:", user);
   };
 
-  const handleCloseDialog = () => {
-    updateUiState({
-      openDialog: false,
-      selectedUser: null
-    });
-  };
 
   const handleTabChange = (event, newValue) => {
     updateUiState({
@@ -266,13 +230,6 @@ const AdminDashboard = () => {
     updateUiState({
       anchorEl: event.currentTarget,
       selectedActionUser: user
-    });
-  };
-
-  const handleMenuClose = () => {
-    updateUiState({
-      anchorEl: null,
-      selectedActionUser: null
     });
   };
 
@@ -334,14 +291,17 @@ const AdminDashboard = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
-                          p: 1.5,
-                          border: '1px solid #e0e0e0',
+                          px: 1.75,
+                          py: 1.25,
+                          border: '1px solid',
+                          borderColor: 'divider',
                           borderRadius: 2,
-                          backgroundColor: 'white',
+                          bgcolor: 'background.paper',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease',
                           '&:hover': {
-                            backgroundColor: '#f5f5f5',
+                            bgcolor: 'background.default',
                             transform: 'translateY(-1px)'
                           },
                           '&:disabled': {
@@ -363,14 +323,17 @@ const AdminDashboard = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
-                          p: 1.5,
-                          border: '1px solid #e0e0e0',
+                          px: 1.75,
+                          py: 1.25,
+                          border: '1px solid',
+                          borderColor: 'divider',
                           borderRadius: 2,
-                          backgroundColor: 'white',
+                          bgcolor: 'background.paper',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease',
                           '&:hover': {
-                            backgroundColor: '#f5f5f5',
+                            bgcolor: 'background.default',
                             transform: 'translateY(-1px)'
                           }
                         }}
@@ -399,8 +362,10 @@ const AdminDashboard = () => {
                 p: 3, 
                 mb: 3, 
                 borderRadius: 3,
-                backgroundColor: 'white',
-                border: '1px solid #e0e0e0'
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
               }}
             >
               {/* Search and Filter Bar */}
