@@ -37,11 +37,16 @@ const StudentDashboardPage = () => {
   });
 
   useEffect(() => {
-    if (authLoading) return;
+
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       navigate('/login');
       return;
     }
+
     if (user.role !== 'student') {
       toast({
         title: 'Access Denied',
@@ -51,6 +56,7 @@ const StudentDashboardPage = () => {
       navigate('/');
       return;
     }
+
     setLoading(false);
   }, [user, navigate, toast, authLoading]);
 
