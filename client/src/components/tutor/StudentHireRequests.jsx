@@ -39,7 +39,6 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
   const student_academic_level_name = academicLevels.find(s => s._id === student.academic_level)?.level;
 
 
-
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow border border-gray-200">
       <CardContent className="p-5">

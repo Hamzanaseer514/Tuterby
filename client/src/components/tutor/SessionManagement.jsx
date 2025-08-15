@@ -418,16 +418,14 @@ const SessionManagement = () => {
           'Content-Type': 'application/json',
         },
       });
-
+      const responseData = await response.json();
       if (!response.ok) {
-        throw new Error('Failed to delete session');
+        throw new Error(responseData.message || 'Failed to delete session');
       }
-
       // Refresh sessions after deletion
       fetchSessions();
     } catch (err) {
-      console.error('Error deleting session:', err);
-      alert('Failed to delete session. Please try again.');
+      alert(err.message || 'Failed to delete session. Please try again.');
     }
   };
 
@@ -705,22 +703,7 @@ const SessionManagement = () => {
                   </div>
                 )}
 
-                {/* Rating and Feedback */}
-                {selectedSession.rating && (
-                  <div>
-                    <h5 className="text-md font-semibold mb-3 text-gray-800">Student Feedback</h5>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                        <span className="font-medium">{selectedSession.rating}/5</span>
-                      </div>
-                      {selectedSession.feedback && (
-                        <p className="text-gray-700">{selectedSession.feedback}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
+             
                 {/* Actions */}
                 <div className="flex space-x-3 pt-4 border-t">
                   <Button
@@ -912,41 +895,6 @@ const SessionManagement = () => {
                   />
                 </div>
 
-                {/* Rating and Feedback (only for completed sessions) */}
-                {updateSessionForm.status === 'completed' && (
-                  <>
-                    <div>
-                      <Label htmlFor="rating">Rating (1-5)</Label>
-                      <Select
-                        value={updateSessionForm.rating.toString()}
-                        onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, rating: parseFloat(value) })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select rating" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 - Poor</SelectItem>
-                          <SelectItem value="2">2 - Fair</SelectItem>
-                          <SelectItem value="3">3 - Good</SelectItem>
-                          <SelectItem value="4">4 - Very Good</SelectItem>
-                          <SelectItem value="5">5 - Excellent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="feedback">Feedback</Label>
-                      <Textarea
-                        id="feedback"
-                        value={updateSessionForm.feedback}
-                        onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, feedback: e.target.value })}
-                        rows={3}
-                        placeholder="Add feedback about the session..."
-                      />
-                    </div>
-                  </>
-                )}
-
                 {/* Total Earnings Display */}
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
@@ -960,9 +908,10 @@ const SessionManagement = () => {
                     type="button"
                     variant="outline"
                     onClick={() => setShowUpdateSessionModal(false)}
-                    className="flex-1"
-                  >
+                    className="flex-1">
+
                     Cancel
+
                   </Button>
                   <Button type="submit" className="flex-1">
                     Update Session

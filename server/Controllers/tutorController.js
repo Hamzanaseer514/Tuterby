@@ -613,18 +613,16 @@ const getTutorProfile = asyncHandler(async (req, res) => {
 });
 
 // Get available students for tutor to select from
-// Get available students for tutor to select from
 const getAvailableStudents = asyncHandler(async (req, res) => {
   try {
     const user_id = req.params.user_id; // assuming tutor is authenticated
-
     // Find tutor profile
     const tutorProfile = await TutorProfile.findOne({ user_id: user_id });
     if (!tutorProfile) {
       res.status(404);
       throw new Error("Tutor profile not found");
     }
-
+    // console.log(tutorProfile);
     // Find students who accepted this tutor
     const students = await StudentProfile.find({
       hired_tutors: {
@@ -636,41 +634,51 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
     })
       .populate('user_id', 'full_name email age')
       .select('user_id academic_level preferred_subjects availability');
+    const rawAcademicVals = students
+      .flatMap(student => Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level])
+      .filter(Boolean);
+    // Split ids vs names
+    const idVals = rawAcademicVals.filter(v => mongoose.Types.ObjectId.isValid(v)).map(v => v.toString());
+    const nameVals = rawAcademicVals.filter(v => typeof v === 'string' && !mongoose.Types.ObjectId.isValid(v));
 
-    const academic_level_id = students.flatMap(student => Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level]).filter(Boolean);
-    const academicLevels = await EducationLevel.find({ _id: { $in: academic_level_id } });
-    const levelMap = new Map(academicLevels.map(l => [l._id.toString(), { _id: l._id.toString(), level: l.level, hourlyRate: l.hourlyRate }]));
-    const tutor_hourly_rates = tutorProfile.academic_levels_taught
-      .filter(level => academic_level_id.some(id => id && id.toString() === level.educationLevel.toString()))
-      .map(level => level.hourlyRate);
-    let hourly_rate;
-    if (tutor_hourly_rates) {
-      hourly_rate = tutor_hourly_rates;
-    } else {
-      hourly_rate = academicLevels.map(level => level.hourlyRate);
-    }
-
+    const [levelsById, levelsByName] = await Promise.all([
+      idVals.length ? EducationLevel.find({ _id: { $in: idVals } }) : Promise.resolve([]),
+      nameVals.length ? EducationLevel.find({ level: { $in: nameVals } }) : Promise.resolve([])
+    ]);
+    const academicLevels = [...levelsById, ...levelsByName];
+    const levelById = new Map(academicLevels.map(l => [l._id.toString(), l]));
+    const levelByName = new Map(academicLevels.map(l => [l.level, l]));
     // Format response
     const formattedStudents = students.map(student => {
-      const rawIds = Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level];
-      const academic_levels = rawIds
+      const rawVals = Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level];
+      const academic_levels = rawVals
         .filter(Boolean)
-        .map(id => levelMap.get(id.toString()))
-        .filter(Boolean);
+        .map(v => mongoose.Types.ObjectId.isValid(v) ? levelById.get(v.toString()) : levelByName.get(v))
+        .filter(Boolean)
+        .map(l => ({ _id: l._id.toString(), level: l.level, hourlyRate: l.hourlyRate }));
+
+      // Derive tutor-specific hourly rates if tutor teaches those levels
+      const selectedIds = new Set(academic_levels.map(l => l._id));
+      const tutorRates = tutorProfile.academic_levels_taught
+        .filter(level => selectedIds.has(level.educationLevel.toString()))
+        .map(level => level.hourlyRate);
+      const hourly_rate = tutorRates.length ? tutorRates : academic_levels.map(l => l.hourlyRate);
+
       return {
         _id: student.user_id._id,
         full_name: student.user_id.full_name,
         email: student.user_id.email,
         age: student.user_id.age,
-        // Back-compat: names array
+        // Back-compat names array
         academic_level: academic_levels.map(l => l.level),
-        // New: detailed array with ids
+        // New: detailed array
         academic_levels,
         preferred_subjects: student.preferred_subjects,
         availability: student.availability,
-        hourly_rate: hourly_rate
+        hourly_rate
       };
     });
+    // console.log(formattedStudents);
     res.json({
       students: formattedStudents,
       total: formattedStudents.length
@@ -1126,8 +1134,10 @@ const deleteSession = asyncHandler(async (req, res) => {
 
   // Check if session can be deleted (e.g., not completed or in progress)
   if (session.status === 'completed' || session.status === 'in_progress') {
-    res.status(400);
-    throw new Error("Cannot delete completed or in-progress sessions");
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete completed or in-progress sessions"
+    });
   }
 
   // Delete the session
