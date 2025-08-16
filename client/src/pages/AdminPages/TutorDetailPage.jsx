@@ -60,7 +60,7 @@ import {
   partialApproveTutor,
   completeInterview,
 } from "../../services/adminService";
-import { BASE_URL } from "../../config/config";
+import { BASE_URL } from "../../config";
 
 const TutorDetailPage = () => {
   const { tabValue } = useParams();
