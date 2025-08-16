@@ -24,7 +24,7 @@ import StudentChatPage from '../../components/student/StudentChatPage';
 import StudentHelpRequests from '../../components/student/StudentHelpRequests';
 import MyTutors from '../../components/student/MyTutors';
 import StudentTutorSearchPage from './StudentTutorSearchPage';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import StudentSelfProfilePage from './StudentSelfProfilePage';
 
 const lastSeenKey = (id) => `student_last_seen_${id}`;

@@ -10,7 +10,7 @@ import { Button } from '../../components/ui/button';
 import TutorSetting from '../../components/tutor/TutorSetting';
 import TutorSelfProfilePage from './TutorSelfProfilePage';
 import TutorInterviewSlotsPage from './TutorInterviewSlotsPage';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import {
   LayoutDashboard,
   Calendar,

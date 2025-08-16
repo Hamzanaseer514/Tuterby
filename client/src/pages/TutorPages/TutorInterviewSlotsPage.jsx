@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../hooks/useAuth';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import { useToast } from '../../components/ui/use-toast';
 import { RefreshCw, Calendar, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 

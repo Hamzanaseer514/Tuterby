@@ -42,8 +42,7 @@ import { BookOpen, Sparkles } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Snackbar, Alert as MuiAlert } from '@mui/material';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { BASE_URL } from '@/config';
 
 const TutorCard = ({ tutor, onHire, loading, user }) => {
   const theme = useTheme();
@@ -388,7 +387,7 @@ const Tutors = () => {
   const fetchVerifiedTutors = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/tutor/verified`);
+      const response = await fetch(`${BASE_URL}/api/tutor/verified`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch tutors');

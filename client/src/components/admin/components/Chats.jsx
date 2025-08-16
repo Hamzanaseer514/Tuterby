@@ -961,7 +961,7 @@ import {
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import AdminLayout from "./AdminLayout";
-import { BASE_URL } from "../../../config";
+import { BASE_URL } from '@/config';
 
 const ChatAdminDashboard = () => {
   const [chats, setChats] = useState([]);
