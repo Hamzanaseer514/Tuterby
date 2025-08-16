@@ -135,7 +135,7 @@ const StudentPreferences = () => {
         body: JSON.stringify({
           full_name: formData.full_name,
           phone_number: formData.phone_number,
-          photo_url: formData.photo_url,
+          // photo_url: formData.photo_url,
           age: formData.age,
           academic_level: formData.academic_level,
           learning_goals: formData.learning_goals,
@@ -143,15 +143,21 @@ const StudentPreferences = () => {
           availability: formData.availability
         })
       });
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
-
       const result = await response.json();
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully",
+        });
+        fetchProfile();
+      }
+      else{
+        toast({
+          title: "Error",
+          description: result.message || "Failed to update profile",
+          variant: "destructive"
+        });
+      }
 
       // Update local state with the returned data
       setFormData(prev => ({
@@ -254,7 +260,7 @@ const StudentPreferences = () => {
                 placeholder="Enter your phone number"
               />
             </div>
-
+{/* 
             <div>
               <Label htmlFor="photo_url">Profile Photo URL</Label>
               <div className="flex items-center gap-3">
@@ -265,16 +271,9 @@ const StudentPreferences = () => {
                   onChange={handleInputChange}
                   placeholder="Enter URL for your profile photo"
                 />
-                {formData.photo_url && (
-                  <img
-                    src={formData.photo_url}
-                    alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover border"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
-                )}
+
               </div>
-            </div>
+            </div> */}
 
             <div>
               <Label htmlFor="age">Age</Label>

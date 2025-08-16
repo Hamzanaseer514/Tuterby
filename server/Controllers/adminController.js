@@ -5,6 +5,7 @@ const TutorDocument = require("../Models/tutorDocumentSchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
+const TutoringSession = require("../Models/tutoringSessionSchema");
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 const Rules = require("../Models/Rules");
 const mongoose = require("mongoose");
@@ -36,42 +37,48 @@ exports.getAllPendingApplications = async (req, res) => {
   }
 };
 
+
 // Admin provides available interview slots
 exports.setAvailableInterviewSlots = async (req, res) => {
   const { user_id, preferred_interview_times } = req.body;
-  const tutor = await TutorProfile.findOne({ user_id: user_id });
+  const tutor = await TutorProfile.findOne({ user_id });
 
-  if (
-    !tutor ||
-    !preferred_interview_times ||
-    !Array.isArray(preferred_interview_times)
-  ) {
+  if (!tutor || !Array.isArray(preferred_interview_times)) {
     return res.status(400).json({
-      message: "tutor_id and preferred_interview_times (array) are required",
+      message: "user_id and preferred_interview_times (array) are required",
     });
   }
 
   try {
     let application = await TutorApplication.findOne({ tutor_id: tutor._id });
+
+    const newPreferredTimes = preferred_interview_times.map((time) =>
+      new Date(`${time}:00Z`)
+    );
+
     if (!application) {
       application = new TutorApplication({
         tutor_id: tutor._id,
-        preferred_interview_times: preferred_interview_times.map(
-          (time) => new Date(time)
-        ),
+        preferred_interview_times: newPreferredTimes,
         interview_status: "Pending",
         application_status: "Pending",
       });
     } else {
-      const existingTimes = application.preferred_interview_times || [];
+      // Case 1: If tutor already scheduled, don’t add that into preferred again
+      const scheduled = application.scheduled_time
+        ? application.scheduled_time.toISOString()
+        : null;
+
       const mergedTimes = Array.from(
         new Set([
-          ...existingTimes.map((time) => new Date(time).toISOString()),
-          ...preferred_interview_times.map((time) =>
-            new Date(`${time}:00Z`).toISOString()
-          ), // Ensure UTC
+          ...application.preferred_interview_times.map((t) =>
+            new Date(t).toISOString()
+          ),
+          ...newPreferredTimes.map((t) => t.toISOString()),
         ])
-      ).map((time) => new Date(time));
+      )
+        .map((t) => new Date(t))
+        .filter((t) => t.toISOString() !== scheduled);
 
       application.preferred_interview_times = mergedTimes;
     }
@@ -89,7 +96,6 @@ exports.setAvailableInterviewSlots = async (req, res) => {
     });
   }
 };
-
 // Select interview slot by Tutor
 exports.selectInterviewSlot = async (req, res) => {
   const { user_id, scheduled_time } = req.body;
@@ -111,28 +117,23 @@ exports.selectInterviewSlot = async (req, res) => {
       return res.status(404).json({ message: "Tutor application not found" });
     }
 
-    // Ensure scheduled_time is treated as UTC
     const selectedTime = new Date(
       scheduled_time.endsWith("Z") ? scheduled_time : `${scheduled_time}Z`
     );
-
-    // Normalize to start of minute to avoid millisecond issues
     selectedTime.setMilliseconds(0);
-
-    // Check for existing slot
+console.log("selectedTime", selectedTime)
     const existingSlot = await TutorApplication.findOne({
       preferred_interview_times: { $elemMatch: { $eq: selectedTime } },
-      interview_status: { $in: ["Scheduled", "Pending"] },
+      interview_status: { $in: ["Scheduled"] },
       tutor_id: { $ne: tutor._id },
     });
-
+console.log("existingSlot", existingSlot)
     if (existingSlot) {
       return res.status(409).json({
         message: "This interview slot is already booked by another tutor.",
       });
     }
-
-    // Save as a single Date object in preferred_interview_times (array)
+console.log("application", application)
     application.scheduled_time = selectedTime;
     application.interview_status = "Scheduled";
     await application.save();
@@ -148,128 +149,93 @@ exports.selectInterviewSlot = async (req, res) => {
       .json({ message: "Failed to select interview slot", error: err.message });
   }
 };
-// // Background Check Verification
-// exports.verifyBackgroundCheck = async (req, res) => {
-//   const { tutor_id } = req.body;
 
-//   try {
-//     const tutor = await TutorProfile.findOne({user_id:tutor_id});
-//     const documents = await TutorDocument.find({
-//       tutor_id:tutor._id,
-//       document_type: { $in: ["ID Proof", "Address Proof","Background Check"] },
-//     });
-//     const hasIDProof = documents.some(
-//       (doc) => doc.document_type === "ID Proof"
-//     );
-//     const hasAddressProof = documents.some(
-//       (doc) => doc.document_type === "Address Proof"
-//     );
+// Complete interview with result
+exports.completeInterview = async (req, res) => {
+  try {
+    const { userId, result, notes} = req.body;
 
-//     if (!hasIDProof || !hasAddressProof) {
-//       let missingDocs = [];
-//       if (!hasIDProof) missingDocs.push("ID Proof");
-//       if (!hasAddressProof) missingDocs.push("Address Proof");
 
-//       return res.status(400).json({
-//         message: `Missing required document(s): ${missingDocs.join(", ")}`,
-//       });
-//     }
+  const Tutor = await TutorProfile.findOne({ user_id: userId });
+    const application = await TutorApplication.findOneAndUpdate(
+      { tutor_id: Tutor._id },
+      {
+        interview_status: result === "passed" ? "Passed" : "Failed",
+        preferred_interview_times: [], // Case 2: clear array
+        scheduled_time: null, // Case 2: clear scheduled
+        application_status: result === "passed" ? "Approved" : "Rejected",
+        again_interview: false,
+      },
+      { new: true }
+    );
+    if (!application)
+      return res.status(404).json({ message: "Tutor application not found" });
 
-//     await TutorProfile.findOneAndUpdate(
-//       { _id: tutor._id },
-//       { is_background_checked: true }
-//     );
-//     await TutorDocument.updateMany(
-//       { tutor_id:tutor._id, document_type: { $in: ["ID Proof", "Address Proof", "Background Check"] } },
-//       { $set: { verification_status: "Approved" } }
-//     );
+    res.status(200).json({
+      message: "Interview completed successfully",
+      application,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to complete interview",
+      error: err.message,
+    });
+  }
+};
 
-//     res.status(200).json({
-//       message: "Background check verified. All required documents are valid.",
-//     });
-//   } catch (err) {
-//     res.status(500).json({
-//       message: "Failed to verify background check",
-//       error: err.message,
-//     });
-//   }
-// };
 
-// exports.verifyReferenceChecks = async (req, res) => {
-//   const { tutor_id } = req.body;
-//   const tutor = await TutorProfile.findOne({user_id:tutor_id});
-//   try {
-//     const referenceDocs = await TutorDocument.find({
-//       tutor_id:tutor._id,
-//       document_type: "Reference Letter",
-//     });
+exports.updateInterviewToggle = async (req, res) => {
+  const { user_id } = req.params;
+  const { is_interview } = req.body;
+  const tutor = await TutorProfile.findOne({ user_id: user_id });
+  if (!tutor) {
+    return res.status(404).json({ message: "Tutor not found" });
+  }
+  const application = await TutorApplication.findOne({ tutor_id: tutor._id });
+  if (!application) {
+    return res.status(404).json({ message: "Tutor application not found" });
+  }
+  application.is_interview = is_interview;
+  await application.save();
+  res.status(200).json({ message: "Interview toggle updated successfully" });
+};
 
-//     if (referenceDocs.length < 1) {
-//       return res
-//         .status(400)
-//         .json({ message: "Less than 2 reference letters found." });
-//     }
 
-//     await TutorProfile.findOneAndUpdate(
-//       { _id: tutor._id },
-//       { is_reference_verified: true }
-//     );
-//     await TutorDocument.updateMany(
-//       {
-//         tutor_id:tutor._id,
-//         document_type: "Reference Letter",
-//       },
-//       { $set: { verification_status: "Approved" } }
-//     );
+// Get available interview slots
+exports.getAvailableInterviewSlots = async (req, res) => {
+  try {
+    const { date } = req.query; // format "2025-08-16"
+    const startOfDay = new Date(`${date}T00:00:00.000Z`);
+    const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
-//     res.status(200).json({ message: "Reference check verified successfully." });
-//   } catch (err) {
-//     res.status(500).json({
-//       message: "Failed to verify references",
-//       error: err.message,
-//     });
-//   }
-// };
+    // Fetch all booked slots
+    const booked = await TutorApplication.find({
+      scheduled_time: { $gte: startOfDay, $lte: endOfDay },
+      interview_status: "Scheduled",
+    }).select("scheduled_time");
 
-// // Qualification Verification
-// exports.verifyQualifications = async (req, res) => {
-//   const { tutor_id } = req.body;
-//   const tutor = await TutorProfile.findOne({user_id:tutor_id});
-//   try {
-//     const qualificationDocs = await TutorDocument.find({
-//       tutor_id:tutor._id,
-//       document_type: { $in: ["Degree", "Certificate"] },
-//     });
+    const bookedHours = booked.map((a) =>
+      new Date(a.scheduled_time).getUTCHours()
+    );
 
-//     if (qualificationDocs.length === 0) {
-//       return res
-//         .status(400)
-//         .json({ message: "No qualification documents found." });
-//     }
+    const availableSlots = [];
+    for (let hour = 9; hour < 17; hour++) {
+      availableSlots.push({
+        date,
+        time: `${hour.toString().padStart(2, "0")}:00`,
+        available: !bookedHours.includes(hour), // exclude scheduled ones
+      });
+    }
 
-//     // ✅ Step 1: Update tutor profile
-//     await TutorProfile.findOneAndUpdate(
-//       { _id: tutor._id },
-//       { is_qualification_verified: true }
-//     );
+    res.status(200).json(availableSlots);
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to get available interview slots",
+      error: err.message,
+    });
+  }
+};
 
-//     // ✅ Step 2: Update document verification status
-//     await TutorDocument.updateMany(
-//       {
-//         tutor_id:tutor._id,
-//         document_type: { $in: ["Degree", "Certificate"] },
-//       },
-//       { $set: { verification_status: "Approved" } }
-//     );
-
-//     res.status(200).json({ message: "Qualifications verified successfully." });
-//   } catch (err) {
-//     res.status(500).json({
-//       message: "Failed to verify qualifications",
-//       error: err.message,
-//     });
-//   }
-// };
 
 exports.approveTutorProfile = async (req, res) => {
   const { user_id, reason } = req.body;
@@ -487,7 +453,7 @@ exports.getAllUsers = async (req, res) => {
 
     // Fetch profiles separately for each user type
     const formattedUsers = await Promise.all(
-      users.map(async (user) => {
+      users.map(async ( user) => {
         const baseUser = {
           id: user._id,
           name: user.full_name || "Unknown",
@@ -578,6 +544,8 @@ exports.getAllUsers = async (req, res) => {
               interviewStatus: application
                 ? ["Passed", "Failed"].includes(application.interview_status)
                 : false,
+              applicationStatus: application.application_status,
+              interviewStatus1: application.interview_status,
               rating: tutorProfile.average_rating || null,
               profileStatus: tutorProfile.profile_status,
               applicationNotes: application ? application.admin_notes : "",
@@ -587,13 +555,19 @@ exports.getAllUsers = async (req, res) => {
           const studentProfile = await StudentProfile.findOne({
             user_id: user._id,
           });
+          console.log("studentProfile._id", studentProfile._id);
+          const sessionCount = await TutoringSession.countDocuments({
+            student_ids: { $in: [studentProfile._id] }
+          });
 
+            console.log("sessionCount", sessionCount);
+          
           if (studentProfile) {
             return {
               ...baseUser,
               subjects: studentProfile.preferred_subjects || [],
               location: studentProfile.location || "",
-              sessionsCompleted: 0, // Will be calculated from sessions
+              sessionsCompleted: sessionCount,// Will be calculated from sessions
               rating: null, // Students don't have ratings
             };
           }
@@ -629,9 +603,14 @@ exports.getAllUsers = async (req, res) => {
 // Get detailed tutor information including documents and interviews
 exports.getTutorDetails = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const tutor = await TutorProfile.findOne({ user_id: userId });
-    if (!tutor) {
+    const { user_id } = req.params;
+    console.log("userId", req.params)
+    const tutor = await TutorProfile.findOne({ user_id: user_id })
+    .populate({
+      path: "user_id",
+      select: "full_name email phone_number photo_url createdAt updatedAt"
+  });
+      if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
@@ -671,13 +650,14 @@ exports.getTutorDetails = async (req, res) => {
         );
         parsedSubjects = [];
       }
-    }
+    } 
 
     const tutorDetails = {
-      id: tutor._id,
+      id: tutor.user_id._id,
       name: tutor.user_id.full_name,
       email: tutor.user_id.email,
       phone: tutor.user_id.phone_number || "",
+      photo_url: tutor.user_id.photo_url || "",
       location: tutor.location,
       subjects: parsedSubjects,
       status: tutor.profile_status,
@@ -688,41 +668,39 @@ exports.getTutorDetails = async (req, res) => {
         uploadDate: doc.uploaded_at,
         notes: doc.notes,
       })),
-      interviewSlots:
-        application && application.scheduled_time
-          ? [
-              {
-                date: application.scheduled_time,
-                time: new Date(application.scheduled_time).toLocaleTimeString(),
-                scheduled: application.interview_status === "Scheduled",
-                completed:
-                  application.interview_status === "Passed" ||
-                  application.interview_status === "Failed",
-                result:
-                  application.interview_status === "Passed"
-                    ? "Passed"
-                    : application.interview_status === "Failed"
-                    ? "Failed"
-                    : null,
-                notes: application.interview_notes || "",
-              },
-            ]
-          : [],
-      preferredSlots:
-        application && application.preferred_interview_times
-          ? application.preferred_interview_times.map((time) =>
-              new Date(time).toLocaleString()
-            )
-          : [],
+  interviewSlots:
+    application && application.scheduled_time
+      ? [
+          {
+            // send ISO only; don't format to local time on server
+            dateTime: application.scheduled_time,
+            scheduled: application.interview_status === "Scheduled",
+            completed: ["Passed", "Failed"].includes(application.interview_status),
+            result:
+              application.interview_status === "Passed"
+                ? "Passed"
+                : application.interview_status === "Failed"
+                ? "Failed"
+                : null,
+          },
+        ]
+      : [],
+  preferredSlots:
+    application && application.preferred_interview_times
+      ? application.preferred_interview_times
+      : [],
       backgroundCheck: tutor.is_background_checked,
       references: documents.filter(
         (doc) => doc.document_type === "Reference Letter"
       ).length,
       qualifications: tutor.qualifications,
+      interviewStatus: application.interview_status,
+      applicationStatus: application.application_status,
       interviewCompleted: application
         ? ["Passed", "Failed"].includes(application.interview_status)
         : false,
       rating: tutor.average_rating || null,
+      againInterview: application.again_interview,
       profileComplete: tutor.profile_status === "approved",
       joinDate: tutor.user_id.createdAt,
       lastActive: tutor.user_id.updatedAt,
@@ -730,6 +708,7 @@ exports.getTutorDetails = async (req, res) => {
     };
 
     res.status(200).json(tutorDetails);
+    console.log("tutorDetails", tutorDetails)
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch tutor details",
@@ -738,118 +717,38 @@ exports.getTutorDetails = async (req, res) => {
   }
 };
 
-exports.updateInterviewToggle = async (req, res) => {
-  const { user_id } = req.params;
-  const { is_interview } = req.body;
-  const tutor = await TutorProfile.findOne({ user_id: user_id });
-  if (!tutor) {
-    return res.status(404).json({ message: "Tutor not found" });
-  }
-  const application = await TutorApplication.findOne({ tutor_id: tutor._id });
-  if (!application) {
-    return res.status(404).json({ message: "Tutor application not found" });
-  }
-  application.is_interview = is_interview;
-  await application.save();
-  res.status(200).json({ message: "Interview toggle updated successfully" });
-};
-
-// Complete interview with result
-exports.completeInterview = async (req, res) => {
+// Toggle or set a user's active status (admin only)
+exports.updateUserStatus = async (req, res) => {
   try {
-    const { tutorId, result, notes } = req.body;
+    const { user_id } = req.params;
+    const { status } = req.body; // expected: "active" | "inactive" | "partial_active"
 
-    const application = await TutorApplication.findOneAndUpdate(
-      { tutor_id: tutorId },
-      {
-        interview_status: result === "Passed" ? "Passed" : "Failed",
-        interview_notes: notes || "",
-        admin_notes: notes || "",
-      },
-      { new: true }
-    );
-
-    if (!application) {
-      return res.status(404).json({ message: "Tutor application not found" });
+    if (!user_id || !status) {
+      return res.status(400).json({ message: "user_id and status are required" });
     }
 
-    // Send email notification to tutor
-    const tutor = await TutorProfile.findById(tutorId).populate("user_id");
-    if (tutor) {
-      const emailSubject =
-        result === "Passed" ? "Interview Passed" : "Interview Result";
-      const emailBody =
-        result === "Passed"
-          ? "Congratulations! You have passed your interview. Your application will now proceed to the next stage."
-          : "Thank you for your application. Unfortunately, you did not pass the interview. Please contact us for more information.";
-
-      await sendEmail(tutor.user_id.email, emailSubject, emailBody);
+    const validStatuses = ["active", "inactive", "partial_active", "verified", "unverified"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
     }
 
-    res.status(200).json({
-      message: "Interview completed successfully",
-      application,
-    });
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.is_verified = status;
+    await user.save();
+
+    res.status(200).json({ message: "User status updated", user_id, status: user.is_verified });
   } catch (err) {
     res.status(500).json({
-      message: "Failed to complete interview",
+      message: "Failed to update user status",
       error: err.message,
     });
   }
 };
 
-// Get available interview slots
-exports.getAvailableInterviewSlots = async (req, res) => {
-  try {
-    const { date } = req.query; // Expecting format like "2025-08-07"
-
-    // Force date to be parsed as UTC
-    const startOfDay = new Date(`${date}T00:00:00.000Z`);
-    const endOfDay = new Date(`${date}T23:59:59.999Z`);
-
-    // Query for applications with preferred_interview_times within the date
-    const applications = await TutorApplication.find({
-      preferred_interview_times: {
-        $elemMatch: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        },
-      },
-    });
-    // Extract preferred times and convert to UTC hours
-    const preferredTimes = applications.flatMap(
-      (app) => app.preferred_interview_times
-    );
-    const preferredHours = preferredTimes
-      .filter((time) => {
-        const timeDate = new Date(time).toISOString().split("T")[0];
-        return timeDate === date; // Only include times for the requested date
-      })
-      .map((time) => new Date(time).getUTCHours());
-
-    // Generate available slots from 9:00 to 17:00
-    const availableSlots = [];
-    const startHour = 9;
-    const endHour = 17;
-
-    for (let hour = startHour; hour < endHour; hour++) {
-      const isPreferred = preferredHours.includes(hour);
-      availableSlots.push({
-        date,
-        time: `${hour.toString().padStart(2, "0")}:00`,
-        available: !isPreferred,
-      });
-    }
-
-    res.status(200).json(availableSlots);
-  } catch (err) {
-    console.error("Error:", err);
-    res.status(500).json({
-      message: "Failed to get available interview slots",
-      error: err.message,
-    });
-  }
-};
 
 // Update application notes
 exports.updateApplicationNotes = async (req, res) => {
@@ -895,7 +794,9 @@ exports.getDashboardStats = async (req, res) => {
     const pendingInterviews = await TutorApplication.countDocuments({
       interview_status: "Scheduled",
     });
-
+    const inactiveTutors = await TutorProfile.countDocuments({ profile_status: 'unverified' });
+    const inactiveStudents = await User.countDocuments({ role: 'student', is_verified: 'inactive' });
+    const inactiveParents = await User.countDocuments({ role: 'parent', is_verified: 'inactive' });
     const stats = {
       tutors: {
         total: totalTutors,
@@ -911,8 +812,13 @@ exports.getDashboardStats = async (req, res) => {
       interviews: {
         pending: pendingInterviews,
       },
+      inactive: {
+        tutors: inactiveTutors,
+        students: inactiveStudents,
+        parents: inactiveParents,
+      },
     };
-
+    console.log("stats", stats)
     res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({

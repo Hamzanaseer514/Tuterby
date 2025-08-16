@@ -9,6 +9,8 @@ const { getStudentDashboard,updateStudentProfile,
    getHiredTutors,
    requestHelpFromTutor,
    getStudentProfile} = require("../Controllers/StudentController")
+const { getUserProfile, updateUserPhoto } = require("../Controllers/UserController")
+
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
@@ -44,6 +46,8 @@ router.put("/reset-password", resetPassword)
 router.post("/send-message", protect, sendMessage)
 router.get("/get-accepted-tutors", protect, getAcceptedTutorsForStudent);
 router.get('/getstudentchat/:tutorId', protect, getStudentTutorChat);
+router.get('/user-profile/:user_id', protect, getUserProfile);
+router.post('/user-profile/:user_id/photo', protect, upload.single('photo'), updateUserPhoto);
 
 // Student dashboard routes
 router.get("/student/dashboard/:userId", protect, getStudentDashboard);

@@ -12,6 +12,7 @@ const {
   replyToInquiry, 
   getTutorStats, 
   getTutorProfile,
+  getMyInterviewSlots,
   getAvailableStudents,
   getTutorAvailability,
   updateGeneralAvailability,
@@ -20,6 +21,7 @@ const {
   removeBlackoutDate,
   getAvailableSlots,
   checkAvailability,
+  requestInterviewAgain,
   getHireRequests,
   respondToHireRequest,
   sendMessageResponse,
@@ -28,7 +30,9 @@ const {
   deleteSession,
   getVerifiedTutors,
   getTutorSettings,
-  updateTutorSettings
+  updateTutorSettings,
+  addTutorAcademicLevel,
+  removeTutorAcademicLevel
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -58,6 +62,8 @@ router.post('/upload-document', upload.single('document'), uploadDocument);
 // Dashboard routes
 router.get('/dashboard/:user_id', getTutorDashboard);
 router.get('/profile/:user_id', getTutorProfile);
+router.get('/interview-slots/:user_id', protect, getMyInterviewSlots);
+router.post('/interview-slots/:user_id/request-again', protect, requestInterviewAgain);
 router.get('/stats/:user_id', getTutorStats);
 
 // Session management routes
@@ -97,5 +103,7 @@ router.get('/getallmessages/:studentId', protect, getSpecificUserChat);
 // Tutor settings routes
 router.get('/settings/:user_id', getTutorSettings);
 router.put('/settings/update/:user_id', protect, updateTutorSettings);
+router.post('/settings/:user_id/level', protect, addTutorAcademicLevel);
+router.delete('/settings/delete/:user_id/level/:education_level_id', protect, removeTutorAcademicLevel);
 
 module.exports = router;

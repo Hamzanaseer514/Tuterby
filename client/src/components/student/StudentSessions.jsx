@@ -155,10 +155,7 @@ const StudentSessions = () => {
             <p className="text-gray-600 mt-1">View and manage all your tutoring sessions</p>
           </div>
         </div>
-        <Button onClick={() => navigate(`/student/tutor-search`)}>
-          <Search className="w-4 h-4 mr-2" />
-          Book New Session
-        </Button>
+       
       </div>
 
       {/* Filters */}
@@ -211,7 +208,7 @@ const StudentSessions = () => {
                 }
               </p>
               <Button onClick={() => navigate(`/student/tutor-search`)}>
-                Book Your First Session
+                Hire Your First Tutor
               </Button>
             </CardContent>
           </Card>

@@ -310,8 +310,6 @@ const TutorSearch = () => {
           notes: bookingData.notes
         })
       });
-
-
       const data = await response.json();
       const status = response.status;
       if (status === 400) {
@@ -328,10 +326,11 @@ const TutorSearch = () => {
       }
       setShowBookingModal(false);
       setSelectedTutor(null);
+      loadAllTutors();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to hire tutor",
+        description: "Failed to hire tutor" ,
         variant: "destructive"
       });
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -40,6 +40,8 @@ import AdminLayout from '../../components/admin/components/AdminLayout';
 import { Link } from 'react-router-dom';
 import { getDashboardStats } from '../../services/adminService';
 
+const statKey = (k) => `admin_last_seen_${k}`;
+
 const StatCard = ({ 
   title, 
   value, 
@@ -49,7 +51,9 @@ const StatCard = ({
   loading, 
   color = 'primary',
   link,
-  secondaryValue
+  secondaryValue,
+  showDot = false,
+  onSeen = () => {}
 }) => {
   const theme = useTheme();
   
@@ -85,6 +89,7 @@ const StatCard = ({
         component={link ? Link : 'div'}
         to={link}
         elevation={0}
+        onClick={onSeen}
         sx={{ 
           height: '100%',
           borderRadius: '12px',
@@ -92,6 +97,7 @@ const StatCard = ({
           boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
           transition: 'all 0.2s ease',
           border: `1px solid ${theme.palette.divider}`,
+          position: 'relative',
           '&:hover': {
             transform: 'translateY(-2px)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -100,6 +106,9 @@ const StatCard = ({
           }
         }}
       >
+        {showDot && (
+          <Box sx={{ position: 'absolute', top: 10, right: 10, width: 10, height: 10, bgcolor: 'error.main', borderRadius: '50%' }} />
+        )}
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ 
             display: 'flex', 
@@ -211,14 +220,26 @@ const AdminDashboardPage = () => {
     loading: true,
     error: null
   });
+  const [newFlags, setNewFlags] = useState({ tutors: false, students: false, parents: false });
 
-  useEffect(() => {
-    loadDashboardData();
+  const computeFlags = useCallback((stats) => {
+    const tutorsTotal = stats.tutors?.total || 0;
+    const studentsActive = stats.students?.active || 0;
+    const parentsActive = stats.parents?.active || 0;
+
+    const lastTutors = Number(localStorage.getItem(statKey('tutors_total')) || 0);
+    const lastStudents = Number(localStorage.getItem(statKey('students_active')) || 0);
+    const lastParents = Number(localStorage.getItem(statKey('parents_active')) || 0);
+
+    setNewFlags({
+      tutors: tutorsTotal > lastTutors,
+      students: studentsActive > lastStudents,
+      parents: parentsActive > lastParents
+    });
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setDashboardState(prev => ({ ...prev, loading: true, error: null }));
-    
     try {
       const statsData = await getDashboardStats();
       setDashboardState(prev => ({
@@ -226,6 +247,7 @@ const AdminDashboardPage = () => {
         stats: statsData,
         loading: false
       }));
+      computeFlags(statsData);
     } catch (error) {
       setDashboardState(prev => ({
         ...prev,
@@ -233,38 +255,68 @@ const AdminDashboardPage = () => {
         loading: false
       }));
     }
+  }, [computeFlags]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Refresh on focus and every 30s
+  useEffect(() => {
+    const onFocus = () => loadDashboardData();
+    window.addEventListener('focus', onFocus);
+    const id = setInterval(loadDashboardData, 30000);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      clearInterval(id);
+    };
+  }, [loadDashboardData]);
+
+  const markSeen = (key, currentValue) => {
+    localStorage.setItem(statKey(key), String(currentValue));
+    setNewFlags(prev => ({ ...prev, [key.split('_')[0]]: false }));
   };
+
+  const tutorsTotal = dashboardState.stats.tutors?.total || 0;
+  const studentsActive = dashboardState.stats.students?.active || 0;
+  const parentsActive = dashboardState.stats.parents?.active || 0;
 
   const statCards = [
     {
       title: 'Total Tutors',
-      value: dashboardState.stats.tutors?.total || 0,
+      value: tutorsTotal,
       icon: School,
       color: 'primary',
       trend: dashboardState.stats.tutors?.verified > 60 ? 'up' : 'down',
       trendValue: `${Math.round(((dashboardState.stats.tutors?.verified || 0) / (dashboardState.stats.tutors?.total || 1)) * 100)}%`,
       secondaryValue: `${dashboardState.stats.tutors?.verified || 0} verified`,
-      link: '/admin/tutors'
+      link: '/admin/tutors',
+      showDot: newFlags.tutors,
+      onSeen: () => markSeen('tutors_total', tutorsTotal)
     },
     {
       title: 'Active Students',
-      value: dashboardState.stats.students?.active || 0,
+      value: studentsActive,
       icon: Person,
       color: 'success',
       trend: 'up',
       trendValue: '+12%',
       secondaryValue: `${dashboardState.stats.students?.newThisMonth || 0} new`,
-      link: '/admin/students'
+      link: '/admin/students',
+      showDot: newFlags.students,
+      onSeen: () => markSeen('students_active', studentsActive)
     },
     {
       title: 'Engaged Parents',
-      value: dashboardState.stats.parents?.active || 0,
+      value: parentsActive,
       icon: Groups,
       color: 'info',
       trend: 'up',
       trendValue: '+8%',
       secondaryValue: `${dashboardState.stats.parents?.linkedAccounts || 0} linked`,
-      link: '/admin/parents'
+      link: '/admin/parents',
+      showDot: newFlags.parents,
+      onSeen: () => markSeen('parents_active', parentsActive)
     },
     {
       title: 'Monthly Revenue',
@@ -350,92 +402,6 @@ const AdminDashboardPage = () => {
             />
           ))}
         </Grid>
-
-        {/* Charts Section */}
-        {!dashboardState.loading && (
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            {/* User Growth Bar Chart */}
-            <Grid item xs={12} md={8}>
-              <Card elevation={0} sx={{ 
-                borderRadius: '12px',
-                height: '100%',
-                background: theme.palette.background.paper,
-                border: `1px solid ${theme.palette.divider}`
-              }}>
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                    User Growth Overview
-                  </Typography>
-                  <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={userGrowthData}
-                        margin={{
-                          top: 20,
-                          right: 30,
-                          left: 20,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                        <Bar dataKey="active" name="Active Users" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="new" name="New This Month" fill={theme.palette.success.main} radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Revenue Pie Chart */}
-            <Grid item xs={12} md={4}>
-              <Card elevation={0} sx={{ 
-                borderRadius: '12px',
-                height: '100%',
-                background: theme.palette.background.paper,
-                border: `1px solid ${theme.palette.divider}`
-              }}>
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                    Revenue Breakdown
-                  </Typography>
-                  <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={revenueData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {revenueData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
-                          contentStyle={{
-                            borderRadius: '8px',
-                            border: 'none',
-                            boxShadow: theme.shadows[3]
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        )}
 
         {/* Error Display */}
         {dashboardState.error && (

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
+import { BASE_URL } from '../config';
 
 const AuthContext = createContext();
 
@@ -33,6 +34,17 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     setLoading(false);
   }, [clearAllAuthData]);
+const getUserProfile = async (user_id) => {
+  const token = getAuthToken();
+  const response = await fetch(`${BASE_URL}/api/auth/user-profile/${user_id}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  const data = await response.json();
+  console.log("data", data.photo_url)
+  return data;
+}
 
   const isAuthenticated = () => !!user;
   const isTutor = () => user?.role === 'tutor';
@@ -54,6 +66,7 @@ export const AuthProvider = ({ children }) => {
         isStudent,
         isParent,
         getAuthToken,
+        getUserProfile,
         clearAllAuthData,
       }}
     >

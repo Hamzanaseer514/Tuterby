@@ -14,6 +14,9 @@ import {
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Input } from '../../components/ui/input';
+import { useSubject } from '../../hooks/useSubject';
 import {
   User,
   Star,
@@ -34,9 +37,8 @@ const TutorProfilePage = () => {
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [bookingData, setBookingData] = useState({
     subject: '',
-    // session_date: '',
-    duration_hours: 1,
-    notes: ''
+    notes: '',
+    academic_level: ''
   });
   const navigate = useNavigate();
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -45,6 +47,8 @@ const TutorProfilePage = () => {
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [studentProfile, setStudentProfile] = useState(null);
+  const { academicLevels } = useSubject();
 
   useEffect(() => {
     if (!tutorId) {
@@ -129,14 +133,34 @@ const TutorProfilePage = () => {
     }
   };
 
+  useEffect(() => {
+    if (user?._id) {
+      getStudentProfile();
+    }
+  }, [user]);
+
+  const getStudentProfile = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setStudentProfile(data.student);
+    } catch (e) {
+      // ignore silently
+    }
+  };
+
 
   const handleBookSession = (tutor) => {
     setSelectedTutor(tutor);
     setBookingData({
       subject: '',
-      // session_date: '',
-      duration_hours: 1,
-      notes: ''
+      notes: '',
+      academic_level: ''
     });
     setShowBookingModal(true);
   };
@@ -183,6 +207,12 @@ const TutorProfilePage = () => {
   const handleHireTutorSubmit = async () => {
     try {
       const token = getAuthToken();
+      // Map academic_level name to ID from global academicLevels
+      let academic_level_id = null;
+      if (bookingData.academic_level) {
+        const match = (academicLevels || []).find(l => l.level === bookingData.academic_level || l._id === bookingData.academic_level);
+        if (match) academic_level_id = match._id;
+      }
       const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
         method: 'POST',
         headers: {
@@ -193,9 +223,7 @@ const TutorProfilePage = () => {
           tutor_user_id: selectedTutor.user_id._id,
           student_user_id: user._id,
           subject: bookingData.subject,
-          // session_date: bookingData.session_date,
-          duration_hours: bookingData.duration_hours,
-          hourly_rate: selectedTutor.hourly_rate,
+          academic_level_id,
           notes: bookingData.notes
         })
       });
@@ -203,6 +231,7 @@ const TutorProfilePage = () => {
 
       const data = await response.json();
       const status = response.status;
+      
       if(status === 400){
         toast({
           title: "Warning",
@@ -217,10 +246,13 @@ const TutorProfilePage = () => {
     }
       setShowBookingModal(false);
       setSelectedTutor(null);
+      fetchTutorDetails();
+      getStudentProfile();
+      
     } catch (error) {
       toast({
         title: "Error",
-        description: data.message,
+        description: "Failed to hire tutor",
         variant: "destructive"
       });
     }
@@ -325,16 +357,23 @@ const TutorProfilePage = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                    <select
-                      className="w-full border rounded px-3 py-2 text-sm"
-                      value={bookingData.subject}
-                      onChange={(e) => setBookingData(prev => ({ ...prev, subject: e.target.value }))}
-                    >
-                      <option value="">Select subject</option>
-                      {selectedTutor.subjects?.map((subject, index) => (
-                        <option key={index} value={subject}>{subject}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const tutorSubjects = Array.isArray(selectedTutor?.subjects) ? selectedTutor.subjects : [];
+                      const studentSubjects = Array.isArray(studentProfile?.preferred_subjects) ? studentProfile.preferred_subjects : [];
+                      const subjectOptions = Array.from(new Set([...(tutorSubjects || []), ...(studentSubjects || [])].filter(Boolean)));
+                      return (
+                        <Select value={bookingData.subject} onValueChange={(value) => setBookingData(prev => ({ ...prev, subject: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select subject" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subjectOptions.map((subject, index) => (
+                              <SelectItem key={index} value={subject}>{subject}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })()}
                   </div>
 
                   {/* <div>
@@ -348,18 +387,24 @@ const TutorProfilePage = () => {
                   </div> */}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
-                    <select
-                      className="w-full border rounded px-3 py-2 text-sm"
-                      value={bookingData.duration_hours.toString()}
-                      onChange={(e) => setBookingData(prev => ({ ...prev, duration_hours: parseFloat(e.target.value) }))}
-                    >
-                      <option value="0.5">30 minutes</option>
-                      <option value="1">1 hour</option>
-                      <option value="1.5">1.5 hours</option>
-                      <option value="2">2 hours</option>
-                      <option value="3">3 hours</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
+                    {(() => {
+                      const tutorLevels = Array.isArray(selectedTutor?.academic_levels_taught) ? selectedTutor.academic_levels_taught : [];
+                      const studentLevels = Array.isArray(studentProfile?.academic_level) ? studentProfile.academic_level : [];
+                      const levelOptions = Array.from(new Set([...(tutorLevels || []), ...(studentLevels || [])].filter(Boolean)));
+                      return (
+                        <Select value={bookingData.academic_level} onValueChange={(value) => setBookingData(prev => ({ ...prev, academic_level: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select academic level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {levelOptions.map((level, index) => (
+                              <SelectItem key={index} value={level}>{level}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })()}
                   </div>
 
                   <div>
@@ -373,11 +418,7 @@ const TutorProfilePage = () => {
                     />
                   </div>
 
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-600">
-                      <strong>Total Cost:</strong> £{(selectedTutor.hourly_rate * bookingData.duration_hours).toFixed(2)}
-                    </p>
-                  </div>
+                  
 
                   <div className="flex gap-2">
                     <Button
@@ -660,11 +701,11 @@ const TutorProfilePage = () => {
                               )}
                             </div>
                           )}
-                          {inquiry.response_time_minutes && inquiry.response_time_minutes > 0 && (
+                          {/* {inquiry.response_time_minutes && (
                             <p className="text-xs text-gray-500 mt-1">
                               Responded in: {formatResponseTime(inquiry.response_time_minutes)}
                             </p>
-                          )}
+                          )} */}
                         </div>
                       ))}
                     </div>

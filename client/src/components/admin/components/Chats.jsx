@@ -1055,7 +1055,7 @@ const ChatAdminDashboard = () => {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout tabValue="chat">
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">

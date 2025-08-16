@@ -117,7 +117,7 @@ const StudentHireRequests = () => {
     if (!requests.length) {
       setLoading(true); // only show full "loading" if first time
     }
-    
+
     try {
       const query = new URLSearchParams();
       if (status) query.set('status', status);
@@ -223,12 +223,11 @@ const StudentHireRequests = () => {
         <div className="py-24 text-center text-gray-500">No pending hire requests.</div>
       )}
 
-{loading && requests.length > 0 && (
-  <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
-    <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-  </div>
-)}
-
+      {loading && requests.length > 0 && (
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((student) => (

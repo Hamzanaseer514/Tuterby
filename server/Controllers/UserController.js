@@ -946,3 +946,35 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   res.status(200).json({ message: "Password reset successfully" });
 });
+
+
+exports.getUserProfile = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  const user = await User.findById(user_id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  res.status(200).json(user);
+});
+
+exports.updateUserPhoto = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    const relativePath = `/uploads/documents/${req.file.filename}`;
+    const user = await User.findByIdAndUpdate(
+      user_id,
+      { photo_url: relativePath },
+      { new: true }
+    ).select('photo_url');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    return res.status(200).json({ success: true, photo_url: user.photo_url });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});

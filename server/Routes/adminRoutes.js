@@ -6,9 +6,6 @@ const {
   setAvailableInterviewSlots,
   getAllPendingApplications,
   selectInterviewSlot,
-  // verifyBackgroundCheck,
-  // verifyReferenceChecks,
-  // verifyQualifications,
   approveTutorProfile,
   rejectTutorProfile,
   partialApproveTutor,
@@ -60,9 +57,7 @@ router.get("/tutors/applications/pending", getAllPendingApplications);
 router.put("/tutors/interview/assign", setAvailableInterviewSlots);
 router.post("/tutors/interview/select", selectInterviewSlot);
 router.put("/tutors/:user_id/interview-toggle", updateInterviewToggle);
-// router.post('/tutors/verify/background', verifyBackgroundCheck);
-// router.post('/tutors/verify/references', verifyReferenceChecks);
-// router.post('/tutors/verify/qualifications', verifyQualifications);
+
 router.post("/tutors/approve", approveTutorProfile);
 router.post("/tutors/reject", rejectTutorProfile);
 router.post("/tutors/partial-approve", partialApproveTutor);
@@ -75,5 +70,7 @@ router.post("/interviews/complete", completeInterview);
 router.get("/interviews/available-slots", getAvailableInterviewSlots);
 router.put("/applications/notes", updateApplicationNotes);
 router.get("/dashboard/stats", getDashboardStats);
+// User management
+router.put("/users/:user_id/status", require("../Controllers/adminController").updateUserStatus);
 
 module.exports = router;

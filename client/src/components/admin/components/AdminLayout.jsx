@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bars3Icon as MenuIcon,
@@ -14,11 +14,70 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 // import { Dashboard as DashboardIcon } from '@mui/icons-material';
+import { getDashboardStats } from '../../../services/adminService';
 
 const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, students: 0, parents: 0 }, onTabChange }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expanded, setExpanded] = useState(true); // For desktop sidebar toggle
+  const [counts, setCounts] = useState({ 
+    tutorsTotal: userCounts.tutors || 0,
+    studentsTotal: userCounts.students || 0,
+    parentsTotal: userCounts.parents || 0,
+    tutorsInactive: 0,
+    studentsInactive: 0,
+    parentsInactive: 0,
+    chat: userCounts.chat || 0 
+  });
   const navigate = useNavigate();
+
+  // Keep counts in sync with props (e.g., when pages pass in fresh totals)
+  useEffect(() => {
+    setCounts(prev => ({
+      ...prev,
+      tutorsTotal: typeof userCounts.tutors === 'number' ? userCounts.tutors : prev.tutorsTotal,
+      studentsTotal: typeof userCounts.students === 'number' ? userCounts.students : prev.studentsTotal,
+      parentsTotal: typeof userCounts.parents === 'number' ? userCounts.parents : prev.parentsTotal,
+      chat: typeof userCounts.chat === 'number' ? userCounts.chat : prev.chat
+    }));
+  }, [userCounts.tutors, userCounts.students, userCounts.parents, userCounts.chat]);
+
+  // Local fetch helper so we can call from multiple places
+  const fetchCounts = async () => {
+    try {
+      const stats = await getDashboardStats();
+      setCounts(prev => ({
+        ...prev,
+        tutorsTotal: stats?.tutors?.total || 0,
+        studentsTotal: stats?.students?.total || 0,
+        parentsTotal: stats?.parents?.total || 0,
+        tutorsInactive: stats?.inactive?.tutors || 0,
+        studentsInactive: stats?.inactive?.students || 0,
+        parentsInactive: stats?.inactive?.parents || 0
+      }));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Fetch totals from backend so badges show without needing tab click
+  useEffect(() => {
+    let isMounted = true;
+    fetchCounts();
+    const interval = setInterval(() => { if (isMounted) fetchCounts(); }, 30000);
+    return () => { isMounted = false; clearInterval(interval); };
+  }, []);
+
+  // Listen for cross-app updates to refresh counts instantly when users change
+  useEffect(() => {
+    const onRefresh = () => { fetchCounts(); };
+    const onStorage = (e) => { if (e?.key === 'usersUpdated') fetchCounts(); };
+    window.addEventListener('admin:refreshCounts', onRefresh);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('admin:refreshCounts', onRefresh);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
 
   const handleTabChange = (newTabValue) => {
   // Update the active tab state
@@ -63,19 +122,19 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           id: 'tutors', 
           icon: <UserGroupIcon className="h-5 w-5" />, 
           label: 'Tutors', 
-          count: userCounts.tutors 
+          count: `${counts.tutorsInactive || 0}/${counts.tutorsTotal || 0}` 
         },
         { 
           id: 'students', 
           icon: <AcademicCapIcon className="h-5 w-5" />, 
           label: 'Students', 
-          count: userCounts.students 
+          count: `${counts.studentsInactive || 0}/${counts.studentsTotal || 0}` 
         },
         { 
           id: 'parents', 
           icon: <UserIcon className="h-5 w-5" />, 
           label: 'Parents', 
-          count: userCounts.parents 
+          count: `${counts.parentsInactive || 0}/${counts.parentsTotal || 0}` 
         }
       ]
     },
@@ -86,37 +145,48 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           id: 'chat', 
           icon: <ChatBubbleLeftRightIcon className="h-5 w-5" />, 
           label: 'Messages', 
-          count: userCounts.chat 
+          count: counts.chat 
         }
       ]
     }
   ];
 
-  const renderNavItem = (item) => (
-    <button
-      key={item.id}
-      onClick={() => handleTabChange(item.id)}
-      className={`flex items-center w-full px-3 py-2.5 text-sm rounded-lg transition-colors ${
-        tabValue === item.id
-          ? 'bg-blue-50 text-blue-600 font-medium'
-          : 'text-gray-600 hover:bg-gray-100'
-      }`}
-    >
-      <span className={`mr-3 ${tabValue === item.id ? 'text-blue-500' : 'text-gray-500'}`}>
-        {item.icon}
-      </span>
-      {expanded && (
-        <>
-          <span className="flex-1 text-left">{item.label}</span>
-          {item.count > 0 && (
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
-              {item.count}
-            </span>
-          )}
-        </>
-      )}
-    </button>
-  );
+  const renderNavItem = (item) => {
+    const showBadge = (() => {
+      if (typeof item.count === 'string' && item.count.includes('/')) {
+        const parts = item.count.split('/');
+        const total = parseInt(parts[1], 10);
+        return Number.isFinite(total) && total > 0;
+      }
+      return Number(item.count) > 0;
+    })();
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleTabChange(item.id)}
+        className={`flex items-center w-full px-3 py-2.5 text-sm rounded-lg transition-colors ${
+          tabValue === item.id
+            ? 'bg-blue-50 text-blue-600 font-medium'
+            : 'text-gray-600 hover:bg-gray-100'
+        }`}
+      >
+        <span className={`mr-3 ${tabValue === item.id ? 'text-blue-500' : 'text-gray-500'}`}>
+          {item.icon}
+        </span>
+        {expanded && (
+          <>
+            <span className="flex-1 text-left">{item.label}</span>
+            {showBadge && (
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                {item.count}
+              </span>
+            )}
+          </>
+        )}
+      </button>
+    );
+  };
 
   const renderSidebarContent = () => (
     <>
@@ -272,12 +342,7 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="relative p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100">
-                <BellIcon className="h-5 w-5" />
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  3
-                </span>
-              </button>
+
               <button className="flex items-center text-gray-600 hover:text-gray-900">
                 <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-2">
                   <UserCircleIcon className="h-5 w-5" />

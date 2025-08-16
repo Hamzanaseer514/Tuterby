@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const mongoose = require("mongoose");
 const TutorDocument = require("../Models/tutorDocumentSchema");
 const TutoringSession = require("../Models/tutoringSessionSchema");
+const TutorApplication = require("../Models/tutorApplicationSchema");
 const TutorProfile = require("../Models/tutorProfileSchema");
 const TutorInquiry = require("../Models/tutorInquirySchema");
 const TutorAvailability = require("../Models/tutorAvailabilitySchema");
@@ -232,8 +233,13 @@ const createSession = asyncHandler(async (req, res) => {
   const tutor = await TutorProfile.findOne({ user_id: tutor_id });
   const tutor_total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id });
   const allowed_session = tutor.academic_levels_taught.find(level => level.educationLevel.toString() === academic_level.toString());
-  if (tutor_total_sessions >= allowed_session.totalSessionsPerMonth) {
-    return res.status(400).json({ message: `You have reached the maximum number ${allowed_session.totalSessionsPerMonth} of sessions for this academic level for this month` });
+  if (allowed_session) {
+    if (tutor_total_sessions >= allowed_session.totalSessionsPerMonth) {
+      return res.status(400).json({ message: `You have reached the maximum number ${allowed_session.totalSessionsPerMonth} of sessions for this academic level for this month` });
+    }
+  }
+  else{
+    return res.status(401).json({ message: "This Academic Level is not selected by you. Please add this academic level to your profile." });
   }
 
   if (!tutor) {
@@ -598,31 +604,110 @@ const getTutorStats = asyncHandler(async (req, res) => {
   res.json(stats);
 });
 
-// Get tutor profile with hours
+// Get tutor profile
 const getTutorProfile = asyncHandler(async (req, res) => {
-  const { tutor_id } = req.params;
-  const profile = await TutorProfile.findOne({ user_id: tutor_id })
+  const { user_id } = req.params;
+  const profile = await TutorProfile.findOne({ user_id })
     .populate('user_id', 'full_name email photo_url');
-
+  const total_sessions = await TutoringSession.countDocuments({ tutor_id: profile._id });
   if (!profile) {
     res.status(404);
     throw new Error("Tutor profile not found");
   }
 
-  res.json(profile);
+  res.json({...profile, total_sessions});
+});
+
+// Get tutor's preferred interview slots and status
+const getMyInterviewSlots = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const tutor = await TutorProfile.findOne({ user_id });
+    if (!tutor) {
+      return res.status(404).json({ success: false, message: 'Tutor profile not found' });
+    }
+    const application = await TutorApplication.findOne({ tutor_id: tutor._id }).select(
+      'preferred_interview_times interview_status scheduled_time again_interview'
+    );
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Tutor application not found' });
+    }
+    console.log("application", application)
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        preferred_interview_times: application.preferred_interview_times || [],
+        interview_status: application.interview_status || 'Pending',
+        scheduled_time: application.scheduled_time || null,
+        again_interview: Boolean(application.again_interview)
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Tutor requests interview again (only once, only if previous status is Failed)
+const requestInterviewAgain = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    if (!user_id) {
+      return res.status(400).json({ success: false, message: 'user_id is required' });
+    }
+
+    const tutor = await TutorProfile.findOne({ user_id });
+    if (!tutor) {
+      return res.status(404).json({ success: false, message: 'Tutor profile not found' });
+    }
+
+    const application = await TutorApplication.findOne({ tutor_id: tutor._id });
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Tutor application not found' });
+    }
+
+    if (application.again_interview) {
+      return res.status(400).json({ success: false, message: 'Re-interview already requested' });
+    }
+
+    if (application.interview_status !== 'Failed') {
+      return res.status(400).json({ success: false, message: 'Re-interview can be requested only when status is Failed' });
+    }
+
+    application.again_interview = true;
+    application.interview_status = 'Pending';
+    application.preferred_interview_times = [];
+    application.scheduled_time = null;
+    await application.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Re-interview requested successfully',
+      data: {
+        again_interview: true,
+        interview_status: application.interview_status,
+        preferred_interview_times: application.preferred_interview_times,
+        scheduled_time: application.scheduled_time
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Get available students for tutor to select from
+// Get available students for tutor to select from
 const getAvailableStudents = asyncHandler(async (req, res) => {
   try {
-    const user_id = req.params.user_id; // assuming tutor is authenticated
+    const user_id = req.params.user_id;
+
     // Find tutor profile
-    const tutorProfile = await TutorProfile.findOne({ user_id: user_id });
+    const tutorProfile = await TutorProfile.findOne({ user_id });
     if (!tutorProfile) {
       res.status(404);
       throw new Error("Tutor profile not found");
     }
-    // console.log(tutorProfile);
+
     // Find students who accepted this tutor
     const students = await StudentProfile.find({
       hired_tutors: {
@@ -632,62 +717,42 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
         }
       }
     })
-      .populate('user_id', 'full_name email age')
-      .select('user_id academic_level preferred_subjects availability');
-    const rawAcademicVals = students
-      .flatMap(student => Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level])
-      .filter(Boolean);
-    // Split ids vs names
-    const idVals = rawAcademicVals.filter(v => mongoose.Types.ObjectId.isValid(v)).map(v => v.toString());
-    const nameVals = rawAcademicVals.filter(v => typeof v === 'string' && !mongoose.Types.ObjectId.isValid(v));
-
-    const [levelsById, levelsByName] = await Promise.all([
-      idVals.length ? EducationLevel.find({ _id: { $in: idVals } }) : Promise.resolve([]),
-      nameVals.length ? EducationLevel.find({ level: { $in: nameVals } }) : Promise.resolve([])
-    ]);
-    const academicLevels = [...levelsById, ...levelsByName];
-    const levelById = new Map(academicLevels.map(l => [l._id.toString(), l]));
-    const levelByName = new Map(academicLevels.map(l => [l.level, l]));
-    // Format response
+      .populate("user_id", "full_name email age")
+      .populate("academic_level", "level hourlyRate") // Directly populate EducationLevel info
+      .select("user_id academic_level preferred_subjects availability");
+    // Format the student list
     const formattedStudents = students.map(student => {
-      const rawVals = Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level];
-      const academic_levels = rawVals
-        .filter(Boolean)
-        .map(v => mongoose.Types.ObjectId.isValid(v) ? levelById.get(v.toString()) : levelByName.get(v))
-        .filter(Boolean)
-        .map(l => ({ _id: l._id.toString(), level: l.level, hourlyRate: l.hourlyRate }));
-
-      // Derive tutor-specific hourly rates if tutor teaches those levels
-      const selectedIds = new Set(academic_levels.map(l => l._id));
-      const tutorRates = tutorProfile.academic_levels_taught
-        .filter(level => selectedIds.has(level.educationLevel.toString()))
-        .map(level => level.hourlyRate);
-      const hourly_rate = tutorRates.length ? tutorRates : academic_levels.map(l => l.hourlyRate);
+      // Find tutor's specific rate for this student's level (if exists)
+      // const tutorLevelInfo = tutorProfile.academic_levels_taught.find(
+      //   level => level.educationLevel.toString() === student.academic_level?._id.toString()
+      // );
+      // console.log("tutorLevelInfo", tutorLevelInfo);
+      // const hourly_rate = tutorLevelInfo
+      //   ? tutorLevelInfo.hourlyRate
+      //   : student.academic_level?.hourlyRate;
 
       return {
         _id: student.user_id._id,
         full_name: student.user_id.full_name,
         email: student.user_id.email,
         age: student.user_id.age,
-        // Back-compat names array
-        academic_level: academic_levels.map(l => l.level),
-        // New: detailed array
-        academic_levels,
-        preferred_subjects: student.preferred_subjects,
-        availability: student.availability,
-        hourly_rate
+        academic_level: student.academic_level || null,
+        preferred_subjects: student.preferred_subjects || [],
+        availability: student.availability || [],
+        // hourly_rate
       };
     });
-    // console.log(formattedStudents);
     res.json({
       students: formattedStudents,
       total: formattedStudents.length
     });
+
   } catch (err) {
     res.status(500);
     throw new Error("Failed to fetch students: " + err.message);
   }
 });
+
 
 
 // Get tutor's availability settings
@@ -705,7 +770,7 @@ const getTutorAvailability = asyncHandler(async (req, res) => {
   if (!availability) {
     availability = await TutorAvailability.create({ tutor_id: tutor._id });
   }
-
+  console.log("availability", availability)
   res.json(availability);
 });
 
@@ -1275,7 +1340,7 @@ const getTutorSettings = asyncHandler(async (req, res) => {
   }
 });
 
-// Update tutor settings (rates and sessions)
+// Update tutor settings (rates and sessions) for EXISTING levels only
 const updateTutorSettings = asyncHandler(async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -1293,7 +1358,7 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
       throw new Error("Tutor profile not found");
     }
 
-    // Update each academic level setting
+    // Update each academic level setting (must already exist on profile)
     for (const setting of academicLevelSettings) {
       const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount } = setting;
 
@@ -1302,16 +1367,16 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
         level => level.educationLevel.toString() === educationLevelId
       );
 
-      // if total session are less than minSession or greate then maxSession show message. get mix andmax session from educationLevel
+      // if total session are less than minSession or greate then maxSession show message. get min and max session from educationLevel
       const educationLevel = await EducationLevel.findById(educationLevelId);
       const minSession = educationLevel.minSession;
       const maxSession = educationLevel.maxSession;
-      const tutor_prmision = educationLevel.isTutorCanChangeRate
-      if (tutor_prmision === false) {
+      // If admin locked rates, do not allow updates to values
+      if (educationLevel.isTutorCanChangeRate === false) {
         res.status(400);
         return res.json({
           success: false,
-          message: `You are not authorized to change the rates for this academic level`
+          message: `Rates for this level are managed by admin and cannot be changed`
         });
       }
       if (totalSessionsPerMonth < minSession || totalSessionsPerMonth > maxSession) {
@@ -1332,8 +1397,16 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
         const gross = hourlyRate * totalSessionsPerMonth;
         const discountAmount = (gross * discount) / 100;
         tutorProfile.academic_levels_taught[levelIndex].monthlyRate = gross - discountAmount;
+      } else {
+        res.status(404);
+        return res.json({
+          success: false,
+          message: "Academic level not found in tutor profile. Use add endpoint to add new levels."
+        });
       }
     }
+
+    
 
     // Save the updated profile
     await tutorProfile.save();
@@ -1354,6 +1427,115 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
   }
 });
 
+// Add a new academic level to tutor profile
+const addTutorAcademicLevel = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount } = req.body || {};
+
+    const tutorProfile = await TutorProfile.findOne({ user_id });
+    if (!tutorProfile) {
+      res.status(404);
+      throw new Error("Tutor profile not found");
+    }
+
+    const educationLevel = await EducationLevel.findById(educationLevelId);
+    if (!educationLevel) {
+      res.status(404);
+      throw new Error("Education level not found");
+    }
+
+    const exists = tutorProfile.academic_levels_taught.some(
+      level => level.educationLevel.toString() === String(educationLevelId)
+    );
+    if (exists) {
+      res.status(400);
+      return res.json({ success: false, message: "Level already exists in profile" });
+    }
+
+    // Determine values: locked levels ignore provided values and use defaults
+    let newHourly = educationLevel.hourlyRate || 0;
+    let newTotalSessions = educationLevel.totalSessionsPerMonth || 0;
+    let newDiscount = educationLevel.discount || 0;
+
+    if (educationLevel.isTutorCanChangeRate !== false) {
+      // allow overrides if provided
+      if (typeof hourlyRate === 'number') newHourly = hourlyRate;
+      if (typeof totalSessionsPerMonth === 'number') newTotalSessions = totalSessionsPerMonth;
+      if (typeof discount === 'number') newDiscount = discount;
+    }
+
+    // ⚡ Removed min/max session bounds check
+
+    const gross = newHourly * newTotalSessions;
+    const discountAmount = (gross * newDiscount) / 100;
+    const monthlyRate = gross - discountAmount;
+
+    tutorProfile.academic_levels_taught.push({
+      educationLevel: educationLevel._id,
+      name: educationLevel.level,
+      hourlyRate: newHourly,
+      totalSessionsPerMonth: newTotalSessions,
+      discount: newDiscount,
+      monthlyRate
+    });
+
+    await tutorProfile.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Academic level added successfully",
+      data: tutorProfile.academic_levels_taught
+    });
+  } catch (error) {
+    console.error('Error adding academic level:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add academic level',
+      error: error.message,
+    });
+  }
+});
+
+
+// Remove an academic level from tutor profile
+const removeTutorAcademicLevel = asyncHandler(async (req, res) => {
+  try {
+    const { user_id, education_level_id } = req.params;
+
+    const tutorProfile = await TutorProfile.findOne({ user_id });
+    if (!tutorProfile) {
+      res.status(404);
+      throw new Error("Tutor profile not found");
+    }
+
+    const index = tutorProfile.academic_levels_taught.findIndex(
+      level => level.educationLevel.toString() === education_level_id
+    );
+
+    if (index === -1) {
+      res.status(404);
+      throw new Error("Academic level not found in tutor profile");
+    }
+
+    tutorProfile.academic_levels_taught.splice(index, 1);
+    await tutorProfile.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Academic level removed successfully",
+      data: tutorProfile.academic_levels_taught,
+    });
+  } catch (error) {
+    console.error('Error removing academic level:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove academic level',
+      error: error.message,
+    });
+  }
+});
+
 module.exports = {
   uploadDocument,
   getTutorDashboard,
@@ -1364,6 +1546,8 @@ module.exports = {
   replyToInquiry,
   getTutorStats,
   getTutorProfile,
+  getMyInterviewSlots,
+  requestInterviewAgain,
   getAvailableStudents,
   getTutorAvailability,
   updateGeneralAvailability,
@@ -1380,5 +1564,7 @@ module.exports = {
   deleteSession,
   getVerifiedTutors,
   getTutorSettings,
-  updateTutorSettings
+  updateTutorSettings,
+  addTutorAcademicLevel,
+  removeTutorAcademicLevel
 };

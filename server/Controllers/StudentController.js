@@ -129,7 +129,7 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
         const {
             full_name,
             phone_number,
-            photo_url,
+            // photo_url,
             age,
             academic_level,
             learning_goals,
@@ -148,7 +148,6 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
 
         // ✅ Fetch user without invalid enum issues
         const user = await User.findById(user_id).lean(); // lean() removes mongoose doc wrapping
-
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -168,15 +167,14 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
         if (phone_number) {
             const existingUser = await User.findOne({ phone_number });
             if (existingUser && existingUser._id.toString() !== user_id) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Phone number already in use"
-                });
+                console.log("existingUser", existingUser)
+                return res.status(400).json({success: false, message: "Phone number already in use"});
             }
             userUpdates.phone_number = phone_number;
         }
+        console.log("userUpdates", userUpdates)
         if (full_name) userUpdates.full_name = full_name;
-        if (photo_url) userUpdates.photo_url = photo_url;
+        // if (photo_url) userUpdates.photo_url = photo_url;
         if (age) userUpdates.age = age;
 
         // ✅ Update without touching is_verified
@@ -414,7 +412,6 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             res.status(404);
             throw new Error("Student profile not found");
         }
-
         const tutor = await TutorProfile.findOne({
             _id: tutorId,
             profile_status: 'approved', // Changed from is_verified to profile_status
@@ -424,16 +421,13 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             res.status(404);
             throw new Error("Tutor not found");
         }
-
         const tutor_acdemicLevel_ids = tutor.academic_levels_taught.map(level => level.educationLevel);
         const academicLevels = await EducationLevel.find({ _id: { $in: tutor_acdemicLevel_ids } });
-        
         // Create a map for quick lookup
         const academicLevelMap = {};
         academicLevels.forEach(level => {
             academicLevelMap[level._id.toString()] = level;
         });
-
         // Get this tutor's academic levels and hourly rates
         const tutorAcademicLevels = tutor.academic_levels_taught.map(level => {
             const levelDoc = academicLevelMap[level.educationLevel.toString()];
@@ -446,20 +440,13 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
         const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
         const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
-
-        // Get tutor's recent sessions for availability context
-        const recentSessions = await TutoringSession.find({
-            tutor_id: tutor._id
-        })
-            .sort({ session_date: -1 })
-            .limit(5)
-            .populate('student_ids', 'user_id', 'full_name email');
-
-        // Get hiring status for current student
+        console.log("min_hourly_rate_value", min_hourly_rate_value)
+        console.log("max_hourly_rate_value", max_hourly_rate_value)
+       
         const hireRecord = currentStudent.hired_tutors.find(
             hire => hire.tutor.toString() === tutor._id.toString()
         );
-
+        console.log("hireRecord", hireRecord)
         // Get tutor's hiring statistics
         let totalHiringRequests = [];
         try {
@@ -618,7 +605,7 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         inquiryStatusStats.forEach(stat => {
             inquiryStats[stat._id] = stat.count;
         });
-
+        const total_sessions = await TutoringSession.countDocuments({tutor_id: tutor._id});
         const formattedTutor = {
             _id: tutor._id,
             user_id: tutor.user_id,
@@ -627,13 +614,12 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             min_hourly_rate: min_hourly_rate_value,
             max_hourly_rate: max_hourly_rate_value,
             average_rating: tutor.average_rating,
-            total_sessions: tutor.total_sessions,
+            total_sessions: total_sessions,
             location: tutor.location,
             bio: tutor.bio,
             qualifications: tutor.qualifications,
             experience_years: tutor.experience_years,
             teaching_approach: tutor.teaching_approach,
-            recent_sessions: recentSessions,
 
             // Hiring status for current student
             hiring_status: {

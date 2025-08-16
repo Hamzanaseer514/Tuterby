@@ -30,8 +30,8 @@ const AdminDashboard = lazy(() =>
 const AdminDashboardPage = lazy(() =>
   import("./pages/AdminPages/AdminDashboardPage")
 );
-const UserDetailPage = lazy(() =>
-  import("./pages/AdminPages/UserDetailPage")
+const AdminUserDetailRouter = lazy(() =>
+  import("./pages/AdminPages/AdminUserDetailRouter")
 );
 const LoginForm = lazy(() => import("./components/account/LoginForm.jsx"));
 const TutorDashboardPage = lazy(() =>
@@ -40,13 +40,18 @@ const TutorDashboardPage = lazy(() =>
 const TutorAvailabilityPage = lazy(() =>
   import("./pages/TutorPages/TutorAvailabilityPage")
 );
+const TutorCreateSessionPage = lazy(() =>
+  import("./pages/TutorPages/TutorCreateSessionPage")
+);
 const StudentDashboardPage = lazy(() =>
   import("./pages/StudentPages/StudentDashboardPage")
 );
 const StudentTutorSearchPage = lazy(() =>
   import("./pages/StudentPages/StudentTutorSearchPage")
 );
-
+const StudentSelfProfilePage = lazy(() =>
+  import("./pages/StudentPages/StudentSelfProfilePage")
+);
 const TutorProfilePage = lazy(() =>
   import("./pages/TutorPages/TutorProfilePage")
 );
@@ -100,7 +105,7 @@ function App() {
                 <AdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/user-detail/:tabValue" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <UserDetailPage />
+                <AdminUserDetailRouter />
               </ProtectedRoute>} />
               <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <AdminSettings />
@@ -119,9 +124,21 @@ function App() {
                 </ProtectedRoute>}
               />
               <Route
+                path="/tutor-dashboard/create-session"
+                element={<ProtectedRoute allowedRoles={["tutor"]}>
+                  <TutorCreateSessionPage />
+                </ProtectedRoute>}
+              />
+              <Route
                 path="/student-dashboard/"
                 element={<ProtectedRoute allowedRoles={["student"]}>
                   <StudentDashboardPage />
+                </ProtectedRoute>}
+              />
+              <Route
+                path="/student/profile"
+                element={<ProtectedRoute allowedRoles={["student"]}>
+                  <StudentSelfProfilePage />
                 </ProtectedRoute>}
               />
               <Route

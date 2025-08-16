@@ -133,7 +133,7 @@ export const getAllUsers = async (filters = {}) => {
 export const getTutorDetails = async (userId) => {
   try {
     const details = await apiCall(`/tutors/${userId}`);
-
+    console.log("details", details)
     // Fix document URLs
     if (details.documents && Array.isArray(details.documents)) {
       details.documents = details.documents.map(doc => ({
@@ -168,6 +168,11 @@ export const getTutorDetails = async (userId) => {
     if (!Array.isArray(details.subjects)) {
       details.subjects = [];
     }
+
+    // Normalize interview preferred times to a consistent field the UI expects
+    if (Array.isArray(details.preferred_interview_times)) {
+      details.preferredSlots = details.preferred_interview_times;
+    }
     return details;
   } catch (error) {
     console.error('Error fetching tutor details:', error);
@@ -187,11 +192,11 @@ export const getTutorDetails = async (userId) => {
 //   });
 // };
 
-export const completeInterview = async (tutorId, result, notes = '') => {
+export const completeInterview = async (userId, result, notes = '') => {
   return apiCall('/interviews/complete', {
     method: 'POST',
     body: JSON.stringify({
-      tutorId,
+      userId,
       result,
       notes
     }),
@@ -225,6 +230,7 @@ export const updateApplicationNotes = async (tutorId, notes) => {
       notes
     }),
   });
+  
 };
 
 // Tutor Approval/Rejection
@@ -305,3 +311,12 @@ export const setAvailableInterviewSlots = async (userId, preferredTimes) => {
     }),
   });
 };
+
+export const updateUserStatus = async (userId, status) => {
+  return apiCall(`/users/${userId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  });
+};
+
+

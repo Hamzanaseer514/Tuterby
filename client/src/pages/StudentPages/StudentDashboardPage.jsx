@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
   LayoutDashboard,
@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 import StudentDashboard from '../../components/student/StudentDashboard';
@@ -22,19 +23,60 @@ import StudentPreferences from '../../components/student/StudentPreferences';
 import StudentChatPage from '../../components/student/StudentChatPage';
 import StudentHelpRequests from '../../components/student/StudentHelpRequests';
 import MyTutors from '../../components/student/MyTutors';
+import StudentTutorSearchPage from './StudentTutorSearchPage';
+import { BASE_URL } from '../../config';
+import StudentSelfProfilePage from './StudentSelfProfilePage';
+
+const lastSeenKey = (id) => `student_last_seen_${id}`;
 
 const StudentDashboardPage = () => {
-  const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const initialTab = (() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      return params.get('tab') || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  })();
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
   const [expandedSections, setExpandedSections] = useState({
     learning: true,
     communication: true,
     account: true
   });
+  const [badgeCounts, setBadgeCounts] = useState({ sessions: 0, requests: 0, chat: 0 });
+
+  const { user, logout, loading: authLoading, getUserProfile, getAuthToken } = useAuth();
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        const raw = await getUserProfile(user?._id);
+        const photo_url = raw.photo_url;
+        if (!photo_url) {
+          setProfileImageUrl('');
+          return;
+        }
+        const url = photo_url.startsWith('http')
+          ? photo_url
+          : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
+        setProfileImageUrl(url);
+        console.log("url", url)
+      } catch (error) {
+        console.error('Error fetching profile image:', error);
+        setProfileImageUrl('');
+      }
+    };
+
+    if (user?._id) {
+      fetchProfileImage();
+    }
+  }, [user]);
 
   useEffect(() => {
 
@@ -60,6 +102,61 @@ const StudentDashboardPage = () => {
     setLoading(false);
   }, [user, navigate, toast, authLoading]);
 
+  const fetchBadgeCounts = useCallback(async () => {
+    try {
+      if (!user?._id) return;
+      const token = getAuthToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      // Sessions: pending, compare latest update with lastSeen
+      let sessionsCount = 0;
+      try {
+        const sRes = await fetch(`${BASE_URL}/api/auth/student/sessions/${user._id}?status=pending`, { headers });
+        if (sRes.ok) {
+          const sJson = await sRes.json();
+          const list = sJson.sessions || [];
+          const latest = list[0]?.updatedAt || list[0]?.createdAt || list[0]?.session_date || null;
+          sessionsCount = Number.isFinite(sJson.total) ? sJson.total : (list.filter(x => x.status === 'pending').length || 0);
+          const seen = Number(localStorage.getItem(lastSeenKey('sessions')) || 0);
+          if (latest && seen >= new Date(latest).getTime()) sessionsCount = 0;
+        }
+      } catch { }
+
+      // Help Requests: replied/unread since lastSeen
+      let requestsCount = 0;
+      try {
+        const rRes = await fetch(`${BASE_URL}/api/auth/student/${user._id}/help-requests?page=1&limit=50`, { headers });
+        if (rRes.ok) {
+          const rJson = await rRes.json();
+          const list = rJson.inquiries || [];
+          const latest = list[0]?.updated_at || list[0]?.created_at || list[0]?.createdAt || null;
+          requestsCount = list.filter((i) => i.status === 'replied' || i.status === 'unread').length;
+          const seen = Number(localStorage.getItem(lastSeenKey('requests')) || 0);
+          if (latest && seen >= new Date(latest).getTime()) requestsCount = 0;
+        }
+      } catch { }
+
+      // Chat dot left as 0 unless endpoint exists
+      const chatCount = 0;
+
+      setBadgeCounts({ sessions: sessionsCount, requests: requestsCount, chat: chatCount });
+    } catch { }
+  }, [user?._id, getAuthToken]);
+
+  // Auto-refresh badges: on mount, focus, and every 30s
+  useEffect(() => {
+    if (!user?._id) return;
+    fetchBadgeCounts();
+    const onFocus = () => fetchBadgeCounts();
+    window.addEventListener('focus', onFocus);
+    const id = setInterval(fetchBadgeCounts, 30000);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      clearInterval(id);
+    };
+  }, [user?._id, fetchBadgeCounts]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -80,6 +177,13 @@ const StudentDashboardPage = () => {
       component: <StudentDashboard />,
       section: 'learning'
     },
+    // {
+    //   id: 'tutor-search',
+    //   name: 'Find Tutors',
+    //   icon: BookOpen,
+    //   component: <StudentTutorSearchPage />,
+    //   section: 'learning'
+    // },
     {
       id: 'sessions',
       name: 'My Sessions',
@@ -112,7 +216,7 @@ const StudentDashboardPage = () => {
       id: 'requests',
       name: 'Help Requests',
       icon: MessageSquare,
-      component: <StudentHelpRequests/>,
+      component: <StudentHelpRequests />,
       section: 'communication'
     },
     {
@@ -121,6 +225,13 @@ const StudentDashboardPage = () => {
       icon: User,
       component: <MyTutors />,
       section: 'communication'
+    },
+    {
+      id: 'profile',
+      name: 'Profile',
+      icon: User,
+      component: <StudentSelfProfilePage />,
+      section: 'account'
     },
     {
       id: 'preferences',
@@ -144,19 +255,32 @@ const StudentDashboardPage = () => {
   const renderSidebarContent = () => (
     <>
       <div className="flex items-center gap-3 mb-6 p-2">
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
-          {user?.full_name?.charAt(0) || <User className="h-5 w-5" />}
+        {/* <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={profileImageUrl}
+                className="object-cover"
+              />
+              <AvatarFallback className="text-sm">
+                {user?.full_name?.charAt(0) || 'T'}
+              </AvatarFallback>
+            </Avatar> */}
+        <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
+          {profileImageUrl ? (
+            <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
+          ) : (
+            user?.full_name?.charAt(0) || <User className="h-5 w-5" />
+          )}
         </div>
         <div>
           <p className="text-xs text-gray-500">Welcome back,</p>
-          <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
+          {/* <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p> */}
         </div>
       </div>
 
       <nav className="space-y-4">
         {/* Learning Section */}
         <div>
-          <button 
+          <button
             onClick={() => toggleSection('learning')}
             className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
           >
@@ -175,15 +299,22 @@ const StudentDashboardPage = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                      isActive
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (badgeCounts[tab.id] > 0) setBadgeCounts(prev => ({ ...prev, [tab.id]: 0 }));
+                      localStorage.setItem(lastSeenKey(tab.id), String(Date.now()));
+                      fetchBadgeCounts();
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                    <span>{tab.name}</span>
+                    <span className="flex-1 text-left">{tab.name}</span>
+                    {badgeCounts[tab.id] > 0 && (
+                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />)
+                    }
                   </button>
                 );
               })}
@@ -193,7 +324,7 @@ const StudentDashboardPage = () => {
 
         {/* Communication Section */}
         <div>
-          <button 
+          <button
             onClick={() => toggleSection('communication')}
             className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
           >
@@ -212,15 +343,22 @@ const StudentDashboardPage = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                      isActive
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (badgeCounts[tab.id] > 0) setBadgeCounts(prev => ({ ...prev, [tab.id]: 0 }));
+                      localStorage.setItem(lastSeenKey(tab.id), String(Date.now()));
+                      fetchBadgeCounts();
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                    <span>{tab.name}</span>
+                    <span className="flex-1 text-left">{tab.name}</span>
+                    {badgeCounts[tab.id] > 0 && (
+                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />)
+                    }
                   </button>
                 );
               })}
@@ -230,7 +368,7 @@ const StudentDashboardPage = () => {
 
         {/* Account Section */}
         <div>
-          <button 
+          <button
             onClick={() => toggleSection('account')}
             className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
           >
@@ -249,15 +387,22 @@ const StudentDashboardPage = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                      isActive
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (badgeCounts[tab.id] > 0) setBadgeCounts(prev => ({ ...prev, [tab.id]: 0 }));
+                      localStorage.setItem(lastSeenKey(tab.id), String(Date.now()));
+                      fetchBadgeCounts();
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                    <span>{tab.name}</span>
+                    <span className="flex-1 text-left">{tab.name}</span>
+                    {badgeCounts[tab.id] > 0 && (
+                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />)
+                    }
                   </button>
                 );
               })}
@@ -267,9 +412,9 @@ const StudentDashboardPage = () => {
       </nav>
 
       <div className="mt-6 pt-4 border-t">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleLogout}
           className="w-full justify-start gap-2 text-gray-600 hover:text-red-600"
         >
@@ -294,7 +439,7 @@ const StudentDashboardPage = () => {
         <header className="md:hidden bg-white border-b">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 className="p-2 rounded-md hover:bg-gray-50"
                 onClick={() => setIsSidebarOpen(true)}
               >
@@ -317,14 +462,14 @@ const StudentDashboardPage = () => {
       {/* Mobile Sidebar Drawer */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div 
-            className="absolute inset-0 bg-black/40" 
+          <div
+            className="absolute inset-0 bg-black/40"
             onClick={() => setIsSidebarOpen(false)}
           />
           <div className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl p-4 overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-gray-800">Menu</h2>
-              <button 
+              <button
                 onClick={() => setIsSidebarOpen(false)}
                 className="p-2 rounded-md hover:bg-gray-100"
               >

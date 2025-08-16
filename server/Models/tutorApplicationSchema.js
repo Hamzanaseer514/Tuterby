@@ -31,6 +31,10 @@ const tutorApplicationSchema = new mongoose.Schema({
     enum: ['Pending', 'Approved', 'Rejected'],
     default: 'Pending'
   },
+  again_interview: {
+    type: Boolean,
+    default: false
+  },
   applied_at: {
     type: Date,
     default: Date.now
