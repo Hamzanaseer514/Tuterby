@@ -729,7 +729,7 @@ const TutorDetailPage = () => {
                       <CalendarToday sx={{ mr: 1 }} />
                       <Typography variant="h6">Interview Management</Typography>
                     </Box>
-                    <FormControlLabel control={<Switch checked={isInterview} onChange={handleInterviewToggle} color="primary" />} label="Enable Interview" />
+                    <FormControlLabel control={<Switch checked={isInterview} onClick={handleInterviewToggle} color="primary" />} label="Enable Interview" />
                   </Box>
                 </AccordionSummary>
                 {isInterview && (
