@@ -140,7 +140,6 @@ const TutorSearch = () => {
     });
     const data = await response.json();
     setStudentProfile(data.student)
-    console.log("studentProfile", data.student)
   }
   // Inside your loadAllTutors function
   const loadAllTutors = async () => {

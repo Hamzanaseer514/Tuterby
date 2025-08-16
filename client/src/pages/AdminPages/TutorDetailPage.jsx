@@ -60,6 +60,7 @@ import {
   partialApproveTutor,
   completeInterview,
 } from "../../services/adminService";
+import { BASE_URL } from "../../config/config";
 
 const TutorDetailPage = () => {
   const { tabValue } = useParams();
@@ -167,7 +168,7 @@ const TutorDetailPage = () => {
     const newValue = event.target.checked;
     setIsInterview(newValue);
     try {
-      await fetch(`/api/admin/tutors/${user.id}/interview-toggle`, {
+      await fetch(`${BASE_URL}/api/admin/tutors/${user.id}/interview-toggle`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_interview: newValue }),

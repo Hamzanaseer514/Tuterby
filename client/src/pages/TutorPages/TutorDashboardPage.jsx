@@ -59,7 +59,6 @@ const TutorDashboardPage = () => {
           ? photo_url
           : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
         setProfileImageUrl(url);
-        console.log("url", url)
       } catch (error) {
         console.error('Error fetching profile image:', error);
         setProfileImageUrl('');

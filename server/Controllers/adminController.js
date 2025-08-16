@@ -701,6 +701,7 @@ exports.getTutorDetails = async (req, res) => {
         : false,
       rating: tutor.average_rating || null,
       againInterview: application.again_interview,
+      is_interview: application.is_interview || false,
       profileComplete: tutor.profile_status === "approved",
       joinDate: tutor.user_id.createdAt,
       lastActive: tutor.user_id.updatedAt,

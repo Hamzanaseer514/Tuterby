@@ -182,41 +182,6 @@ const AvailabilityCalendar = () => {
     }
   };
 
-  const handleOneTimeSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const url = editingSlot 
-        ? `${BASE_URL}/api/tutor/availability/${user._id}/one-time/${editingSlot._id}`
-        : `${BASE_URL}/api/tutor/availability/${user._id}/one-time`;
-      
-      const method = editingSlot ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(oneTimeForm)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save one-time slot');
-      }
-
-      setShowOneTimeModal(false);
-      setEditingSlot(null);
-      setOneTimeForm({ date: "", start_time: "09:00", end_time: "10:00" });
-      fetchAvailability();
-      toast({
-        title: "Success!",
-        description: `One-time slot ${editingSlot ? 'updated' : 'added'} successfully.`,
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to save one-time slot: " + err.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleBlackoutSubmit = async (e) => {
     e.preventDefault();
