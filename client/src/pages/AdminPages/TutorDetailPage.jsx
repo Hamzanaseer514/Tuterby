@@ -172,6 +172,7 @@ const TutorDetailPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_interview: newValue }),
       });
+      console.log("newValue", newValue);
       setLocalUser((prev) => ({
         ...prev,
         interviewSlots: Array.isArray(prev?.interviewSlots)
@@ -184,6 +185,7 @@ const TutorDetailPage = () => {
               },
             ],
       }));
+      toast.success("Interview toggle updated successfully!");
     } catch (error) {
       console.error("Failed to update interview toggle:", error);
     }
@@ -478,7 +480,7 @@ const TutorDetailPage = () => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate("/admin/users")} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center" }}>
