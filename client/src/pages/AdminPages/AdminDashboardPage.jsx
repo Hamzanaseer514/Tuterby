@@ -278,8 +278,11 @@ const AdminDashboardPage = () => {
   };
 
   const tutorsTotal = dashboardState.stats.tutors?.total || 0;
-  const studentsActive = dashboardState.stats.students?.active || 0;
-  const parentsActive = dashboardState.stats.parents?.active || 0;
+  const studentsActive = dashboardState.stats.students?.total || 0;
+  const parentsActive = dashboardState.stats.parents?.total || 0;
+  const inactiveTutors = dashboardState.stats.inactive?.tutors || 0;
+  const inactiveStudents = dashboardState.stats.inactive?.students || 0;
+  const inactiveParents = dashboardState.stats.inactive?.parents || 0;
 
   const statCards = [
     {
@@ -290,7 +293,7 @@ const AdminDashboardPage = () => {
       trend: dashboardState.stats.tutors?.verified > 60 ? 'up' : 'down',
       trendValue: `${Math.round(((dashboardState.stats.tutors?.verified || 0) / (dashboardState.stats.tutors?.total || 1)) * 100)}%`,
       secondaryValue: `${dashboardState.stats.tutors?.verified || 0} verified`,
-      link: '/admin/tutors',
+      link: '/admin/users',
       showDot: newFlags.tutors,
       onSeen: () => markSeen('tutors_total', tutorsTotal)
     },
@@ -302,7 +305,7 @@ const AdminDashboardPage = () => {
       trend: 'up',
       trendValue: '+12%',
       secondaryValue: `${dashboardState.stats.students?.newThisMonth || 0} new`,
-      link: '/admin/students',
+      link: '/admin/users',
       showDot: newFlags.students,
       onSeen: () => markSeen('students_active', studentsActive)
     },
@@ -314,7 +317,7 @@ const AdminDashboardPage = () => {
       trend: 'up',
       trendValue: '+8%',
       secondaryValue: `${dashboardState.stats.parents?.linkedAccounts || 0} linked`,
-      link: '/admin/parents',
+      link: '/admin/users',
       showDot: newFlags.parents,
       onSeen: () => markSeen('parents_active', parentsActive)
     },
@@ -326,30 +329,46 @@ const AdminDashboardPage = () => {
       trend: dashboardState.stats.revenue?.change > 0 ? 'up' : 'down',
       trendValue: `${dashboardState.stats.revenue?.change || 0}%`,
       secondaryValue: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()} total`,
-      link: '/admin/finance'
-    }
+      link: '/admin'
+    },  {
+      title: 'Inactive Students',
+      value: inactiveStudents,
+      icon: Person,
+      color: 'primary',
+      trend: 'up',
+      trendValue: `${Math.round(((inactiveStudents / (dashboardState.stats.students?.total || 1)) * 100))}%`,
+      secondaryValue: `${inactiveStudents} inactive`,
+      link: '/admin/users',
+      showDot: newFlags.tutors,
+      onSeen: () => markSeen('students_total', inactiveStudents)
+    },
+    {
+      title: 'Inactive Tutors',
+      value: inactiveTutors,
+      icon: School,
+      color: 'primary',
+      trend: 'up',
+      trendValue: `${Math.round(((inactiveTutors / (dashboardState.stats.tutors?.total || 1)) * 100))}%`,
+      secondaryValue: `${inactiveTutors} inactive`,
+      link: '/admin/users',
+      showDot: newFlags.tutors,
+      onSeen: () => markSeen('tutors_total', inactiveTutors)
+    },
+    {
+      title: 'Inactive Parents',
+      value: inactiveParents,
+      icon: Groups,
+      color: 'primary',
+      trend: 'up',
+      trendValue: `${Math.round(((inactiveParents / (dashboardState.stats.parents?.total || 1)) * 100))}%`,
+      secondaryValue: `${inactiveParents} inactive`,
+      link: '/admin/users',
+      showDot: newFlags.parents,
+      onSeen: () => markSeen('parents_total', inactiveParents)
+    },
   ];
 
-  // Prepare data for charts
-  const userGrowthData = [
-    { name: 'Students', active: dashboardState.stats.students?.active || 0, new: dashboardState.stats.students?.newThisMonth || 0 },
-    { name: 'Tutors', active: dashboardState.stats.tutors?.verified || 0, new: (dashboardState.stats.tutors?.total || 0) - (dashboardState.stats.tutors?.verified || 0) },
-    { name: 'Parents', active: dashboardState.stats.parents?.active || 0, new: dashboardState.stats.parents?.linkedAccounts || 0 },
-  ];
 
-  const revenueData = [
-    { name: 'This Month', value: dashboardState.stats.revenue?.thisMonth || 0 },
-    { name: 'Last Month', value: (dashboardState.stats.revenue?.thisMonth || 0) - ((dashboardState.stats.revenue?.change || 0) / 100 * (dashboardState.stats.revenue?.thisMonth || 0)) },
-    { name: 'Target', value: (dashboardState.stats.revenue?.thisMonth || 0) * 1.2 },
-  ];
-
-  const COLORS = [
-    theme.palette.primary.main,
-    theme.palette.success.main,
-    theme.palette.warning.main,
-    theme.palette.error.main,
-    theme.palette.info.main
-  ];
 
   return (
     <AdminLayout tabValue="dashboard">
