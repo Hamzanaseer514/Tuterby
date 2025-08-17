@@ -81,7 +81,6 @@ const StudentSelfProfilePage = () => {
 
   const matchAcademicLevel = (level) => {
     const matchedLevel = academicLevels.find(l => l._id === level);
-    console.log(matchedLevel);
     if(matchedLevel){
       return matchedLevel.level;
     }

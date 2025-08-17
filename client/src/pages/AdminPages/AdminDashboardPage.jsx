@@ -272,10 +272,10 @@ const AdminDashboardPage = () => {
     };
   }, [loadDashboardData]);
 
-  const markSeen = (key, currentValue) => {
-    localStorage.setItem(statKey(key), String(currentValue));
-    setNewFlags(prev => ({ ...prev, [key.split('_')[0]]: false }));
-  };
+  // const markSeen = (key, currentValue) => {
+  //   localStorage.setItem(statKey(key), String(currentValue));
+  //   setNewFlags(prev => ({ ...prev, [key.split('_')[0]]: false }));
+  // };
 
   const tutorsTotal = dashboardState.stats.tutors?.total || 0;
   const studentsActive = dashboardState.stats.students?.total || 0;
@@ -293,9 +293,8 @@ const AdminDashboardPage = () => {
       trend: dashboardState.stats.tutors?.verified > 60 ? 'up' : 'down',
       trendValue: `${Math.round(((dashboardState.stats.tutors?.verified || 0) / (dashboardState.stats.tutors?.total || 1)) * 100)}%`,
       secondaryValue: `${dashboardState.stats.tutors?.verified || 0} verified`,
-      link: '/admin/users',
+      link: '/admin/users?tab=tutors',
       showDot: newFlags.tutors,
-      onSeen: () => markSeen('tutors_total', tutorsTotal)
     },
     {
       title: 'Active Students',
@@ -305,9 +304,8 @@ const AdminDashboardPage = () => {
       trend: 'up',
       trendValue: '+12%',
       secondaryValue: `${dashboardState.stats.students?.newThisMonth || 0} new`,
-      link: '/admin/users',
+      link: '/admin/users?tab=students',
       showDot: newFlags.students,
-      onSeen: () => markSeen('students_active', studentsActive)
     },
     {
       title: 'Engaged Parents',
@@ -317,9 +315,8 @@ const AdminDashboardPage = () => {
       trend: 'up',
       trendValue: '+8%',
       secondaryValue: `${dashboardState.stats.parents?.linkedAccounts || 0} linked`,
-      link: '/admin/users',
+      link: '/admin/users?tab=parents',
       showDot: newFlags.parents,
-      onSeen: () => markSeen('parents_active', parentsActive)
     },
     {
       title: 'Monthly Revenue',
@@ -340,7 +337,7 @@ const AdminDashboardPage = () => {
       secondaryValue: `${inactiveStudents} inactive`,
       link: '/admin/users',
       showDot: newFlags.tutors,
-      onSeen: () => markSeen('students_total', inactiveStudents)
+      // onSeen: () => markSeen('students_total', inactiveStudents)
     },
     {
       title: 'Inactive Tutors',
@@ -352,7 +349,7 @@ const AdminDashboardPage = () => {
       secondaryValue: `${inactiveTutors} inactive`,
       link: '/admin/users',
       showDot: newFlags.tutors,
-      onSeen: () => markSeen('tutors_total', inactiveTutors)
+      // onSeen: () => markSeen('tutors_total', inactiveTutors)
     },
     {
       title: 'Inactive Parents',
@@ -364,7 +361,7 @@ const AdminDashboardPage = () => {
       secondaryValue: `${inactiveParents} inactive`,
       link: '/admin/users',
       showDot: newFlags.parents,
-      onSeen: () => markSeen('parents_total', inactiveParents)
+      // onSeen: () => markSeen('parents_total', inactiveParents)
     },
   ];
 

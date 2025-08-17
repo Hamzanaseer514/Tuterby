@@ -42,7 +42,6 @@ const getUserProfile = async (user_id) => {
     }
   });
   const data = await response.json();
-  console.log("data", data.photo_url)
   return data;
 }
 

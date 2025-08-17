@@ -126,7 +126,6 @@ const StudentPreferences = () => {
 
   const matchAcademicLevel = (level) => {
     const matchedLevel = academicLevels.find(l => l.level === level);
-    console.log(matchedLevel);
     if(matchedLevel){
       return matchedLevel._id;
     }

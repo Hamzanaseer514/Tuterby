@@ -167,12 +167,10 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
         if (phone_number) {
             const existingUser = await User.findOne({ phone_number });
             if (existingUser && existingUser._id.toString() !== user_id) {
-                console.log("existingUser", existingUser)
                 return res.status(400).json({success: false, message: "Phone number already in use"});
             }
             userUpdates.phone_number = phone_number;
         }
-        console.log("userUpdates", userUpdates)
         if (full_name) userUpdates.full_name = full_name;
         // if (photo_url) userUpdates.photo_url = photo_url;
         if (age) userUpdates.age = age;
@@ -238,7 +236,6 @@ exports.searchTutors = asyncHandler(async (req, res) => {
         page = 1,
         limit = 10
     } = req.query;
-    console.log("req.query",req.query)
     try {
         // Get current student's profile to check hiring status
         const currentStudent = await Student.findOne({ user_id: req.user._id });
@@ -404,7 +401,6 @@ exports.searchTutors = asyncHandler(async (req, res) => {
 
 exports.getTutorDetails = asyncHandler(async (req, res) => {
     const { tutorId } = req.params;
-    console.log("tutorId", tutorId)
     try {
         // Get current student's profile to check hiring status
         const currentStudent = await Student.findOne({ user_id: req.user._id });
@@ -440,13 +436,11 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
         const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
         const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
-        console.log("min_hourly_rate_value", min_hourly_rate_value)
-        console.log("max_hourly_rate_value", max_hourly_rate_value)
+      
        
         const hireRecord = currentStudent.hired_tutors.find(
             hire => hire.tutor.toString() === tutor._id.toString()
         );
-        console.log("hireRecord", hireRecord)
         // Get tutor's hiring statistics
         let totalHiringRequests = [];
         try {

@@ -173,7 +173,6 @@ const TutorDetailPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_interview: newValue }),
       });
-      console.log("newValue", newValue);
       setLocalUser((prev) => ({
         ...prev,
         interviewSlots: Array.isArray(prev?.interviewSlots)
@@ -766,7 +765,6 @@ const TutorDetailPage = () => {
                         <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
                           Interview Slot Booked by Tutor
                         </Typography>
-                        {console.log("localUser", localUser)}
                         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                           {Array.isArray(localUser.interviewSlots) && localUser.interviewSlots.length > 0 ? (
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, ml: 2 }}>
