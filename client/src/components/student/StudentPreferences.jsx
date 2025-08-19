@@ -316,7 +316,7 @@ const StudentPreferences = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {academicLevels.map((level) => (
-                        <SelectItem key={level._id} value={level.level}>
+                        <SelectItem key={level._id} value={level._id}>
                           {level.level}
                         </SelectItem>
                       ))}

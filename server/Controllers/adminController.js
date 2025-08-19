@@ -6,7 +6,11 @@ const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
 const TutoringSession = require("../Models/tutoringSessionSchema");
-const { EducationLevel, Subject } = require("../Models/LookupSchema");
+const {
+  EducationLevel,
+  Subject,
+  SubjectType,
+} = require("../Models/LookupSchema");
 const Rules = require("../Models/Rules");
 const mongoose = require("mongoose");
 const sendEmail = require("../Utils/sendEmail");
@@ -37,7 +41,6 @@ exports.getAllPendingApplications = async (req, res) => {
   }
 };
 
-
 // Admin provides available interview slots
 exports.setAvailableInterviewSlots = async (req, res) => {
   const { user_id, preferred_interview_times } = req.body;
@@ -52,8 +55,8 @@ exports.setAvailableInterviewSlots = async (req, res) => {
   try {
     let application = await TutorApplication.findOne({ tutor_id: tutor._id });
 
-    const newPreferredTimes = preferred_interview_times.map((time) =>
-      new Date(`${time}:00Z`)
+    const newPreferredTimes = preferred_interview_times.map(
+      (time) => new Date(`${time}:00Z`)
     );
 
     if (!application) {
@@ -121,19 +124,19 @@ exports.selectInterviewSlot = async (req, res) => {
       scheduled_time.endsWith("Z") ? scheduled_time : `${scheduled_time}Z`
     );
     selectedTime.setMilliseconds(0);
-console.log("selectedTime", selectedTime)
+    console.log("selectedTime", selectedTime);
     const existingSlot = await TutorApplication.findOne({
       preferred_interview_times: { $elemMatch: { $eq: selectedTime } },
       interview_status: { $in: ["Scheduled"] },
       tutor_id: { $ne: tutor._id },
     });
-console.log("existingSlot", existingSlot)
+    console.log("existingSlot", existingSlot);
     if (existingSlot) {
       return res.status(409).json({
         message: "This interview slot is already booked by another tutor.",
       });
     }
-console.log("application", application)
+    console.log("application", application);
     application.scheduled_time = selectedTime;
     application.interview_status = "Scheduled";
     await application.save();
@@ -153,10 +156,9 @@ console.log("application", application)
 // Complete interview with result
 exports.completeInterview = async (req, res) => {
   try {
-    const { userId, result, notes} = req.body;
+    const { userId, result, notes } = req.body;
 
-
-  const Tutor = await TutorProfile.findOne({ user_id: userId });
+    const Tutor = await TutorProfile.findOne({ user_id: userId });
     const application = await TutorApplication.findOneAndUpdate(
       { tutor_id: Tutor._id },
       {
@@ -183,7 +185,6 @@ exports.completeInterview = async (req, res) => {
   }
 };
 
-
 exports.updateInterviewToggle = async (req, res) => {
   const { user_id } = req.params;
   const { is_interview } = req.body;
@@ -199,7 +200,6 @@ exports.updateInterviewToggle = async (req, res) => {
   await application.save();
   res.status(200).json({ message: "Interview toggle updated successfully" });
 };
-
 
 // Get available interview slots
 exports.getAvailableInterviewSlots = async (req, res) => {
@@ -235,7 +235,6 @@ exports.getAvailableInterviewSlots = async (req, res) => {
     });
   }
 };
-
 
 exports.approveTutorProfile = async (req, res) => {
   const { user_id, reason } = req.body;
@@ -453,7 +452,7 @@ exports.getAllUsers = async (req, res) => {
 
     // Fetch profiles separately for each user type
     const formattedUsers = await Promise.all(
-      users.map(async ( user) => {
+      users.map(async (user) => {
         const baseUser = {
           id: user._id,
           name: user.full_name || "Unknown",
@@ -478,9 +477,19 @@ exports.getAllUsers = async (req, res) => {
             const application = await TutorApplication.findOne({
               tutor_id: tutorProfile._id,
             });
+            // Get subjects by IDs
+            const subjects = await Subject.find({
+              _id: { $in: tutorProfile.subjects },
+            });
             return {
               ...baseUser,
               subjects: tutorProfile.subjects || [],
+              //  subjects: subjects.map((s) => ({
+              //   _id: s._id,
+              //   name: s.name,
+              //   level: s.level_id,
+              //   subjectType: s.subject_type,
+              // })),
               location: tutorProfile.location || "",
               profileStatusReason: tutorProfile.profile_status_reason || "",
               documents: documents.map((doc) => ({
@@ -557,17 +566,17 @@ exports.getAllUsers = async (req, res) => {
           });
           console.log("studentProfile._id", studentProfile._id);
           const sessionCount = await TutoringSession.countDocuments({
-            student_ids: { $in: [studentProfile._id] }
+            student_ids: { $in: [studentProfile._id] },
           });
 
-            console.log("sessionCount", sessionCount);
-          
+          console.log("sessionCount", sessionCount);
+
           if (studentProfile) {
             return {
               ...baseUser,
               subjects: studentProfile.preferred_subjects || [],
               location: studentProfile.location || "",
-              sessionsCompleted: sessionCount,// Will be calculated from sessions
+              sessionsCompleted: sessionCount, // Will be calculated from sessions
               rating: null, // Students don't have ratings
             };
           }
@@ -604,13 +613,12 @@ exports.getAllUsers = async (req, res) => {
 exports.getTutorDetails = async (req, res) => {
   try {
     const { user_id } = req.params;
-    console.log("userId", req.params)
-    const tutor = await TutorProfile.findOne({ user_id: user_id })
-    .populate({
+    console.log("userId", req.params);
+    const tutor = await TutorProfile.findOne({ user_id: user_id }).populate({
       path: "user_id",
-      select: "full_name email phone_number photo_url createdAt updatedAt"
-  });
-      if (!tutor) {
+      select: "full_name email phone_number photo_url createdAt updatedAt",
+    });
+    if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
@@ -650,7 +658,7 @@ exports.getTutorDetails = async (req, res) => {
         );
         parsedSubjects = [];
       }
-    } 
+    }
 
     const tutorDetails = {
       id: tutor.user_id._id,
@@ -668,27 +676,29 @@ exports.getTutorDetails = async (req, res) => {
         uploadDate: doc.uploaded_at,
         notes: doc.notes,
       })),
-  interviewSlots:
-    application && application.scheduled_time
-      ? [
-          {
-            // send ISO only; don't format to local time on server
-            dateTime: application.scheduled_time,
-            scheduled: application.interview_status === "Scheduled",
-            completed: ["Passed", "Failed"].includes(application.interview_status),
-            result:
-              application.interview_status === "Passed"
-                ? "Passed"
-                : application.interview_status === "Failed"
-                ? "Failed"
-                : null,
-          },
-        ]
-      : [],
-  preferredSlots:
-    application && application.preferred_interview_times
-      ? application.preferred_interview_times
-      : [],
+      interviewSlots:
+        application && application.scheduled_time
+          ? [
+              {
+                // send ISO only; don't format to local time on server
+                dateTime: application.scheduled_time,
+                scheduled: application.interview_status === "Scheduled",
+                completed: ["Passed", "Failed"].includes(
+                  application.interview_status
+                ),
+                result:
+                  application.interview_status === "Passed"
+                    ? "Passed"
+                    : application.interview_status === "Failed"
+                    ? "Failed"
+                    : null,
+              },
+            ]
+          : [],
+      preferredSlots:
+        application && application.preferred_interview_times
+          ? application.preferred_interview_times
+          : [],
       backgroundCheck: tutor.is_background_checked,
       references: documents.filter(
         (doc) => doc.document_type === "Reference Letter"
@@ -708,7 +718,7 @@ exports.getTutorDetails = async (req, res) => {
     };
 
     res.status(200).json(tutorDetails);
-    console.log("tutorDetails", tutorDetails)
+    console.log("tutorDetails", tutorDetails);
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch tutor details",
@@ -724,10 +734,18 @@ exports.updateUserStatus = async (req, res) => {
     const { status } = req.body; // expected: "active" | "inactive" | "partial_active"
 
     if (!user_id || !status) {
-      return res.status(400).json({ message: "user_id and status are required" });
+      return res
+        .status(400)
+        .json({ message: "user_id and status are required" });
     }
 
-    const validStatuses = ["active", "inactive", "partial_active", "verified", "unverified"];
+    const validStatuses = [
+      "active",
+      "inactive",
+      "partial_active",
+      "verified",
+      "unverified",
+    ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
@@ -740,7 +758,13 @@ exports.updateUserStatus = async (req, res) => {
     user.is_verified = status;
     await user.save();
 
-    res.status(200).json({ message: "User status updated", user_id, status: user.is_verified });
+    res
+      .status(200)
+      .json({
+        message: "User status updated",
+        user_id,
+        status: user.is_verified,
+      });
   } catch (err) {
     res.status(500).json({
       message: "Failed to update user status",
@@ -748,7 +772,6 @@ exports.updateUserStatus = async (req, res) => {
     });
   }
 };
-
 
 // Update application notes
 exports.updateApplicationNotes = async (req, res) => {
@@ -794,9 +817,17 @@ exports.getDashboardStats = async (req, res) => {
     const pendingInterviews = await TutorApplication.countDocuments({
       interview_status: "Scheduled",
     });
-    const inactiveTutors = await TutorProfile.countDocuments({ profile_status: 'unverified' });
-    const inactiveStudents = await User.countDocuments({ role: 'student', is_verified: 'inactive' });
-    const inactiveParents = await User.countDocuments({ role: 'parent', is_verified: 'inactive' });
+    const inactiveTutors = await TutorProfile.countDocuments({
+      profile_status: "unverified",
+    });
+    const inactiveStudents = await User.countDocuments({
+      role: "student",
+      is_verified: "inactive",
+    });
+    const inactiveParents = await User.countDocuments({
+      role: "parent",
+      is_verified: "inactive",
+    });
     const stats = {
       tutors: {
         total: totalTutors,
@@ -818,7 +849,7 @@ exports.getDashboardStats = async (req, res) => {
         parents: inactiveParents,
       },
     };
-    console.log("stats", stats)
+    console.log("stats", stats);
     res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({
@@ -968,8 +999,14 @@ exports.updateEducationLevel = asyncHandler(async (req, res) => {
 });
 
 exports.manageEducationLevel = asyncHandler(async (req, res) => {
-  const { hourlyRate, totalSessionsPerMonth, discount, isTutorCanChangeRate, maxSession, minSession } =
-    req.body;
+  const {
+    hourlyRate,
+    totalSessionsPerMonth,
+    discount,
+    isTutorCanChangeRate,
+    maxSession,
+    minSession,
+  } = req.body;
   const levelId = req.params.id;
 
   const existingLevel = await EducationLevel.findById(levelId);
@@ -995,25 +1032,64 @@ exports.manageEducationLevel = asyncHandler(async (req, res) => {
   });
 });
 
-// Al Subjects Handles Add remove update dlete ....................
+// All Subjects Handles Add remove update dlete ....................
 
 exports.getSubjects = asyncHandler(async (req, res) => {
-  const subjects = await Subject.find().sort({ name: 1 });
+  const subjects = await Subject.find()
+    .sort({ name: 1 })
+    .populate("level_id")        // full EducationLevel document
+    .populate("subject_type");   // full SubjectType document
+
   res.status(200).json({
     success: true,
     data: subjects,
   });
 });
 
-exports.addSubject = asyncHandler(async (req, res) => {
-  const { name, level } = req.body;
 
-  if (!name || !level) {
+const generateSubjectId = async () => {
+  const lastSubject = await Subject.findOne().sort({ subject_id: -1 });
+
+  if (!lastSubject) {
+    return "SUB-001";
+  }
+  const lastId = lastSubject.subject_id;
+  const lastNum = parseInt(lastId.split("-")[1]);
+  const newNum = (lastNum + 1).toString().padStart(3, "0");
+
+  return `SUB-${newNum}`;
+};
+
+exports.addSubject = asyncHandler(async (req, res) => {
+  console.log(req.body);
+
+  const { name, level_id, subject_type } = req.body;
+
+  if (!name || !level_id || !subject_type) {
     res.status(400);
-    throw new Error("Subject name and level are required");
+    throw new Error("Subject name, level id, and subject type are required");
   }
 
-  const subject = await Subject.create({ name, level });
+  const chklevel = await EducationLevel.findById(level_id);
+  if (!chklevel) {
+    res.status(404);
+    throw new Error("Education level not found");
+  }
+
+  const chkType = await SubjectType.findById(subject_type);
+  if (!chkType) {
+    res.status(404);
+    throw new Error("Subject type not found");
+  }
+
+  const subject_id = await generateSubjectId();
+
+  const subject = await Subject.create({
+    subject_id,
+    name,
+    level_id: level_id,
+    subject_type,
+  });
 
   res.status(201).json({
     success: true,
@@ -1023,7 +1099,8 @@ exports.addSubject = asyncHandler(async (req, res) => {
 });
 
 exports.updateSubject = asyncHandler(async (req, res) => {
-  const { name, level } = req.body;
+  const { name, level_id, subject_type } = req.body;
+
   const subject = await Subject.findById(req.params.id);
 
   if (!subject) {
@@ -1031,13 +1108,27 @@ exports.updateSubject = asyncHandler(async (req, res) => {
     throw new Error("Subject not found");
   }
 
-  if (!name || !level) {
+  if (!name || !level_id) {
     res.status(400);
-    throw new Error("Subject name and level are required");
+    throw new Error("Subject name and level id are required");
+  }
+
+  const chklevel = await EducationLevel.findById(level_id);
+  if (!chklevel) {
+    res.status(404);
+    throw new Error("Education level not found");
+  }
+  const chkType = await SubjectType.findById(subject_type);
+  if (!chkType) {
+    res.status(404);
+    throw new Error("Subject type not found");
   }
 
   subject.name = name;
-  subject.level = level;
+  subject.level_id = level_id;
+  if (subject_type) {
+    subject.subject_type = subject_type;
+  }
 
   const updatedSubject = await subject.save();
 
@@ -1047,7 +1138,6 @@ exports.updateSubject = asyncHandler(async (req, res) => {
     data: updatedSubject,
   });
 });
-
 
 exports.deleteSubject = asyncHandler(async (req, res) => {
   const subject = await Subject.findByIdAndDelete(req.params.id);
@@ -1063,7 +1153,137 @@ exports.deleteSubject = asyncHandler(async (req, res) => {
   });
 });
 
-// CHECKING ALL CHATS BETWEEN THE TUTOR AND STUDENT
+// ALL SUBJECT TYPE FUNCTION
+exports.addSubjectType = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+
+  if (!name) {
+    res.status(400);
+    throw new Error("Subject type name is required");
+  }
+
+  const exists = await SubjectType.findOne({ name: name.trim() });
+  if (exists) {
+    res.status(400);
+    throw new Error("Subject type already exists");
+  }
+
+  const subjectType = await SubjectType.create({ name: name.trim() });
+
+  res.status(201).json({
+    success: true,
+    message: "Subject type added successfully",
+    data: subjectType,
+  });
+});
+
+// Get All SubjectTypes
+exports.getSubjectTypes = asyncHandler(async (req, res) => {
+  const subjectTypes = await SubjectType.find().sort({ name: 1 });
+  res.status(200).json({
+    success: true,
+    data: subjectTypes,
+  });
+});
+
+// Update SubjectType
+exports.updateSubjectType = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  const subjectType = await SubjectType.findById(req.params.id);
+
+  if (!subjectType) {
+    res.status(404);
+    throw new Error("Subject type not found");
+  }
+
+  if (!name) {
+    res.status(400);
+    throw new Error("Subject type name is required");
+  }
+
+  subjectType.name = name.trim();
+  const updated = await subjectType.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Subject type updated successfully",
+    data: updated,
+  });
+});
+
+// Delete SubjectType
+exports.deleteSubjectType = asyncHandler(async (req, res) => {
+  const subjectType = await SubjectType.findById(req.params.id);
+
+  if (!subjectType) {
+    res.status(404);
+    throw new Error("Subject type not found");
+  }
+
+  await subjectType.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Subject type deleted successfully",
+  });
+});
+
+exports.fetchSubjectRelatedToAcademicLevels = asyncHandler(async (req, res) => {
+  const { levels } = req.query; // e.g. "64f1a,64f2b,64f3c"
+  console.log("levels", levels);
+
+  if (!levels) {
+    return res.status(400).json({
+      success: false,
+      message: "Level IDs are required",
+    });
+  }
+  const levelArray = levels
+    .split(",")
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const subjects = await Subject.aggregate([
+    { $match: { level_id: { $in: levelArray } } },
+
+    {
+      $lookup: {
+        from: "educationlevels",
+        localField: "level_id",
+        foreignField: "_id",
+        as: "levelData",
+      },
+    },
+    { $unwind: "$levelData" },
+
+    {
+      $lookup: {
+        from: "subjecttypes",
+        localField: "subject_type",
+        foreignField: "_id",
+        as: "subjectTypeData",
+      },
+    },
+    { $unwind: "$subjectTypeData" },
+
+    // group by unique fields to avoid duplicates
+    {
+      $group: {
+        _id: {
+          name: "$name",
+          level_id: "$level_id",
+          subject_type: "$subject_type",
+        },
+        doc: { $first: "$$ROOT" }, // pehla record le lo
+      },
+    },
+    { $replaceRoot: { newRoot: "$doc" } },
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: subjects,
+  });
+});
 
 exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
   // Fetch all messages and populate student and tutor details
