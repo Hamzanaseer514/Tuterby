@@ -1076,6 +1076,18 @@ exports.addSubject = asyncHandler(async (req, res) => {
     throw new Error("Subject type not found");
   }
 
+  // Prevent duplicates: same name within the same education level
+  const existingSubject = await Subject.findOne({
+    name: name.trim(),
+    level_id: level_id,
+  });
+  if (existingSubject) {
+    return res.status(400).json({
+      success: false,
+      message: "Subject already have for this education level",
+    });
+  }
+
   const subject_id = await generateSubjectId();
 
   const subject = await Subject.create({
@@ -1116,6 +1128,19 @@ exports.updateSubject = asyncHandler(async (req, res) => {
   if (!chkType) {
     res.status(404);
     throw new Error("Subject type not found");
+  }
+
+  // Prevent duplicates on update too: same name within the same education level (exclude current)
+  const duplicate = await Subject.findOne({
+    name: name.trim(),
+    level_id: level_id,
+    _id: { $ne: subject._id },
+  });
+  if (duplicate) {
+    return res.status(400).json({
+      success: false,
+      message: "Subject already have for this education level",
+    });
   }
 
   subject.name = name;
