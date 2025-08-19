@@ -79,6 +79,7 @@ const StudentPreferences = () => {
     }
   }, [user]);
 
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -89,6 +90,7 @@ const StudentPreferences = () => {
           'Content-Type': 'application/json'
         }
       });
+
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
       }
@@ -121,6 +123,14 @@ const StudentPreferences = () => {
       setLoading(false);
     }
   };
+
+  const matchAcademicLevel = (level) => {
+    const matchedLevel = academicLevels.find(l => l.level === level);
+    if(matchedLevel){
+      return matchedLevel._id;
+    }
+    return null;
+  }
 
   const handleSave = async () => {
     try {
@@ -220,7 +230,7 @@ const StudentPreferences = () => {
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Student Profile</h1>
-            <p className="text-gray-600 mt-1">Manage your profile and preferences</p>
+            <p className="text-gray-600 mt-1">Manage your profile and preferences<span className="text-base text-red-600"> You can update your profile Here</span></p> 
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
@@ -316,7 +326,7 @@ const StudentPreferences = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {academicLevels.map((level) => (
-                        <SelectItem key={level._id} value={level._id}>
+                        <SelectItem key={level._id} value={matchAcademicLevel(level.level)}>
                           {level.level}
                         </SelectItem>
                       ))}

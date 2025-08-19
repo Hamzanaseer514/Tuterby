@@ -24,7 +24,7 @@ import StudentChatPage from '../../components/student/StudentChatPage';
 import StudentHelpRequests from '../../components/student/StudentHelpRequests';
 import MyTutors from '../../components/student/MyTutors';
 import StudentTutorSearchPage from './StudentTutorSearchPage';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import StudentSelfProfilePage from './StudentSelfProfilePage';
 
 const lastSeenKey = (id) => `student_last_seen_${id}`;
@@ -66,7 +66,6 @@ const StudentDashboardPage = () => {
           ? photo_url
           : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
         setProfileImageUrl(url);
-        console.log("url", url)
       } catch (error) {
         console.error('Error fetching profile image:', error);
         setProfileImageUrl('');

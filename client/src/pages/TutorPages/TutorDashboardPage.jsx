@@ -10,7 +10,7 @@ import { Button } from '../../components/ui/button';
 import TutorSetting from '../../components/tutor/TutorSetting';
 import TutorSelfProfilePage from './TutorSelfProfilePage';
 import TutorInterviewSlotsPage from './TutorInterviewSlotsPage';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import {
   LayoutDashboard,
   Calendar,
@@ -59,7 +59,6 @@ const TutorDashboardPage = () => {
           ? photo_url
           : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
         setProfileImageUrl(url);
-        console.log("url", url)
       } catch (error) {
         console.error('Error fetching profile image:', error);
         setProfileImageUrl('');
@@ -313,16 +312,13 @@ const TutorDashboardPage = () => {
       <aside className="hidden md:flex flex-col w-64 border-r bg-white">
         <div className="p-4 border-b">
           <div className="flex items-center gap-3">
-            {/* // In your desktop sidebar avatar: */}
-            <Avatar className="h-10 w-10">
-              <AvatarImage
-                src={profileImageUrl}
-                className="object-cover"
-              />
-              <AvatarFallback className="text-sm">
-                {user?.full_name?.charAt(0) || 'T'}
-              </AvatarFallback>
-            </Avatar>
+          <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
+          {profileImageUrl ? (
+            <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
+          ) : (
+            user?.full_name?.charAt(0) || <User className="h-5 w-5" />
+          )}
+        </div>
 
             
             <div>
@@ -412,15 +408,13 @@ const TutorDashboardPage = () => {
             <div className="p-4 border-b">
               <div className="flex items-center gap-3">
                 {/* // In your desktop sidebar avatar: */}
-                <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={profileImageUrl}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="text-sm">
-                    {user?.full_name?.charAt(0) || 'T'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
+          {profileImageUrl ? (
+            <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
+          ) : (
+            user?.full_name?.charAt(0) || <User className="h-5 w-5" />
+          )}
+        </div>
 
                 
                 <div>

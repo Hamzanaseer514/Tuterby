@@ -123,7 +123,6 @@ const StudentHireRequests = () => {
       if (status) query.set('status', status);
       const data = await authFetch(`${API_BASE_URL}/hire-requests/${user._id}?${query.toString()}`);
       setRequests(Array.isArray(data.requests) ? data.requests : []);
-      console.log("requests", data.requests)
     } catch (e) {
       setError(e.message || 'Failed to load requests');
     } finally {

@@ -200,3 +200,4 @@ const ParentDetailPage = () => {
 export default ParentDetailPage;
 
 
+

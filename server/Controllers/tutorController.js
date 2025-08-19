@@ -632,7 +632,6 @@ const getMyInterviewSlots = asyncHandler(async (req, res) => {
     if (!application) {
       return res.status(404).json({ success: false, message: 'Tutor application not found' });
     }
-    console.log("application", application)
 
     return res.status(200).json({
       success: true,
@@ -770,7 +769,6 @@ const getTutorAvailability = asyncHandler(async (req, res) => {
   if (!availability) {
     availability = await TutorAvailability.create({ tutor_id: tutor._id });
   }
-  console.log("availability", availability)
   res.json(availability);
 });
 

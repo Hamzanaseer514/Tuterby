@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../ui/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';

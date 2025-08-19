@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { BASE_URL } from '../../config';
+import { BASE_URL } from '@/config';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { useSubject } from '../../hooks/useSubject';
 
 function buildImageUrl(raw) {
   if (!raw) return '';
@@ -37,6 +38,7 @@ const StudentSelfProfilePage = () => {
   const [profile, setProfile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const avatarUrl = useMemo(() => buildImageUrl(baseUser?.photo_url), [baseUser]);
+  const { academicLevels } = useSubject();
 
   useEffect(() => {
     if (!user?._id) return;
@@ -75,6 +77,14 @@ const StudentSelfProfilePage = () => {
     return (
       <div className="p-6 text-center text-gray-600">Profile not found.</div>
     );
+  }
+
+  const matchAcademicLevel = (level) => {
+    const matchedLevel = academicLevels.find(l => l._id === level);
+    if(matchedLevel){
+      return matchedLevel.level;
+    }
+    return null;
   }
 
   const preferredSubjects = toArray(profile.preferred_subjects);
@@ -146,7 +156,7 @@ const StudentSelfProfilePage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Academic Level</Label>
-                <Input value={profile.academic_level || ''} disabled />
+                <Input value={matchAcademicLevel(profile.academic_level) || ''} disabled />
               </div>
               <div>
                 <Label>Phone</Label>

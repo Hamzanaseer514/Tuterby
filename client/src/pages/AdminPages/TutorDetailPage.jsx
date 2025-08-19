@@ -60,6 +60,7 @@ import {
   partialApproveTutor,
   completeInterview,
 } from "../../services/adminService";
+import { BASE_URL } from "../../config";
 
 const TutorDetailPage = () => {
   const { tabValue } = useParams();
@@ -167,7 +168,7 @@ const TutorDetailPage = () => {
     const newValue = event.target.checked;
     setIsInterview(newValue);
     try {
-      await fetch(`/api/admin/tutors/${user.id}/interview-toggle`, {
+      await fetch(`${BASE_URL}/api/admin/tutors/${user.id}/interview-toggle`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_interview: newValue }),
@@ -184,6 +185,7 @@ const TutorDetailPage = () => {
               },
             ],
       }));
+      toast.success("Interview toggle updated successfully!");
     } catch (error) {
       console.error("Failed to update interview toggle:", error);
     }
@@ -478,7 +480,7 @@ const TutorDetailPage = () => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate("/admin/users")} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -763,7 +765,6 @@ const TutorDetailPage = () => {
                         <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
                           Interview Slot Booked by Tutor
                         </Typography>
-                        {console.log("localUser", localUser)}
                         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                           {Array.isArray(localUser.interviewSlots) && localUser.interviewSlots.length > 0 ? (
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, ml: 2 }}>

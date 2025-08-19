@@ -124,19 +124,16 @@ exports.selectInterviewSlot = async (req, res) => {
       scheduled_time.endsWith("Z") ? scheduled_time : `${scheduled_time}Z`
     );
     selectedTime.setMilliseconds(0);
-    console.log("selectedTime", selectedTime);
     const existingSlot = await TutorApplication.findOne({
       preferred_interview_times: { $elemMatch: { $eq: selectedTime } },
       interview_status: { $in: ["Scheduled"] },
       tutor_id: { $ne: tutor._id },
     });
-    console.log("existingSlot", existingSlot);
     if (existingSlot) {
       return res.status(409).json({
         message: "This interview slot is already booked by another tutor.",
       });
     }
-    console.log("application", application);
     application.scheduled_time = selectedTime;
     application.interview_status = "Scheduled";
     await application.save();
@@ -564,13 +561,11 @@ exports.getAllUsers = async (req, res) => {
           const studentProfile = await StudentProfile.findOne({
             user_id: user._id,
           });
-          console.log("studentProfile._id", studentProfile._id);
           const sessionCount = await TutoringSession.countDocuments({
             student_ids: { $in: [studentProfile._id] },
           });
 
-          console.log("sessionCount", sessionCount);
-
+          
           if (studentProfile) {
             return {
               ...baseUser,
@@ -613,8 +608,8 @@ exports.getAllUsers = async (req, res) => {
 exports.getTutorDetails = async (req, res) => {
   try {
     const { user_id } = req.params;
-    console.log("userId", req.params);
-    const tutor = await TutorProfile.findOne({ user_id: user_id }).populate({
+    const tutor = await TutorProfile.findOne({ user_id: user_id })
+    .populate({
       path: "user_id",
       select: "full_name email phone_number photo_url createdAt updatedAt",
     });
@@ -711,6 +706,7 @@ exports.getTutorDetails = async (req, res) => {
         : false,
       rating: tutor.average_rating || null,
       againInterview: application.again_interview,
+      is_interview: application.is_interview || false,
       profileComplete: tutor.profile_status === "approved",
       joinDate: tutor.user_id.createdAt,
       lastActive: tutor.user_id.updatedAt,
@@ -718,7 +714,6 @@ exports.getTutorDetails = async (req, res) => {
     };
 
     res.status(200).json(tutorDetails);
-    console.log("tutorDetails", tutorDetails);
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch tutor details",
@@ -849,7 +844,6 @@ exports.getDashboardStats = async (req, res) => {
         parents: inactiveParents,
       },
     };
-    console.log("stats", stats);
     res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({

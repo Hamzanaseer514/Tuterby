@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -40,6 +41,8 @@ const statusColors = {
 
 
 const AdminDashboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   // State management
   const [dashboardState, setDashboardState] = useState({
     users: { tutors: [], students: [], parents: [] },
@@ -93,6 +96,19 @@ const AdminDashboard = () => {
       snackbar: { open: true, message, severity }
     });
   };
+
+  // Initialize tab from query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    const valid = ['tutors', 'students', 'parents'];
+    if (tab && valid.includes(tab)) {
+      setUiState(prev => ({ ...prev, tabValue: tab }));
+      // ensure data for requested tab
+      loadUsers(tab);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   // Load initial data
   useEffect(() => {

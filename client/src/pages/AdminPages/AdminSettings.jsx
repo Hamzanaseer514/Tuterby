@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../../components/admin/components/AdminLayout";
-import { BASE_URL } from "@/config";
+import { BASE_URL } from '@/config';
 import { toast, ToastContainer } from "react-toastify";
 
 const AdminSettings = () => {

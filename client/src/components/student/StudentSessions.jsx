@@ -23,11 +23,13 @@ import {
   Filter,
   Search
 } from 'lucide-react';
+import { useSubject } from '../../hooks/useSubject';
 
 const StudentSessions = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { getAuthToken, user } = useAuth();
+  const { academicLevels } = useSubject();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -86,6 +88,13 @@ const StudentSessions = () => {
     });
   };
 
+  const matchAcademicLevel = (level) => {
+    const matchedLevel = academicLevels.find(l => l._id === level);
+    if(matchedLevel){
+      return matchedLevel.level;
+    }
+    return null;
+  }
   const formatTime = (dateString) => {
     const [datePart, timePart] = dateString.split('T');
     const time = timePart.slice(0, 5); 
@@ -229,7 +238,7 @@ const StudentSessions = () => {
                         </h3>
                         {getStatusBadge(session.status)}
                       </div>
-                      <p className="text-gray-600 mb-1">{session.subject}</p>
+                      <p className="text-gray-600 mb-1">{session.subject} - {matchAcademicLevel(session.academic_level)}</p>
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />

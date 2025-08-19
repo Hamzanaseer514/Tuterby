@@ -566,14 +566,7 @@ const Register = () => {
 
           formDataToSend.append("documentsMap", JSON.stringify(documentsMap));
 
-          // // Log FormData contents for debugging
-          // for (let [key, value] of formDataToSend.entries()) {
-          //   if (key === "documents") {
-          //     console.log(`${key}:`, value.name, value.type, value.size);
-          //   } else {
-          //     console.log(`${key}:`, value);
-          //   }
-          // }
+       
 
           const registerResponse = await fetch(
             `${BASE_URL}/api/auth/register-tutor`,

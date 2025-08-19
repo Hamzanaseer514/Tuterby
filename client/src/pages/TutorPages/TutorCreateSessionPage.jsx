@@ -52,7 +52,6 @@ const TutorCreateSessionPage = () => {
 
     const getLevelById = useCallback((id) => {
         if (!id) return undefined;
-        console.log("academicLevels", academicLevels)
         return (academicLevels || []).find(l => l?._id === id || l?._id?.toString() === id);
         // return (academicLevels || []).find(l => l?._id === id || l?._id?.toString() === id || l?.educationLevel === id);
     }, [academicLevels]);
@@ -128,7 +127,6 @@ const TutorCreateSessionPage = () => {
         });
         setSelectedStudentSubjects(Array.from(subjectsSet));
         const levelObjects = Array.from(levelIdSet).map(id => getLevelById(id)).filter(Boolean);
-        console.log("levelObjects", levelObjects)
         setSelectedStudentAcademicLevels(levelObjects);
         // setTutorAcademicLevels(levelObjects);
     };
