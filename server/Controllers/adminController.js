@@ -1055,7 +1055,6 @@ const generateSubjectId = async () => {
 };
 
 exports.addSubject = asyncHandler(async (req, res) => {
-  console.log(req.body);
 
   const { name, level_id, subject_type } = req.body;
 
@@ -1249,7 +1248,6 @@ exports.deleteSubjectType = asyncHandler(async (req, res) => {
 
 exports.fetchSubjectRelatedToAcademicLevels = asyncHandler(async (req, res) => {
   const { levels } = req.query; // e.g. "64f1a,64f2b,64f3c"
-  console.log("levels", levels);
 
   if (!levels) {
     return res.status(400).json({

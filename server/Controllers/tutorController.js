@@ -554,7 +554,6 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       updates,
       { new: true }
     );
-    console.log(status,nextStatus);
     
     
     res.status(200).json({
@@ -896,14 +895,7 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
       .select("user_id academic_level preferred_subjects availability");
     // Format the student list
     const formattedStudents = students.map(student => {
-      // Find tutor's specific rate for this student's level (if exists)
-      // const tutorLevelInfo = tutorProfile.academic_levels_taught.find(
-      //   level => level.educationLevel.toString() === student.academic_level?._id.toString()
-      // );
-      // console.log("tutorLevelInfo", tutorLevelInfo);
-      // const hourly_rate = tutorLevelInfo
-      //   ? tutorLevelInfo.hourlyRate
-      //   : student.academic_level?.hourlyRate;
+     
 
       return {
         _id: student.user_id._id,
@@ -1433,10 +1425,7 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
         qualifications: tutor.qualifications,
         experience_years: tutor.experience_years,
         subjects: tutor.subjects || [],
-        academic_levels: tutor.academic_levels_taught?.map(level => ({
-          name: level.name,
-          hourlyRate: level.hourlyRate
-        })) || [],
+        academic_levels: tutor.academic_levels_taught,
         min_hourly_rate: minHourlyRate,
         max_hourly_rate: maxHourlyRate,
         average_rating: tutor.average_rating || 0,

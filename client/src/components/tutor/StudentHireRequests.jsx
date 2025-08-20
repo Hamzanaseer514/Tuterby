@@ -59,18 +59,18 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
               <div className="text-lg font-semibold text-gray-900">{user.full_name}</div>
               {/* <div className="text-sm text-gray-600">{user.email}</div> */}
               <div className="mt-2 text-sm text-gray-700">
-                <span className="font-medium">Academic level: </span>
+                <span className="font-semibold">Academic level: </span>
                 {student_academic_level_name || 'N/A'}
               </div>
               {Array.isArray(student.preferred_subjects) && student.preferred_subjects.length > 0 && (
                 <div className="mt-1 text-sm text-gray-700">
-                  <span className="font-medium">Interests: </span>
+                  <span className="font-semibold">Interests: </span>
                   {student.preferred_subjects.slice(0, 5).map(subject => getSubjectById(subject)?.name || subject).join(', ')}
                   {/* {getSubjectById(student.preferred_subjects.slice(0, 5)).join(', ')} */}
                 </div>
               )}
 
-              <div className="mt-2 text-sm text-gray-700">Hire For: {academic_level_name}- {getSubjectById(hire.subject)?.name || hire.subject}</div>
+              <div className="mt-2 text-sm text-gray-700"> <span className="font-semibold">Requested For:</span>  {academic_level_name}- {getSubjectById(hire.subject)?.name || hire.subject}</div>
               <div className="mt-2">
                 {hire.status === 'accepted' && (
                   <Badge variant="success">Accepted</Badge>
@@ -184,7 +184,7 @@ const StudentHireRequests = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Student Hire Requests</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Student Requests</h2>
           <p className="text-sm text-gray-600 mt-1">Review and respond to students who want to hire you.</p>
         </div>
         <div className="flex gap-2 items-center">

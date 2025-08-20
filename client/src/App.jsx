@@ -52,6 +52,9 @@ const StudentTutorSearchPage = lazy(() =>
 const StudentSelfProfilePage = lazy(() =>
   import("./pages/StudentPages/StudentSelfProfilePage")
 );
+const StudentPaymentPage = lazy(() =>
+  import("./pages/StudentPages/StudentPaymentPage")
+);
 const TutorProfilePage = lazy(() =>
   import("./pages/TutorPages/TutorProfilePage")
 );
@@ -145,6 +148,12 @@ function App() {
                 path="/student/tutor-search"
                 element={<ProtectedRoute allowedRoles={["student"]}>
                   <StudentTutorSearchPage />
+                </ProtectedRoute>}
+              />
+              <Route
+                path="/student/payment"
+                element={<ProtectedRoute allowedRoles={["student"]}>
+                  <StudentPaymentPage />
                 </ProtectedRoute>}
               />
               <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>

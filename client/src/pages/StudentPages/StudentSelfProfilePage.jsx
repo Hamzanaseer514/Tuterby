@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -38,7 +38,14 @@ const StudentSelfProfilePage = () => {
   const [profile, setProfile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const avatarUrl = useMemo(() => buildImageUrl(baseUser?.photo_url), [baseUser]);
-  const { academicLevels } = useSubject();
+  const { academicLevels, subjects } = useSubject();
+
+  // Move useCallback to the top, before any conditional logic
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+  }, [subjects]);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -180,7 +187,7 @@ const StudentSelfProfilePage = () => {
             {preferredSubjects.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {preferredSubjects.map((s, i) => (
-                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{s}</span>
+                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{getSubjectById(s)?.name + " - " + getSubjectById(s)?.subject_type.name + " - " + getSubjectById(s)?.level_id.level || s}</span>
                 ))}
               </div>
             ) : (

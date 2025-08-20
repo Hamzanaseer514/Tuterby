@@ -741,14 +741,14 @@ const SessionManagement = () => {
                         ? 'bg-red-100 text-red-700'
                         : 'bg-yellow-100 text-yellow-700';
                       return (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <p className="font-medium text-gray-900">
-                            {student.user_id?.full_name || 'Student Name'}
-                          </p>
+                      <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                        <p className="font-medium text-gray-900">
+                          {student.user_id?.full_name || 'Student Name'}
+                        </p>
                         
                           <div className="mt-2">
                             <Badge className={badgeClass}>Response: {status}</Badge>
-                          </div>
+                      </div>
                         </div>
                       );
                     })}
@@ -873,19 +873,19 @@ const SessionManagement = () => {
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h4 className="text-lg font-semibold text-blue-900 mb-3">Session Overview</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                <div>
                       <Label className="text-sm font-medium text-blue-700">Subject</Label>
                       <p className="text-lg font-semibold text-blue-900">
                         {getSubjectById(selectedSession.subject)?.name || selectedSession.subject}
-                      </p>
-                    </div>
+                    </p>
+                  </div>
                     <div>
                       <Label className="text-sm font-medium text-blue-700">Academic Level</Label>
                       <p className="text-lg font-semibold text-blue-900">
                         {resolveLevelName(selectedSession.academic_level)}
                       </p>
-                    </div>
-                    <div>
+                </div>
+                <div>
                       <Label className="text-sm font-medium text-blue-700">Current Status</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className={getStatusColor(selectedSession.status)}>
@@ -948,9 +948,9 @@ const SessionManagement = () => {
                                 {studentRating.feedback && (
                                   <span className="text-gray-600">• {studentRating.feedback}</span>
                                 )}
-                              </div>
+                  </div>
                             )}
-                          </div>
+                </div>
                         </div>
                       );
                     })}
@@ -962,7 +962,7 @@ const SessionManagement = () => {
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                     <h4 className="text-lg font-semibold text-green-900 mb-3">Meeting Link</h4>
                     <div className="space-y-3">
-                      <div>
+                <div>
                         <Label className="text-sm font-medium text-green-700">Current Link</Label>
                         <div className="flex items-center gap-2 mt-1">
                           <Input
@@ -978,7 +978,7 @@ const SessionManagement = () => {
                           >
                             Copy
                           </Button>
-                        </div>
+                </div>
                       </div>
                       {selectedSession.meeting_link_sent_at && (
                         <p className="text-sm text-green-700">
@@ -995,33 +995,33 @@ const SessionManagement = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
                     <div className="space-y-4">
-                      {/* Session Date & Time */}
-                      <div>
+                {/* Session Date & Time */}
+                <div>
                         <Label htmlFor="session_date" className="text-sm font-medium text-gray-700">
                           Session Date & Time
                         </Label>
-                        <Input
-                          id="session_date"
-                          type="datetime-local"
-                          value={updateSessionForm.session_date}
-                          onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
-                          required
+                  <Input
+                    id="session_date"
+                    type="datetime-local"
+                    value={updateSessionForm.session_date}
+                    onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
+                    required
                           className="mt-1"
-                        />
-                      </div>
+                  />
+                </div>
 
-                      {/* Duration */}
-                      <div>
+                {/* Duration */}
+                <div>
                         <Label className="text-sm font-medium text-gray-700">Duration</Label>
                         <div className="p-3 bg-white rounded-lg border mt-1">
                           <p className="text-sm font-semibold text-gray-900">
                             {selectedSession.duration_hours} hour{selectedSession.duration_hours !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </div>
+                    </p>
+                  </div>
+                </div>
 
-                      {/* Hourly Rate */}
-                      <div>
+                {/* Hourly Rate */}
+                <div>
                         <Label className="text-sm font-medium text-gray-700">Hourly Rate</Label>
                         <div className="p-3 bg-white rounded-lg border mt-1">
                           <p className="text-sm font-semibold text-gray-900">
@@ -1039,37 +1039,37 @@ const SessionManagement = () => {
                         <div className="p-3 bg-green-50 rounded-lg border mt-1">
                           <p className="text-lg font-semibold text-green-700">
                             £{selectedSession.total_earnings}
-                          </p>
-                        </div>
-                      </div>
+                    </p>
+                  </div>
+                </div>
 
-                      {/* Status */}
-                      <div>
+                {/* Status */}
+                <div>
                         <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
-                        <Select
-                          value={updateSessionForm.status}
-                          onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
-                        >
+                  <Select
+                    value={updateSessionForm.status}
+                    onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
+                  >
                           <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-  <SelectItem value="pending">Pending</SelectItem>
-  <SelectItem value="in_progress">In Progress</SelectItem>
-  <SelectItem value="completed">Completed</SelectItem>
-  <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
   {updateSessionForm.status === "confirmed" && (
     <SelectItem value="confirmed" disabled>
       Confirmed
     </SelectItem>
   )}
-</SelectContent>
+                    </SelectContent>
 
-                        </Select>
-                      </div>
+                  </Select>
+                </div>
 
                       {/* Subject */}
-                      <div>
+                <div>
                         <Label htmlFor="subject" className="text-sm font-medium text-gray-700">Subject</Label>
                         <Select
                           value={updateSessionForm.subject}
@@ -1124,8 +1124,8 @@ const SessionManagement = () => {
                     <p className="text-sm text-yellow-700">
                       Changing status to 'pending' will clear the meeting link and all student responses. 
                       Students will need to confirm their attendance again.
-                    </p>
-                  </div>
+                  </p>
+                </div>
                 )}
 
                 {/* Action Buttons */}
@@ -1134,16 +1134,16 @@ const SessionManagement = () => {
                     Last updated: {selectedSession.updatedAt ? new Date(selectedSession.updatedAt).toLocaleString() : 'N/A'}
                   </div>
                   <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowUpdateSessionModal(false)}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowUpdateSessionModal(false)}
                     >
-                      Cancel
-                    </Button>
+                    Cancel
+                  </Button>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                      Update Session
-                    </Button>
+                    Update Session
+                  </Button>
                   </div>
                 </div>
               </form>

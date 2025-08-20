@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle
 } from '../ui/card';
+import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar } from '../ui/avatar';
@@ -32,12 +33,13 @@ import {
   Filter,
   Eye
 } from 'lucide-react';
+import { useSubject } from '../../hooks/useSubject';
 
 const StudentHelpRequests = () => {
   const { user, getAuthToken } = useAuth();
   const token = getAuthToken();
   const { toast } = useToast();
-  
+  const { subjects, academicLevels} = useSubject();
   // Hired tutors state
   const [hiredTutors, setHiredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,14 @@ const StudentHelpRequests = () => {
     }
   }, [user, currentPage]);
 
+  const getSubjectName = (subjectId) => {
+    return subjects.find(subject => subject._id === subjectId)?.name || 'Unknown Subject';
+  };
+
+  const getAcademicLevelName = (academicLevelId) => {
+    return academicLevels.find(level => level._id === academicLevelId)?.name || 'Unknown Academic Level';
+  };
+  
   const parseField = (field) => {
     if (!field) return [];
 
@@ -432,7 +442,7 @@ const StudentHelpRequests = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Hired Tutors & Help Requests</h1>
+            <h1 className="text-3xl font-bold text-gray-900">My Tutors & Help Requests</h1>
             <p className="text-gray-600 mt-1">Request help from tutors you've hired and accepted</p>
           </div>
           <Button onClick={() => setShowInquiries(!showInquiries)}>
@@ -463,62 +473,89 @@ const StudentHelpRequests = () => {
                     const tutorUser = tutorToUserMap[request.tutor_id];
                     return (
                       <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'additional_help' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{request.subject}</h4>
+                        {/* Header Section */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            {/* Subject and Type */}
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium text-gray-600">Subject:</Label>
+                                <span className="font-medium text-gray-900">{request.subject}</span>
+                              </div>
                               <Badge variant={request.type === 'additional_help' ? 'default' : 'secondary'} className="text-xs">
                                 {request.type === 'additional_help' ? 'Help Request' : 'Tutor Inquiry'}
                               </Badge>
                             </div>
-                            <div className='flex items-center gap-20 text-xs text-gray-500'>
-                              <p className="text-sm text-gray-600">{request.academic_level}</p>
+                            
+                            {/* Academic Level and Schedule */}
+                            <div className="grid grid-cols-2 gap-4 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium text-gray-600">Academic Level:</Label>
+                                <span className="text-sm text-gray-700">{request.academic_level}</span>
+                              </div>
                               {request.preferred_schedule && (
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <Calendar className="w-4 h-4" />
-                                  {request.preferred_schedule}
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-gray-500" />
+                                  <Label className="text-sm font-medium text-gray-600">Schedule:</Label>
+                                  <span className="text-sm text-gray-700">{request.preferred_schedule}</span>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          
+                          {/* Status Badges */}
+                          <div className="flex flex-col items-end gap-2 ml-4">
                             {getStatusBadge(request.status)}
                             {getUrgencyBadge(request.urgency_level)}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <p className="text-sm text-gray-600">
+                        {/* Description Section */}
+                        <div className="mb-4">
+                          <Label className="text-sm font-medium text-gray-600 mb-2 block">Description:</Label>
+                          <p className="text-sm text-gray-700 bg-white p-3 rounded border">
                             {request.description || request.message || 'No description provided'}
                           </p>
-                          {request.tutor_id ? (
-                            <span className="text-blue-600 font-medium">
-                              Assigned to: {tutorUser ? tutorUser.full_name : 'Unknown Tutor'}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">
-                              {request.type === 'additional_help' ? 'Help Request' : 'No specific tutor assigned'}
-                            </span>
-                          )}
                         </div>
 
-                        {/* Tutor reply toggle for replied requests */}
-                        {request.status === 'replied' && (
-                          <div className="mt-3">
+                        {/* Tutor Assignment Section */}
+                        <div className="flex items-center justify-between py-3 border-t border-gray-200">
+                          {request.tutor_id ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-600">Assigned to:</span>
+                              <span className="text-blue-600 font-medium">
+                                {tutorUser ? tutorUser.full_name : 'Unknown Tutor'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-sm">
+                              {request.type === 'additional_help' ? 'Help Request - No specific tutor assigned' : 'No specific tutor assigned'}
+                            </span>
+                          )}
+                          
+                          {/* Reply Toggle Button */}
+                          {request.status === 'replied' && (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => toggleReplyVisibility(request._id)}
+                              className="ml-auto"
                             >
-                              {expandedRepliesById[request._id] ? 'Hide Tutor Reply' : 'View Tutor Reply'}
+                              {expandedRepliesById[request._id] ? 'Hide Reply' : 'View Reply'}
                             </Button>
-                            {expandedRepliesById[request._id] && (
-                              <div className="mt-3 p-3 border rounded-md bg-white">
-                                <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                  {request.reply_message || 'No reply message available.'}
-                                </div>
-                              </div>
-                            )}
+                          )}
+                        </div>
+
+                        {/* Tutor Reply Section */}
+                        {request.status === 'replied' && expandedRepliesById[request._id] && (
+                          <div className="mt-4 p-4 border rounded-lg bg-white">
+                            <div className="flex items-center gap-2 mb-2">
+                              <MessageSquare className="w-4 h-4 text-green-600" />
+                              <Label className="text-sm font-medium text-green-600">Tutor's Reply:</Label>
+                            </div>
+                            <div className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded">
+                              {request.reply_message || 'No reply message available.'}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -603,7 +640,7 @@ const StudentHelpRequests = () => {
                           <div className="flex flex-wrap gap-2">
                             {tutor.subjects.map((subject, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
-                                {subject}
+                                {getSubjectName(subject)}
                               </Badge>
                             ))}
                           </div>

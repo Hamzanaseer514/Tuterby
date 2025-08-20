@@ -9,6 +9,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Loader2, PlusCircle, Trash2, Save } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { useSubject } from '../../hooks/useSubject';
 
 function calculateMonthlyRate(hourlyRate, totalSessionsPerMonth, discount) {
     const gross = Number(hourlyRate || 0) * Number(totalSessionsPerMonth || 0);
@@ -20,10 +21,10 @@ const TutorSetting = () => {
     const { user, getAuthToken } = useAuth();
     const token = getAuthToken();
     const { toast } = useToast();
-
+    const { subjects, academicLevels } = useSubject();
     const [loading, setLoading] = useState(true);
     const [educationLevels, setEducationLevels] = useState([]);
-    const [subjects, setSubjects] = useState([]);
+    const [subjectIds, setSubjectIds] = useState([]);
     const [levels, setLevels] = useState([]);
     const [selectedLevelId, setSelectedLevelId] = useState('');
     const [adding, setAdding] = useState(false);
@@ -35,7 +36,10 @@ const TutorSetting = () => {
         educationLevels.forEach(l => map.set(String(l._id), l));
         return map;
     }, [educationLevels]);
-
+    const getSubjectName = (subjectId) => {
+        const subject = subjects.find(s => s._id === subjectId);
+        return subject ? subject : 'Unknown Subject';
+     }
     // Get available levels that haven't been added yet
     const availableLevels = useMemo(() => {
         return educationLevels.filter(el => 
@@ -59,7 +63,7 @@ const TutorSetting = () => {
 
             const { educationLevels, currentSettings, subjects } = json.data || {};
             setEducationLevels(educationLevels || []);
-            setSubjects(subjects || []);
+            setSubjectIds(subjects || []);
             const enriched = (currentSettings || []).map(s => ({
                 ...s,
                 isSaved: true,
@@ -247,14 +251,14 @@ const TutorSetting = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-2">
-                            {subjects.length > 0 ? (
-                                subjects.map((subject, index) => (
+                            {subjectIds.length > 0 ? (
+                                subjectIds.map((subject, index) => (
                                     <Badge 
                                         key={index} 
                                         variant="secondary" 
                                         className="px-3 py-1 text-sm"
                                     >
-                                        {subject}
+                                        {getSubjectName(subject).name} - {getSubjectName(subject).subject_type.name} - {getSubjectName(subject).level_id.level}
                                     </Badge>
                                 ))
                             ) : (

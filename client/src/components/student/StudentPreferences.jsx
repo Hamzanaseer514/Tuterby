@@ -571,7 +571,7 @@ const StudentPreferences = () => {
         </Card>
 
         {/* Availability */}
-        <Card className="lg:col-span-2">
+        {/* <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
@@ -584,7 +584,6 @@ const StudentPreferences = () => {
                 Set your weekly availability for tutoring sessions
               </p>
 
-              {/* Weekly availability simple example */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   "monday",
@@ -615,7 +614,7 @@ const StudentPreferences = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

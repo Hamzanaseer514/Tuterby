@@ -20,13 +20,14 @@ import {
   BookOpen,
   Award
 } from 'lucide-react';
-
+import { useSubject } from '../../hooks/useSubject';
 const MyTutors = () => {
   const { getAuthToken, user } = useAuth();
   const { toast } = useToast();
   const [hiredTutors, setHiredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { subjects, academicLevels } = useSubject();
 
   useEffect(() => {
     fetchHiredTutors();
@@ -62,6 +63,11 @@ const MyTutors = () => {
       setLoading(false);
     }
   };
+
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => s._id === subjectId);
+    return subject ? subject: '';
+  }
 
   const getHiringStatusBadge = (status) => {
     const statusConfig = {
@@ -209,7 +215,7 @@ const MyTutors = () => {
                       <div className="flex flex-wrap gap-1">
                         {hiredTutor.subjects.slice(0, 3).map((subject, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
-                            {subject}
+                            {getSubjectName(subject).name}
                           </Badge>
                         ))}
                         {hiredTutor.subjects.length > 3 && (

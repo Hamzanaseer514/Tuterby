@@ -36,6 +36,7 @@ import {
   MoreVert
 } from "@mui/icons-material";
 import { styled } from '@mui/material/styles';
+import { useSubject } from "../../hooks/useSubject";
 
 const StatusBadge = styled(Badge)(({ theme }) => ({
   '& .MuiBadge-badge': {
@@ -64,7 +65,13 @@ const StudentDetailPage = () => {
   const [loading, setLoading] = useState(!location.state?.user);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [isUpdating, setIsUpdating] = useState(false);
+  const { subjects } = useSubject();
 
+  const getSubjectName = (id) => {
+    const subject = subjects.find(s => s._id === id);
+    return subject ? subject: '';
+  }
+  
   useEffect(() => {
     if (!user) setLoading(false);
   }, [user]);
@@ -327,7 +334,7 @@ const StudentDetailPage = () => {
                         {userSubjects.map((subject, idx) => (
                           <Chip 
                             key={`${subject}-${idx}`} 
-                            label={subject} 
+                            label={getSubjectName(subject).name} 
                             size="medium" 
                             color="primary"
                             variant="outlined"

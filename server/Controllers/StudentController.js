@@ -140,7 +140,6 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
         } = req.body;
 
         const { user_id } = req.params;
-
         if (!user_id) {
             return res.status(400).json({
                 success: false,
@@ -229,15 +228,21 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
 exports.searchTutors = asyncHandler(async (req, res) => {
     const {
         search,
-        subject, // Changed from subjects to subject (singular)
+        subject_id, // Changed from subjects to subject (singular)
         academic_level,
         location,
         min_rating,
-        max_hourly_rate,
         preferred_subjects_only,
         page = 1,
         limit = 10
     } = req.query;
+
+    
+    // Check for any unexpected parameters that might cause issues
+    const unexpectedParams = Object.keys(req.query).filter(key => 
+        !['search', 'subject_id', 'academic_level', 'location', 'min_rating', 'preferred_subjects_only', 'page', 'limit', 'user_id'].includes(key)
+    );
+   
     try {
         // Get current student's profile to check hiring status
         const currentStudent = await Student.findOne({ user_id: req.user._id });
@@ -255,19 +260,23 @@ exports.searchTutors = asyncHandler(async (req, res) => {
         if (preferred_subjects_only === 'true' && currentStudent.preferred_subjects && currentStudent.preferred_subjects.length > 0) {
             // Get the subject names from student's preferred subjects (they are strings)
             query.subjects = { $in: currentStudent.preferred_subjects };
-        } else if (subject) {
-            // Single subject filter (when not using preferred subjects)
-            // We need to get the subject name from the ID first
-            const subjectDoc = await Subject.findById(subject);
-            if (subjectDoc) {
-                query.subjects = subjectDoc.name;
-            }
+        } else if (subject_id) {
+            // Single subject filter - search by subject ID directly
+            // Handle both ObjectId and string subject values
+            // Validate that subject_id is a valid ObjectId format
+            if (subject_id.match(/^[0-9a-fA-F]{24}$/)) {
+                query.subjects = { $in: [subject_id] }; // Use $in to match the subject ID in the array
+              
+            } 
         }
 
-        // Academic level filter
+        // Academic level filter - search by academic level ID
         if (academic_level) {
             // academic_level is an ID, so we need to find tutors that have this education level
-            query['academic_levels_taught.educationLevel'] = academic_level;
+            // Since academic_levels_taught are objects with educationLevel field, search by that
+            if (academic_level.match(/^[0-9a-fA-F]{24}$/)) {
+                query['academic_levels_taught.educationLevel'] = academic_level;
+            } 
         }
 
         // Location filter
@@ -310,14 +319,26 @@ exports.searchTutors = asyncHandler(async (req, res) => {
                     ]
                 };
             } else {
+                // Don't override the subject filter if it's already set
+                const searchOrConditions = [
+                    ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
+                ];
+                
+                // Only add subject search if no specific subject filter is set
+                if (!subject_id) {
+                    searchOrConditions.unshift({ subjects: new RegExp(search, 'i') });
+                }
+                
                 searchQuery = {
                     ...query,
-                    $or: [
-                        { subjects: new RegExp(search, 'i') },
-                        ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
-                    ]
+                    $or: searchOrConditions
                 };
             }
+        }
+        
+        // Ensure the subject filter is preserved in the final query
+        if (subject_id && !searchQuery.subjects) {
+            searchQuery.subjects = { $in: [subject_id] };
         }
 
         // Fetch matching tutors
@@ -328,9 +349,15 @@ exports.searchTutors = asyncHandler(async (req, res) => {
             .sort({ average_rating: -1 })
             .lean(); // For performance
 
+       
+
         // Get all unique education level IDs from all tutors
-        const tutor_acdemicLevel_ids = tutors.flatMap(tutor => tutor.academic_levels_taught.map(level => level.educationLevel));
-        const academicLevels = await EducationLevel.find({ _id: { $in: tutor_acdemicLevel_ids } });
+        // Since academic_levels_taught are objects with educationLevel field, extract the IDs
+        const tutorAcademicLevelIds = tutors.flatMap(tutor => 
+            (tutor.academic_levels_taught || []).map(level => level.educationLevel)
+        );
+     
+        const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
         
         // Create a map for quick lookup
         const academicLevelMap = {};
@@ -345,18 +372,22 @@ exports.searchTutors = asyncHandler(async (req, res) => {
         // Format tutor output with hiring information
         const formattedTutors = tutors
             .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
-            .map(tutor => {
+            .map((tutor, index) => {
+                
                 // Check if this tutor has been hired by the current student
                 const hireRecord = currentStudent.hired_tutors.find(
                     hire => hire.tutor.toString() === tutor._id.toString()
                 );
 
                 // Get this tutor's academic levels and hourly rates
-                const tutorAcademicLevels = tutor.academic_levels_taught.map(level => {
-                    const levelDoc = academicLevelMap[level.educationLevel.toString()];
+                const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(levelObj => {
+                 
+                    
+                    const levelDoc = academicLevelMap[levelObj.educationLevel.toString()];
+                    
                     return {
-                        name: levelDoc ? levelDoc.level : 'Unknown',
-                        hourlyRate: levelDoc ? levelDoc.hourlyRate : 0
+                        name: levelDoc ? levelDoc.level : levelObj.name || 'Unknown',
+                        hourlyRate: levelObj.hourlyRate || (levelDoc ? levelDoc.hourlyRate : 0)
                     };
                 });
 
@@ -368,7 +399,8 @@ exports.searchTutors = asyncHandler(async (req, res) => {
                     _id: tutor._id,
                     user_id: tutor.user_id,
                     subjects: tutor.subjects,
-                    academic_levels_taught: tutorAcademicLevels.map(level => level.name),
+                    // academic_levels_taught: tutorAcademicLevels.map(level => level.name),
+                    academic_levels_taught: tutor.academic_levels_taught,
                     min_hourly_rate: min_hourly_rate_value,
                     max_hourly_rate: max_hourly_rate_value,
                     average_rating: tutor.average_rating,
@@ -1110,16 +1142,13 @@ exports.rateSession = asyncHandler(async (req, res) => {
     }
     await session.save();
 
-    console.log(session.tutor_id);
     // Recompute tutor average from session.rating across completed sessions
     const ratingsAgg = await TutoringSession.aggregate([
         { $match: { tutor_id: session.tutor_id, status: { $in: ['completed', 'in_progress'] }, rating: { $exists: true } } },
         { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } }
     ]);
-    console.log(ratingsAgg);
     const avgRating = ratingsAgg[0]?.average || 0;
     const totalSessions = ratingsAgg[0]?.count || 0;
-    console.log(avgRating, totalSessions);
     await TutorProfile.findOneAndUpdate(
         { _id: session.tutor_id },
         { average_rating: avgRating, total_sessions: totalSessions },

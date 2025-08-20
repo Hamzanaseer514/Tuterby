@@ -12,7 +12,8 @@ const tutoringSessionSchema = new mongoose.Schema({
     required: true
   }],
   subject: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject',
     required: true
   },
   session_date: {
