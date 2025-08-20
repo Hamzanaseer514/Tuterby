@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
@@ -28,11 +28,13 @@ import {
   Edit,
   Eye
 } from 'lucide-react';
+import { useSubject } from '../../hooks/useSubject';
 
 const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { getAuthToken, user } = useAuth();
+  const { academicLevels, subjects } = useSubject();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,6 +73,13 @@ const StudentDashboard = () => {
     }
   };
 
+  const matchAcademicLevel = (level) => {
+    const matchedLevel = academicLevels.find(l => l._id === level);
+    if(matchedLevel){
+      return matchedLevel;
+    }
+    return null;
+  }
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       weekday: 'short',
@@ -106,24 +115,11 @@ const StudentDashboard = () => {
       </Badge>
     );
   };
-
-  const getAssignmentStatusBadge = (status) => {
-    const statusConfig = {
-      pending: { variant: "secondary", icon: AlertCircle },
-      in_progress: { variant: "default", icon: Clock },
-      completed: { variant: "default", icon: CheckCircle }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    const Icon = config.icon;
-    
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="w-3 h-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+}, [subjects]);
 
   if (loading) {
     return (
@@ -241,7 +237,7 @@ const StudentDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium">{session.tutor_id.user_id.full_name}</p>
-                        <p className="text-sm text-gray-600">{session.subject}</p>
+                        <p className="text-sm text-gray-600">{getSubjectById(session.subject)?.name || session.subject} - {matchAcademicLevel(session.academic_level).level}</p>
                         <p className="text-xs text-gray-500">
                           {formatDate(session.session_date)} at {formatTime(session.session_date)}
                         </p>
@@ -291,7 +287,7 @@ const StudentDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium">{session.tutor_id.user_id.full_name}</p>
-                        <p className="text-sm text-gray-600">{session.subject}</p>
+                        <p className="text-sm text-gray-600">{getSubjectById(session.subject)?.name || session.subject} - {matchAcademicLevel(session.academic_level).level}</p>
                         <p className="text-xs text-gray-500">
                           {formatDate(session.session_date)}
                         </p>

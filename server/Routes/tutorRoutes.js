@@ -32,7 +32,8 @@ const {
   getTutorSettings,
   updateTutorSettings,
   addTutorAcademicLevel,
-  removeTutorAcademicLevel
+  removeTutorAcademicLevel,
+  sendMeetingLink
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -70,6 +71,7 @@ router.get('/stats/:user_id', getTutorStats);
 router.post('/sessions', protect, createSession);
 router.put('/sessions/update/:session_id',protect, updateSessionStatus);
 router.delete('/sessions/delete/:session_id',protect, deleteSession);
+router.post('/sessions/:session_id/send-link', protect, sendMeetingLink);
 
 router.get('/sessions/:user_id',protect,getTutorSessions);
 

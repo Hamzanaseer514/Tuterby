@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,10 +35,15 @@ const authFetch = async (url, options = {}) => {
 const StudentCard = ({ student, onRespond, loadingId }) => {
   const user = student.user_id || {};
   const hire = student.hire_for_this_tutor || { status: 'pending' };
-  const { academicLevels } = useSubject();
+  const { academicLevels, subjects } = useSubject();
   const academic_level_name = academicLevels.find(s => s._id === hire.academic_level_id)?.level;
   const student_academic_level_name = academicLevels.find(s => s._id === student.academic_level)?.level;
-
+  
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+  }, [subjects]);
 
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow border border-gray-200">
@@ -46,7 +51,7 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             <img
-              src={user.photo_url || '/images/london10.jpg'}
+              src={`${BASE_URL}${user.photo_url}`}
               alt={user.full_name || 'Student'}
               className="h-12 w-12 rounded-full object-cover ring-2 ring-gray-100"
             />
@@ -60,11 +65,12 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
               {Array.isArray(student.preferred_subjects) && student.preferred_subjects.length > 0 && (
                 <div className="mt-1 text-sm text-gray-700">
                   <span className="font-medium">Interests: </span>
-                  {student.preferred_subjects.slice(0, 5).join(', ')}
+                  {student.preferred_subjects.slice(0, 5).map(subject => getSubjectById(subject)?.name || subject).join(', ')}
+                  {/* {getSubjectById(student.preferred_subjects.slice(0, 5)).join(', ')} */}
                 </div>
               )}
 
-              <div className="mt-2 text-sm text-gray-700">Hire For: {academic_level_name}- {hire.subject}</div>
+              <div className="mt-2 text-sm text-gray-700">Hire For: {academic_level_name}- {getSubjectById(hire.subject)?.name || hire.subject}</div>
               <div className="mt-2">
                 {hire.status === 'accepted' && (
                   <Badge variant="success">Accepted</Badge>

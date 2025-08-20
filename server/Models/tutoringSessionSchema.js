@@ -58,6 +58,44 @@ const tutoringSessionSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Per-student ratings
+  student_ratings: [
+    {
+      student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'StudentProfile', required: true },
+      rating: { type: Number, min: 1, max: 5, required: true },
+      feedback: { type: String, default: '' },
+      rated_at: { type: Date, default: Date.now }
+    }
+  ],
+  // Per-student response tracking for group sessions
+  student_responses: [
+    {
+      student_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'StudentProfile',
+        required: true
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'confirmed', 'declined'],
+        default: 'pending'
+      },
+      responded_at: {
+        type: Date
+      },
+      note: {
+        type: String,
+        default: ''
+      }
+    }
+  ],
+  meeting_link: {
+    type: String,
+    default: ''
+  },
+  meeting_link_sent_at: {
+    type: Date
+  },
   completed_at: {
     type: Date
   }
@@ -69,5 +107,9 @@ tutoringSessionSchema.index({ tutor_id: 1, status: 1 });
 // ✅ Supporting indexes
 tutoringSessionSchema.index({ session_date: 1 });
 tutoringSessionSchema.index({ student_ids: 1 });
+// Helpful for response lookups per student
+tutoringSessionSchema.index({ 'student_responses.student_id': 1 });
+// Helpful for rating lookups per student
+tutoringSessionSchema.index({ 'student_ratings.student_id': 1 });
 
 module.exports = mongoose.model('TutoringSession', tutoringSessionSchema);

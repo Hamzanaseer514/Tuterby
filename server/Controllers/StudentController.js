@@ -108,6 +108,8 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
                 select: "full_name email", // only include name & email from User
             },
         })
+        .populate({ path: 'student_responses.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
+        .populate({ path: 'student_ratings.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
         .sort({ session_date: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
@@ -574,8 +576,14 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             })
                 .sort({ createdAt: -1 })
                 .limit(5)
-                .populate('student_id', 'user_id', 'full_name email');
-        } catch (error) {
+                .populate({
+                    path: 'student_id',
+                    select: 'user_id',
+                    populate: {
+                        path: 'user_id',
+                        select: 'full_name email'
+                    }
+                });        } catch (error) {
             console.error('Error fetching recent inquiries:', error);
             recentInquiries = [];
         }
@@ -980,6 +988,7 @@ exports.getStudentTutorChat = asyncHandler(async (req, res) => {
         count: messages.length,
         data: messages,
     });
+
 });
 
 // Get hired tutors for student (for StudentHelpRequests component)
@@ -1048,6 +1057,76 @@ exports.getHiredTutors = asyncHandler(async (req, res) => {
             error: error.message
         });
     }
+});
+
+// Student rates a session (per-student rating)
+exports.rateSession = asyncHandler(async (req, res) => {
+    const { session_id } = req.params;
+    const { rating, feedback } = req.body;
+
+    if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+        return res.status(400).json({ success: false, message: 'rating must be between 1 and 5' });
+    }
+
+    // Resolve current student's profile
+    const studentUserId = req.user._id;
+    const studentProfile = await Student.findOne({ user_id: studentUserId }).select('_id');
+    if (!studentProfile) {
+        return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+
+    const session = await TutoringSession.findById(session_id);
+    if (!session) {
+        return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    // Must belong to this session
+    const inSession = (session.student_ids || []).some(id => id.toString() === studentProfile._id.toString());
+    if (!inSession) {
+        return res.status(403).json({ success: false, message: 'You are not part of this session' });
+    }
+
+    // Declined students cannot rate
+    const myResp = (session.student_responses || []).find(r => r.student_id.toString() === studentProfile._id.toString());
+    if (myResp && myResp.status === 'declined') {
+        return res.status(403).json({ success: false, message: 'You declined this session and cannot rate it' });
+    }
+
+    // Upsert per-student rating
+    const ratings = Array.isArray(session.student_ratings) ? [...session.student_ratings] : [];
+    const idx = ratings.findIndex(r => r.student_id.toString() === studentProfile._id.toString());
+    const entry = { student_id: studentProfile._id, rating: Number(rating), feedback: feedback || '', rated_at: new Date() };
+    if (idx === -1) ratings.push(entry); else ratings[idx] = entry;
+
+    // Save per-student ratings
+    session.student_ratings = ratings;
+    // Recompute overall session rating and persist in session.rating
+    const sum = ratings.reduce((acc, r) => acc + Number(r.rating || 0), 0);
+    const avg = ratings.length > 0 ? sum / ratings.length : undefined;
+    if (typeof avg === 'number' && Number.isFinite(avg)) {
+        session.rating = Math.round(avg * 10) / 10; // 1 decimal
+    } else {
+        session.rating = undefined;
+    }
+    await session.save();
+
+    console.log(session.tutor_id);
+    // Recompute tutor average from session.rating across completed sessions
+    const ratingsAgg = await TutoringSession.aggregate([
+        { $match: { tutor_id: session.tutor_id, status: { $in: ['completed', 'in_progress'] }, rating: { $exists: true } } },
+        { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]);
+    console.log(ratingsAgg);
+    const avgRating = ratingsAgg[0]?.average || 0;
+    const totalSessions = ratingsAgg[0]?.count || 0;
+    console.log(avgRating, totalSessions);
+    await TutorProfile.findOneAndUpdate(
+        { _id: session.tutor_id },
+        { average_rating: avgRating, total_sessions: totalSessions },
+        { new: true }
+    );
+
+    return res.status(200).json({ success: true, message: 'Rating submitted', session });
 });
 
 

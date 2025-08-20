@@ -7,6 +7,7 @@ const { getStudentDashboard,updateStudentProfile,
    sendMessage,getAcceptedTutorsForStudent,
    getStudentTutorChat,
    getHiredTutors,
+   rateSession,
    requestHelpFromTutor,
    getStudentProfile} = require("../Controllers/StudentController")
 const { getUserProfile, updateUserPhoto } = require("../Controllers/UserController")
@@ -52,6 +53,7 @@ router.post('/user-profile/:user_id/photo', protect, upload.single('photo'), upd
 // Student dashboard routes
 router.get("/student/dashboard/:userId", protect, getStudentDashboard);
 router.get("/student/sessions/:userId", protect, getStudentSessions);
+router.post("/student/sessions/:session_id/rate", protect, rateSession);
 
 
 // Tutor search and help request routes

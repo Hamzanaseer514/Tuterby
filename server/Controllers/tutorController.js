@@ -10,7 +10,7 @@ const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
 const Message = require("../Models/messageSchema"); // Importing Message model
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
-
+const sendEmail = require("../Utils/sendEmail");
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
 
@@ -113,7 +113,7 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     .sort({ session_date: -1 })
     .limit(5);
 
-  const [totalHours, totalEarnings, averageRating, completedSessions] = await Promise.all([
+  const [totalHours, totalEarnings, completedSessions] = await Promise.all([
     TutoringSession.aggregate([
       { $match: { tutor_id: tutor._id, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$duration_hours' } } }
@@ -121,10 +121,6 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     TutoringSession.aggregate([
       { $match: { tutor_id: tutor._id, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$total_earnings' } } }
-    ]),
-    TutoringSession.aggregate([
-      { $match: { tutor_id: tutor._id, status: 'completed', rating: { $exists: true } } },
-      { $group: { _id: null, average: { $avg: '$rating' } } }
     ]),
     TutoringSession.countDocuments({ tutor_id: tutor._id, status: 'completed' })
   ]);
@@ -167,7 +163,6 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
       };
     });
   };
-
   const dashboard = {
     upcomingSessions: formatSessions(sessionsWithLevelNames),
     recentSessions: formatSessions(recentSessions),
@@ -178,7 +173,7 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     metrics: {
       totalHours: totalHours[0]?.total || 0,
       totalEarnings: totalEarnings[0]?.total || 0,
-      averageRating: averageRating[0]?.average || 0,
+      averageRating: tutor.average_rating || 0,
       completedSessions,
       avgResponseTime: avgResponseTime[0]?.average || 0,
       bookingAcceptanceRate
@@ -297,6 +292,11 @@ const createSession = asyncHandler(async (req, res) => {
     session_date: sessionDateExactUTC, // exact time from frontend
     duration_hours,
     hourly_rate: Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : 0,
+    // Initialize per-student responses as pending
+    student_responses: students.map(s => ({
+      student_id: s._id,
+      status: 'pending'
+    })),
     total_earnings: duration_hours * (Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : 0),
     notes: notes || "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -319,16 +319,14 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     duration_hours,
     hourly_rate,
     status,
-    rating,
-    feedback,
-    notes
+    notes,
+    student_proposed_date,
+    approve_proposed,
+    reject_proposed,
+    // New: per-student response update
+    student_response_status,
+    student_response_note
   } = req.body;
-  if (!session_date || !duration_hours || !hourly_rate) {
-    return res.status(400).json({
-      success: false,
-      message: "Date, duration, and hourly rate are required"
-    });
-  }
   try {
     const session = await TutoringSession.findById(session_id);
     if (!session) {
@@ -337,19 +335,93 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         message: "Session not found"
       });
     }
-    // Convert frontend time to exact UTC without timezone shift
-    let sessionDateExactUTC;
-    if (typeof session_date === 'string') {
-      sessionDateExactUTC = new Date(session_date + ':00Z');
-    } else {
-      sessionDateExactUTC = new Date(session_date);
+
+    // Handle per-student response updates (confirm/decline) without altering date/time logic
+    if (student_response_status && ['confirmed', 'declined', 'pending'].includes(student_response_status)) {
+      if (!student_id) {
+        return res.status(400).json({ success: false, message: 'student_id is required for per-student response' });
+      }
+      let studentObjectId = new mongoose.Types.ObjectId(student_id);
+      // If this ObjectId does not match any session student, try to resolve by user_id -> StudentProfile
+      const isMember = (session.student_ids || []).some(id => id.toString() === studentObjectId.toString());
+      if (!isMember) {
+        const maybeProfile = await StudentProfile.findOne({ user_id: student_id }).select('_id');
+        if (maybeProfile) {
+          studentObjectId = new mongoose.Types.ObjectId(maybeProfile._id);
+        }
+      }
+      const responseIndex = (session.student_responses || []).findIndex(r => r.student_id.toString() === studentObjectId.toString());
+      if (responseIndex === -1) {
+        // Ensure the student is part of the session
+        const isInSession = (session.student_ids || []).some(id => id.toString() === studentObjectId.toString());
+        if (!isInSession) {
+          return res.status(403).json({ success: false, message: 'Student not part of this session' });
+        }
+        // Initialize if missing
+        session.student_responses = session.student_responses || [];
+        session.student_responses.push({ student_id: studentObjectId, status: student_response_status, responded_at: new Date(), note: student_response_note || '' });
+      } else {
+        session.student_responses[responseIndex].status = student_response_status;
+        session.student_responses[responseIndex].responded_at = new Date();
+        if (student_response_note !== undefined) session.student_responses[responseIndex].note = student_response_note;
+      }
+
+      // Do not auto-confirm here. Tutor will send meeting link to confirmed students, which will confirm the session overall.
+
+      const saved = await session.save();
+      return res.status(200).json({ success: true, message: 'Student response updated', session: saved });
     }
 
+    // Disallow changing date/time once session is confirmed
+    if (session.status === 'confirmed') {
+      const isTryingToPropose = !!student_proposed_date || approve_proposed;
+      // Parse potential new date for comparison
+      let incomingDate = null;
+      if (typeof session_date === 'string') incomingDate = new Date(session_date + ':00Z');
+      else if (session_date) incomingDate = new Date(session_date);
+      const isTryingToChangeDate = !!incomingDate && session.session_date && incomingDate.getTime() !== new Date(session.session_date).getTime();
+      if (isTryingToPropose || isTryingToChangeDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot change date/time of a confirmed session'
+        });
+      }
+    }
+    // Determine the intended operation
+    const isProposalOnly = !!student_proposed_date && !approve_proposed && !reject_proposed;
+
+    // Parse incoming dates safely
+    const parseLocalToUTC = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') return new Date(val + ':00Z');
+      return new Date(val);
+    };
+
+    let sessionDateExactUTC = parseLocalToUTC(session_date);
+    let proposedDateUTC = parseLocalToUTC(student_proposed_date);
+
+    // For approve flow, use stored proposed date if not provided in body
+    if (approve_proposed && !proposedDateUTC && session.student_proposed_date) {
+      proposedDateUTC = new Date(session.student_proposed_date);
+    }
+
+    // If approving, target date becomes proposed
+    if (approve_proposed && proposedDateUTC) {
+      sessionDateExactUTC = proposedDateUTC;
+    }
+
+    // Compute duration for conflict checks/earnings (fallback to existing)
+    const effectiveDuration = Number.isFinite(parseFloat(duration_hours))
+      ? parseFloat(duration_hours)
+      : session.duration_hours;
+
     // Calculate new session's end time
-    const newSessionEndTime = new Date(sessionDateExactUTC.getTime() + duration_hours * 60 * 60 * 1000);
+    const newSessionEndTime = sessionDateExactUTC
+      ? new Date(sessionDateExactUTC.getTime() + effectiveDuration * 60 * 60 * 1000)
+      : null;
 
     // Check for conflicting in-progress sessions
-    if (status === 'in_progress' || status === 'pending' || status === 'confirmed') {
+    if (!isProposalOnly && (status === 'in_progress' || status === 'pending' || status === 'confirmed' || approve_proposed)) {
       const conflictingSession = await TutoringSession.findOne({
         tutor_id: session.tutor_id,
         status: { $in: ['in_progress', 'pending', 'confirmed'] },
@@ -357,11 +429,11 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         $or: [
           {
             // Case: Existing session starts before new session ends and ends after new session starts
-            session_date: { $lte: newSessionEndTime },
+            session_date: newSessionEndTime ? { $lte: newSessionEndTime } : session.session_date,
             $expr: {
               $gt: [
                 { $add: ['$session_date', { $multiply: ['$duration_hours', 60 * 60 * 1000] }] },
-                sessionDateExactUTC
+                sessionDateExactUTC || session.session_date
               ]
             }
           }
@@ -397,27 +469,64 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     }
 
     // Normalize hourly rate (could be number or [number])
-    const hourlyRateNumber = Array.isArray(hourly_rate)
-      ? parseFloat(hourly_rate[0])
+    const hourlyRateNumberRaw = Array.isArray(hourly_rate)
+      ? parseFloat(hourly_rate?.[0])
       : parseFloat(hourly_rate);
-    const total_earnings = duration_hours * (Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : session.hourly_rate);
+    const hourlyRateNumber = Number.isFinite(hourlyRateNumberRaw) ? hourlyRateNumberRaw : session.hourly_rate;
+    const total_earnings = (Number.isFinite(parseFloat(duration_hours)) ? parseFloat(duration_hours) : session.duration_hours) * hourlyRateNumber;
 
     const updates = {
       student_id: student_id || session.student_id,
       subject: subject || session.subject,
       academic_level: normalizedAcademicLevel,
-      session_date: sessionDateExactUTC, // exact time from frontend
-      duration_hours,
-      hourly_rate: Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : session.hourly_rate,
+      // session_date will be set only for approval or explicit update
+      duration_hours: Number.isFinite(parseFloat(duration_hours)) ? parseFloat(duration_hours) : session.duration_hours,
+      hourly_rate: hourlyRateNumber,
       total_earnings,
       status: status || session.status,
       notes: notes !== undefined ? notes : session.notes
     };
 
+    // Handle student proposal only (no other fields required)
+    if (isProposalOnly) {
+      updates.student_proposed_date = proposedDateUTC;
+      updates.student_proposed_status = 'pending';
+      updates.student_proposed_decided_at = null;
+      if (status) updates.status = status;
+      const updatedOnlyProposal = await TutoringSession.findByIdAndUpdate(
+        session_id,
+        updates,
+        { new: true }
+      );
+      return res.status(200).json({
+        success: true,
+        message: 'Proposed time saved successfully',
+        session: updatedOnlyProposal
+      });
+    }
+
+    // If approving proposed date
+    if (approve_proposed && proposedDateUTC) {
+      updates.session_date = proposedDateUTC;
+      updates.student_proposed_status = 'accepted';
+      updates.student_proposed_decided_at = new Date();
+      updates.student_proposed_date = null;
+      if (!status) {
+        updates.status = 'confirmed';
+      }
+    } else if (reject_proposed) {
+      updates.student_proposed_status = 'rejected';
+      updates.student_proposed_decided_at = new Date();
+      updates.student_proposed_date = null;
+    } else if (sessionDateExactUTC) {
+      // Normal update path sets the new date
+      updates.session_date = sessionDateExactUTC;
+    }
+
+    // Do not accept rating/feedback in this endpoint anymore; use student rating endpoint
+    const nextStatus = status || session.status;
     if (status === 'completed') {
       updates.completed_at = new Date();
-      updates.rating = rating;
-      updates.feedback = feedback;
 
       if (duration_hours !== oldDuration) {
         const tutorProfile = await TutorProfile.findOne({ user_id: session.tutor_id });
@@ -429,12 +538,25 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       }
     }
 
+    // If tutor sets status back to pending, clear meeting link and student responses
+    if ((status && status === 'pending')) {
+      updates.meeting_link = '';
+      updates.meeting_link_sent_at = null;
+      updates.student_responses = [];
+      // also clear any pending proposal state
+      updates.student_proposed_date = null;
+      updates.student_proposed_status = undefined;
+      updates.student_proposed_decided_at = undefined;
+    }
+
     const updatedSession = await TutoringSession.findByIdAndUpdate(
       session_id,
       updates,
       { new: true }
     );
-
+    console.log(status,nextStatus);
+    
+    
     res.status(200).json({
       success: true,
       message: "Session updated successfully",
@@ -477,6 +599,8 @@ const getTutorSessions = asyncHandler(async (req, res) => {
         select: 'full_name email'
       }
     })
+    .populate({ path: 'student_responses.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
+    .populate({ path: 'student_ratings.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
     .populate({ path: 'academic_level', select: 'level' })
     .sort({ session_date: -1 })
     .limit(parseInt(limit))
@@ -569,7 +693,7 @@ const getTutorStats = asyncHandler(async (req, res) => {
 
   const tutorObjectId = new mongoose.Types.ObjectId(tutor_id);
 
-  const [totalHours, totalEarnings, completedSessions, averageRating, avgResponseTime] = await Promise.all([
+  const [totalHours, totalEarnings, completedSessions, avgResponseTime] = await Promise.all([
     TutoringSession.aggregate([
       { $match: { tutor_id: tutorObjectId, status: 'completed', ...(Object.keys(dateFilter).length > 0 && { completed_at: dateFilter }) } },
       { $group: { _id: null, total: { $sum: '$duration_hours' } } }
@@ -579,10 +703,6 @@ const getTutorStats = asyncHandler(async (req, res) => {
       { $group: { _id: null, total: { $sum: '$total_earnings' } } }
     ]),
     TutoringSession.countDocuments({ tutor_id: tutorObjectId, status: 'completed', ...(Object.keys(dateFilter).length > 0 && { completed_at: dateFilter }) }),
-    TutoringSession.aggregate([
-      { $match: { tutor_id: tutorObjectId, status: 'completed', rating: { $exists: true }, ...(Object.keys(dateFilter).length > 0 && { completed_at: dateFilter }) } },
-      { $group: { _id: null, average: { $avg: '$rating' } } }
-    ]),
     TutorInquiry.aggregate([
       { $match: { tutor_id: tutorObjectId, response_time_minutes: { $exists: true } } },
       { $group: { _id: null, average: { $avg: '$response_time_minutes' } } }
@@ -595,7 +715,7 @@ const getTutorStats = asyncHandler(async (req, res) => {
     totalHours: totalHours[0]?.total || 0,
     totalEarnings: totalEarnings[0]?.total || 0,
     completedSessions,
-    averageRating: averageRating[0]?.average || 0,
+    averageRating: tutor.average_rating || 0,
     avgResponseTime: avgResponseTime[0]?.average || 0,
     bookingAcceptanceRate,
     period
@@ -691,6 +811,61 @@ const requestInterviewAgain = asyncHandler(async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Send meeting link to confirmed students and set session status to confirmed
+const sendMeetingLink = asyncHandler(async (req, res) => {
+  const { session_id } = req.params;
+  const { meeting_link } = req.body;
+  if (!meeting_link) {
+    return res.status(400).json({ success: false, message: 'meeting_link is required' });
+  }
+  const session = await TutoringSession.findById(session_id)
+    .populate({ path: 'student_responses.student_id', populate: { path: 'user_id', select: 'email full_name' } })
+    .populate({ path: 'tutor_id', populate: { path: 'user_id', select: 'full_name email' } });
+  if (!session) {
+    return res.status(404).json({ success: false, message: 'Session not found' });
+  }
+
+  // Gather confirmed students
+  const confirmed = (session.student_responses || []).filter(r => r.status === 'confirmed');
+  if (confirmed.length === 0) {
+    return res.status(400).json({ success: false, message: 'No confirmed students to send meeting link to' });
+  }
+
+  // Send emails
+  try {
+    const toList = confirmed
+      .map(r => r?.student_id?.user_id?.email)
+      .filter(Boolean);
+    if (toList.length === 0) {
+      return res.status(400).json({ success: false, message: 'Confirmed students have no emails on file' });
+    }
+
+    const subject = `Session Link for ${session.subject}`;
+    const html = `
+      <p>Hello,</p>
+      <p>Your session is scheduled on <b>${new Date(session.session_date).toUTCString()}</b>.</p>
+      <p>Please join using this link: <a href="${meeting_link}">${meeting_link}</a></p>
+      <p>Regards,<br/>${session.tutor_id?.user_id?.full_name || 'Your Tutor'}</p>
+    `;
+
+    // We send to each student separately to avoid email exposure
+    for (const to of toList) {
+      await sendEmail(to, subject, html);
+    }
+
+    // Update session level
+    session.meeting_link = meeting_link;
+    session.meeting_link_sent_at = new Date();
+    session.status = 'confirmed';
+    await session.save();
+
+    return res.status(200).json({ success: true, message: 'Meeting link sent and session confirmed', session });
+  } catch (err) {
+    console.error('Error sending meeting link:', err);
+    return res.status(500).json({ success: false, message: 'Failed to send meeting link', error: err.message });
   }
 });
 
@@ -1564,5 +1739,6 @@ module.exports = {
   getTutorSettings,
   updateTutorSettings,
   addTutorAcademicLevel,
-  removeTutorAcademicLevel
+  removeTutorAcademicLevel,
+  sendMeetingLink
 };

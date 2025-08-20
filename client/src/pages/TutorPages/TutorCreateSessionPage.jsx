@@ -4,14 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSubject } from "@/hooks/useSubject";
 import { BASE_URL } from "@/config";
 import { toast } from "react-toastify";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
 const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const TutorCreateSessionPage = () => {
@@ -39,7 +37,6 @@ const TutorCreateSessionPage = () => {
     const [selectedTime, setSelectedTime] = useState(""); // HH:mm
     const [daySessions, setDaySessions] = useState([]); // existing sessions on selected day
     const [conflictingSlots, setConflictingSlots] = useState([]); // array of HH:mm strings that are conflicting
-
     const [sessionForm, setSessionForm] = useState({
         student_ids: [],
         subject: "",
@@ -49,6 +46,12 @@ const TutorCreateSessionPage = () => {
         hourly_rate: 0,
         notes: ""
     });
+
+    const getSubjectById = useCallback((id) => {
+        if (!id) return undefined;
+        const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+        return s;
+    }, [subjects]);
 
     const getLevelById = useCallback((id) => {
         if (!id) return undefined;
@@ -297,18 +300,43 @@ const TutorCreateSessionPage = () => {
     }, [displayMonth]);
 
     const allSubjects = useMemo(() => {
-        const s = new Set();
-        selectedStudentSubjects.forEach(x => s.add(x));
-        parsedSubjects.forEach(x => s.add(x));
-        return Array.from(s).sort();
-    }, [selectedStudentSubjects, parsedSubjects]);
+        if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
+            return [];
+        }
+        
+        // Get subjects for each selected student
+        const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
+        const studentSubjectSets = selectedStudents.map(student => {
+            const studentSubjects = Array.isArray(student.preferred_subjects) ? student.preferred_subjects : [];
+            return new Set(studentSubjects);
+        });
+        
+        // Get tutor subjects
+        const tutorSubjectIds = new Set(parsedSubjects);
+        
+        // Find subjects that exist in ALL students AND tutor
+        const commonSubjects = [];
+        tutorSubjectIds.forEach(subjectId => {
+            // Check if this subject exists in ALL selected students
+            const existsInAllStudents = studentSubjectSets.every(studentSet => 
+                studentSet.has(subjectId)
+            );
+            
+            if (existsInAllStudents) {
+                commonSubjects.push(subjectId);
+            }
+        });
+        
+        return commonSubjects.sort();
+    }, [selectedStudentSubjects, parsedSubjects, sessionForm.student_ids, availableStudents]);
 
-    const allAcademicLevels = useMemo(() => {
-        const s = new Set();
-        selectedStudentAcademicLevels.forEach(x => s.add(x));
-        // tutorAcademicLevels.forEach(x => s.add(x));
-        return Array.from(s).sort();
-    }, [selectedStudentAcademicLevels]);
+    // const allAcademicLevels = useMemo(() => {
+    //     const s = new Set();
+    //     selectedStudentAcademicLevels.forEach(x => s.add(x));
+    //     // tutorAcademicLevels.forEach(x => s.add(x));
+    //     return Array.from(s).sort();
+    // }, [selectedStudentAcademicLevels]);
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
@@ -372,7 +400,7 @@ const TutorCreateSessionPage = () => {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {allSubjects.map(subject => (
-                                                <SelectItem key={`subject-${subject}`} value={subject}>{subject}</SelectItem>
+                                                <SelectItem key={`subject-${subject}`} value={subject}>{getSubjectById(subject)?.name || subject}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -388,27 +416,49 @@ const TutorCreateSessionPage = () => {
                                         <SelectTrigger>
                                             <SelectValue placeholder={(sessionForm.student_ids || []).length > 0 ? 'Select academic level' : 'Select student(s) first'} />
                                         </SelectTrigger>
-                                        <SelectContent>
                                             <SelectContent>
                                                 {(() => {
-                                                    const allLevels = new Set();
-                                                    const studentLevels = Array.isArray(selectedStudentAcademicLevels) ? selectedStudentAcademicLevels : [];
-                                                    const tutorLevels = Array.isArray(tutorAcademicLevels) ? tutorAcademicLevels : [];
-                                                    [...tutorLevels, ...studentLevels].forEach(lvl => {
-                                                            if (lvl.educationLevel) {
-                                                                allLevels.add(lvl.educationLevel);
-                                                            } else if (lvl._id) {
-                                                                allLevels.add(lvl._id);
-                                                            }
-                                                        });
-                                                    const levels = Array.from(allLevels).map(id => getLevelById(id)).filter(Boolean);
+                                                if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
+                                                    return [];
+                                                }
+                                                
+                                                // Get academic levels for each selected student
+                                                const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
+                                                const studentLevelSets = selectedStudents.map(student => {
+                                                    const studentLevels = Array.isArray(student.academic_level) ? student.academic_level : [student.academic_level];
+                                                    return new Set(studentLevels.filter(Boolean));
+                                                });
+                                                
+                                                // Get tutor academic levels
+                                                const tutorLevelIds = new Set(
+                                                    tutorAcademicLevels.map(lvl => lvl.educationLevel || lvl._id?.toString()).filter(Boolean)
+                                                );
+                                                
+                                                // Find levels that exist in ALL students AND tutor
+                                                const commonLevelIds = [];
+                                                tutorLevelIds.forEach(levelId => {
+                                                    // Check if this level exists in ALL selected students
+                                                    const existsInAllStudents = studentLevelSets.every(studentSet => 
+                                                        studentSet.has(levelId)
+                                                    );
+                                                    
+                                                    if (existsInAllStudents) {
+                                                        commonLevelIds.push(levelId);
+                                                    }
+                                                });
+                                                
+                                                // Map back to full level objects and sort
+                                                const levels = commonLevelIds
+                                                    .map(id => getLevelById(id))
+                                                    .filter(Boolean)
+                                                    .sort((a, b) => a.level.localeCompare(b.level));
+                                                
                                                     return levels.map((levelObj) => (
                                                         <SelectItem key={`level-${levelObj._id}`} value={levelObj._id}>
                                                             {levelObj.level}
                                                         </SelectItem>
                                                     ));
                                                 })()}
-                                            </SelectContent>
                                         </SelectContent>
                                     </Select>
                                 </div>

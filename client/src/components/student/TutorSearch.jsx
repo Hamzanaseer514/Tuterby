@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
@@ -80,6 +80,12 @@ const TutorSearch = () => {
       searchTutors();
     }
   }, [currentPage, filters, searchQuery, preferredSubjectsOnly]);
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    console.log("s", s);
+    return s;
+  }, [subjects]);
 
   // Helper functions
   const parseField = (field) => {
@@ -585,7 +591,7 @@ const TutorSearch = () => {
                           <div className="flex flex-wrap gap-1 mb-2">
                             {tutor.subjects?.map((subject, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
-                                {subject}
+                                {getSubjectById(subject)?.name || subject}
                               </Badge>
                             ))}
                             {/* {tutor.subjects?.length > 3 && (
@@ -724,13 +730,13 @@ const TutorSearch = () => {
                   const studentSubjects = Array.isArray(studentProfile?.preferred_subjects) ? studentProfile.preferred_subjects : [];
                   const subjectOptions = Array.from(new Set([...(tutorSubjects || []), ...(studentSubjects || [])].filter(Boolean)));
                   return (
-                    <Select value={bookingData.subject} onValueChange={(value) => setBookingData(prev => ({ ...prev, subject: value }))}>
+                    <Select value={bookingData.subject} onValueChange={(value) => setBookingData(prev => ({ ...prev, subject: getSubjectById(value)?._id || value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
                       <SelectContent>
                         {subjectOptions.map((subject, index) => (
-                          <SelectItem key={index} value={subject}>{subject}</SelectItem>
+                          <SelectItem key={index} value={getSubjectById(subject)?._id || subject}>{getSubjectById(subject)?.name ||  subject}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

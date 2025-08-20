@@ -272,7 +272,7 @@ const StudentDashboardPage = () => {
         </div>
         <div>
           <p className="text-xs text-gray-500">Welcome back,</p>
-          {/* <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p> */}
+          <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
         </div>
       </div>
 

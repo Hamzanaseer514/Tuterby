@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useCallback} from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BASE_URL } from '@/config';
 
@@ -48,7 +48,7 @@ const TutorProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [studentProfile, setStudentProfile] = useState(null);
-  const { academicLevels } = useSubject();
+  const { academicLevels, subjects } = useSubject();
 
   useEffect(() => {
     if (!tutorId) {
@@ -59,6 +59,12 @@ const TutorProfilePage = () => {
 
     fetchTutorDetails();
   }, [tutorId]);
+
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+  }, [subjects]);
 
   const fetchTutorDetails = async () => {
     try {
@@ -510,7 +516,7 @@ const TutorProfilePage = () => {
                       <div className="flex flex-wrap gap-2">
                         {tutor.subjects?.map((subject, index) => (
                           <Badge key={index} variant="outline">
-                            {subject}
+                            {getSubjectById(subject)?.name || subject}
                           </Badge>
                         ))}
                       </div>
@@ -713,53 +719,7 @@ const TutorProfilePage = () => {
                 </Card>
               )}
 
-              {/* Recent Inquiries */}
-              {tutor.recent_inquiries && tutor.recent_inquiries.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="w-5 h-5" />
-                      Recent Inquiries
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {tutor.recent_inquiries.slice(0, 3).map((inquiry, index) => (
-                        <div key={index} className="border-l-4 border-blue-200 pl-3">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium text-sm">{inquiry.subject} - {inquiry.academic_level}</p>
-                              <p className="text-xs text-gray-500">{inquiry.student_name}</p>
-                            </div>
-                            <Badge variant={inquiry.status === 'replied' ? 'default' : 'secondary'} className="text-xs">
-                              {inquiry.status}
-                            </Badge>
-                          </div>
-                          {inquiry.response_time_minutes && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Responded in: {formatResponseTime(inquiry.response_time_minutes)}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
-              {/* Teaching Approach */}
-              {tutor.teaching_approach && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Teaching Approach</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 leading-relaxed">
-                      {tutor.teaching_approach}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Sidebar */}
