@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { BASE_URL } from '@/config';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { BASE_URL } from "@/config";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
-import { Badge } from '../ui/badge';
-import { useToast } from '../ui/use-toast';
-import { useSubject } from '../../hooks/useSubject';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Checkbox } from "../ui/checkbox";
+import { Badge } from "../ui/badge";
+import { useToast } from "../ui/use-toast";
+import { useSubject } from "../../hooks/useSubject";
 import {
   Save,
   ArrowLeft,
@@ -28,8 +29,8 @@ import {
   Plus,
   User,
   Phone,
-  Calendar
-} from 'lucide-react';
+  Calendar,
+} from "lucide-react";
 
 const StudentPreferences = () => {
   const { toast } = useToast();
@@ -38,7 +39,13 @@ const StudentPreferences = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
-  const { academicLevels, subjects, loading: subjectsLoading } = useSubject();
+  const {
+    academicLevels,
+    subjects,
+    loading: subjectsLoading,
+    subjectRelatedToAcademicLevels,
+    fetchSubjectRelatedToAcademicLevels,
+  } = useSubject();
 
   // Debug logging to see actual data structure
   useEffect(() => {
@@ -50,28 +57,65 @@ const StudentPreferences = () => {
 
   // Form states
   const [formData, setFormData] = useState({
-    full_name: '',
-    phone_number: '',
-    photo_url: '',
-    age: '',
-    academic_level: '',
-    learning_goals: '',
+    full_name: "",
+    phone_number: "",
+    photo_url: "",
+    age: "",
+    academic_level: "",
+    learning_goals: "",
     preferred_subjects: [],
-    availability: []
+    availability: [],
   });
 
-  const [newSubject, setNewSubject] = useState('');
+  const [newSubject, setNewSubject] = useState("");
 
   // Common subjects for suggestions
   const commonSubjects = [
-    'Mathematics', 'English', 'Science', 'Physics', 'Chemistry', 'Biology',
-    'History', 'Geography', 'Economics', 'Business Studies', 'Computer Science',
-    'Art', 'Music', 'Physical Education', 'Religious Studies', 'Modern Languages',
-    'French', 'German', 'Spanish', 'Latin', 'Greek', 'Psychology', 'Sociology',
-    'Philosophy', 'Literature', 'Creative Writing', 'Statistics', 'Accounting',
-    'Law', 'Medicine', 'Engineering', 'Architecture', 'Design', 'Drama',
-    'Media Studies', 'Politics', 'International Relations', 'Environmental Science'
+    "Mathematics",
+    "English",
+    "Science",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "History",
+    "Geography",
+    "Economics",
+    "Business Studies",
+    "Computer Science",
+    "Art",
+    "Music",
+    "Physical Education",
+    "Religious Studies",
+    "Modern Languages",
+    "French",
+    "German",
+    "Spanish",
+    "Latin",
+    "Greek",
+    "Psychology",
+    "Sociology",
+    "Philosophy",
+    "Literature",
+    "Creative Writing",
+    "Statistics",
+    "Accounting",
+    "Law",
+    "Medicine",
+    "Engineering",
+    "Architecture",
+    "Design",
+    "Drama",
+    "Media Studies",
+    "Politics",
+    "International Relations",
+    "Environmental Science",
   ];
+
+  useEffect(() => {
+    if (formData.academic_level) {
+      fetchSubjectRelatedToAcademicLevels(formData.academic_level);
+    }
+  }, [formData.academic_level, fetchSubjectRelatedToAcademicLevels]);
 
   useEffect(() => {
     if (user) {
@@ -79,45 +123,46 @@ const StudentPreferences = () => {
     }
   }, [user]);
 
-
   const fetchProfile = async () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/student/dashboard/${user?._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `${BASE_URL}/api/auth/student/dashboard/${user?._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch profile');
+        throw new Error("Failed to fetch profile");
       }
       const data = await response.json();
       setProfile(data.profile);
       // Set form values
       const availabilityMap = {};
-      (data.profile?.availability || []).forEach(slot => {
+      (data.profile?.availability || []).forEach((slot) => {
         availabilityMap[slot.day.toLowerCase()] = slot.duration;
       });
 
       setFormData({
-        full_name: data.student?.full_name || '',
-        phone_number: data.student?.phone_number || '',
-        photo_url: data.student?.photo_url || '',
-        age: data.student?.age || '',
-        academic_level: data.profile?.academic_level || '',
-        learning_goals: data.profile?.learning_goals || '',
+        full_name: data.student?.full_name || "",
+        phone_number: data.student?.phone_number || "",
+        photo_url: data.student?.photo_url || "",
+        age: data.student?.age || "",
+        academic_level: data.profile?.academic_level || "",
+        learning_goals: data.profile?.learning_goals || "",
         preferred_subjects: data.profile?.preferred_subjects || [],
         availability: availabilityMap, // ✅ fixed
       });
-
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to load profile data",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -125,34 +170,37 @@ const StudentPreferences = () => {
   };
 
   const matchAcademicLevel = (level) => {
-    const matchedLevel = academicLevels.find(l => l.level === level);
-    if(matchedLevel){
+    const matchedLevel = academicLevels.find((l) => l.level === level);
+    if (matchedLevel) {
       return matchedLevel._id;
     }
     return null;
-  }
+  };
 
   const handleSave = async () => {
     try {
       setSaving(true);
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/updatestudent/${user?._id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          full_name: formData.full_name,
-          phone_number: formData.phone_number,
-          // photo_url: formData.photo_url,
-          age: formData.age,
-          academic_level: formData.academic_level,
-          learning_goals: formData.learning_goals,
-          preferred_subjects: formData.preferred_subjects,
-          availability: formData.availability
-        })
-      });
+      const response = await fetch(
+        `${BASE_URL}/api/auth/updatestudent/${user?._id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            full_name: formData.full_name,
+            phone_number: formData.phone_number,
+            // photo_url: formData.photo_url,
+            age: formData.age,
+            academic_level: formData.academic_level,
+            learning_goals: formData.learning_goals,
+            preferred_subjects: formData.preferred_subjects,
+            availability: formData.availability,
+          }),
+        }
+      );
       const result = await response.json();
       if (result.success) {
         toast({
@@ -160,29 +208,27 @@ const StudentPreferences = () => {
           description: "Profile updated successfully",
         });
         fetchProfile();
-      }
-      else{
+      } else {
         toast({
           title: "Error",
           description: result.message || "Failed to update profile",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
 
       // Update local state with the returned data
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         full_name: result.user?.full_name || prev.full_name,
         phone_number: result.user?.phone_number || prev.phone_number,
         photo_url: result.user?.photo_url || prev.photo_url,
-        age: result.user?.age || prev.age
+        age: result.user?.age || prev.age,
       }));
-
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -190,30 +236,34 @@ const StudentPreferences = () => {
   };
 
   const addSubject = () => {
-    if (newSubject.trim() && !formData.preferred_subjects.includes(newSubject.trim())) {
-      setFormData(prev => ({
+    if (
+      newSubject.trim() &&
+      !formData.preferred_subjects.includes(newSubject.trim())
+    ) {
+      setFormData((prev) => ({
         ...prev,
-        preferred_subjects: [...prev.preferred_subjects, newSubject.trim()]
+        preferred_subjects: [...prev.preferred_subjects, newSubject.trim()],
       }));
-      setNewSubject('');
+      setNewSubject("");
     }
   };
 
   const removeSubject = (subjectToRemove) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      preferred_subjects: prev.preferred_subjects.filter(subject => subject !== subjectToRemove)
+      preferred_subjects: prev.preferred_subjects.filter(
+        (subject) => subject !== subjectToRemove
+      ),
     }));
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
-
 
   if (loading) {
     return (
@@ -229,13 +279,21 @@ const StudentPreferences = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Student Profile</h1>
-            <p className="text-gray-600 mt-1">Manage your profile and preferences<span className="text-base text-red-600"> You can update your profile Here</span></p> 
+            <h1 className="text-3xl font-bold text-gray-900">
+              Student Profile
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Manage your profile and preferences
+              <span className="text-base text-red-600">
+                {" "}
+                You can update your profile Here
+              </span>
+            </p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
           <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
@@ -270,7 +328,7 @@ const StudentPreferences = () => {
                 placeholder="Enter your phone number"
               />
             </div>
-{/* 
+            {/* 
             <div>
               <Label htmlFor="photo_url">Profile Photo URL</Label>
               <div className="flex items-center gap-3">
@@ -313,20 +371,33 @@ const StudentPreferences = () => {
               {subjectsLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm text-gray-500">Loading academic levels...</span>
+                  <span className="text-sm text-gray-500">
+                    Loading academic levels...
+                  </span>
                 </div>
               ) : (
                 <>
                   <Select
                     value={formData.academic_level}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, academic_level: value }))}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        academic_level: value, // ✅ save selected academic level _id
+                      }));
+
+                      // ✅ call subject fetch whenever academic level changes
+                      fetchSubjectRelatedToAcademicLevels([value]);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select your academic level" />
                     </SelectTrigger>
                     <SelectContent>
                       {academicLevels.map((level) => (
-                        <SelectItem key={level._id} value={matchAcademicLevel(level.level)}>
+                        <SelectItem
+                          key={level._id}
+                          value={level._id} // ✅ send _id not name
+                        >
                           {level.level}
                         </SelectItem>
                       ))}
@@ -369,55 +440,65 @@ const StudentPreferences = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-           
-
             <div>
               <Label>Quick Add from Available Subjects</Label>
               {subjectsLoading ? (
                 <div className="flex items-center justify-center p-4 mt-3">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-sm text-gray-500">Loading subjects...</span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    Loading subjects...
+                  </span>
                 </div>
               ) : (
                 <>
                   <div className="flex items-center gap-2 mb-2 mt-3">
                     <span className="text-sm text-gray-600">
-                      {subjects.length} subjects available
+                      {subjectRelatedToAcademicLevels.length} subjects available
                     </span>
-                    {subjects.length > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        Showing first 20
-                      </Badge>
-                    )}
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {subjects.slice(0, 20).map((subject) => (
+                    {subjectRelatedToAcademicLevels
+                      .slice(0, 20)
+                      .map((subject) => (
+                        <Button
+                          key={subject._id}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (
+                              !formData.preferred_subjects.includes(subject._id)
+                            ) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                preferred_subjects: [
+                                  ...prev.preferred_subjects,
+                                  subject._id,
+                                ], // ✅ store ID
+                              }));
+                            }
+                          }}
+                          disabled={formData.preferred_subjects.includes(
+                            subject._id
+                          )}
+                        >
+                          {subject.name} ({subject.levelData?.level} -{" "}
+                          {subject.subjectTypeData?.name}){" "}
+                        </Button>
+                      ))}
+                    {subjects.length > 20 && (
                       <Button
-                        key={subject._id}
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const subjectName = subject.name || subject.subject || subject;
-                          if (!formData.preferred_subjects.includes(subjectName)) {
-                            setFormData(prev => ({
-                              ...prev,
-                              preferred_subjects: [...prev.preferred_subjects, subjectName]
-                            }));
-                          }
-                        }}
-                        disabled={formData.preferred_subjects.includes(subject.name || subject.subject || subject)}
+                        className="text-blue-600"
                       >
-                        {subject.name || subject.subject || subject}
-                      </Button>
-                    ))}
-                    {subjects.length > 20 && (
-                      <Button variant="outline" size="sm" className="text-blue-600">
                         +{subjects.length - 20} more
                       </Button>
                     )}
                   </div>
                   {subjects.length === 0 && (
-                    <p className="text-sm text-gray-500 mt-2">No subjects available from server</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      No subjects available from server
+                    </p>
                   )}
                 </>
               )}
@@ -448,22 +529,42 @@ const StudentPreferences = () => {
             </div> */}
 
             <div>
-              <Label>Your Subjects ({formData.preferred_subjects.length})</Label>
+              <Label>
+                Your Subjects ({formData.preferred_subjects.length})
+              </Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {formData.preferred_subjects.map((subject) => (
-                  <Badge key={subject} variant="secondary" className="flex items-center gap-1">
-                    {subject}
-                    <button
-                      onClick={() => removeSubject(subject)}
-                      className="ml-1 hover:text-red-500"
+                {formData.preferred_subjects.map((subjectId) => {
+                  const subjectObj =
+                     subjects.find((s) => s._id === subjectId);
+
+                  const displayName = subjectObj
+                    ? `${subjectObj.name || "No Name"} (${
+                        subjectObj.level_id?.level || "-"
+                      } - ${subjectObj.subject_type?.name || "-"})`
+                    : subjectId;
+
+                  return (
+                    <Badge
+                      key={subjectId}
+                      variant="secondary"
+                      className="flex items-center gap-1"
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
+                      {displayName}
+                      <button
+                        onClick={() => removeSubject(subjectId)}
+                        className="ml-1 hover:text-red-500"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
               </div>
+
               {formData.preferred_subjects.length === 0 && (
-                <p className="text-sm text-gray-500 mt-2">No subjects added yet</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  No subjects added yet
+                </p>
               )}
             </div>
           </CardContent>
@@ -485,16 +586,29 @@ const StudentPreferences = () => {
 
               {/* Weekly availability simple example */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day) => (
+                {[
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday",
+                  "sunday",
+                ].map((day) => (
                   <div key={day}>
                     <Label className="capitalize">{day}</Label>
                     <Input
                       type="time"
-                      value={formData.availability?.[day] || ''}
-                      onChange={(e) => setFormData((prev) => ({
-                        ...prev,
-                        availability: { ...prev.availability, [day]: e.target.value },
-                      }))}
+                      value={formData.availability?.[day] || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          availability: {
+                            ...prev.availability,
+                            [day]: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                 ))}
@@ -502,8 +616,6 @@ const StudentPreferences = () => {
             </div>
           </CardContent>
         </Card>
-
-
       </div>
     </div>
   );

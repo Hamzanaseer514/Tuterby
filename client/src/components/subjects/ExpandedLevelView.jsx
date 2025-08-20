@@ -108,26 +108,39 @@ const ExpandedLevelView = ({ level, onClose }) => {
           );
         })
       ) : categories && typeof categories === 'object' ? (
-        Object.entries(categories).map(([categoryName, subjectNamesOrObjects]) => {
-            let categorySubjects;
-            if (isPremiumService && Array.isArray(subjectNamesOrObjects)) {
-                categorySubjects = allSubjectsWithIcons.filter(s => subjectNamesOrObjects.includes(s.name));
-            } else if (Array.isArray(subjectNamesOrObjects)) {
-                categorySubjects = allSubjectsWithIcons.filter(s => subjectNamesOrObjects.includes(s.name));
-            } else {
-                categorySubjects = [];
+        Object.entries(categories).map(([categoryName, subjectList]) => {
+            let categorySubjects = [];
+            if (Array.isArray(subjectList)) {
+              // Support either array of names or array of objects with ids
+              const isObjectArray = subjectList.length > 0 && typeof subjectList[0] === 'object';
+              if (isObjectArray) {
+                const allowedIds = new Set(subjectList.map(x => x.id || x._id || x.subject_id || x.name));
+                categorySubjects = allSubjectsWithIcons.filter(s => allowedIds.has(s.id || s._id || s.subject_id || s.name));
+              } else {
+                const allowedNames = new Set(subjectList);
+                categorySubjects = allSubjectsWithIcons.filter(s => allowedNames.has(s.name));
+              }
             }
 
-           if (categorySubjects.length === 0) return null;
-          return (
-            <CategorySection 
-                key={categoryName} 
-                categoryName={categoryName} 
-                subjects={categorySubjects}
-                categoryIcon={ListChecks} 
-                isPremiumService={isPremiumService}
-            />
-          );
+            if (categorySubjects.length === 0) return null;
+            // De-duplicate subjects within category by stable id or name
+            const seen = new Set();
+            categorySubjects = categorySubjects.filter(s => {
+              const key = s.id || s._id || s.subject_id || s.name;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+
+            return (
+              <CategorySection 
+                  key={categoryName} 
+                  categoryName={categoryName} 
+                  subjects={categorySubjects}
+                  categoryIcon={ListChecks} 
+                  isPremiumService={isPremiumService}
+              />
+            );
         })
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

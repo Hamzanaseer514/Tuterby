@@ -5,6 +5,7 @@ const SubjectContext = createContext();
 
 export const SubjectProvider = ({ children }) => {
   const [subjects, setSubjects] = useState([]);
+  const [subjectRelatedToAcademicLevels, setSubjectRelatedToAcademicLevels] = useState([]);
   const [academicLevels, setAcademicLevels] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,6 +16,7 @@ export const SubjectProvider = ({ children }) => {
         const res = await fetch(`${BASE_URL}/api/admin/subjects`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        console.log("Subjects fetched:", data.data);
         setSubjects(data.data);
       } catch (err) {
         console.error("Error fetching subjects:", err);
@@ -41,12 +43,31 @@ export const SubjectProvider = ({ children }) => {
     fetchAll();
   }, []);
 
+ const fetchSubjectRelatedToAcademicLevels = async (levelIds) => {
+  try {
+    // join all selected IDs with comma
+    const query = levelIds.join(",");
+    const res = await fetch(`${BASE_URL}/api/admin/levelsubjects?levels=${query}`);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+    const data = await res.json();
+    console.log("Subjects fetched of level:", data.data);
+    setSubjectRelatedToAcademicLevels(data.data);
+  } catch (err) {
+    console.error("Error fetching subjects:", err);
+  }
+};
+
+
   return (
     <SubjectContext.Provider
       value={{
         subjects,
         academicLevels,
-        loading
+        loading,
+        subjectRelatedToAcademicLevels,
+        fetchSubjectRelatedToAcademicLevels,
+        setSubjectRelatedToAcademicLevels
       }}
     >
       {children}

@@ -29,7 +29,12 @@ const {
   updateSubject,
   deleteSubject,
   getAllChatsOfUsers,
-  manageEducationLevel
+  manageEducationLevel,
+  addSubjectType,
+  getSubjectTypes,
+  updateSubjectType,
+  deleteSubjectType,
+  fetchSubjectRelatedToAcademicLevels
 } = require("../Controllers/adminController");
 
 
@@ -48,6 +53,13 @@ router.post("/subjects", addSubject);
 router.get("/subjects", getSubjects);
 router.put("/subjects/:id", updateSubject);
 router.delete("/subjects/:id", deleteSubject);
+router.get("/levelsubjects", fetchSubjectRelatedToAcademicLevels);
+
+// Subjects Type
+router.post("/subject-types", addSubjectType);
+router.get("/subject-types", getSubjectTypes);
+router.put("/subject-types/:id", updateSubjectType);
+router.delete("/subject-types/:id", deleteSubjectType);
 
 // users chat
 router.get("/chats", getAllChatsOfUsers);

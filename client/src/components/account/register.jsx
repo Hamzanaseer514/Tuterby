@@ -39,7 +39,7 @@ import { CheckCircle, AlertCircle, FileUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
-import { useSubject} from "../../hooks/useSubject";
+import { useSubject } from "../../hooks/useSubject";
 
 const Register = () => {
   const [activeTab, setActiveTab] = useState("student");
@@ -61,7 +61,7 @@ const Register = () => {
     subjects_taught: [], // New field for subjects they will teach
     academic_levels_taught: [], // New field for academic levels they will teach
     location: "", // New field for tutor's location
-    // hourly_rate: "", 
+    // hourly_rate: "",
     code_of_conduct_agreed: false,
     academic_level: "",
     learning_goals: "",
@@ -69,7 +69,13 @@ const Register = () => {
     availability: [],
   });
 
-  const { academicLevels, subjects } = useSubject();
+  const {
+    academicLevels,
+    subjects,
+    subjectRelatedToAcademicLevels,
+    fetchSubjectRelatedToAcademicLevels,
+    setSubjectRelatedToAcademicLevels
+  } = useSubject();
 
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -196,32 +202,26 @@ const Register = () => {
       "qualifications",
       "experience_years",
       "location",
-      // "hourly_rate",
     ];
     const missingFields = requiredFields.filter((field) => !formData[field]);
-
     if (missingFields.length > 0) {
       setError(
         `Please fill in all required fields: ${missingFields.join(", ")}`
       );
       return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return false;
     }
-
     if (formData.subjects_taught.length === 0) {
       setError("Please select at least one subject you will teach");
       return false;
     }
-
     if (formData.academic_levels_taught.length === 0) {
       setError("Please select at least one academic level you will teach");
       return false;
     }
-
     if (!formData.code_of_conduct_agreed) {
       setError("You must agree to the code of conduct");
       return false;
@@ -259,13 +259,31 @@ const Register = () => {
     });
   };
 
-  const handleSubjectChange = (subject, isChecked, field) => {
+  const handleSubjectChange = (id, checked, field) => {
+    let updatedValues = [...formData[field]];
+
+    if (checked) {
+      updatedValues.push(id);
+    } else {
+      updatedValues = updatedValues.filter((item) => item !== id);
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [field]: isChecked
-        ? [...prev[field], subject]
-        : prev[field].filter((s) => s !== subject),
+      [field]: updatedValues,
     }));
+
+    if (field === "academic_levels_taught") {
+      if (updatedValues.length === 0) {
+        setSubjectRelatedToAcademicLevels([]);
+        setFormData((prev) => ({
+          ...prev,
+          subjects_taught: [],
+        }));
+      } else {
+        fetchSubjectRelatedToAcademicLevels(updatedValues);
+      }
+    }
   };
 
   const handleAvailabilityChange = (day, isChecked) => {
@@ -1146,44 +1164,6 @@ const Register = () => {
                       </div>
                       <div className="space-y-2 mt-6">
                         <Label className="text-gray-700">
-                          Subjects You Teach
-                        </Label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                          {subjects.length > 0 ? (
-                            subjects.map((subject) => (
-                              <div
-                                key={subject._id}
-                                className="flex items-center space-x-2"
-                              >
-                                <Checkbox
-                                  id={`tutor-${subject._id}`}
-                                  checked={formData.subjects_taught.includes(
-                                    subject.name
-                                  )}
-                                  onCheckedChange={(checked) =>
-                                    handleSubjectChange(
-                                      subject.name,
-                                      checked,
-                                      "subjects_taught"
-                                    )
-                                  }
-                                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <Label
-                                  htmlFor={`tutor-${subject._id}`}
-                                  className="text-gray-700 font-normal"
-                                >
-                                  {subject.name}
-                                </Label>
-                              </div>
-                            ))
-                          ) : (
-                            <p>No subjects available ......</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-2 mt-6">
-                        <Label className="text-gray-700">
                           Academic Levels You Teach
                         </Label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
@@ -1207,6 +1187,7 @@ const Register = () => {
                                   }
                                   className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                 />
+
                                 <Label
                                   htmlFor={`level-${level._id}`}
                                   className="text-gray-700 font-normal"
@@ -1220,6 +1201,46 @@ const Register = () => {
                           )}
                         </div>
                       </div>
+                      <div className="space-y-2 mt-6">
+                        <Label className="text-gray-700">
+                          Subjects You Teach
+                        </Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                          {subjectRelatedToAcademicLevels.length > 0 ? (
+                            subjectRelatedToAcademicLevels.map((subject) => (
+                              <div
+                                key={subject._id}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  id={`tutor-${subject._id}`}
+                                  checked={formData.subjects_taught.includes(
+                                    subject._id
+                                  )}
+                                  onCheckedChange={(checked) =>
+                                    handleSubjectChange(
+                                      subject._id,
+                                      checked,
+                                      "subjects_taught"
+                                    )
+                                  }
+                                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label
+                                  htmlFor={`tutor-${subject._id}`}
+                                  className="text-gray-700 font-normal"
+                                >
+                                  {subject.name}
+                                  <span>({subject.levelData.level}{subject.subjectTypeData.name})</span>
+                                </Label>
+                              </div>
+                            ))
+                          ) : (
+                            <p>No subjects available ......</p>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                         <div className="space-y-2">
                           <Label htmlFor="location" className="text-gray-700">

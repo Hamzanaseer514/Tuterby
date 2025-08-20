@@ -19,7 +19,8 @@ const tutorProfileSchema = new mongoose.Schema({
     default: 0
   },
   subjects: {
-    type: [String],
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Subject",
     default: []
   },
   academic_levels_taught: [

@@ -8,7 +8,7 @@ const ParentProfile = require("../Models/ParentProfileSchema");
 const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
-const { EducationLevel } = require("../Models/LookupSchema");
+const { EducationLevel, Subject } = require("../Models/LookupSchema");
 
 const Rules = require("../Models/Rules");
 const {
@@ -214,7 +214,15 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     );
 
     // Step 2: Parse Subjects
-    const parsedSubjects = parseStringArray(subjects);
+    const parsedSubjects = parseObjectIdArray(subjects);
+    const subjectDetails = await Subject.find({
+      _id: { $in: parsedSubjects }
+    }).lean();
+
+    // Step 2.1: Validate Subject Details
+    if (subjectDetails.length !== parsedSubjects.length) {
+      throw new Error("One or more subjects not found");
+    }
 
     // Step 3: Fetch Education Level Details
     const parsedAcademicLevelIds = parseObjectIdArray(academic_levels_taught);
