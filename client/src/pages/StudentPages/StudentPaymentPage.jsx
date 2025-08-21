@@ -1,155 +1,149 @@
+import { loadStripe } from "@stripe/stripe-js";
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useSubject } from '../../hooks/useSubject';
 import { BASE_URL } from '@/config';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Input } from '../../components/ui/input';
+import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/use-toast';
-import { ArrowLeft, Calendar, Clock, CreditCard, CheckCircle } from 'lucide-react';
+import {
+    ArrowLeft,
+    CreditCard,
+    Clock,
+    CheckCircle,
+    XCircle,
+    DollarSign,
+    Calendar,
+    User,
+    BookOpen,
+    Filter,
+    Search,
+    ChevronDown,
+    ChevronUp,
+    Download,
+    Eye,
+    RefreshCw
+} from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
 const StudentPaymentPage = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const { toast } = useToast();
     const { getAuthToken, user } = useAuth();
-    const { subjects, academicLevels, fetchSubjectRelatedToAcademicLevels} = useSubject();
 
-    const [loading, setLoading] = useState(false);
-    const [tutor, setTutor] = useState(null);
-    const [studentProfile, setStudentProfile] = useState(null);
-    const [selectedAcademicLevelData, setSelectedAcademicLevelData] = useState(null);
-    const [paymentData, setPaymentData] = useState({
-        subject: '',
-        academic_level: '',
-        payment_type: 'hourly', // 'hourly' or 'monthly'
-        hours_per_month: 8, // for monthly payment
-        notes: ''
-    });
+    const [loading, setLoading] = useState(true);
+    const [payments, setPayments] = useState([]);
+    const [filteredPayments, setFilteredPayments] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('date');
+    const [expandedPayment, setExpandedPayment] = useState(null);
 
     useEffect(() => {
-        if (location.state?.tutor) {
-            setTutor(location.state.tutor);
-        } else {
-            // If no tutor data, redirect back
-            navigate('/student/tutor-search');
-        }
-
         if (user?._id) {
-            getStudentProfile();
-            fetchSubjectRelatedToAcademicLevels(academicLevels.map(level => level._id));
+            fetchPayments();
         }
-    }, [location.state, user, academicLevels]);
+    }, [user]);
 
-    // Auto-select first academic level when tutor data loads
     useEffect(() => {
-        if (tutor?.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
-            const firstLevel = tutor.academic_levels_taught[0];
-            setPaymentData(prev => ({ ...prev, academic_level: firstLevel.educationLevel }));
-            setSelectedAcademicLevelData(firstLevel);
-        }
-    }, [tutor]);
+        filterAndSortPayments();
+    }, [payments, searchQuery, statusFilter, sortBy]);
 
-    const getStudentProfile = async () => {
+    const fetchPayments = async () => {
         try {
-            if (!user?._id) return;
+            setLoading(true);
+            const token = getAuthToken();
 
-            const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+            const response = await fetch(`${BASE_URL}/api/auth/student/payments/${user._id}`, {
                 headers: {
-                    'Authorization': `Bearer ${getAuthToken()}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch student profile: ${response.status}`);
+                throw new Error('Failed to fetch payments');
             }
 
             const data = await response.json();
-            setStudentProfile(data.student);
+            setPayments(data.payments || []);
         } catch (error) {
-            console.error('Error fetching student profile:', error);
-        }
-    };
-
-    const handleInputChange = (field, value) => {
-        setPaymentData(prev => ({ ...prev, [field]: value }));
-        
-        // If academic level is selected, find the corresponding tutor data
-        if (field === 'academic_level') {
-            const tutorLevel = tutor?.academic_levels_taught?.find(level => level.educationLevel === value);
-            setSelectedAcademicLevelData(tutorLevel);
-        }
-    };
-
-    const calculateTotalPrice = () => {
-        if (!selectedAcademicLevelData?.hourlyRate) return 0;
-
-        if (paymentData.payment_type === 'hourly') {
-            return selectedAcademicLevelData.hourlyRate;
-        } else {
-            return selectedAcademicLevelData.hourlyRate * paymentData.hours_per_month;
-        }
-    };
-
-    const handlePaymentSubmit = async () => {
-        if (!paymentData.subject || !paymentData.academic_level) {
+            console.error('Error fetching payments:', error);
             toast({
                 title: "Error",
-                description: "Please select subject and academic level",
+                description: "Failed to load payment data",
                 variant: "destructive"
             });
-            return;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filterAndSortPayments = () => {
+        let filtered = [...payments];
+
+        // Apply status filter
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(payment => payment.status === statusFilter);
         }
 
+        // Apply search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(payment =>
+                payment.tutor_name?.toLowerCase().includes(query) ||
+                payment.subject?.toLowerCase().includes(query) ||
+                payment.academic_level?.toLowerCase().includes(query)
+            );
+        }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case 'date':
+                    return new Date(b.created_at) - new Date(a.created_at);
+                case 'amount':
+                    return b.amount - a.amount;
+                case 'tutor_name':
+                    return (a.tutor_name || '').localeCompare(b.tutor_name || '');
+                case 'status':
+                    return (a.status || '').localeCompare(b.status || '');
+                default:
+                    return 0;
+            }
+        });
+
+        setFilteredPayments(filtered);
+    };
+
+    const handlePayment = async (paymentId, amount) => {
         try {
             setLoading(true);
             const token = getAuthToken();
 
-            // Map academic_level name to ID from global academicLevels
-            let academic_level_id = null;
-            if (paymentData.academic_level) {
-                const match = (academicLevels || []).find(l => l.level === paymentData.academic_level || l._id === paymentData.academic_level);
-                if (match) academic_level_id = match._id;
-            }
-
-            const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
-                method: 'POST',
+            const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
+                method: "POST",
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    tutor_user_id: tutor.user_id._id,
-                    student_user_id: user._id,
-                    subject: paymentData.subject,
-                    academic_level_id,
-                    notes: paymentData.notes,
-                    payment_type: paymentData.payment_type,
-                    hours_per_month: paymentData.payment_type === 'monthly' ? paymentData.hours_per_month : undefined
+                    amount: amount,
+                    paymentId: paymentId
                 })
             });
-
+    
+            if (!response.ok) throw new Error("Failed to create checkout session");
+    
             const data = await response.json();
-            const status = response.status;
-
-            if (status === 400) {
-                toast({
-                    title: "Warning",
-                    description: data.message,
-                });
-            } else if (status === 200) {
-                toast({
-                    title: "Success",
-                    description: "Payment processed and tutor hired successfully!",
-                });
-                // Redirect to student dashboard
-                navigate('/student-dashboard/');
-            }
+            const stripe = await stripePromise;
+            window.location.href = data.url;
 
         } catch (error) {
+            console.error("Error processing payment:", error);
             toast({
                 title: "Error",
                 description: "Failed to process payment",
@@ -160,278 +154,339 @@ const StudentPaymentPage = () => {
         }
     };
 
-    const getSubjectName = (subjectId) => {
-        const subject = subjects.find(subject => subject._id === subjectId);
-        return subject?.name;
+    const getStatusBadge = (status) => {
+        const statusConfig = {
+            'pending': { variant: 'secondary', text: 'Pending Payment', icon: Clock, color: 'text-amber-600 bg-amber-100' },
+            'completed': { variant: 'default', text: 'Academic Level Paid', icon: CheckCircle, color: 'text-green-600 bg-green-100' },
+            'cancelled': { variant: 'outline', text: 'Cancelled', icon: XCircle, color: 'text-gray-600 bg-gray-100' }
+        };
+
+        const config = statusConfig[status] || { variant: 'outline', text: status, icon: Clock, color: 'text-gray-600 bg-gray-100' };
+        const IconComponent = config.icon;
+
+        return (
+            <Badge variant={config.variant} className={`flex items-center gap-1 ${config.color} border-0`}>
+                <IconComponent className="w-3 h-3" />
+                {config.text}
+            </Badge>
+        );
     };
 
-    const getAcademicLevelName = (academicLevelId) => {
-        const academicLevel = academicLevels.find(level => level._id === academicLevelId);
-        return academicLevel;
+    const getStatusCounts = () => {
+        const counts = {
+            all: payments.length,
+            pending: payments.filter(p => p.status === 'pending').length,
+            completed: payments.filter(p => p.status === 'completed').length,
+            failed: payments.filter(p => p.status === 'failed').length,
+            cancelled: payments.filter(p => p.status === 'cancelled').length
+        };
+        return counts;
     };
 
-    if (!tutor) {
+    const statusCounts = getStatusCounts();
+
+    const toggleExpandPayment = (paymentId) => {
+        if (expandedPayment === paymentId) {
+            setExpandedPayment(null);
+        } else {
+            setExpandedPayment(paymentId);
+        }
+    };
+
+    if (loading && payments.length === 0) {
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="flex items-center justify-center min-h-screen">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Tutor Not Found</h2>
-                        <Button onClick={() => navigate('/student/tutor-search')}>Go Back</Button>
-                    </div>
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
                 </div>
             </div>
         );
     }
 
     return (
-        
-            <div className="container mx-auto px-4 py-8">
-                <div className="max-w-4xl mx-auto">
-                    {/* Header */}
-                    <div className="flex items-center gap-4 mb-8">
-                        <Button
-                            variant="outline"
-                            onClick={() => navigate(-1)}
-                            className="flex items-center gap-2"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Back
-                        </Button>
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Complete Your Payment</h1>
-                            <p className="text-gray-600 mt-1">Hire {tutor.user_id.full_name} for tutoring services</p>
-                        </div>
+        <div className="container mx-auto px-4 py-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Payment Management</h1>
+                        <p className="text-gray-600 mt-1">Manage your tutor payments and requests</p>
                     </div>
+                    <Button onClick={fetchPayments} variant="outline" className="gap-2">
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh
+                    </Button>
+                </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Payment Form */}
-                        <div className="lg:col-span-2">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <CreditCard className="w-5 h-5" />
-                                        Payment Details
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Subject Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                                        {(() => {
-                                            const tutorSubjects = Array.isArray(tutor?.subjects) ? tutor.subjects : [];
-                                            const subjectOptions = Array.from(new Set([...(tutorSubjects || [])].filter(Boolean)));
-                                            return (
-                                                <Select value={paymentData.subject} onValueChange={(value) => handleInputChange('subject', value)}>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select subject" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {subjectOptions.map((subject, index) => (
-                                                            <SelectItem key={index} value={subject}>{getSubjectName(subject)}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            );
-                                        })()}
-                                    </div>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+                        <CardContent className="p-4">
+                            <div className="text-2xl font-bold text-blue-800">{statusCounts.all}</div>
+                            <div className="text-sm text-blue-600">Total Payments</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">
+                        <CardContent className="p-4">
+                            <div className="text-2xl font-bold text-amber-800">{statusCounts.pending}</div>
+                            <div className="text-sm text-amber-600">Pending</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+                        <CardContent className="p-4">
+                            <div className="text-2xl font-bold text-green-800">{statusCounts.completed}</div>
+                            <div className="text-sm text-green-600">Completed</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200">
+                        <CardContent className="p-4">
+                            <div className="text-2xl font-bold text-gray-800">{statusCounts.cancelled}</div>
+                            <div className="text-sm text-gray-600">Cancelled</div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                                    {/* Academic Level Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
-                                        {(() => {
-                                            // Ensure we have array of objects
-                                            const tutorLevels = Array.isArray(tutor?.academic_levels_taught) ? tutor.academic_levels_taught : [];
+                {/* Filters and Search */}
+                <Card className="mb-6 border-0 shadow-md">
+                    <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <Input
+                                        placeholder="Search by tutor name, subject, or academic level..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                            </div>
 
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-full md:w-48">
+                                    <Filter className="w-4 h-4 mr-2" />
+                                    <SelectValue placeholder="Filter by status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status ({statusCounts.all})</SelectItem>
+                                    <SelectItem value="pending">Pending ({statusCounts.pending})</SelectItem>
+                                    <SelectItem value="completed">Completed ({statusCounts.completed})</SelectItem>
+                                    <SelectItem value="failed">Failed ({statusCounts.failed})</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled ({statusCounts.cancelled})</SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                                            return (
-                                                <Select
-                                                    value={paymentData.academic_level}
-                                                    onValueChange={(value) => handleInputChange('academic_level', value)}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select academic level" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {tutorLevels.map((level, index) => (
-                                                            <SelectItem key={index} value={level.educationLevel}>
-                                                                {getAcademicLevelName(level.educationLevel)?.level}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            );
-                                        })()}
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="w-full md:w-48">
+                                    <SelectValue placeholder="Sort by" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="date">Sort by Date</SelectItem>
+                                    <SelectItem value="amount">Sort by Amount</SelectItem>
+                                    <SelectItem value="tutor_name">Sort by Tutor Name</SelectItem>
+                                    <SelectItem value="status">Sort by Status</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                                    </div>
-
-                                    {/* Payment Type Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div
-                                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${paymentData.payment_type === 'hourly'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                                    }`}
-                                                onClick={() => handleInputChange('payment_type', 'hourly')}
-                                            >
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Clock className="w-5 h-5 text-blue-600" />
-                                                    <span className="font-medium">Hourly Payment</span>
-                                                </div>
-                                                <p className="text-sm text-gray-600">Pay per session</p>
-                                            </div>
-
-                                            <div
-                                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${paymentData.payment_type === 'monthly'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                                    }`}
-                                                onClick={() => handleInputChange('payment_type', 'monthly')}
-                                            >
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Calendar className="w-5 h-5 text-blue-600" />
-                                                    <span className="font-medium">Monthly Payment</span>
-                                                </div>
-                                                <p className="text-sm text-gray-600">Pay monthly for multiple sessions</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Hours per month for monthly payment
-                                    {paymentData.payment_type === 'monthly' && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Hours per Month</label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                max="40"
-                                                value={paymentData.hours_per_month}
-                                                onChange={(e) => handleInputChange('hours_per_month', parseInt(e.target.value))}
-                                                className="w-full"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Select the number of hours you want per month</p>
-                                        </div>
-                                    )} */}
-
-                                    {/* Notes */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
-                                        <Input
-                                            type="text"
-                                            placeholder="Any specific topics or requirements..."
-                                            value={paymentData.notes}
-                                            onChange={(e) => handleInputChange('notes', e.target.value)}
-                                            className="w-full"
-                                        />
-                                    </div>
-
-                                    {/* Submit Button */}
-                                    <Button
-                                        onClick={handlePaymentSubmit}
-                                        disabled={!paymentData.subject || !paymentData.academic_level || loading}
-                                        className="w-full py-3"
-                                    >
-                                        {loading ? (
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                        ) : (
-                                            <>
-                                                <CreditCard className="w-5 h-5 mr-2" />
-                                                Complete Payment
-                                            </>
-                                        )}
+                {/* Payments List */}
+                <div className="space-y-4">
+                    {filteredPayments.length === 0 ? (
+                        <Card className="text-center py-12 border-dashed">
+                            <CardContent>
+                                <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
+                                <p className="text-gray-600 mb-4">
+                                    {searchQuery || statusFilter !== 'all'
+                                        ? 'Try adjusting your filters or search criteria'
+                                        : 'You haven\'t made any tutor requests yet'
+                                    }
+                                </p>
+                                {searchQuery || statusFilter !== 'all' ? (
+                                    <Button onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                                        Clear Filters
                                     </Button>
+                                ) : (
+                                    <Button onClick={() => navigate('/student/tutor-search')}>
+                                        Find Tutors
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        filteredPayments.map((payment) => (
+                            <Card key={payment._id} className="overflow-hidden transition-all hover:shadow-lg">
+                                <CardContent className="p-0">
+                                    <div className="p-6 cursor-pointer" onClick={() => toggleExpandPayment(payment._id)}>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-start gap-4 flex-1">
+                                                <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                                                    <User className="w-6 h-6 text-blue-600" />
+                                                </div>
+
+                                                <div className="flex-1">
+                                                    <div className="flex flex-col md:flex-row md:items-start justify-between mb-3 gap-4">
+                                                        <div>
+                                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                                {payment.tutor_name || 'Unknown Tutor'}
+                                                            </h3>
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                                    <BookOpen className="w-3 h-3 mr-1" />
+                                                                    {payment.subject || 'Unknown Subject'}
+                                                                </Badge>
+                                                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                                                    {payment.academic_level || 'Unknown Level'}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-col items-end gap-2">
+                                                            <div className="text-right">
+                                                                {payment.discount_percentage > 0 && (
+                                                                    <div className="text-sm text-gray-500 line-through">
+                                                                        £{(payment.base_amount) * (payment.total_sessions_per_month)}
+                                                                    </div>
+                                                                )}
+                                                                <p className="text-2xl font-bold text-gray-900">
+                                                                    £{payment.monthly_amount || 0}
+                                                                </p>
+                                                                {payment.discount_percentage > 0 && (
+                                                                    <div className="text-xs text-green-600 font-medium">
+                                                                        {payment.discount_percentage}% OFF
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {getStatusBadge(payment.status)}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                                        <div className="flex items-center gap-1">
+                                                            <Calendar className="w-4 h-4" />
+                                                            Requested: {new Date(payment.created_at).toLocaleDateString()}
+                                                        </div>
+                                                        {payment.payment_date && (
+                                                            <div className="flex items-center gap-1">
+                                                                <DollarSign className="w-4 h-4" />
+                                                                Paid: {new Date(payment.payment_date).toLocaleDateString()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Expandable Details */}
+                                    {expandedPayment === payment._id && (
+                                        <div className="px-6 pb-6 border-t pt-4 animate-in fade-in">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>Hourly Rate: £{payment.base_amount || 0}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>Package: {payment.payment_type === 'monthly' ? 'Monthly' : 'Hourly'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <BookOpen className="w-4 h-4" />
+                                                    <span>Sessions: {payment.sessions_remaining || 0}/{payment.total_sessions_per_month || 0}</span>
+                                                </div>
+                                                {payment.days_remaining !== undefined && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="w-4 h-4" />
+                                                        <span>Valid for: {payment.days_remaining} days</span>
+                                                    </div>
+                                                )}
+                                                {payment.monthly_amount && (
+                                                    <div className="flex items-center gap-2">
+                                                        <DollarSign className="w-4 h-4" />
+                                                        <span>Monthly: £{payment.monthly_amount}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {payment.notes && (
+                                                <div className="mb-4">
+                                                    <p className="text-sm font-medium text-gray-700 mb-1">Notes:</p>
+                                                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                                                        {payment.notes}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-2">
+                                                {payment.status === 'pending' && (
+                                                    <Button
+                                                        onClick={() => handlePayment(payment._id, payment.monthly_amount)}
+                                                        disabled={loading}
+                                                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
+                                                    >
+                                                        <CreditCard className="w-4 h-4" />
+                                                        Pay Now
+                                                    </Button>
+                                                )}
+
+                                                {payment.status === 'completed' && payment.academic_level_paid && (
+                                                    <Button variant="outline" disabled className="bg-green-50 text-green-700 border-green-200">
+                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                        Academic Level Access Granted
+                                                    </Button>
+                                                )}
+
+                                                {payment.status === 'failed' && (
+                                                    <Button
+                                                        onClick={() => handlePayment(payment._id)}
+                                                        variant="outline"
+                                                        disabled={loading}
+                                                        className="border-red-200 text-red-700 hover:bg-red-50"
+                                                    >
+                                                        <CreditCard className="w-4 h-4 mr-2" />
+                                                        Retry Payment
+                                                    </Button>
+                                                )}
+
+                                            
+
+                                                {/* <Button variant="outline" size="sm">
+                                                    <Download className="w-4 h-4 mr-2" />
+                                                    Receipt
+                                                </Button> */}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-center border-t bg-gray-50 py-2">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => toggleExpandPayment(payment._id)}
+                                            className="text-xs text-gray-500"
+                                        >
+                                            {expandedPayment === payment._id ? (
+                                                <>
+                                                    <ChevronUp className="w-4 h-4 mr-1" />
+                                                    Show Less
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ChevronDown className="w-4 h-4 mr-1" />
+                                                    Show Details
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
-                        </div>
-
-                        {/* Payment Summary */}
-                        <div className="lg:col-span-1">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Payment Summary</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {/* Tutor Info */}
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span className="text-blue-600 font-semibold text-lg">
-                                                {tutor.user_id.full_name.charAt(0)}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-medium text-gray-900">{tutor.user_id.full_name}</h3>
-                                            <p className="text-sm text-gray-600">Tutor</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Rate Info */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-600">Hourly Rate:</span>
-                                            <span className="font-semibold">
-                                                £{selectedAcademicLevelData?.hourlyRate || 'Select Academic Level'}
-                                            </span>
-                                        </div>
-
-                                        {selectedAcademicLevelData?.totalSessionsPerMonth && (
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-600">Total Sessions per Month:</span>
-                                                <span className="font-semibold">{selectedAcademicLevelData.totalSessionsPerMonth}</span>
-                                            </div>
-                                        )}
-
-                                        {/* {paymentData.payment_type === 'monthly' && (
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-600">Hours per Month:</span>
-                                                <span className="font-semibold">{paymentData.hours_per_month}</span>
-                                            </div>
-                                        )} */}
-
-                                        <div className="border-t pt-3">
-                                            <div className="flex justify-between items-center text-lg font-bold">
-                                                <span>Total:</span>
-                                                <span className="text-blue-600">
-                                                    £{selectedAcademicLevelData?.hourlyRate ? calculateTotalPrice() : 'Select Academic Level'}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                {paymentData.payment_type === 'hourly' ? 'Per session' : 'Per month'}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Features */}
-                                    <div className="pt-4 border-t">
-                                        <h4 className="font-medium text-gray-900 mb-2">What's Included:</h4>
-                                        <ul className="space-y-2 text-sm text-gray-600">
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                                Personalized tutoring sessions
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                                Expert subject knowledge
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                                Flexible scheduling
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                                Progress tracking
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                   
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
+                        ))
+                    )}
                 </div>
             </div>
-
+        </div>
     );
 };
 

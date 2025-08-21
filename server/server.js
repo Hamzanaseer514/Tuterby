@@ -4,7 +4,12 @@ require("dotenv").config();
 const PORT = process.env.PORT || 5000;
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-
+// ⚠️ Webhook route needs raw body, so put this BEFORE express.json()
+app.post(
+  "/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  require("./Routes/stripeWebhook") // ✅ webhook ka route alag file me rakho
+);
 // Middleware
 app.use(
   cors({
@@ -24,11 +29,14 @@ const { ConnectToDB } = require("./Configuration/db");
 const UserRoute = require("./Routes/UserRoute");
 const tutorRoutes = require("./Routes/tutorRoutes");
 const adminRoutes = require("./Routes/adminRoutes");
+const paymentRoutes = require("./Routes/PaymentRoute");
 
 // Mount Routes
 app.use("/api/auth", UserRoute);
 app.use("/api/tutor", tutorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/payment", paymentRoutes);
+
 
 // Error handler (should be AFTER routes)
 const { errorHandler } = require("./Middleware/errorHandler");

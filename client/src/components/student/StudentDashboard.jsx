@@ -26,7 +26,8 @@ import {
   AlertCircle,
   XCircle,
   Edit,
-  Eye
+  Eye,
+  CreditCard
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
 
@@ -159,6 +160,7 @@ const StudentDashboard = () => {
             <Search className="w-4 h-4 mr-2" />
             Find Tutors
           </Button>
+         
           {/* <Button onClick={() => navigate(`/student/request-help`)}>
             <Plus className="w-4 h-4 mr-2" />
             Request Help
@@ -167,7 +169,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
@@ -199,6 +201,24 @@ const StudentDashboard = () => {
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Completed Sessions</p>
                 <p className="text-2xl font-bold text-gray-900">{dashboardData.pastSessions.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <CreditCard className="w-8 h-8 text-purple-500" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Pending Payments</p>
+                <p className="text-2xl font-bold text-gray-900">{dashboardData.pendingPayments?.length || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {dashboardData.pendingPayments?.length > 0 
+                    ? `£${dashboardData.pendingPayments.reduce((sum, p) => sum + (p.final_amount || 0), 0)} total`
+                    : 'No pending payments'
+                  }
+                </p>
               </div>
             </div>
           </CardContent>

@@ -44,12 +44,37 @@ const StudentSessions = () => {
   const [ratingSession, setRatingSession] = useState(null);
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingFeedback, setRatingFeedback] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [loadingPaymentStatus, setLoadingPaymentStatus] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchSessions();
+      checkPaymentStatus();
     }
   }, [user, currentPage, statusFilter]);
+
+  const checkPaymentStatus = async () => {
+    try {
+      setLoadingPaymentStatus(true);
+      const token = getAuthToken();
+      const response = await fetch(`${BASE_URL}/api/auth/student/payment-status/${user?._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPaymentStatus(data);
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+    } finally {
+      setLoadingPaymentStatus(false);
+    }
+  };
 
   const fetchSessions = async () => {
     try {
@@ -283,6 +308,37 @@ const StudentSessions = () => {
         </div>
        
       </div>
+
+      {/* Payment Status Warning */}
+      {paymentStatus && paymentStatus.has_unpaid_requests && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <span className="text-red-600 text-lg font-bold">!</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-red-600 text-base">Payment Required for Academic Level Access</h3>
+                <div className="mt-2">
+                  {paymentStatus.payment_statuses
+                    .filter(p => !p.is_paid)
+                    .slice(0, 3)
+                    .map((item, index) => (
+                      <div key={index} className="text-xs text-red-600">
+                        • {item.tutor_name} - {getSubjectById(item.subject_id)?.name || item.subject_name} ({matchAcademicLevel(item.academic_level_name)})
+                      </div>
+                    ))}
+                  {paymentStatus.total_unpaid_requests > 3 && (
+                    <div className="text-xs text-red-600">
+                      ... and {paymentStatus.total_unpaid_requests - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>

@@ -32,6 +32,7 @@ import {
   X
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 
 const TutorSearch = () => {
@@ -57,6 +58,15 @@ const TutorSearch = () => {
   const [studentProfile, setStudentProfile] = useState(null);
   // New checkbox state for preferred subjects filter
   const [preferredSubjectsOnly, setPreferredSubjectsOnly] = useState(false);
+
+  // Hiring dialog state
+  const [showHiringDialog, setShowHiringDialog] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [hiringData, setHiringData] = useState({
+    subject: '',
+    academic_level: '',
+    notes: ''
+  });
 
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -338,8 +348,82 @@ const TutorSearch = () => {
 
 
   const handleHireTutor = (tutor) => {
-    // Navigate to payment page with tutor data
-    navigate('/student/payment', { state: { tutor } });
+    setSelectedTutor(tutor);
+    // Auto-select first academic level when tutor data loads
+    if (tutor?.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
+      const firstLevel = tutor.academic_levels_taught[0];
+      setHiringData(prev => ({ 
+        ...prev, 
+        academic_level: firstLevel.educationLevel 
+      }));
+    }
+    setShowHiringDialog(true);
+  };
+
+  const handleHiringSubmit = async () => {
+    if (!hiringData.subject || !hiringData.academic_level) {
+      toast({
+        title: "Error",
+        description: "Please select subject and academic level",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+
+      // Map academic_level name to ID from global academicLevels
+      let academic_level_id = null;
+      if (hiringData.academic_level) {
+        const match = (academicLevels || []).find(l => l.level === hiringData.academic_level || l._id === hiringData.academic_level);
+        if (match) academic_level_id = match._id;
+      }
+
+      const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tutor_user_id: selectedTutor.user_id._id,
+          student_user_id: user._id,
+          subject: hiringData.subject,
+          academic_level_id,
+          notes: hiringData.notes || 'Hiring request from student',
+          payment_type: 'hourly'
+        })
+      });
+
+      const data = await response.json();
+      const status = response.status;
+
+      if (status === 400) {
+        toast({
+          title: "Warning",
+          description: data.message,
+        });
+      } else if (status === 200) {
+        toast({
+          title: "Success",
+          description: "Tutor hired successfully!",
+        });
+        // Close dialog and refresh the tutors list
+        setShowHiringDialog(false);
+        searchTutors();
+      }
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to hire tutor",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
 
@@ -688,9 +772,16 @@ const TutorSearch = () => {
                               onClick={() => handleHireTutor(tutor)}
                               size="sm"
                               className="flex-1"
+                              disabled={loading}
                             >
-                              <Calendar className="w-4 h-4 mr-2" />
-                              Hire Tutor
+                              {loading ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              ) : (
+                                <>
+                                  <Calendar className="w-4 h-4 mr-2" />
+                                  Request Tutor
+                                </>
+                              )}
                             </Button>
                           )}
                           <Button
@@ -747,7 +838,97 @@ const TutorSearch = () => {
         )}
       </div>
 
+      {/* Hiring Dialog */}
+      <Dialog open={showHiringDialog} onOpenChange={setShowHiringDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Request {selectedTutor?.user_id?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedTutor && (
+            <div className="space-y-6">
+              {/* Subject Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                {(() => {
+                  const tutorSubjects = Array.isArray(selectedTutor?.subjects) ? selectedTutor.subjects : [];
+                  const subjectOptions = Array.from(new Set([...(tutorSubjects || [])].filter(Boolean)));
+                  return (
+                    <Select value={hiringData.subject} onValueChange={(value) => setHiringData(prev => ({ ...prev, subject: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjectOptions.map((subject, index) => (
+                          <SelectItem key={index} value={subject}>
+                            {getSubjectById(subject)?.name || subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
+              </div>
 
+              {/* Academic Level Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
+                {(() => {
+                  const tutorLevels = Array.isArray(selectedTutor?.academic_levels_taught) ? selectedTutor.academic_levels_taught : [];
+                  return (
+                    <Select
+                      value={hiringData.academic_level}
+                      onValueChange={(value) => setHiringData(prev => ({ ...prev, academic_level: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select academic level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tutorLevels.map((level, index) => (
+                          <SelectItem key={index} value={level.educationLevel}>
+                            {getAcademicLevelById(level.educationLevel)?.level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+                <Input
+                  type="text"
+                  placeholder="Any specific topics or requirements..."
+                  value={hiringData.notes}
+                  onChange={(e) => setHiringData(prev => ({ ...prev, notes: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                onClick={handleHiringSubmit}
+                disabled={!hiringData.subject || !hiringData.academic_level || loading}
+                className="w-full py-3"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Hire Tutor
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

@@ -4,6 +4,7 @@ const Student = require("../Models/studentProfileSchema");
 const TutorProfile = require("../Models/tutorProfileSchema");
 const TutoringSession = require("../Models/tutoringSessionSchema"); // Added for student dashboard
 const TutorInquiry = require("../Models/tutorInquirySchema"); // Added for tutor search and help requests
+const StudentPayment = require("../Models/studentPaymentSchema"); // Added for student payments
 const Message = require("../Models/messageSchema"); // Added for messaging
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 
@@ -66,6 +67,30 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
         })
         .sort({ session_date: -1 })
         .limit(10);
+
+    // Get pending payments for academic level access
+    const pendingPayments = await StudentPayment.find({
+        student_id: studentProfile._id,
+        payment_status: 'pending'
+    }).populate([
+        {
+            path: "tutor_id",
+            select: "user_id",
+            populate: {
+                path: "user_id",
+                select: "full_name"
+            }
+        },
+        {
+            path: "subject",
+            select: "name"
+        },
+        {
+            path: "academic_level",
+            select: "level"
+        }
+    ]);
+
     res.status(200).json({
         student: {
             _id: studentProfile._id,
@@ -78,8 +103,10 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
         profile: studentProfile,
         upcomingSessions,
         pastSessions,
+        pendingPayments,
     });
 });
+
 
 exports.getStudentSessions = asyncHandler(async (req, res) => {
     const { userId } = req.params;
@@ -93,30 +120,52 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
 
     const studentProfile = await Student.findOne({ user_id: userId });
 
-    const query = { student_ids: studentProfile._id }; // ✅ fixed for array matching
+    const query = { student_ids: studentProfile._id }; 
     if (status && status !== 'all') {
         query.status = status;
     }
 
     const sessions = await TutoringSession.find(query)
-        // .populate('tutor_id', 'full_name email photo_url')
         .populate({
             path: "tutor_id",
-            select: "user_id", // only include user_id from TutorProfile
+            select: "user_id",
             populate: {
                 path: "user_id",
-                select: "full_name email", // only include name & email from User
+                select: "full_name email",
             },
         })
-        .populate({ path: 'student_responses.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
-        .populate({ path: 'student_ratings.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
+        .populate({
+            path: 'student_responses.student_id',
+            select: 'user_id',
+            populate: { path: 'user_id', select: 'full_name email' }
+        })
+        .populate({
+            path: 'student_ratings.student_id',
+            select: 'user_id',
+            populate: { path: 'user_id', select: 'full_name email' }
+        })
         .sort({ session_date: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
-    const total = await TutoringSession.countDocuments(query);
 
+    // 🔑 Check payments for each tutor-session
+    const enrichedSessions = await Promise.all(sessions.map(async (session) => {
+        const payment = await StudentPayment.findOne({
+            student_id: studentProfile._id,
+            tutor_id: session.tutor_id._id,
+            payment_status: 'paid',
+            is_active: true
+        });
+
+        return {
+            ...session.toObject(),
+            payment_required: !payment, // agar payment nhi hai to true
+        };
+    }));
+
+    const total = await TutoringSession.countDocuments(query);
     res.status(200).json({
-        sessions,
+        sessions: enrichedSessions,
         pagination: {
             current: parseInt(page),
             total: Math.ceil(total / limit),
@@ -125,6 +174,7 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
         }
     });
 });
+
 
 exports.updateStudentProfile = asyncHandler(async (req, res) => {
     try {
@@ -1156,6 +1206,256 @@ exports.rateSession = asyncHandler(async (req, res) => {
     );
 
     return res.status(200).json({ success: true, message: 'Rating submitted', session });
+});
+
+// Get student payments
+exports.getStudentPayments = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    
+    // Verify the user is requesting their own data
+    if (req.user._id.toString() !== userId) {
+        res.status(403);
+        throw new Error('Unauthorized access');
+    }
+    try {
+        // Get student profile
+        const studentProfile = await Student.findOne({ user_id: userId });
+        if (!studentProfile) {
+            res.status(404);
+            throw new Error('Student profile not found');
+        }
+
+        // Get all payments for this student
+        const payments = await StudentPayment.find({
+            student_id: studentProfile._id
+        }).populate([
+            {
+                path: 'tutor_id',
+                populate: {
+                    path: 'user_id',
+                    select: 'full_name'
+                }
+            },
+            {
+                path: 'subject',
+                select: 'name'
+            },
+            {
+                path: 'academic_level',
+                select: 'level'
+            }
+        ]);
+
+        // Transform payments into frontend format
+        const formattedPayments = payments.map(payment => {
+            const tutorName = payment.tutor_id?.user_id?.full_name || 'Unknown Tutor';
+            const subject = payment.subject?.name || 'Unknown Subject';
+            const academicLevel = payment.academic_level?.level || 'Unknown Level';
+            
+            // Map payment status to frontend status
+            let status = 'pending';
+            if (payment.payment_status === 'paid') {
+                status = 'completed';
+            } else if (payment.payment_status === 'failed') {
+                status = 'failed';
+            } else if (payment.payment_status === 'cancelled') {
+                status = 'cancelled';
+            }
+            
+            // Calculate validity and session info
+            const now = new Date();
+            const validityEndDate = new Date(payment.validity_end_date);
+            const daysRemaining = Math.ceil((validityEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const isValid = payment.isValid ? payment.isValid() : false;
+            
+            return {
+                _id: payment._id,
+                tutor_name: tutorName,
+                subject: subject,
+                academic_level: academicLevel,
+                
+                // Payment Details
+                payment_type: payment.payment_type,
+                base_amount: payment.base_amount,
+                discount_percentage: payment.discount_percentage,
+                discount_amount: payment.discount_amount,
+                final_amount: payment.final_amount,
+                
+                // Package Details
+                monthly_amount: payment.monthly_amount,
+                total_sessions_per_month: payment.total_sessions_per_month,
+                max_sessions_per_month: payment.max_sessions_per_month,
+                
+                // Validity and Sessions
+                validity_start_date: payment.validity_start_date,
+                validity_end_date: payment.validity_end_date,
+                total_sessions_allowed: payment.total_sessions_allowed,
+                sessions_used: payment.sessions_used,
+                sessions_remaining: payment.sessions_remaining,
+                days_remaining: Math.max(0, daysRemaining),
+                is_valid: isValid,
+                
+                // Status and Dates
+                status: status,
+                created_at: payment.request_date,
+                payment_date: payment.payment_date,
+                notes: payment.request_notes,
+                payment_id: payment._id,
+                academic_level_paid: payment.academic_level_paid,
+                
+                // Additional Info
+                currency: payment.currency || 'GBP'
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            payments: formattedPayments
+        });
+
+    } catch (error) {
+        console.error('Error fetching student payments:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch payments',
+            error: error.message
+        });
+    }
+});
+
+// Process student payment
+exports.processStudentPayment = asyncHandler(async (req, res) => {
+    const { paymentId } = req.params;
+    
+    try {
+        // Find the payment record
+        const payment = await StudentPayment.findById(paymentId);
+        if (!payment) {
+            res.status(404);
+            throw new Error('Payment record not found');
+        }
+
+        // Verify the user owns this payment
+        const studentProfile = await Student.findOne({ user_id: req.user._id });
+        if (!studentProfile) {
+            res.status(404);
+            throw new Error('Student profile not found');
+        }
+
+        if (payment.student_id.toString() !== studentProfile._id.toString()) {
+            res.status(403);
+            throw new Error('Unauthorized access to this payment');
+        }
+
+        // Check if payment is already processed
+        if (payment.payment_status === 'paid') {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment already processed for this academic level'
+            });
+        }
+
+        // Update payment status and academic level access
+        payment.payment_status = 'paid';
+        payment.payment_date = new Date();
+        payment.academic_level_paid = true; // Now tutor can create sessions for this academic level
+        
+        await payment.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Payment processed successfully. Tutor can now create sessions for this academic level.',
+            payment: {
+                _id: payment._id,
+                payment_status: payment.payment_status,
+                payment_date: payment.payment_date,
+                academic_level_paid: payment.academic_level_paid
+            }
+        });
+
+    } catch (error) {
+        console.error('Error processing payment:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process payment',
+            error: error.message
+        });
+    }
+});
+
+// Note: Payment records are now automatically created in tutorController.js when tutor accepts hire request
+
+// Check payment status for all accepted hire requests
+exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    console.log(userId);
+    try {
+        // Get student profile
+        const studentProfile = await Student.findOne({ user_id: userId });
+        if (!studentProfile) {
+            res.status(404);
+            throw new Error('Student profile not found');
+        }
+
+        // Get all accepted hire requests for this student
+        const acceptedHireRequests = studentProfile.hired_tutors?.filter(hire => hire.status === 'accepted') || [];
+        
+        const paymentStatuses = [];
+        let hasUnpaidRequests = false;
+
+        for (const hireRequest of acceptedHireRequests) {
+            // Check if payment exists for this hire request
+            const payment = await StudentPayment.findOne({
+                student_id: studentProfile._id,
+                tutor_id: hireRequest.tutor,
+                subject: hireRequest.subject,
+                academic_level: hireRequest.academic_level_id,
+                payment_status: 'paid'
+            });
+
+            // Get tutor, subject, and academic level details
+            const tutor = await TutorProfile.findById(hireRequest.tutor).populate('user_id', 'full_name');
+          
+
+            const isPaid = !!payment;
+            if (!isPaid) {
+                hasUnpaidRequests = true;
+            }
+
+            paymentStatuses.push({
+                tutor_id: hireRequest.tutor,
+                tutor_name: tutor?.user_id?.full_name || 'Unknown Tutor',
+                subject_id: hireRequest.subject,
+                subject_name: hireRequest.subject,
+                academic_level_name: hireRequest.academic_level_id,
+                is_paid: isPaid,
+                payment_details: payment ? {
+                    payment_type: payment.payment_type,
+                    final_amount: payment.monthly_amount,
+                    sessions_remaining: payment.total_sessions_per_month,
+                    validity_end_date: payment.validity_end_date
+                } : null,
+              
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            has_unpaid_requests: hasUnpaidRequests,
+            total_accepted_requests: acceptedHireRequests.length,
+            total_paid_requests: paymentStatuses.filter(p => p.is_paid).length,
+            total_unpaid_requests: paymentStatuses.filter(p => !p.is_paid).length,
+            payment_statuses: paymentStatuses
+        });
+
+    } catch (error) {
+        console.error('Error checking student payment status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check payment status',
+            error: error.message
+        });
+    }
 });
 
 

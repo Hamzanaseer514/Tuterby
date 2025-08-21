@@ -10,6 +10,7 @@ import {
 } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   Star,
@@ -28,7 +29,7 @@ const MyTutors = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { subjects, academicLevels } = useSubject();
-
+  const navigate = useNavigate();
   useEffect(() => {
     fetchHiredTutors();
   }, []);
@@ -100,6 +101,13 @@ const MyTutors = () => {
     return stars;
   };
 
+  const handleViewTutor = (tutorId) => {
+    navigate(`/tutor`, {
+      state: { tutorId: tutorId }
+    });
+
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -166,7 +174,7 @@ const MyTutors = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hiredTutors.map((hiredTutor) => (
-              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow">
+              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow" onClick={() => handleViewTutor(hiredTutor._id)}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">

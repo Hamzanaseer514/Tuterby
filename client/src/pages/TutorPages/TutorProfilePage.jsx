@@ -16,8 +16,7 @@ import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Input } from '../../components/ui/input';
-import { useSubject } from '../../hooks/useSubject';
-import {
+  import {
   User,
   Star,
   MapPin,
@@ -29,6 +28,7 @@ import {
   Award,
   GraduationCap
 } from 'lucide-react';
+import { useSubject } from '../../hooks/useSubject';
 
 const TutorProfilePage = () => {
   const location = useLocation();
@@ -41,7 +41,7 @@ const TutorProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [studentProfile, setStudentProfile] = useState(null);
-  const { academicLevels, subjects } = useSubject();
+  const { subjects, academicLevels } = useSubject();
 
   useEffect(() => {
     if (!tutorId) {
@@ -58,6 +58,12 @@ const TutorProfilePage = () => {
     const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
     return s;
   }, [subjects]);
+
+  const getAcademicLevelById = useCallback((id) => {
+    if (!id) return undefined;
+    const a = (academicLevels || []).find(a => a?._id?.toString() === id.toString());
+    return a;
+  }, [academicLevels]);
 
   const fetchTutorDetails = async () => {
     try {
@@ -155,8 +161,8 @@ const TutorProfilePage = () => {
 
 
   const handleBookSession = (tutor) => {
-    // Navigate to payment page with tutor data
-    navigate('/student/payment', { state: { tutor } });
+    // Navigate back to tutor search page to hire the tutor
+    navigate('/student/tutor-search', { state: { tutor } });
   };
 
   const renderStars = (rating) => {
@@ -350,11 +356,18 @@ const TutorProfilePage = () => {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Subjects Taught</h4>
                       <div className="flex flex-wrap gap-2">
-                        {tutor.subjects?.map((subject, index) => (
-                          <Badge key={index} variant="outline">
-                            {getSubjectById(subject)?.name || subject} - {getSubjectById(subject)?.subject_type.name || subject} - {getSubjectById(subject)?.level_id.level || subject}
-                          </Badge>
-                        ))}
+                        {tutor.subjects?.map((subject, index) => {
+                          const subjectData = getSubjectById(subject);
+                          const subjectName = subjectData?.name || subject || 'Unknown Subject';
+                          const subjectType = subjectData?.subject_type?.name || 'Unknown Type';
+                          const levelName = subjectData?.level_id?.level || 'Unknown Level';
+                          
+                          return (
+                            <Badge key={index} variant="outline">
+                              {subjectName} - {subjectType} - {levelName}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -581,6 +594,39 @@ const TutorProfilePage = () => {
                   </CardContent>
                 </Card>
               )}
+
+    {/* Requested For This Tutor */}
+    {studentProfile?.hired_tutors && studentProfile.hired_tutors.length > 0 && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Tutor is Requested For</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Academic Level</span>
+            <span className="font-semibold">
+              {studentProfile.hired_tutors.map((tutor) => {
+                const academicLevel = getAcademicLevelById(tutor.academic_level_id);
+                return academicLevel?.level || 'Unknown Level';
+              }).join(', ')}
+            </span>
+          </div>
+
+          {tutor.experience_years && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Subject</span>
+              <span className="font-semibold">
+                {studentProfile.hired_tutors.map((tutor) => {
+                  const subject = getSubjectById(tutor.subject);
+                  return subject?.name || 'Unknown Subject';
+                }).join(', ')}
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )}
+
 
               {/* Student's Inquiries Summary */}
               {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (

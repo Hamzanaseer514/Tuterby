@@ -55,6 +55,7 @@ const StudentSelfProfilePage = lazy(() =>
 const StudentPaymentPage = lazy(() =>
   import("./pages/StudentPages/StudentPaymentPage")
 );
+
 const TutorProfilePage = lazy(() =>
   import("./pages/TutorPages/TutorProfilePage")
 );
@@ -65,6 +66,7 @@ const AdminSettings = lazy(() =>
   import("./pages/AdminPages/AdminSettings")
 );
 
+const PaymentResult = lazy(() => import("./components/PaymentResult"));
 const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
 
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
@@ -145,17 +147,18 @@ function App() {
                 </ProtectedRoute>}
               />
               <Route
+                path="/student/payments"
+                element={<ProtectedRoute allowedRoles={["student"]}>
+                  <StudentPaymentPage />
+                </ProtectedRoute>}
+              />
+              <Route
                 path="/student/tutor-search"
                 element={<ProtectedRoute allowedRoles={["student"]}>
                   <StudentTutorSearchPage />
                 </ProtectedRoute>}
               />
-              <Route
-                path="/student/payment"
-                element={<ProtectedRoute allowedRoles={["student"]}>
-                  <StudentPaymentPage />
-                </ProtectedRoute>}
-              />
+              <Route path="/payment-result" element={<PaymentResult />} />
               <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>
                 <TutorProfilePage />
               </ProtectedRoute>} />

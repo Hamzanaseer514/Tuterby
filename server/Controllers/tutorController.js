@@ -8,6 +8,7 @@ const TutorInquiry = require("../Models/tutorInquirySchema");
 const TutorAvailability = require("../Models/tutorAvailabilitySchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
+const StudentPayment = require("../Models/studentPaymentSchema"); // Added for payment records
 const Message = require("../Models/messageSchema"); // Importing Message model
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 const sendEmail = require("../Utils/sendEmail");
@@ -200,7 +201,7 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 // Create a new tutoring session (supports single or multiple students)
 const createSession = asyncHandler(async (req, res) => {
   const { tutor_id, student_id, student_ids, subject, academic_level, session_date, duration_hours, hourly_rate, notes } = req.body;
-
+  console.log("boy", req.body);
   // Normalize students: accept legacy single student_id or new array student_ids (both are student user_ids)
   let studentUserIds = [];
   if (Array.isArray(student_ids) && student_ids.length > 0) {
@@ -246,13 +247,56 @@ const createSession = asyncHandler(async (req, res) => {
 
   // Authorization check
   // Ensure authorization for all selected students
+
   for (const student of students) {
+    console.log("student", student);
     const hireRecord = (student.hired_tutors || []).find(
       (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
     );
     if (!hireRecord) {
       return res.status(403).json({ message: "Tutor is not authorized to create a session with one or more selected students" });
     }
+  }
+
+  // Payment validation check
+  // Ensure payment is completed for all selected students for this subject and academic level
+  let allStudentsCanCreate = true;
+  const studentPaymentStatuses = [];
+  
+  for (const student of students) {
+    const canCreate = await canCreateSessionForStudent(tutor._id, student._id, subject, academic_level);
+    console.log("canCreate", canCreate);
+    if (!canCreate) {
+      allStudentsCanCreate = false;
+    }
+    
+    // Get payment details for this student
+    const payment = await StudentPayment.findOne({
+      student_id: student._id,
+      tutor_id: tutor._id,
+      subject: subject,
+      academic_level: academic_level,
+      payment_status: 'paid'
+    });
+    
+    studentPaymentStatuses.push({
+      student_id: student._id,
+      canCreateSession: canCreate,
+      paymentCompleted: !!payment,
+      paymentDetails: payment ? {
+        payment_type: payment.payment_type,
+        final_amount: payment.final_amount,
+        sessions_remaining: payment.sessions_remaining,
+        validity_end_date: payment.validity_end_date
+      } : null
+    });
+  }
+  
+  if (!allStudentsCanCreate) {
+    return res.status(403).json({ 
+      message: "Payment not completed. Student must pay for academic level access before sessions can be created.",
+      studentPaymentStatuses: studentPaymentStatuses
+    });
   }
 
   // Check for overlapping in-progress session
@@ -302,10 +346,10 @@ const createSession = asyncHandler(async (req, res) => {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
-
   return res.status(201).json({
     message: "Tutoring session created successfully",
-    session
+    session,
+    studentPaymentStatuses: studentPaymentStatuses
   });
 });
 
@@ -1249,16 +1293,83 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     }
   }
 
-  // Check if request is already processed
-  // if (hireRecord.status !== 'pending') {
-  //   return res.status(400).json({ 
-  //     message: `Request already ${hireRecord.status}. Cannot ${action} a ${hireRecord.status} request.` 
-  //   });
-  // }
-
   // Update the status
   hireRecord.status = action === 'accept' ? 'accepted' : 'rejected';
   await studentProfile.save();
+
+  // If tutor accepts the request, create a payment record
+  if (action === 'accept') {
+    try {
+      // Check if payment record already exists
+      const existingPayment = await StudentPayment.findOne({
+        student_id: studentProfile._id,
+        tutor_id: tutorProfile._id,
+        subject: hireRecord.subject,
+        academic_level: hireRecord.academic_level_id
+      });
+
+      if (!existingPayment) {
+        // Get the subject and academic level details for better notes
+        const subjectData = await Subject.findById(hireRecord.subject);
+        const academicLevelData = await EducationLevel.findById(hireRecord.academic_level_id);
+        
+        // Calculate payment details based on tutor's settings
+        const tutorAcademicLevel = tutorProfile.academic_levels_taught.find(
+          level => level.educationLevel.toString() === hireRecord.academic_level_id.toString()
+        );
+        
+        if (!tutorAcademicLevel) {
+          console.error('Tutor academic level not found for payment creation');
+          return;
+        }
+        
+        // Calculate payment details based on tutor's settings
+        const baseAmount = tutorAcademicLevel.hourlyRate || tutorProfile.hourly_rate || 25;
+        const discount = tutorAcademicLevel.discount || 0;
+        const totalSessions = tutorAcademicLevel.totalSessionsPerMonth || 1;
+
+        
+        // Calculate validity period (30 days from now)
+        const validityStartDate = new Date();
+        const validityEndDate = new Date(validityStartDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+        
+        // Create comprehensive payment record
+        const paymentRecord = new StudentPayment({
+          student_id: studentProfile._id,
+          tutor_id: tutorProfile._id,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+          
+          // Payment Type and Amount
+          payment_type: 'monthly', // Default to monthly package
+          base_amount: baseAmount,
+          discount_percentage: discount,
+          
+          // Monthly Package Details
+          monthly_amount: tutorAcademicLevel.monthlyRate,
+          
+          // Validity and Sessions
+          validity_start_date: validityStartDate,
+          validity_end_date: validityEndDate,
+          sessions_remaining: tutorAcademicLevel.totalSessionsPerMonth,
+          total_sessions_per_month: tutorAcademicLevel.totalSessionsPerMonth,
+          
+          // Request Details
+          payment_status: 'pending',
+          request_notes: `Monthly package for ${subjectData?.name || 'Subject'} - ${academicLevelData?.level || 'Level'}. ${totalSessions} sessions per month.`,
+          
+          // Additional Details
+          currency: 'GBP'
+        });
+
+        await paymentRecord.save();
+        console.log('Payment record created for accepted hire request:', paymentRecord._id);
+      }
+    } catch (paymentError) {
+      console.error('Error creating payment record for accepted hire request:', paymentError);
+      // Don't fail the hire acceptance if payment record creation fails
+    }
+  }
 
   return res.status(200).json({
     success: true,
@@ -1267,6 +1378,79 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     hire_record_id: hireRecord._id,
     status: hireRecord.status,
   });
+});
+
+// Helper function to check if tutor can create sessions for student (payment must be completed and valid)
+const canCreateSessionForStudent = async (tutorId, studentId, subject, academicLevel) => {
+  console.log(tutorId, studentId, subject, academicLevel);
+  try {
+    const payment = await StudentPayment.findOne({
+      student_id: studentId,
+      tutor_id: tutorId,
+      subject: subject,
+      academic_level: academicLevel,
+      payment_status: 'paid',
+      academic_level_paid: true,
+      is_active: true
+    });
+    
+    if (!payment) {
+      console.log("Payment not found");
+      return false;
+    }
+    // Check if payment is still valid (not expired and has sessions remaining)
+    return payment.isValid();
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return false;
+  }
+};
+
+// Check payment status for a specific student-subject-academic level combination
+const checkPaymentStatus = asyncHandler(async (req, res) => {
+  const { student_id, subject, academic_level } = req.body;
+  const tutor_id = req.user._id; // From auth middleware
+
+  if (!student_id || !subject || !academic_level) {
+    return res.status(400).json({ 
+      message: "Missing required fields: student_id, subject, academic_level" 
+    });
+  }
+
+  try {
+    const canCreate = await canCreateSessionForStudent(tutor_id, student_id, subject, academic_level);
+    
+    // Get payment details if payment exists
+    let paymentDetails = null;
+    if (canCreate) {
+      const payment = await StudentPayment.findOne({
+        student_id: student_id,
+        tutor_id: tutor_id,
+        subject: subject,
+        academic_level: academic_level,
+        payment_status: 'paid'
+      });
+      
+      if (payment) {
+        paymentDetails = {
+          payment_type: payment.payment_type,
+          final_amount: payment.final_amount,
+          sessions_remaining: payment.sessions_remaining,
+          validity_end_date: payment.validity_end_date
+        };
+      }
+    }
+
+    return res.status(200).json({
+      canCreateSession: canCreate,
+      paymentDetails: paymentDetails
+    });
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return res.status(500).json({ 
+      message: "Internal server error while checking payment status" 
+    });
+  }
 });
 
 const sendMessageResponse = asyncHandler(async (req, res) => {
@@ -1729,5 +1913,7 @@ module.exports = {
   updateTutorSettings,
   addTutorAcademicLevel,
   removeTutorAcademicLevel,
-  sendMeetingLink
+  sendMeetingLink,
+  canCreateSessionForStudent,
+  checkPaymentStatus
 };
