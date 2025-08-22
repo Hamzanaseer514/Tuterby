@@ -1,9 +1,9 @@
+import { BASE_URL, STRIPE_PUBLISHABLE_KEY } from '../../config';
 import { loadStripe } from "@stripe/stripe-js";
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { BASE_URL } from '@/config';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -70,6 +70,7 @@ const StudentPaymentPage = () => {
 
             const data = await response.json();
             setPayments(data.payments || []);
+            console.log("data", data);
         } catch (error) {
             console.error('Error fetching payments:', error);
             toast({
@@ -119,11 +120,12 @@ const StudentPaymentPage = () => {
         setFilteredPayments(filtered);
     };
 
-    const handlePayment = async (paymentId, amount) => {
+    const handlePayment = async (payment) => {
+        console.log("payment", payment);
         try {
             setLoading(true);
             const token = getAuthToken();
-
+    
             const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
                 method: "POST",
                 headers: {
@@ -131,17 +133,30 @@ const StudentPaymentPage = () => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    amount: amount,
-                    paymentId: paymentId
+                    amount: payment.monthly_amount,
+                    paymentId: payment._id,
+                    tutorName: payment.tutor_name,
+                    subject: payment.subject,
+                    academicLevel: payment.academic_level,
+                    studentEmail: user.email,
+                    payment_type: payment.payment_type,
+                    total_sessions_per_month: payment.total_sessions_per_month,
+                    base_amount: payment.base_amount,
+                    discount_percentage: payment.discount_percentage,
+                    days_remaining: payment.days_remaining,
                 })
             });
     
             if (!response.ok) throw new Error("Failed to create checkout session");
     
+            // ✅ parse backend response
             const data = await response.json();
-            const stripe = await stripePromise;
+    
+            console.log("Stripe checkout url:", data.url);
+    
+            // 🚀 instant redirect to Stripe Checkout
             window.location.href = data.url;
-
+    
         } catch (error) {
             console.error("Error processing payment:", error);
             toast({
@@ -153,6 +168,8 @@ const StudentPaymentPage = () => {
             setLoading(false);
         }
     };
+    
+
 
     const getStatusBadge = (status) => {
         const statusConfig = {
@@ -422,7 +439,7 @@ const StudentPaymentPage = () => {
                                             <div className="flex gap-2">
                                                 {payment.status === 'pending' && (
                                                     <Button
-                                                        onClick={() => handlePayment(payment._id, payment.monthly_amount)}
+                                                        onClick={() => handlePayment(payment)}
                                                         disabled={loading}
                                                         className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
                                                     >
@@ -440,7 +457,7 @@ const StudentPaymentPage = () => {
 
                                                 {payment.status === 'failed' && (
                                                     <Button
-                                                        onClick={() => handlePayment(payment._id)}
+                                                        onClick={() => handlePayment(payment)}
                                                         variant="outline"
                                                         disabled={loading}
                                                         className="border-red-200 text-red-700 hover:bg-red-50"
@@ -450,7 +467,7 @@ const StudentPaymentPage = () => {
                                                     </Button>
                                                 )}
 
-                                            
+
 
                                                 {/* <Button variant="outline" size="sm">
                                                     <Download className="w-4 h-4 mr-2" />
@@ -461,9 +478,9 @@ const StudentPaymentPage = () => {
                                     )}
 
                                     <div className="flex justify-center border-t bg-gray-50 py-2">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => toggleExpandPayment(payment._id)}
                                             className="text-xs text-gray-500"
                                         >
