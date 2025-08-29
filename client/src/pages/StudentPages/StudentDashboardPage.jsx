@@ -15,7 +15,7 @@ import {
   ChevronRight,
   CreditCard
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+  import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 import StudentDashboard from '../../components/student/StudentDashboard';

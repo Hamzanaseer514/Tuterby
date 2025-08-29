@@ -56,12 +56,14 @@ const StudentPaymentPage = lazy(() =>
   import("./pages/StudentPages/StudentPaymentPage")
 );
 
-const TutorProfilePage = lazy(() =>
-  import("./pages/TutorPages/TutorProfilePage")
-);
 const ParentDashboardPage = lazy(() =>
   import("./pages/ParentPages/ParentDashboardPage")
 );
+
+const TutorProfilePage = lazy(() =>
+  import("./pages/TutorPages/TutorProfilePage")
+);
+
 const AdminSettings = lazy(() =>
   import("./pages/AdminPages/AdminSettings")
 );
@@ -158,15 +160,18 @@ function App() {
                   <StudentTutorSearchPage />
                 </ProtectedRoute>}
               />
-              <Route path="/payment-result" element={<PaymentResult />} />
-              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>
-                <TutorProfilePage />
-              </ProtectedRoute>} />
               <Route
                 path="/parent-dashboard"
                 element={<ProtectedRoute allowedRoles={["parent"]}>
                   <ParentDashboardPage />
                 </ProtectedRoute>}
+              />
+              <Route path="/payment-result" element={<PaymentResult />} />
+              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>
+                <TutorProfilePage />
+              </ProtectedRoute>} />
+              <Route
+
               />
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />

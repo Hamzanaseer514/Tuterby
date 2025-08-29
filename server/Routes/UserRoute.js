@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword} = require("../Controllers/UserController")
+const { registerUser,registerTutor,registerParent, loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword} = require("../Controllers/UserController")
 const { getStudentDashboard,updateStudentProfile,
    getStudentSessions,searchTutors, getTutorDetails, 
    requestAdditionalHelp, getStudentHelpRequests ,hireTutor,
@@ -39,8 +39,8 @@ router.get("/student/profile/:userId", protect, getStudentProfile);
 router.post("/register", registerUser)
 router.put("/updatestudent/:user_id", updateStudentProfile)  
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
-router.post("/register-parent", registerParent)
-router.post("/add-student-to-parent", protect, addStudentToParent)
+router.post("/register-parent", upload.single('photo'), registerParent)
+
 router.post("/login", loginUser)
 router.post("/verify-otp", verifyOtp)
 router.post("/resend-otp", resendOtp)
@@ -52,6 +52,7 @@ router.get("/get-accepted-tutors", protect, getAcceptedTutorsForStudent);
 router.get('/getstudentchat/:tutorId', protect, getStudentTutorChat);
 router.get('/user-profile/:user_id', protect, getUserProfile);
 router.post('/user-profile/:user_id/photo', protect, upload.single('photo'), updateUserPhoto);
+
 
 // Student dashboard routes
 router.get("/student/dashboard/:userId", protect, getStudentDashboard);
