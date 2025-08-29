@@ -12,7 +12,8 @@ import {
   MessageSquare,
   Menu,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
@@ -26,6 +27,7 @@ import MyTutors from '../../components/student/MyTutors';
 import StudentTutorSearchPage from './StudentTutorSearchPage';
 import { BASE_URL } from '@/config';
 import StudentSelfProfilePage from './StudentSelfProfilePage';
+import StudentPaymentPage from './StudentPaymentPage';
 
 const lastSeenKey = (id) => `student_last_seen_${id}`;
 
@@ -226,6 +228,13 @@ const StudentDashboardPage = () => {
       section: 'communication'
     },
     {
+      id: 'payments',
+      name: 'Payments',
+      icon: CreditCard,
+      component: <StudentPaymentPage />,
+      section: 'account'
+    },
+    {
       id: 'profile',
       name: 'Profile',
       icon: User,
@@ -272,7 +281,7 @@ const StudentDashboardPage = () => {
         </div>
         <div>
           <p className="text-xs text-gray-500">Welcome back,</p>
-          {/* <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p> */}
+          <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
         </div>
       </div>
 

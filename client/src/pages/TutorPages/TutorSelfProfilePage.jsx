@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { useSubject } from '../../hooks/useSubject';
 
 function buildImageUrl(raw) {
   if (!raw) return '';
@@ -37,11 +38,24 @@ const TutorSelfProfilePage = () => {
   const [profile, setProfile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const avatarUrl = useMemo(() => buildImageUrl(profile?.user_id?.photo_url || user?.photo_url), [profile, user]);
+  const { subjects, academicLevels } = useSubject();
+
 
   useEffect(() => {
     if (!user?._id) return;
     loadProfile();
   }, [user]);
+
+  const getSubjectName = (id) => {
+    const subject = subjects.find(s => s._id === id);
+    return subject ? subject: '';
+  }
+
+
+  const getAcademicLevelName = (id) => {
+    const academicLevel = academicLevels.find(a => a._id === id);
+    return academicLevel ? academicLevel.level : '';
+  }
 
   async function loadProfile() {
     try {
@@ -199,7 +213,7 @@ const TutorSelfProfilePage = () => {
             {subjectsList.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {subjectsList.map((s, i) => (
-                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{s}</span>
+                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{getSubjectName(s).name} - {getSubjectName(s).subject_type.name}</span>
                 ))}
               </div>
             ) : (
@@ -235,7 +249,8 @@ const TutorSelfProfilePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {profile.academic_levels_taught.map((lvl, i) => (
                 <div key={i} className="p-3 border rounded bg-white space-y-1 shadow-sm">
-                  <div className="font-medium">{lvl.name}</div>
+                
+                  <div className="font-medium">{getAcademicLevelName(lvl.educationLevel)}</div>
                   <div className="text-sm text-gray-600">£{lvl.hourlyRate}/hr · {lvl.totalSessionsPerMonth} sessions</div>
                   <div className="text-sm text-gray-600">Discount: {lvl.discount}%</div>
                   {typeof lvl.monthlyRate === 'number' && (

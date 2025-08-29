@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
@@ -32,6 +32,8 @@ import {
   X
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+
 
 const TutorSearch = () => {
   const { toast } = useToast();
@@ -42,22 +44,29 @@ const TutorSearch = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedTutor, setSelectedTutor] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [bookingData, setBookingData] = useState({
-    subject: '',
-    // session_date: '',
-    duration_hours: 1,
-    notes: '',
-    academic_level: ''
-  });
-  const { subjects, academicLevels } = useSubject();
+
+  const { subjects, academicLevels, fetchSubjectRelatedToAcademicLevels , subjectRelatedToAcademicLevels} = useSubject();
+
+  // Debug: Log subjects data
+  useEffect(() => {
+
+    fetchSubjectRelatedToAcademicLevels(academicLevels.map(level => level._id));
+  }, [subjects, academicLevels]);
   // Simple search filter
   const [searchQuery, setSearchQuery] = useState('');
   const [studentProfile, setStudentProfile] = useState(null);
   // New checkbox state for preferred subjects filter
   const [preferredSubjectsOnly, setPreferredSubjectsOnly] = useState(false);
+
+  // Hiring dialog state
+  const [showHiringDialog, setShowHiringDialog] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [hiringData, setHiringData] = useState({
+    subject: '',
+    academic_level: '',
+    notes: ''
+  });
 
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -70,21 +79,40 @@ const TutorSearch = () => {
 
   useEffect(() => {
     if (user) {
-      loadAllTutors();
+      getStudentProfile();
+      loadAllTutors(); // Load all tutors initially
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      getStudentProfile();
+    if (user && studentProfile) {
       searchTutors();
     }
-  }, [currentPage, filters, searchQuery, preferredSubjectsOnly]);
+  }, [currentPage, filters, searchQuery, preferredSubjectsOnly, studentProfile]);
+
+
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+  }, [subjects]);
+
+  const getAcademicLevelById = useCallback((id) => {
+    if (!id) return undefined;
+    const a = (academicLevels || []).find(a => a?._id?.toString() === id.toString());
+    return a;
+
+  }, [academicLevels]);
 
   // Helper functions
   const parseField = (field) => {
     if (!field) return [];
-
+  
+    // If it's already array of objects, keep it
+    if (Array.isArray(field) && field.every(item => typeof item === "object")) {
+      return field;
+    }
+  
     // Handle array case like ['["Math","Physics"]']
     if (Array.isArray(field)) {
       if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
@@ -96,26 +124,25 @@ const TutorSearch = () => {
           return [];
         }
       }
-      // If it's already a proper array, return as is
       if (field.every(item => typeof item === "string")) {
-        return field;
+        return [...new Set(field)];
       }
       return [];
     }
-
-    // Handle string case like "["Math","Physics"]"
+  
     if (typeof field === "string" && field.startsWith("[")) {
       try {
         const parsed = JSON.parse(field);
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed) ? [...new Set(parsed)] : [];
       } catch (error) {
         console.warn(`Failed to parse string field: ${field}`, error);
         return [];
       }
     }
-
+  
     return [];
   };
+  
 
   const cleanTutorData = (tutors) => {
     return tutors.map((tutor) => {
@@ -125,21 +152,31 @@ const TutorSearch = () => {
         academic_levels_taught: parseField(tutor.academic_levels_taught),
       };
 
-   
-
       return cleaned;
     });
   };
 
   const getStudentProfile = async () => {
-    const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json'
+    try {
+      if (!user?._id) return;
+
+      const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch student profile: ${response.status}`);
       }
-    });
-    const data = await response.json();
-    setStudentProfile(data.student)
+
+      const data = await response.json();
+      setStudentProfile(data.student);
+    } catch (error) {
+      console.error('Error fetching student profile:', error);
+      // Don't show error toast for profile fetch, just log it
+    }
   }
   // Inside your loadAllTutors function
   const loadAllTutors = async () => {
@@ -154,6 +191,8 @@ const TutorSearch = () => {
         user_id: user._id
       });
 
+      // Debug: Log the load all params
+
       const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -162,22 +201,23 @@ const TutorSearch = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load tutors');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
 
       // ✅ Fix subjects & academic_levels_taught here
-      const cleanedTutors = cleanTutorData(data.tutors);
-
+      const cleanedTutors = cleanTutorData(data.tutors || []);
       setTutors(cleanedTutors);
-      setTotalPages(data.pagination.total_pages);
+      setTotalPages(data.pagination?.total_pages || 1);
       setCurrentPage(1);
     } catch (error) {
-      setError(error.message);
+      console.error('Load all tutors error:', error);
+      setError(error.message || 'Failed to load tutors');
       toast({
         title: "Error",
-        description: "Failed to load tutors",
+        description: error.message || "Failed to load tutors",
         variant: "destructive"
       });
     } finally {
@@ -192,10 +232,32 @@ const TutorSearch = () => {
       setError(null);
       const authToken = getAuthToken();
 
+      // Validate that we have required data before making the API call
+      if (!user?._id) {
+        throw new Error('User not authenticated');
+      }
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: 12,
-        ...filters
+        user_id: user._id
+      });
+
+      // Add filters only if they have values
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value.trim() !== '') {
+          // For subject filter, we need to send it as subject_id, not subject
+          // The backend expects subject_id to search by subject ID
+          if (key === 'subject') {
+            params.append('subject_id', value.trim());
+          } else if (key === 'academic_level') {
+            // For academic level filter, we need to send it as academic_level
+            // The backend expects academic_level to search by academic level ID
+            params.append('academic_level', value.trim());
+          } else {
+            params.append(key, value.trim());
+          }
+        }
       });
 
       // Add search query if provided
@@ -203,11 +265,13 @@ const TutorSearch = () => {
         params.append('search', searchQuery.trim());
       }
 
-      // Add preferred subjects filter if checkbox is checked
-      if (preferredSubjectsOnly && studentProfile.preferred_subjects) {
+      // Add preferred subjects filter if checkbox is checked and student profile exists
+      if (preferredSubjectsOnly && studentProfile?.preferred_subjects) {
         params.append('preferred_subjects_only', 'true');
       }
 
+
+      // Make the search request with the correct parameters
       const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -216,20 +280,24 @@ const TutorSearch = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to search tutors');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Search API error:', errorData);
+
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
 
       // ✅ Fix subjects & academic_levels_taught here too
-      const cleanedTutors = cleanTutorData(data.tutors);
+      const cleanedTutors = cleanTutorData(data.tutors || []);
       setTutors(cleanedTutors);
-      setTotalPages(data.pagination.total_pages);
+      setTotalPages(data.pagination?.total_pages || 1);
     } catch (error) {
-      setError(error.message);
+      console.error('Search error:', error);
+      setError(error.message || 'Failed to search tutors');
       toast({
         title: "Error",
-        description: "Failed to search tutors",
+        description: error.message || "Failed to search tutors",
         variant: "destructive"
       });
     } finally {
@@ -242,10 +310,17 @@ const TutorSearch = () => {
     setCurrentPage(1);
   };
 
-  const handleFilterChange = (key, value) => {
+
+  const handleFilterChange = async (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
+
+    if (key === "academic_level") {
+      fetchSubjectRelatedToAcademicLevels([value]);
+    }
+    
   };
+
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -274,27 +349,38 @@ const TutorSearch = () => {
 
   const handleHireTutor = (tutor) => {
     setSelectedTutor(tutor);
-    setBookingData({
-      subject: '',
-      // session_date: '',
-      duration_hours: 1,
-      notes: '',
-      academic_level: ''
-    });
-    setShowBookingModal(true);
+    // Auto-select first academic level when tutor data loads
+    if (tutor?.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
+      const firstLevel = tutor.academic_levels_taught[0];
+      setHiringData(prev => ({ 
+        ...prev, 
+        academic_level: firstLevel.educationLevel 
+      }));
+    }
+    setShowHiringDialog(true);
   };
 
+  const handleHiringSubmit = async () => {
+    if (!hiringData.subject || !hiringData.academic_level) {
+      toast({
+        title: "Error",
+        description: "Please select subject and academic level",
+        variant: "destructive"
+      });
+      return;
+    }
 
-
-  const handleHireTutorSubmit = async () => {
     try {
+      setLoading(true);
       const token = getAuthToken();
-      // Try to resolve academic_level_id by matching the label in global academicLevels
+
+      // Map academic_level name to ID from global academicLevels
       let academic_level_id = null;
-      if (bookingData.academic_level) {
-        const match = (academicLevels || []).find(l => l.level === bookingData.academic_level || l._id === bookingData.academic_level);
+      if (hiringData.academic_level) {
+        const match = (academicLevels || []).find(l => l.level === hiringData.academic_level || l._id === hiringData.academic_level);
         if (match) academic_level_id = match._id;
       }
+
       const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
         method: 'POST',
         headers: {
@@ -304,36 +390,45 @@ const TutorSearch = () => {
         body: JSON.stringify({
           tutor_user_id: selectedTutor.user_id._id,
           student_user_id: user._id,
-          subject: bookingData.subject,
+          subject: hiringData.subject,
           academic_level_id,
-          notes: bookingData.notes
+          notes: hiringData.notes || 'Hiring request from student',
+          payment_type: 'hourly'
         })
       });
+
       const data = await response.json();
       const status = response.status;
+
       if (status === 400) {
         toast({
           title: "Warning",
           description: data.message,
         });
-      }
-      else if (status === 200) {
+      } else if (status === 200) {
         toast({
           title: "Success",
-          description: data.message,
+          description: "Tutor hired successfully!",
         });
+        // Close dialog and refresh the tutors list
+        setShowHiringDialog(false);
+        searchTutors();
       }
-      setShowBookingModal(false);
-      setSelectedTutor(null);
-      loadAllTutors();
+
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to hire tutor" ,
+        description: "Failed to hire tutor",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
+
+
+
+
 
   const renderStars = (rating) => {
     const stars = [];
@@ -409,7 +504,7 @@ const TutorSearch = () => {
               </Button>
             )}
           </div>
-          
+
           {/* Preferred Subjects Filter Checkbox */}
           <div className="flex items-center space-x-2 mt-4">
             <Checkbox
@@ -438,21 +533,6 @@ const TutorSearch = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                <Select value={filters.subject} onValueChange={(value) => handleFilterChange('subject', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject._id} value={subject._id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
@@ -466,11 +546,34 @@ const TutorSearch = () => {
                         {level.level}
                       </SelectItem>
                     ))}
+
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500 mt-1">Select an academic level to filter tutors</p>
               </div>
 
-            
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                <Select
+                  value={filters.subject}
+                  onValueChange={(value) => handleFilterChange('subject', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjectRelatedToAcademicLevels.map((subject) => (
+                      <SelectItem key={subject._id} value={subject._id}>
+                        {subject.name} - {subject.subjectTypeData?.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">Select a subject to find tutors who teach it</p>
+              </div>
+
+
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Max Hourly Rate</label>
@@ -480,8 +583,10 @@ const TutorSearch = () => {
                   value={filters.max_hourly_rate}
                   onChange={(e) => handleFilterChange('max_hourly_rate', e.target.value)}
                 />
+                <p className="text-xs text-gray-500 mt-1">Maximum hourly rate you're willing to pay</p>
               </div>
             </div>
+
           </CardContent>
         </Card>
       )}
@@ -496,7 +601,29 @@ const TutorSearch = () => {
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Results</h3>
               <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={loadAllTutors}>Try Again</Button>
+
+              {/* Helpful error guidance */}
+              {error.includes('Cast to ObjectId failed') && (
+                <div className="mb-4 p-3 bg-yellow-50 rounded-lg text-left">
+                  <div className="flex items-start gap-2">
+                    <HelpCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium">What to do:</p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Try using just the search bar above instead of filters</li>
+                        <li>Clear all filters and search again</li>
+                        <li>Use different search criteria</li>
+                        <li>If the problem persists, contact support</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-center">
+                <Button onClick={loadAllTutors}>Try Again</Button>
+                <Button onClick={clearAllFilters} variant="outline">Clear Filters</Button>
+              </div>
             </CardContent>
           </Card>
         ) : tutors.length === 0 ? (
@@ -543,9 +670,9 @@ const TutorSearch = () => {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {tutor.user_id.full_name}
+                              {tutor.user_id?.full_name || 'Unknown Tutor'}
                             </h3>
-                            {tutor.location && (
+                            {tutor.location && typeof tutor.location === 'string' && (
                               <div className="flex items-center gap-1 text-sm text-gray-600 blur-sm">
                                 <MapPin className="w-4 h-4" />
                                 {tutor.location}
@@ -554,9 +681,9 @@ const TutorSearch = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-gray-900">
-                              £{tutor.min_hourly_rate} - £{tutor.max_hourly_rate}/hr
-                              </p>
-                              {tutor.average_rating && (
+                              £{tutor.min_hourly_rate || 0} - £{tutor.max_hourly_rate || 0}/hr
+                            </p>
+                            {tutor.average_rating && typeof tutor.average_rating === 'number' && (
                               <div className="flex items-center gap-1 mt-1">
                                 {renderStars(tutor.average_rating)}
                                 <span className="text-sm text-gray-600 ml-1">
@@ -570,11 +697,14 @@ const TutorSearch = () => {
                         <div className="mb-3">
 
                           <div className="flex flex-wrap gap-1 mb-3">
-                            {tutor.academic_levels_taught?.map((level, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {level}
-                              </Badge>
-                            ))}
+                            {tutor.academic_levels_taught?.map((level, index) => {
+                              return (
+                                <Badge key={index} variant="secondary" className="text-xs">
+
+                                  {typeof level === 'object' ? getAcademicLevelById(level.educationLevel)?.level : level}
+                                </Badge>
+                              );
+                            })}
                             {/* {tutor.academic_levels_taught?.length > 3 && (
                               <Badge variant="outline" className="text-xs">
                                 +{tutor.academic_levels_taught.length - 3} more
@@ -585,7 +715,7 @@ const TutorSearch = () => {
                           <div className="flex flex-wrap gap-1 mb-2">
                             {tutor.subjects?.map((subject, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
-                                {subject}
+                                {typeof subject === 'object' ? subject.name : (getSubjectById(subject)?.name || subject)}
                               </Badge>
                             ))}
                             {/* {tutor.subjects?.length > 3 && (
@@ -600,7 +730,7 @@ const TutorSearch = () => {
 
 
 
-                        {tutor.bio && (
+                        {tutor.bio && typeof tutor.bio === 'string' && (
                           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                             {tutor.bio}
                           </p>
@@ -609,9 +739,9 @@ const TutorSearch = () => {
                         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
                           <div className="flex items-center gap-1">
                             <BookOpen className="w-4 h-4" />
-                            {tutor.total_sessions || 0} sessions
+                            {typeof tutor.total_sessions === 'number' ? tutor.total_sessions : 0} sessions
                           </div>
-                          {tutor.experience_years && (
+                          {tutor.experience_years && typeof tutor.experience_years === 'number' && (
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
                               {tutor.experience_years} years
@@ -620,38 +750,45 @@ const TutorSearch = () => {
                         </div>
 
                         <div className="flex gap-2">
-                        {tutor.hire_status === "accepted" ? (
-                          <Button
-                            // onClick={() => handleHireTutor(tutor)}
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Hired
-                          </Button>
-                        ) : tutor.hire_status === "pending" ? (
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Clock className="w-4 h-4 mr-2" />
-                            Pending
-                          </Button>
+                          {tutor.hire_status === "accepted" ? (
+                            <Button
+                              // onClick={() => handleHireTutor(tutor)}
+                              size="sm"
+                              className="flex-1"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Hired
+                            </Button>
+                          ) : tutor.hire_status === "pending" ? (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                            >
+                              <Clock className="w-4 h-4 mr-2" />
+                              Pending
+                            </Button>
                           ) : (
+                            <Button
+                              onClick={() => handleHireTutor(tutor)}
+                              size="sm"
+                              className="flex-1"
+                              disabled={loading}
+                            >
+                              {loading ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              ) : (
+                                <>
+                                  <Calendar className="w-4 h-4 mr-2" />
+                                  Request Tutor
+                                </>
+                              )}
+                            </Button>
+                          )}
                           <Button
-                          onClick={() => handleHireTutor(tutor)}
-                          size="sm"
-                          className="flex-1"
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Hire Tutor
-                        </Button>
-                        )}
-                        <Button
                             onClick={() => handleViewTutor(tutor._id)}
                             variant="outline"
                             size="sm"
-                            
+
                             className="flex-1"
                           >
                             <Eye className="w-4 h-4 mr-2" />
@@ -659,7 +796,7 @@ const TutorSearch = () => {
                           </Button>
                         </div>
 
-                      
+
                       </div>
                     </div>
                   </CardContent>
@@ -701,36 +838,34 @@ const TutorSearch = () => {
         )}
       </div>
 
-      {/* Booking Modal */}
-      {showBookingModal && selectedTutor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Book Session with {selectedTutor.user_id.full_name}</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowBookingModal(false)}
-              >
-                ×
-              </Button>
-            </div>
-
-            <div className="space-y-4">
+      {/* Hiring Dialog */}
+      <Dialog open={showHiringDialog} onOpenChange={setShowHiringDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Request {selectedTutor?.user_id?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedTutor && (
+            <div className="space-y-6">
+              {/* Subject Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
                 {(() => {
                   const tutorSubjects = Array.isArray(selectedTutor?.subjects) ? selectedTutor.subjects : [];
-                  const studentSubjects = Array.isArray(studentProfile?.preferred_subjects) ? studentProfile.preferred_subjects : [];
-                  const subjectOptions = Array.from(new Set([...(tutorSubjects || []), ...(studentSubjects || [])].filter(Boolean)));
+                  const subjectOptions = Array.from(new Set([...(tutorSubjects || [])].filter(Boolean)));
                   return (
-                    <Select value={bookingData.subject} onValueChange={(value) => setBookingData(prev => ({ ...prev, subject: value }))}>
+                    <Select value={hiringData.subject} onValueChange={(value) => setHiringData(prev => ({ ...prev, subject: value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
                       <SelectContent>
                         {subjectOptions.map((subject, index) => (
-                          <SelectItem key={index} value={subject}>{subject}</SelectItem>
+                          <SelectItem key={index} value={subject}>
+                            {getSubjectById(subject)?.name || subject}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -738,20 +873,24 @@ const TutorSearch = () => {
                 })()}
               </div>
 
+              {/* Academic Level Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
                 {(() => {
                   const tutorLevels = Array.isArray(selectedTutor?.academic_levels_taught) ? selectedTutor.academic_levels_taught : [];
-                  const studentLevels = Array.isArray(studentProfile?.academic_level) ? studentProfile.academic_level : [];
-                  const levelOptions = Array.from(new Set([...(tutorLevels || []), ...(studentLevels || [])].filter(Boolean)));
                   return (
-                    <Select value={bookingData.academic_level} onValueChange={(value) => setBookingData(prev => ({ ...prev, academic_level: value }))}>
+                    <Select
+                      value={hiringData.academic_level}
+                      onValueChange={(value) => setHiringData(prev => ({ ...prev, academic_level: value }))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select academic level" />
                       </SelectTrigger>
                       <SelectContent>
-                        {levelOptions.map((level, index) => (
-                          <SelectItem key={index} value={level}>{level}</SelectItem>
+                        {tutorLevels.map((level, index) => (
+                          <SelectItem key={index} value={level.educationLevel}>
+                            {getAcademicLevelById(level.educationLevel)?.level}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -759,35 +898,38 @@ const TutorSearch = () => {
                 })()}
               </div>
 
+              {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
                 <Input
+                  type="text"
                   placeholder="Any specific topics or requirements..."
-                  value={bookingData.notes}
-                  onChange={(e) => setBookingData(prev => ({ ...prev, notes: e.target.value }))}
+                  value={hiringData.notes}
+                  onChange={(e) => setHiringData(prev => ({ ...prev, notes: e.target.value }))}
+                  className="w-full"
                 />
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setShowBookingModal(false)}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleHireTutorSubmit}
-                  className="flex-1"
-                  disabled={!bookingData.subject || !bookingData.academic_level}
-                >
-                  Hire Tutor
-                </Button>
-              </div>
+              {/* Submit Button */}
+              <Button
+                onClick={handleHiringSubmit}
+                disabled={!hiringData.subject || !hiringData.academic_level || loading}
+                className="w-full py-3"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Hire Tutor
+                  </>
+                )}
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

@@ -191,16 +191,10 @@ const InquiryManagement = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">{inquiry.student_id.user_id.full_name}</h3>
-                        <p className="text-gray-600">{inquiry.subject}</p>
+                        <p className="text-gray-600">Subject: {inquiry.subject}</p>
+                        <p className="text-gray-600">Academic Level: {inquiry.academic_level}</p>
                         <p className="text-sm text-gray-500">{formatDate(inquiry.createdAt)}</p>
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-700 line-clamp-2">
-                            {(inquiry.message || inquiry.description || '').length > 100 
-                              ? `${(inquiry.message || inquiry.description || '').substring(0, 100)}...`
-                              : (inquiry.message || inquiry.description || '')
-                            }
-                          </p>
-                        </div>
+                       
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -255,6 +249,11 @@ const InquiryManagement = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Subject</Label>
                   <p className="text-lg">{selectedInquiry.subject}</p>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Academic Level</Label>
+                  <p className="text-lg">{selectedInquiry.academic_level}</p>
                 </div>
                 
                 <div>

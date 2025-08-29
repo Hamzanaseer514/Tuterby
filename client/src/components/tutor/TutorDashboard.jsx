@@ -33,12 +33,14 @@ import {
   User
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useSubject } from '../../hooks/useSubject';
 
 const TutorDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { getAuthToken, user } = useAuth();
   const token = getAuthToken();
+  const { academicLevels, subjects } = useSubject();
   const [parsed_subjects, setParsedSubjects] = useState([]);
 
   const [dashboardData, setDashboardData] = useState(null);
@@ -62,6 +64,11 @@ const TutorDashboard = () => {
 
 
 
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+}, [subjects]);
 
   const [replyMessage, setReplyMessage] = useState('');
   const [availableStudents, setAvailableStudents] = useState([]);
@@ -424,7 +431,7 @@ const TutorDashboard = () => {
                     <div key={inquiry._id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg">
                       <div>
                         <p className="font-medium text-sm text-gray-900 dark:text-white">{inquiry.student_id.user_id.full_name}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{inquiry.subject}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{getSubjectById(inquiry.subject)?.name || inquiry.subject}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant={inquiry.status === 'unread' ? 'destructive' : 'secondary'}>
@@ -483,7 +490,7 @@ const TutorDashboard = () => {
                         <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">{session.subject}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">{getSubjectById(session.subject)?.name || session.subject}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold">Level: {session.academic_level_name || '—'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           Duration: {session.duration_hours}h • Rate: {formatCurrency(session.hourly_rate)} • Total: {formatCurrency((session.duration_hours || 0) * (session.hourly_rate || 0))}
@@ -515,7 +522,7 @@ const TutorDashboard = () => {
                 <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Your schedule is clear for now</p>
                 <Button
                   className="mt-4 bg-primary hover:bg-primary/90"
-                  onClick={() => navigate('/tutor/sessions', { state: { action: 'create' } })}
+                  onClick={() => navigate('/tutor-dashboard/create-session', { state: { action: 'create' } })}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Create Your First Session
@@ -543,7 +550,7 @@ const TutorDashboard = () => {
                         <Calendar className="h-3 w-3 text-gray-600 dark:text-gray-400" />
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">{session.subject}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">{getSubjectById(session.subject)?.name || session.subject}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold">Level: {session.academic_level_name || '—'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           Duration: {session.duration_hours}h • Rate: {formatCurrency(session.hourly_rate)} • Total: {formatCurrency((session.duration_hours || 0) * (session.hourly_rate || 0))}
@@ -663,7 +670,7 @@ const TutorDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
-                      {viewSession.subject}
+                      {getSubjectById(viewSession.subject)?.name || viewSession.subject}
                     </h4>
                     <p className="text-blue-700 dark:text-blue-400">
                       {formatDate(viewSession.session_date)}

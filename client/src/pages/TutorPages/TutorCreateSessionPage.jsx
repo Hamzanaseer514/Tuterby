@@ -4,14 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSubject } from "@/hooks/useSubject";
 import { BASE_URL } from "@/config";
 import { toast } from "react-toastify";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
 const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const TutorCreateSessionPage = () => {
@@ -39,7 +37,6 @@ const TutorCreateSessionPage = () => {
     const [selectedTime, setSelectedTime] = useState(""); // HH:mm
     const [daySessions, setDaySessions] = useState([]); // existing sessions on selected day
     const [conflictingSlots, setConflictingSlots] = useState([]); // array of HH:mm strings that are conflicting
-
     const [sessionForm, setSessionForm] = useState({
         student_ids: [],
         subject: "",
@@ -49,10 +46,20 @@ const TutorCreateSessionPage = () => {
         hourly_rate: 0,
         notes: ""
     });
+    
+    const [studentPaymentStatuses, setStudentPaymentStatuses] = useState({});
+    const [loadingPaymentStatus, setLoadingPaymentStatus] = useState(false);
+
+    const getSubjectById = useCallback((id) => {
+        if (!id) return undefined;
+        const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+        return s;
+    }, [subjects]);
 
     const getLevelById = useCallback((id) => {
         if (!id) return undefined;
-        return (academicLevels || []).find(l => l?._id === id || l?._id?.toString() === id);
+        const level = (academicLevels || []).find(l => l?._id === id || l?._id?.toString() === id);
+        return level;
         // return (academicLevels || []).find(l => l?._id === id || l?._id?.toString() === id || l?.educationLevel === id);
     }, [academicLevels]);
 
@@ -113,8 +120,34 @@ const TutorCreateSessionPage = () => {
         fetchAvailabilitySettings();
     }, [user, fetchTutorSubjects, fetchAvailableStudents, fetchAvailabilitySettings]);
 
+    // Check payment status for selected students
+    const checkStudentPaymentStatus = async (studentId) => {
+        if (!studentId) return null;
+        
+        try {
+            setLoadingPaymentStatus(true);
+            const response = await fetch(`${BASE_URL}/api/auth/student/payment-status/${studentId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                return data;
+            }
+            return null;
+        } catch (err) {
+            console.error('Error checking payment status:', err);
+            return null;
+        } finally {
+            setLoadingPaymentStatus(false);
+        }
+    };
+
     // Build subjects and academic levels from selected students
-    const onChangeSelectedStudents = (nextIds) => {
+    const onChangeSelectedStudents = async (nextIds) => {
         setSessionForm(prev => ({ ...prev, student_ids: nextIds, subject: prev.subject }));
 
         const selected = availableStudents.filter(s => nextIds.includes(s._id));
@@ -128,7 +161,16 @@ const TutorCreateSessionPage = () => {
         setSelectedStudentSubjects(Array.from(subjectsSet));
         const levelObjects = Array.from(levelIdSet).map(id => getLevelById(id)).filter(Boolean);
         setSelectedStudentAcademicLevels(levelObjects);
-        // setTutorAcademicLevels(levelObjects);
+        
+        // Check payment status for selected students
+        const newPaymentStatuses = {};
+        for (const studentId of nextIds) {
+            const paymentStatus = await checkStudentPaymentStatus(studentId);
+            if (paymentStatus) {
+                newPaymentStatuses[studentId] = paymentStatus;
+            }
+        }
+        setStudentPaymentStatuses(newPaymentStatuses);
     };
 
     const monthDays = useMemo(() => {
@@ -258,7 +300,7 @@ const TutorCreateSessionPage = () => {
                 toast.error('Please select a date and time');
                 return;
             }
-
+            console.log(sessionForm);
             const response = await fetch(`${BASE_URL}/api/tutor/sessions`, {
                 method: 'POST',
                 headers: {
@@ -277,7 +319,7 @@ const TutorCreateSessionPage = () => {
                 }),
             });
             const responseData = await response.json();
-            if(response.status == 401){
+            if (response.status == 401) {
                 toast.error(responseData.message || 'This Academic Level is not selected by you. Please add this academic level to your profile.');
                 navigate('/tutor-dashboard');
                 return;
@@ -297,36 +339,172 @@ const TutorCreateSessionPage = () => {
     }, [displayMonth]);
 
     const allSubjects = useMemo(() => {
-        const s = new Set();
-        selectedStudentSubjects.forEach(x => s.add(x));
-        parsedSubjects.forEach(x => s.add(x));
-        return Array.from(s).sort();
-    }, [selectedStudentSubjects, parsedSubjects]);
+        if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
+            return [];
+        }
 
-    const allAcademicLevels = useMemo(() => {
-        const s = new Set();
-        selectedStudentAcademicLevels.forEach(x => s.add(x));
-        // tutorAcademicLevels.forEach(x => s.add(x));
-        return Array.from(s).sort();
-    }, [selectedStudentAcademicLevels]);
+        // Get subjects for each selected student
+        const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
+        const studentSubjectSets = selectedStudents.map(student => {
+            const studentSubjects = Array.isArray(student.preferred_subjects) ? student.preferred_subjects : [];
+            return new Set(studentSubjects);
+        });
+
+        // Get tutor subjects
+        const tutorSubjectIds = new Set(parsedSubjects);
+
+        // Find subjects that exist in ALL students AND tutor
+        const commonSubjects = [];
+        tutorSubjectIds.forEach(subjectId => {
+            // Check if this subject exists in ALL selected students
+            const existsInAllStudents = studentSubjectSets.every(studentSet =>
+                studentSet.has(subjectId)
+            );
+
+            if (existsInAllStudents) {
+                commonSubjects.push(subjectId);
+            }
+        });
+
+        return commonSubjects.sort();
+    }, [selectedStudentSubjects, parsedSubjects, sessionForm.student_ids, availableStudents]);
+
+    // const allAcademicLevels = useMemo(() => {
+    //     const s = new Set();
+    //     selectedStudentAcademicLevels.forEach(x => s.add(x));
+    //     // tutorAcademicLevels.forEach(x => s.add(x));
+    //     return Array.from(s).sort();
+    // }, [selectedStudentAcademicLevels]);
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-8 flex items-center justify-between">
                     <div>
+
                         <h1 className="text-3xl font-bold text-gray-900">Create New Session</h1>
                         <p className="text-gray-600">Plan a new tutoring session with your students</p>
                     </div>
                     <Button variant="outline" onClick={() => navigate(-1)}>Back</Button>
                 </div>
+               {/* Student Details Summary */}
+{sessionForm.student_ids && sessionForm.student_ids.length > 0 && (
+    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-5">
+        <h4 className="font-medium text-blue-900 mb-3">Selected Students Summary</h4>
+        
+        {/* Header Row */}
+        <div className="grid grid-cols-12 gap-2 mb-3 pb-2 border-b border-blue-200">
+            <div className="col-span-12 md:col-span-4 font-semibold text-blue-900 text-sm">Name</div>
+            <div className="col-span-6 md:col-span-3 font-semibold text-blue-900 text-sm">Subjects</div>
+            <div className="col-span-6 md:col-span-3 font-semibold text-blue-900 text-sm">Academic Level</div>
+            <div className="col-span-12 md:col-span-2 font-semibold text-blue-900 text-sm text-center md:text-left">Payment Status</div>
+        </div>
+        
+        {/* Student Rows */}
+        <div className="space-y-3">
+            {availableStudents
+                .filter(s => sessionForm.student_ids.includes(s._id))
+                .map((student) => {
+                    const studentSubjects = Array.isArray(student.preferred_subjects)
+                        ? student.preferred_subjects
+                        : [];
+                    // Handle different formats of academic_level data
+                    let studentLevels = [];
+                    if (student.academic_level) {
+                        if (Array.isArray(student.academic_level)) {
+                            studentLevels = student.academic_level;
+                        } else if (typeof student.academic_level === 'object') {
+                            // If it's already an object, use it directly
+                            studentLevels = [student.academic_level];
+                        } else if (typeof student.academic_level === 'string') {
+                            // If it's a string, try to parse it or use as ID
+                            try {
+                                const parsed = JSON.parse(student.academic_level);
+                                studentLevels = Array.isArray(parsed) ? parsed : [parsed];
+                            } catch {
+                                studentLevels = [student.academic_level];
+                            }
+                        } else {
+                            studentLevels = [student.academic_level];
+                        }
+                    }
+
+                    return (
+                        <div key={student._id} className="grid grid-cols-12 gap-2 border-l-4 border-blue-300 pl-3 py-2 items-center">
+                            
+                            <div className="col-span-12 md:col-span-4 font-medium text-blue-800">
+                                {student.full_name || student?.user_id?.full_name}
+                            </div>
+                            
+                            <div className="col-span-6 md:col-span-3 text-sm text-blue-700">
+                                {studentSubjects.length > 0
+                                    ? studentSubjects.map(subjectId => {
+                                        const subject = getSubjectById(subjectId);
+                                        return subject?.name || subjectId;
+                                    }).join(', ')
+                                    : 'No subjects selected'
+                                }
+                            </div>
+                            
+                            <div className="col-span-6 md:col-span-3 text-sm text-blue-700">
+                                {studentLevels.length > 0
+                                    ? studentLevels.map((levelItem, index) => {
+                                        // Check if levelItem is already an object with level property
+                                        if (typeof levelItem === 'object' && levelItem.level) {
+                                            return levelItem.level;
+                                        }
+                                        // If it's an ID, get the level object
+                                        const level = getLevelById(levelItem);
+                                        return level?.level || levelItem;
+                                    }).join(', ')
+                                    : 'No academic levels selected'
+                                }
+                            </div>
+                            
+                            <div className="col-span-12 md:col-span-2 text-sm flex justify-center md:justify-start">
+                                {(() => {
+                                    const paymentStatus = studentPaymentStatuses[student._id];
+                                    if (!paymentStatus) {
+                                        return (
+                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                                ⏳ Checking...
+                                            </span>
+                                        );
+                                    }
+                                    
+                                    if (paymentStatus.has_unpaid_requests) {
+                                        return (
+                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                ❌ Payment Required
+                                            </span>
+                                        );
+                                    } else {
+                                        return (
+                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                ✅ Payment Complete
+                                            </span>
+                                        );
+                                    }
+                                })()}
+                            </div>
+                        </div>
+                    );
+                })}
+        </div>
+    </div>
+)}
+
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
                     <div className="lg:col-span-3 space-y-6">
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Session Details</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+
                                 <div>
                                     <Label>Select Students</Label>
                                     <div className="border rounded-md p-2 max-h-64 overflow-auto bg-white">
@@ -360,6 +538,7 @@ const TutorCreateSessionPage = () => {
                                     <p className="text-xs text-gray-500 mt-1">You can select multiple students for a group session.</p>
                                 </div>
 
+
                                 <div>
                                     <Label>Subject</Label>
                                     <Select
@@ -371,11 +550,24 @@ const TutorCreateSessionPage = () => {
                                             <SelectValue placeholder={(sessionForm.student_ids || []).length > 0 ? 'Select subject' : 'Select student(s) first'} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {allSubjects.map(subject => (
-                                                <SelectItem key={`subject-${subject}`} value={subject}>{subject}</SelectItem>
-                                            ))}
+                                            {allSubjects.length > 0 ? (
+                                                allSubjects.map(subject => (
+                                                    <SelectItem key={`subject-${subject}`} value={subject}>
+                                                        {getSubjectById(subject)?.name || subject}
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <div className="p-2 text-sm text-gray-500">
+                                                    No common subjects found between selected students and your profile
+                                                </div>
+                                            )}
                                         </SelectContent>
                                     </Select>
+                                    {allSubjects.length === 0 && sessionForm.student_ids && sessionForm.student_ids.length > 0 && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            ⚠️ No common subjects found. Students must have subjects that match your teaching subjects.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -389,28 +581,166 @@ const TutorCreateSessionPage = () => {
                                             <SelectValue placeholder={(sessionForm.student_ids || []).length > 0 ? 'Select academic level' : 'Select student(s) first'} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectContent>
-                                                {(() => {
-                                                    const allLevels = new Set();
-                                                    const studentLevels = Array.isArray(selectedStudentAcademicLevels) ? selectedStudentAcademicLevels : [];
-                                                    const tutorLevels = Array.isArray(tutorAcademicLevels) ? tutorAcademicLevels : [];
-                                                    [...tutorLevels, ...studentLevels].forEach(lvl => {
-                                                            if (lvl.educationLevel) {
-                                                                allLevels.add(lvl.educationLevel);
-                                                            } else if (lvl._id) {
-                                                                allLevels.add(lvl._id);
+                                            {(() => {
+                                                if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
+                                                    return [];
+                                                }
+
+                                                // Get academic levels for each selected student
+                                                const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
+
+                                                // Extract student academic levels and normalize them
+                                                const studentLevelSets = selectedStudents.map(student => {
+                                                    let studentLevels = [];
+
+                                                    // Check multiple possible field names for academic levels
+                                                    const academicLevelField = student.academic_level || student.academic_levels || student.preferred_academic_levels || student.education_level;
+
+
+                                                    if (academicLevelField) {
+                                                        if (Array.isArray(academicLevelField)) {
+                                                            studentLevels = academicLevelField;
+                                                        } else if (typeof academicLevelField === 'string') {
+                                                            // Handle case where it might be a JSON string
+                                                            try {
+                                                                const parsed = JSON.parse(academicLevelField);
+                                                                studentLevels = Array.isArray(parsed) ? parsed : [parsed];
+                                                            } catch {
+                                                                studentLevels = [academicLevelField];
                                                             }
-                                                        });
-                                                    const levels = Array.from(allLevels).map(id => getLevelById(id)).filter(Boolean);
-                                                    return levels.map((levelObj) => (
+                                                        } else if (typeof academicLevelField === 'object') {
+                                                            // If it's already an object, use it directly
+                                                            studentLevels = [academicLevelField];
+                                                        } else {
+                                                            studentLevels = [academicLevelField];
+                                                        }
+                                                    }
+
+
+                                                    // Convert to strings for comparison
+                                                    const levelIds = studentLevels.map(level => {
+                                                        if (typeof level === 'object') {
+                                                            const id = level._id?.toString() || level.id?.toString();
+                                                            return id;
+                                                        } else {
+                                                            return level.toString();
+                                                        }
+                                                    }).filter(Boolean);
+
+
+                                                    return new Set(levelIds);
+                                                });
+
+
+
+                                                const tutorLevelIds = new Set(
+                                                    tutorAcademicLevels.map(lvl => {
+                                                        const levelId = lvl.educationLevel || lvl._id?.toString() || lvl.id?.toString();
+                                                        return levelId;
+                                                    }).filter(Boolean)
+                                                );
+
+                                                // Find levels that exist in ALL students AND tutor
+                                                const commonLevelIds = [];
+                                                tutorLevelIds.forEach(levelId => {
+
+                                                    // Check if this level exists in ALL selected students
+                                                    const existsInAllStudents = studentLevelSets.every((studentSet, index) => {
+                                                        const hasLevel = studentSet.has(levelId);
+                                                        return hasLevel;
+                                                    });
+
+
+                                                    if (existsInAllStudents) {
+                                                        commonLevelIds.push(levelId);
+                                                    }
+                                                });
+
+
+                                                // Map back to full level objects and sort
+                                                const levels = commonLevelIds
+                                                    .map(id => {
+                                                        const level = getLevelById(id);
+                                                        return level;
+                                                    })
+                                                    .filter(Boolean)
+                                                    .sort((a, b) => a.level.localeCompare(b.level));
+
+
+                                                if (levels.length === 0) {
+                                                    return (
+                                                        <div className="p-2 text-sm text-gray-500">
+                                                            No common academic levels found between selected students and your profile
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return levels.map((levelObj) => {
+                                                    return (
                                                         <SelectItem key={`level-${levelObj._id}`} value={levelObj._id}>
                                                             {levelObj.level}
                                                         </SelectItem>
-                                                    ));
-                                                })()}
-                                            </SelectContent>
+                                                    );
+                                                });
+                                            })()}
                                         </SelectContent>
                                     </Select>
+                                    {(() => {
+                                        if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) return null;
+
+                                        const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
+                                        const studentLevelSets = selectedStudents.map(student => {
+                                            let studentLevels = [];
+                                            const academicLevelField = student.academic_level || student.academic_levels || student.preferred_academic_levels || student.education_level;
+
+                                            if (academicLevelField) {
+                                                if (Array.isArray(academicLevelField)) {
+                                                    studentLevels = academicLevelField;
+                                                } else if (typeof academicLevelField === 'string') {
+                                                    try {
+                                                        const parsed = JSON.parse(academicLevelField);
+                                                        studentLevels = Array.isArray(parsed) ? parsed : [parsed];
+                                                    } catch {
+                                                        studentLevels = [academicLevelField];
+                                                    }
+                                                } else {
+                                                    studentLevels = [academicLevelField];
+                                                }
+                                            }
+
+                                            return new Set(studentLevels.map(level =>
+                                                typeof level === 'object' ? level._id?.toString() || level.id?.toString() : level.toString()
+                                            ).filter(Boolean));
+                                        });
+
+                                        const tutorLevelIds = new Set(
+                                            tutorAcademicLevels.map(lvl => {
+                                                const levelId = lvl.educationLevel || lvl._id?.toString() || lvl.id?.toString();
+                                                return levelId;
+                                            }).filter(Boolean)
+                                        );
+
+                                        const commonLevelIds = [];
+                                        tutorLevelIds.forEach(levelId => {
+                                            const existsInAllStudents = studentLevelSets.every(studentSet =>
+                                                studentSet.has(levelId)
+                                            );
+                                            if (existsInAllStudents) {
+                                                commonLevelIds.push(levelId);
+                                            }
+                                        });
+
+                                        if (commonLevelIds.length === 0) {
+                                            return (
+                                                <p className="text-sm text-red-600 mt-1">
+                                                    ⚠️ No common academic levels found. Students must have academic levels that match your teaching levels.
+                                                </p>
+                                            );
+                                        }
+
+                                        return null;
+                                    })()}
+
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -453,7 +783,64 @@ const TutorCreateSessionPage = () => {
 
                         <div className="flex gap-3">
                             <Button variant="outline" onClick={() => navigate(-1)} className="flex-1">Cancel</Button>
-                            <Button onClick={handleCreateSession} className="flex-1" disabled={!sessionForm.student_ids || sessionForm.student_ids.length === 0}>Create Session</Button>
+                            <Button
+                                onClick={handleCreateSession}
+                                className="flex-1"
+                                disabled={
+                                    !sessionForm.student_ids ||
+                                    sessionForm.student_ids.length === 0 ||
+                                    allSubjects.length === 0 ||
+                                    (() => {
+                                        if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) return true;
+
+                                        const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
+                                        const studentLevelSets = selectedStudents.map(student => {
+                                            let studentLevels = [];
+                                            const academicLevelField = student.academic_level || student.academic_levels || student.preferred_academic_levels || student.education_level;
+
+                                            if (academicLevelField) {
+                                                if (Array.isArray(academicLevelField)) {
+                                                    studentLevels = academicLevelField;
+                                                } else if (typeof academicLevelField === 'string') {
+                                                    try {
+                                                        const parsed = JSON.parse(academicLevelField);
+                                                        studentLevels = Array.isArray(parsed) ? parsed : [parsed];
+                                                    } catch {
+                                                        studentLevels = [academicLevelField];
+                                                    }
+                                                } else {
+                                                    studentLevels = [academicLevelField];
+                                                }
+                                            }
+
+                                            return new Set(studentLevels.map(level =>
+                                                typeof level === 'object' ? level._id?.toString() || level.id?.toString() : level.toString()
+                                            ).filter(Boolean));
+                                        });
+
+                                        const tutorLevelIds = new Set(
+                                            tutorAcademicLevels.map(lvl => {
+                                                const levelId = lvl.educationLevel || lvl._id?.toString() || lvl.id?.toString();
+                                                return levelId;
+                                            }).filter(Boolean)
+                                        );
+
+                                        const commonLevelIds = [];
+                                        tutorLevelIds.forEach(levelId => {
+                                            const existsInAllStudents = studentLevelSets.every(studentSet =>
+                                                studentSet.has(levelId)
+                                            );
+                                            if (existsInAllStudents) {
+                                                commonLevelIds.push(levelId);
+                                            }
+                                        });
+
+                                        return commonLevelIds.length === 0;
+                                    })()
+                                }
+                            >
+                                Create Session
+                            </Button>
                         </div>
                     </div>
 

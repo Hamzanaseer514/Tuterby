@@ -45,6 +45,8 @@ import {
   Add,
   Cancel,
 } from '@mui/icons-material';
+import { useSubject } from '../../../hooks/useSubject';
+
 
 
 const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, index }) => {
@@ -60,7 +62,13 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
         return <Pending color="action" fontSize="small" />;
     }
   };
+  const { subjects } = useSubject();
 
+  const getSubjectName = (id) => {
+ 
+    const subject = subjects.find(s => s._id === id);
+    return subject ? subject: '';
+  }
   return (
     <Slide direction="up" in timeout={300 + index * 50}>
       <TableRow
@@ -113,7 +121,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   user.subjects.slice(0, 3).map(subject => (
                     <Chip
                       key={subject}
-                      label={subject}
+                      label={getSubjectName(subject).name}
                       size="small"
                       variant="outlined"
                       sx={{
@@ -176,7 +184,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   user.subjects.slice(0, 3).map(subject => (
                     <Chip
                       key={subject}
-                      label={subject}
+                      label={getSubjectName(subject).name}
                       size="small"
                       variant="outlined"
                       sx={{

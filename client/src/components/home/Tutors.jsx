@@ -43,13 +43,29 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import { BASE_URL } from '@/config';
+import { useSubject } from '@/hooks/useSubject';
+import { useCallback } from 'react';
 
 const TutorCard = ({ tutor, onHire, loading, user }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { subjects, academicLevels } = useSubject();
+
+  const getSubjectById = useCallback((id) => {
+    if (!id) return undefined;
+    const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
+    return s;
+  }, [subjects]);
+
+  const getAcademicLevelById = useCallback((id) => {
+    if (!id) return undefined;
+    console.log("id", id);
+    const s = (academicLevels || []).find(s => s?._id?.toString() === id.toString());
+    console.log("s", s);
+    return s;
+  }, [academicLevels]);
 
   const formatPrice = (price) => {
-    // if (!price || price === 0) return 'Contact for pricing';
     return `£${price}/hr`;
   };
 
@@ -67,7 +83,8 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
     <Card 
       elevation={0}
       sx={{ 
-        height: '100%',
+        height: 'auto',
+        minHeight: '320px',
         borderRadius: 3,
         border: `1px solid ${theme.palette.divider}`,
         transition: 'all 0.3s ease',
@@ -78,214 +95,299 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
         }
       }}
     >
-      <CardContent sx={{ p: 3 }}>
-        {/* Header with photo and basic info */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-          <Avatar
-            src={tutor.photo_url || '/images/london10.jpg'}
-            alt={tutor.full_name}
-            sx={{ 
-              width: 80, 
-              height: 80, 
-              mr: 2,
-              border: `3px solid ${theme.palette.primary.light}`
-            }}
-          />
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
-              {tutor.full_name}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Rating 
-                value={tutor.average_rating || 0} 
-                readOnly 
-                size="small"
-                sx={{ color: theme.palette.warning.main }}
-              />
-              <Typography variant="body2" color="textSecondary">
-                ({tutor.average_rating || 0})
+      <CardContent sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header Section - More Compact */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.grey[50]
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar
+              src={ `${BASE_URL}${tutor.photo_url}` }
+              alt={tutor.full_name}
+              sx={{ 
+                width: 60, 
+                height: 60, 
+                border: `3px solid ${theme.palette.primary.light}`,
+                boxShadow: theme.shadows[2],
+                flexShrink: 0
+              }}
+            />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography 
+                variant="h6" 
+                fontWeight="bold" 
+                sx={{ 
+                  mb: 0.5,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontSize: '1rem'
+                }}
+              >
+                {tutor.full_name}
+              </Typography>
+              
+              {/* Rating and Location - More Compact */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Rating 
+                    value={tutor.average_rating || 0} 
+                    readOnly 
+                    size="small"
+                    sx={{ color: theme.palette.warning.main }}
+                  />
+                  <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5, fontSize: '0.8rem' }}>
+                    {tutor.average_rating || 0}
+                  </Typography>
+                </Box>
+                {tutor.location && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <LocationOn fontSize="small" color="action" />
+                    <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
+                      {tutor.location}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Price Range - Prominent */}
+              <Typography 
+                variant="h6" 
+                fontWeight="bold" 
+                color="primary.main"
+                sx={{ 
+                  fontSize: '1rem',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                }}
+              >
+                {getPriceRange()}
               </Typography>
             </Box>
-            {tutor.location && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <LocationOn fontSize="small" color="action" />
-                <Typography variant="body2" color="textSecondary">
-                  {tutor.location}
+          </Box>
+        </Box>
+
+        {/* Main Content Section - More Compact */}
+        <Box sx={{ p: 2.5, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Qualifications and Experience - Compact */}
+          <Box sx={{ mb: 2 }}>
+            {tutor.qualifications && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <School fontSize="small" color="primary" />
+                <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>
+                  {tutor.qualifications}
+                </Typography>
+              </Box>
+            )}
+            {tutor.experience_years > 0 && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Work fontSize="small" color="primary" />
+                <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>
+                  {tutor.experience_years} years experience
                 </Typography>
               </Box>
             )}
           </Box>
-        </Box>
 
-        {/* Qualifications and Experience */}
-        <Box sx={{ mb: 2 }}>
-          {tutor.qualifications && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <School fontSize="small" color="primary" />
-              <Typography variant="body2" color="textSecondary">
-                {tutor.qualifications}
+          {/* Subjects Section - Compact */}
+          {tutor.subjects && tutor.subjects.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: theme.palette.text.primary, fontSize: '0.8rem' }}>
+                📚 Subjects
               </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {tutor.subjects.slice(0, 2).map((subject, index) => (
+                  <Chip
+                    key={index}
+                    label={getSubjectById(subject)?.name || subject}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontSize: "0.7rem",
+                      borderColor: theme.palette.primary.main,
+                      color: theme.palette.primary.main,
+                      backgroundColor: theme.palette.primary.light + '20',
+                      fontWeight: 500,
+                      height: '22px'
+                    }}
+                  />
+                ))}
+                {tutor.subjects.length > 2 && (
+                  <Chip
+                    label={`+${tutor.subjects.length - 2}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ 
+                      fontSize: "0.7rem",
+                      borderColor: theme.palette.grey[400],
+                      color: theme.palette.grey[600],
+                      height: '22px'
+                    }}
+                  />
+                )}
+              </Box>
             </Box>
           )}
-          {tutor.experience_years > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Work fontSize="small" color="primary" />
-              <Typography variant="body2" color="textSecondary">
-                {tutor.experience_years} years experience
+
+          {/* Academic Levels Section - Compact */}
+          {tutor.academic_levels && tutor.academic_levels.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: theme.palette.text.primary, fontSize: '0.8rem' }}>
+                🎓 Levels
               </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {tutor.academic_levels.slice(0, 2).map((level, index) => (
+                  <Chip
+                    key={index}
+                    label={`${getAcademicLevelById(level.educationLevel._id)?.level} - ${formatPrice(level.hourlyRate)}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ 
+                      fontSize: '0.7rem',
+                      borderColor: theme.palette.success.main,
+                      color: theme.palette.success.main,
+                      backgroundColor: theme.palette.success.light + '20',
+                      fontWeight: 500,
+                      height: '22px'
+                    }}
+                  />
+                ))}
+                {tutor.academic_levels.length > 2 && (
+                  <Chip
+                    label={`+${tutor.academic_levels.length - 2}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ 
+                      fontSize: '0.7rem',
+                      borderColor: theme.palette.grey[400],
+                      color: theme.palette.grey[600],
+                      height: '22px'
+                    }}
+                  />
+                )}
+              </Box>
             </Box>
           )}
-        </Box>
 
-        {/* Subjects */}
-        {tutor.subjects && tutor.subjects.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
-              Subjects:
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {tutor.subjects.slice(0, 3).map((subject, index) => (
-                <Chip
-                  key={index}
-                  label={subject}
-                  size="small"
-                  variant="outlined"
-                  sx={{ 
-                    fontSize: '0.75rem',
-                    borderColor: theme.palette.primary.main,
-                    color: theme.palette.primary.main
-                  }}
-                />
-              ))}
-              {tutor.subjects.length > 3 && (
-                <Chip
-                  label={`+${tutor.subjects.length - 3} more`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.75rem' }}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* Academic Levels and Pricing */}
-        {tutor.academic_levels && tutor.academic_levels.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
-              Academic Levels:
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {tutor.academic_levels.slice(0, 2).map((level, index) => (
-                <Chip
-                  key={index}
-                  label={`${level.name} - ${formatPrice(level.hourlyRate)}`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.75rem' }}
-                />
-              ))}
-              {tutor.academic_levels.length > 2 && (
-                <Chip
-                  label={`+${tutor.academic_levels.length - 2} more`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.75rem' }}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* Stats */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          mb: 2,
-          p: 2,
-          backgroundColor: theme.palette.grey[50],
-          borderRadius: 2
-        }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" fontWeight="bold" color="primary.main">
-              {tutor.total_sessions || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Sessions
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" fontWeight="bold" color="success.main">
-              {getPriceRange()}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Hourly Rate
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Verification Badges */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          {tutor.is_background_checked && (
-            <Tooltip title="Background Checked">
-              <Chip
-                icon={<CheckCircle />}
-                label="Background Checked"
-                size="small"
-                color="success"
-                variant="outlined"
-                sx={{ fontSize: '0.7rem' }}
-              />
-            </Tooltip>
-          )}
-          {tutor.is_qualification_verified && (
-            <Tooltip title="Qualifications Verified">
-              <Chip
-                icon={<CheckCircle />}
-                label="Qualified"
-                size="small"
-                color="success"
-                variant="outlined"
-                sx={{ fontSize: '0.7rem' }}
-              />
-            </Tooltip>
-          )}
-        </Box>
-
-        {/* Hire Button */}
-        <Button
-          variant={!user || user.role !== 'student' ? 'outlined' : 'contained'}
-          fullWidth
-          onClick={() => onHire(tutor)}
-          // disabled={loading}
-          sx={{
+          {/* Stats Section - Compact */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 2,
+            p: 1.5,
+            backgroundColor: theme.palette.primary.light + '10',
             borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 'bold',
-            py: 1.5,
-            ...(user && user.role === 'student' ? {
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              '&:hover': {
-                background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                transform: 'translateY(-2px)'
-              }
-            } : {
-              borderColor: theme.palette.grey[400],
-              color: theme.palette.grey[600],
-              '&:hover': {
-                borderColor: theme.palette.grey[600],
-                backgroundColor: theme.palette.grey[50]
-              }
-            })
-          }}
-        >
-          {loading ? 'Processing...' : 
-            !user ? 'Hire This Tutor' : 
-            user.role !== 'student' ? 'Students Only' : 
-            'Hire This Tutor'
-          }
-        </Button>
+            border: `1px solid ${theme.palette.primary.light + '30'}`
+          }}>
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="primary.main" sx={{ fontSize: '1.1rem' }}>
+                {tutor.total_sessions || 0}
+              </Typography>
+              <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
+                Sessions
+              </Typography>
+            </Box>
+            <Box sx={{ 
+              width: '1px', 
+              height: 30, 
+              backgroundColor: theme.palette.primary.light + '40' 
+            }} />
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="success.main" sx={{ fontSize: '1.1rem' }}>
+                {tutor.experience_years || 0}
+              </Typography>
+              <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
+                Years
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Verification Badges - Compact */}
+          {(tutor.is_background_checked || tutor.is_qualification_verified) && (
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+              {tutor.is_background_checked && (
+                <Tooltip title="Background Checked">
+                  <Chip
+                    icon={<CheckCircle />}
+                    label="Background Checked"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    sx={{ 
+                      fontSize: '0.65rem',
+                      fontWeight: 500,
+                      backgroundColor: theme.palette.success.light + '20',
+                      height: '22px'
+                    }}
+                  />
+                </Tooltip>
+              )}
+              {tutor.is_qualification_verified && (
+                <Tooltip title="Qualifications Verified">
+                  <Chip
+                    icon={<CheckCircle />}
+                    label="Qualified"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    sx={{ 
+                      fontSize: '0.65rem',
+                      fontWeight: 500,
+                      backgroundColor: theme.palette.success.light + '20',
+                      height: '22px'
+                    }}
+                  />
+                </Tooltip>
+              )}
+            </Box>
+          )}
+        </Box>
+
+        {/* Footer Section with Hire Button - Compact */}
+        <Box sx={{ 
+          p: 2.5, 
+          pt: 0,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.grey[50]
+        }}>
+          <Button
+            variant={!user || user.role !== 'student' ? 'outlined' : 'contained'}
+            fullWidth
+            onClick={() => onHire(tutor)}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              py: 1.2,
+              fontSize: '0.9rem',
+              ...(user && user.role === 'student' ? {
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                boxShadow: theme.shadows[3],
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                  transform: 'translateY(-2px)',
+                  boxShadow: theme.shadows[6]
+                }
+              } : {
+                borderColor: theme.palette.grey[400],
+                color: theme.palette.grey[600],
+                '&:hover': {
+                  borderColor: theme.palette.grey[600],
+                  backgroundColor: theme.palette.grey[50]
+                }
+              })
+            }}
+          >
+            {loading ? 'Processing...' : 
+              !user ? 'Hire This Tutor' : 
+              user.role !== 'student' ? 'Students Only' : 
+              'Hire This Tutor'
+            }
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -394,6 +496,7 @@ const Tutors = () => {
       }
       
       const data = await response.json();
+      console.log("data", data);
       setTutors(data.tutors || []);
     } catch (error) {
       console.error('Error fetching tutors:', error);

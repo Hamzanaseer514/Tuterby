@@ -7,8 +7,12 @@ const { getStudentDashboard,updateStudentProfile,
    sendMessage,getAcceptedTutorsForStudent,
    getStudentTutorChat,
    getHiredTutors,
+   rateSession,
    requestHelpFromTutor,
-   getStudentProfile} = require("../Controllers/StudentController")
+   getStudentProfile,
+   getStudentPayments,
+   processStudentPayment,
+   checkStudentPaymentStatus} = require("../Controllers/StudentController")
 const { getUserProfile, updateUserPhoto } = require("../Controllers/UserController")
 
 const { protect } = require("../Middleware/authMiddleware")
@@ -55,6 +59,7 @@ router.post('/user-profile/:user_id/photo', protect, upload.single('photo'), upd
 // Student dashboard routes
 router.get("/student/dashboard/:userId", protect, getStudentDashboard);
 router.get("/student/sessions/:userId", protect, getStudentSessions);
+router.post("/student/sessions/:session_id/rate", protect, rateSession);
 
 
 // Tutor search and help request routes
@@ -66,5 +71,10 @@ router.post("/tutors/sessions", protect, hireTutor);
 router.post("/student/:userId/help-request", protect, requestAdditionalHelp);
 router.get("/student/:userId/help-requests", protect, getStudentHelpRequests);
 router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
+
+// Payment routes
+router.get("/student/payments/:userId", protect, getStudentPayments);
+router.post("/student/payments/:paymentId/pay", protect, processStudentPayment);
+router.get("/student/payment-status/:userId", protect, checkStudentPaymentStatus);
 
 module.exports = router;            

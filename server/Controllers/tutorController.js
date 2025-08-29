@@ -8,9 +8,10 @@ const TutorInquiry = require("../Models/tutorInquirySchema");
 const TutorAvailability = require("../Models/tutorAvailabilitySchema");
 const User = require("../Models/userSchema");
 const StudentProfile = require("../Models/studentProfileSchema");
+const StudentPayment = require("../Models/studentPaymentSchema"); // Added for payment records
 const Message = require("../Models/messageSchema"); // Importing Message model
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
-
+const sendEmail = require("../Utils/sendEmail");
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
 
@@ -113,7 +114,7 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     .sort({ session_date: -1 })
     .limit(5);
 
-  const [totalHours, totalEarnings, averageRating, completedSessions] = await Promise.all([
+  const [totalHours, totalEarnings, completedSessions] = await Promise.all([
     TutoringSession.aggregate([
       { $match: { tutor_id: tutor._id, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$duration_hours' } } }
@@ -121,10 +122,6 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     TutoringSession.aggregate([
       { $match: { tutor_id: tutor._id, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$total_earnings' } } }
-    ]),
-    TutoringSession.aggregate([
-      { $match: { tutor_id: tutor._id, status: 'completed', rating: { $exists: true } } },
-      { $group: { _id: null, average: { $avg: '$rating' } } }
     ]),
     TutoringSession.countDocuments({ tutor_id: tutor._id, status: 'completed' })
   ]);
@@ -167,7 +164,6 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
       };
     });
   };
-
   const dashboard = {
     upcomingSessions: formatSessions(sessionsWithLevelNames),
     recentSessions: formatSessions(recentSessions),
@@ -178,7 +174,7 @@ const getTutorDashboard = asyncHandler(async (req, res) => {
     metrics: {
       totalHours: totalHours[0]?.total || 0,
       totalEarnings: totalEarnings[0]?.total || 0,
-      averageRating: averageRating[0]?.average || 0,
+      averageRating: tutor.average_rating || 0,
       completedSessions,
       avgResponseTime: avgResponseTime[0]?.average || 0,
       bookingAcceptanceRate
@@ -205,7 +201,7 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 // Create a new tutoring session (supports single or multiple students)
 const createSession = asyncHandler(async (req, res) => {
   const { tutor_id, student_id, student_ids, subject, academic_level, session_date, duration_hours, hourly_rate, notes } = req.body;
-
+  console.log("boy", req.body);
   // Normalize students: accept legacy single student_id or new array student_ids (both are student user_ids)
   let studentUserIds = [];
   if (Array.isArray(student_ids) && student_ids.length > 0) {
@@ -251,13 +247,56 @@ const createSession = asyncHandler(async (req, res) => {
 
   // Authorization check
   // Ensure authorization for all selected students
+
   for (const student of students) {
+    console.log("student", student);
     const hireRecord = (student.hired_tutors || []).find(
       (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
     );
     if (!hireRecord) {
       return res.status(403).json({ message: "Tutor is not authorized to create a session with one or more selected students" });
     }
+  }
+
+  // Payment validation check
+  // Ensure payment is completed for all selected students for this subject and academic level
+  let allStudentsCanCreate = true;
+  const studentPaymentStatuses = [];
+  
+  for (const student of students) {
+    const canCreate = await canCreateSessionForStudent(tutor._id, student._id, subject, academic_level);
+    console.log("canCreate", canCreate);
+    if (!canCreate) {
+      allStudentsCanCreate = false;
+    }
+    
+    // Get payment details for this student
+    const payment = await StudentPayment.findOne({
+      student_id: student._id,
+      tutor_id: tutor._id,
+      subject: subject,
+      academic_level: academic_level,
+      payment_status: 'paid'
+    });
+    
+    studentPaymentStatuses.push({
+      student_id: student._id,
+      canCreateSession: canCreate,
+      paymentCompleted: !!payment,
+      paymentDetails: payment ? {
+        payment_type: payment.payment_type,
+        final_amount: payment.final_amount,
+        sessions_remaining: payment.sessions_remaining,
+        validity_end_date: payment.validity_end_date
+      } : null
+    });
+  }
+  
+  if (!allStudentsCanCreate) {
+    return res.status(403).json({ 
+      message: "Payment not completed. Student must pay for academic level access before sessions can be created.",
+      studentPaymentStatuses: studentPaymentStatuses
+    });
   }
 
   // Check for overlapping in-progress session
@@ -297,15 +336,20 @@ const createSession = asyncHandler(async (req, res) => {
     session_date: sessionDateExactUTC, // exact time from frontend
     duration_hours,
     hourly_rate: Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : 0,
+    // Initialize per-student responses as pending
+    student_responses: students.map(s => ({
+      student_id: s._id,
+      status: 'pending'
+    })),
     total_earnings: duration_hours * (Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : 0),
     notes: notes || "",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
-
   return res.status(201).json({
     message: "Tutoring session created successfully",
-    session
+    session,
+    studentPaymentStatuses: studentPaymentStatuses
   });
 });
 
@@ -319,16 +363,14 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     duration_hours,
     hourly_rate,
     status,
-    rating,
-    feedback,
-    notes
+    notes,
+    student_proposed_date,
+    approve_proposed,
+    reject_proposed,
+    // New: per-student response update
+    student_response_status,
+    student_response_note
   } = req.body;
-  if (!session_date || !duration_hours || !hourly_rate) {
-    return res.status(400).json({
-      success: false,
-      message: "Date, duration, and hourly rate are required"
-    });
-  }
   try {
     const session = await TutoringSession.findById(session_id);
     if (!session) {
@@ -337,19 +379,93 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         message: "Session not found"
       });
     }
-    // Convert frontend time to exact UTC without timezone shift
-    let sessionDateExactUTC;
-    if (typeof session_date === 'string') {
-      sessionDateExactUTC = new Date(session_date + ':00Z');
-    } else {
-      sessionDateExactUTC = new Date(session_date);
+
+    // Handle per-student response updates (confirm/decline) without altering date/time logic
+    if (student_response_status && ['confirmed', 'declined', 'pending'].includes(student_response_status)) {
+      if (!student_id) {
+        return res.status(400).json({ success: false, message: 'student_id is required for per-student response' });
+      }
+      let studentObjectId = new mongoose.Types.ObjectId(student_id);
+      // If this ObjectId does not match any session student, try to resolve by user_id -> StudentProfile
+      const isMember = (session.student_ids || []).some(id => id.toString() === studentObjectId.toString());
+      if (!isMember) {
+        const maybeProfile = await StudentProfile.findOne({ user_id: student_id }).select('_id');
+        if (maybeProfile) {
+          studentObjectId = new mongoose.Types.ObjectId(maybeProfile._id);
+        }
+      }
+      const responseIndex = (session.student_responses || []).findIndex(r => r.student_id.toString() === studentObjectId.toString());
+      if (responseIndex === -1) {
+        // Ensure the student is part of the session
+        const isInSession = (session.student_ids || []).some(id => id.toString() === studentObjectId.toString());
+        if (!isInSession) {
+          return res.status(403).json({ success: false, message: 'Student not part of this session' });
+        }
+        // Initialize if missing
+        session.student_responses = session.student_responses || [];
+        session.student_responses.push({ student_id: studentObjectId, status: student_response_status, responded_at: new Date(), note: student_response_note || '' });
+      } else {
+        session.student_responses[responseIndex].status = student_response_status;
+        session.student_responses[responseIndex].responded_at = new Date();
+        if (student_response_note !== undefined) session.student_responses[responseIndex].note = student_response_note;
+      }
+
+      // Do not auto-confirm here. Tutor will send meeting link to confirmed students, which will confirm the session overall.
+
+      const saved = await session.save();
+      return res.status(200).json({ success: true, message: 'Student response updated', session: saved });
     }
 
+    // Disallow changing date/time once session is confirmed
+    if (session.status === 'confirmed') {
+      const isTryingToPropose = !!student_proposed_date || approve_proposed;
+      // Parse potential new date for comparison
+      let incomingDate = null;
+      if (typeof session_date === 'string') incomingDate = new Date(session_date + ':00Z');
+      else if (session_date) incomingDate = new Date(session_date);
+      const isTryingToChangeDate = !!incomingDate && session.session_date && incomingDate.getTime() !== new Date(session.session_date).getTime();
+      if (isTryingToPropose || isTryingToChangeDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot change date/time of a confirmed session'
+        });
+      }
+    }
+    // Determine the intended operation
+    const isProposalOnly = !!student_proposed_date && !approve_proposed && !reject_proposed;
+
+    // Parse incoming dates safely
+    const parseLocalToUTC = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') return new Date(val + ':00Z');
+      return new Date(val);
+    };
+
+    let sessionDateExactUTC = parseLocalToUTC(session_date);
+    let proposedDateUTC = parseLocalToUTC(student_proposed_date);
+
+    // For approve flow, use stored proposed date if not provided in body
+    if (approve_proposed && !proposedDateUTC && session.student_proposed_date) {
+      proposedDateUTC = new Date(session.student_proposed_date);
+    }
+
+    // If approving, target date becomes proposed
+    if (approve_proposed && proposedDateUTC) {
+      sessionDateExactUTC = proposedDateUTC;
+    }
+
+    // Compute duration for conflict checks/earnings (fallback to existing)
+    const effectiveDuration = Number.isFinite(parseFloat(duration_hours))
+      ? parseFloat(duration_hours)
+      : session.duration_hours;
+
     // Calculate new session's end time
-    const newSessionEndTime = new Date(sessionDateExactUTC.getTime() + duration_hours * 60 * 60 * 1000);
+    const newSessionEndTime = sessionDateExactUTC
+      ? new Date(sessionDateExactUTC.getTime() + effectiveDuration * 60 * 60 * 1000)
+      : null;
 
     // Check for conflicting in-progress sessions
-    if (status === 'in_progress' || status === 'pending' || status === 'confirmed') {
+    if (!isProposalOnly && (status === 'in_progress' || status === 'pending' || status === 'confirmed' || approve_proposed)) {
       const conflictingSession = await TutoringSession.findOne({
         tutor_id: session.tutor_id,
         status: { $in: ['in_progress', 'pending', 'confirmed'] },
@@ -357,11 +473,11 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         $or: [
           {
             // Case: Existing session starts before new session ends and ends after new session starts
-            session_date: { $lte: newSessionEndTime },
+            session_date: newSessionEndTime ? { $lte: newSessionEndTime } : session.session_date,
             $expr: {
               $gt: [
                 { $add: ['$session_date', { $multiply: ['$duration_hours', 60 * 60 * 1000] }] },
-                sessionDateExactUTC
+                sessionDateExactUTC || session.session_date
               ]
             }
           }
@@ -397,27 +513,64 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     }
 
     // Normalize hourly rate (could be number or [number])
-    const hourlyRateNumber = Array.isArray(hourly_rate)
-      ? parseFloat(hourly_rate[0])
+    const hourlyRateNumberRaw = Array.isArray(hourly_rate)
+      ? parseFloat(hourly_rate?.[0])
       : parseFloat(hourly_rate);
-    const total_earnings = duration_hours * (Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : session.hourly_rate);
+    const hourlyRateNumber = Number.isFinite(hourlyRateNumberRaw) ? hourlyRateNumberRaw : session.hourly_rate;
+    const total_earnings = (Number.isFinite(parseFloat(duration_hours)) ? parseFloat(duration_hours) : session.duration_hours) * hourlyRateNumber;
 
     const updates = {
       student_id: student_id || session.student_id,
       subject: subject || session.subject,
       academic_level: normalizedAcademicLevel,
-      session_date: sessionDateExactUTC, // exact time from frontend
-      duration_hours,
-      hourly_rate: Number.isFinite(hourlyRateNumber) ? hourlyRateNumber : session.hourly_rate,
+      // session_date will be set only for approval or explicit update
+      duration_hours: Number.isFinite(parseFloat(duration_hours)) ? parseFloat(duration_hours) : session.duration_hours,
+      hourly_rate: hourlyRateNumber,
       total_earnings,
       status: status || session.status,
       notes: notes !== undefined ? notes : session.notes
     };
 
+    // Handle student proposal only (no other fields required)
+    if (isProposalOnly) {
+      updates.student_proposed_date = proposedDateUTC;
+      updates.student_proposed_status = 'pending';
+      updates.student_proposed_decided_at = null;
+      if (status) updates.status = status;
+      const updatedOnlyProposal = await TutoringSession.findByIdAndUpdate(
+        session_id,
+        updates,
+        { new: true }
+      );
+      return res.status(200).json({
+        success: true,
+        message: 'Proposed time saved successfully',
+        session: updatedOnlyProposal
+      });
+    }
+
+    // If approving proposed date
+    if (approve_proposed && proposedDateUTC) {
+      updates.session_date = proposedDateUTC;
+      updates.student_proposed_status = 'accepted';
+      updates.student_proposed_decided_at = new Date();
+      updates.student_proposed_date = null;
+      if (!status) {
+        updates.status = 'confirmed';
+      }
+    } else if (reject_proposed) {
+      updates.student_proposed_status = 'rejected';
+      updates.student_proposed_decided_at = new Date();
+      updates.student_proposed_date = null;
+    } else if (sessionDateExactUTC) {
+      // Normal update path sets the new date
+      updates.session_date = sessionDateExactUTC;
+    }
+
+    // Do not accept rating/feedback in this endpoint anymore; use student rating endpoint
+    const nextStatus = status || session.status;
     if (status === 'completed') {
       updates.completed_at = new Date();
-      updates.rating = rating;
-      updates.feedback = feedback;
 
       if (duration_hours !== oldDuration) {
         const tutorProfile = await TutorProfile.findOne({ user_id: session.tutor_id });
@@ -429,12 +582,24 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       }
     }
 
+    // If tutor sets status back to pending, clear meeting link and student responses
+    if ((status && status === 'pending')) {
+      updates.meeting_link = '';
+      updates.meeting_link_sent_at = null;
+      updates.student_responses = [];
+      // also clear any pending proposal state
+      updates.student_proposed_date = null;
+      updates.student_proposed_status = undefined;
+      updates.student_proposed_decided_at = undefined;
+    }
+
     const updatedSession = await TutoringSession.findByIdAndUpdate(
       session_id,
       updates,
       { new: true }
     );
-
+    
+    
     res.status(200).json({
       success: true,
       message: "Session updated successfully",
@@ -477,6 +642,8 @@ const getTutorSessions = asyncHandler(async (req, res) => {
         select: 'full_name email'
       }
     })
+    .populate({ path: 'student_responses.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
+    .populate({ path: 'student_ratings.student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
     .populate({ path: 'academic_level', select: 'level' })
     .sort({ session_date: -1 })
     .limit(parseInt(limit))
@@ -569,7 +736,7 @@ const getTutorStats = asyncHandler(async (req, res) => {
 
   const tutorObjectId = new mongoose.Types.ObjectId(tutor_id);
 
-  const [totalHours, totalEarnings, completedSessions, averageRating, avgResponseTime] = await Promise.all([
+  const [totalHours, totalEarnings, completedSessions, avgResponseTime] = await Promise.all([
     TutoringSession.aggregate([
       { $match: { tutor_id: tutorObjectId, status: 'completed', ...(Object.keys(dateFilter).length > 0 && { completed_at: dateFilter }) } },
       { $group: { _id: null, total: { $sum: '$duration_hours' } } }
@@ -579,10 +746,6 @@ const getTutorStats = asyncHandler(async (req, res) => {
       { $group: { _id: null, total: { $sum: '$total_earnings' } } }
     ]),
     TutoringSession.countDocuments({ tutor_id: tutorObjectId, status: 'completed', ...(Object.keys(dateFilter).length > 0 && { completed_at: dateFilter }) }),
-    TutoringSession.aggregate([
-      { $match: { tutor_id: tutorObjectId, status: 'completed', rating: { $exists: true }, ...(Object.keys(dateFilter).length > 0 && { completed_at: dateFilter }) } },
-      { $group: { _id: null, average: { $avg: '$rating' } } }
-    ]),
     TutorInquiry.aggregate([
       { $match: { tutor_id: tutorObjectId, response_time_minutes: { $exists: true } } },
       { $group: { _id: null, average: { $avg: '$response_time_minutes' } } }
@@ -595,7 +758,7 @@ const getTutorStats = asyncHandler(async (req, res) => {
     totalHours: totalHours[0]?.total || 0,
     totalEarnings: totalEarnings[0]?.total || 0,
     completedSessions,
-    averageRating: averageRating[0]?.average || 0,
+    averageRating: tutor.average_rating || 0,
     avgResponseTime: avgResponseTime[0]?.average || 0,
     bookingAcceptanceRate,
     period
@@ -694,6 +857,61 @@ const requestInterviewAgain = asyncHandler(async (req, res) => {
   }
 });
 
+// Send meeting link to confirmed students and set session status to confirmed
+const sendMeetingLink = asyncHandler(async (req, res) => {
+  const { session_id } = req.params;
+  const { meeting_link } = req.body;
+  if (!meeting_link) {
+    return res.status(400).json({ success: false, message: 'meeting_link is required' });
+  }
+  const session = await TutoringSession.findById(session_id)
+    .populate({ path: 'student_responses.student_id', populate: { path: 'user_id', select: 'email full_name' } })
+    .populate({ path: 'tutor_id', populate: { path: 'user_id', select: 'full_name email' } });
+  if (!session) {
+    return res.status(404).json({ success: false, message: 'Session not found' });
+  }
+
+  // Gather confirmed students
+  const confirmed = (session.student_responses || []).filter(r => r.status === 'confirmed');
+  if (confirmed.length === 0) {
+    return res.status(400).json({ success: false, message: 'No confirmed students to send meeting link to' });
+  }
+
+  // Send emails
+  try {
+    const toList = confirmed
+      .map(r => r?.student_id?.user_id?.email)
+      .filter(Boolean);
+    if (toList.length === 0) {
+      return res.status(400).json({ success: false, message: 'Confirmed students have no emails on file' });
+    }
+
+    const subject = `Session Link for ${session.subject}`;
+    const html = `
+      <p>Hello,</p>
+      <p>Your session is scheduled on <b>${new Date(session.session_date).toUTCString()}</b>.</p>
+      <p>Please join using this link: <a href="${meeting_link}">${meeting_link}</a></p>
+      <p>Regards,<br/>${session.tutor_id?.user_id?.full_name || 'Your Tutor'}</p>
+    `;
+
+    // We send to each student separately to avoid email exposure
+    for (const to of toList) {
+      await sendEmail(to, subject, html);
+    }
+
+    // Update session level
+    session.meeting_link = meeting_link;
+    session.meeting_link_sent_at = new Date();
+    session.status = 'confirmed';
+    await session.save();
+
+    return res.status(200).json({ success: true, message: 'Meeting link sent and session confirmed', session });
+  } catch (err) {
+    console.error('Error sending meeting link:', err);
+    return res.status(500).json({ success: false, message: 'Failed to send meeting link', error: err.message });
+  }
+});
+
 // Get available students for tutor to select from
 // Get available students for tutor to select from
 const getAvailableStudents = asyncHandler(async (req, res) => {
@@ -721,14 +939,7 @@ const getAvailableStudents = asyncHandler(async (req, res) => {
       .select("user_id academic_level preferred_subjects availability");
     // Format the student list
     const formattedStudents = students.map(student => {
-      // Find tutor's specific rate for this student's level (if exists)
-      // const tutorLevelInfo = tutorProfile.academic_levels_taught.find(
-      //   level => level.educationLevel.toString() === student.academic_level?._id.toString()
-      // );
-      // console.log("tutorLevelInfo", tutorLevelInfo);
-      // const hourly_rate = tutorLevelInfo
-      //   ? tutorLevelInfo.hourlyRate
-      //   : student.academic_level?.hourlyRate;
+     
 
       return {
         _id: student.user_id._id,
@@ -1082,16 +1293,83 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     }
   }
 
-  // Check if request is already processed
-  // if (hireRecord.status !== 'pending') {
-  //   return res.status(400).json({ 
-  //     message: `Request already ${hireRecord.status}. Cannot ${action} a ${hireRecord.status} request.` 
-  //   });
-  // }
-
   // Update the status
   hireRecord.status = action === 'accept' ? 'accepted' : 'rejected';
   await studentProfile.save();
+
+  // If tutor accepts the request, create a payment record
+  if (action === 'accept') {
+    try {
+      // Check if payment record already exists
+      const existingPayment = await StudentPayment.findOne({
+        student_id: studentProfile._id,
+        tutor_id: tutorProfile._id,
+        subject: hireRecord.subject,
+        academic_level: hireRecord.academic_level_id
+      });
+
+      if (!existingPayment) {
+        // Get the subject and academic level details for better notes
+        const subjectData = await Subject.findById(hireRecord.subject);
+        const academicLevelData = await EducationLevel.findById(hireRecord.academic_level_id);
+        
+        // Calculate payment details based on tutor's settings
+        const tutorAcademicLevel = tutorProfile.academic_levels_taught.find(
+          level => level.educationLevel.toString() === hireRecord.academic_level_id.toString()
+        );
+        
+        if (!tutorAcademicLevel) {
+          console.error('Tutor academic level not found for payment creation');
+          return;
+        }
+        
+        // Calculate payment details based on tutor's settings
+        const baseAmount = tutorAcademicLevel.hourlyRate || tutorProfile.hourly_rate || 25;
+        const discount = tutorAcademicLevel.discount || 0;
+        const totalSessions = tutorAcademicLevel.totalSessionsPerMonth || 1;
+
+        
+        // Calculate validity period (30 days from now)
+        const validityStartDate = new Date();
+        const validityEndDate = new Date(validityStartDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+        
+        // Create comprehensive payment record
+        const paymentRecord = new StudentPayment({
+          student_id: studentProfile._id,
+          tutor_id: tutorProfile._id,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+          
+          // Payment Type and Amount
+          payment_type: 'monthly', // Default to monthly package
+          base_amount: baseAmount,
+          discount_percentage: discount,
+          
+          // Monthly Package Details
+          monthly_amount: tutorAcademicLevel.monthlyRate,
+          
+          // Validity and Sessions
+          validity_start_date: validityStartDate,
+          validity_end_date: validityEndDate,
+          sessions_remaining: tutorAcademicLevel.totalSessionsPerMonth,
+          total_sessions_per_month: tutorAcademicLevel.totalSessionsPerMonth,
+          
+          // Request Details
+          payment_status: 'pending',
+          request_notes: `Monthly package for ${subjectData?.name || 'Subject'} - ${academicLevelData?.level || 'Level'}. ${totalSessions} sessions per month.`,
+          
+          // Additional Details
+          currency: 'GBP'
+        });
+
+        await paymentRecord.save();
+        console.log('Payment record created for accepted hire request:', paymentRecord._id);
+      }
+    } catch (paymentError) {
+      console.error('Error creating payment record for accepted hire request:', paymentError);
+      // Don't fail the hire acceptance if payment record creation fails
+    }
+  }
 
   return res.status(200).json({
     success: true,
@@ -1100,6 +1378,79 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     hire_record_id: hireRecord._id,
     status: hireRecord.status,
   });
+});
+
+// Helper function to check if tutor can create sessions for student (payment must be completed and valid)
+const canCreateSessionForStudent = async (tutorId, studentId, subject, academicLevel) => {
+  console.log(tutorId, studentId, subject, academicLevel);
+  try {
+    const payment = await StudentPayment.findOne({
+      student_id: studentId,
+      tutor_id: tutorId,
+      subject: subject,
+      academic_level: academicLevel,
+      payment_status: 'paid',
+      academic_level_paid: true,
+      is_active: true
+    });
+    
+    if (!payment) {
+      console.log("Payment not found");
+      return false;
+    }
+    // Check if payment is still valid (not expired and has sessions remaining)
+    return payment.isValid();
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return false;
+  }
+};
+
+// Check payment status for a specific student-subject-academic level combination
+const checkPaymentStatus = asyncHandler(async (req, res) => {
+  const { student_id, subject, academic_level } = req.body;
+  const tutor_id = req.user._id; // From auth middleware
+
+  if (!student_id || !subject || !academic_level) {
+    return res.status(400).json({ 
+      message: "Missing required fields: student_id, subject, academic_level" 
+    });
+  }
+
+  try {
+    const canCreate = await canCreateSessionForStudent(tutor_id, student_id, subject, academic_level);
+    
+    // Get payment details if payment exists
+    let paymentDetails = null;
+    if (canCreate) {
+      const payment = await StudentPayment.findOne({
+        student_id: student_id,
+        tutor_id: tutor_id,
+        subject: subject,
+        academic_level: academic_level,
+        payment_status: 'paid'
+      });
+      
+      if (payment) {
+        paymentDetails = {
+          payment_type: payment.payment_type,
+          final_amount: payment.final_amount,
+          sessions_remaining: payment.sessions_remaining,
+          validity_end_date: payment.validity_end_date
+        };
+      }
+    }
+
+    return res.status(200).json({
+      canCreateSession: canCreate,
+      paymentDetails: paymentDetails
+    });
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return res.status(500).json({ 
+      message: "Internal server error while checking payment status" 
+    });
+  }
 });
 
 const sendMessageResponse = asyncHandler(async (req, res) => {
@@ -1258,10 +1609,7 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
         qualifications: tutor.qualifications,
         experience_years: tutor.experience_years,
         subjects: tutor.subjects || [],
-        academic_levels: tutor.academic_levels_taught?.map(level => ({
-          name: level.name,
-          hourlyRate: level.hourlyRate
-        })) || [],
+        academic_levels: tutor.academic_levels_taught,
         min_hourly_rate: minHourlyRate,
         max_hourly_rate: maxHourlyRate,
         average_rating: tutor.average_rating || 0,
@@ -1564,5 +1912,8 @@ module.exports = {
   getTutorSettings,
   updateTutorSettings,
   addTutorAcademicLevel,
-  removeTutorAcademicLevel
+  removeTutorAcademicLevel,
+  sendMeetingLink,
+  canCreateSessionForStudent,
+  checkPaymentStatus
 };

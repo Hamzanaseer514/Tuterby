@@ -8,17 +8,19 @@ const studentProfileSchema = new mongoose.Schema(
       required: true,
     },
     academic_level: {
-      type: String,
-      default: "Secondary School", // Default academic level
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "EducationLevel",
+      default: null,
     },
     learning_goals: {
       type: String,
       default: "Improve academic performance and develop strong study skills",
     },
-    preferred_subjects: {
-      type: [String],
-      default: ["Mathematics", "English", "Science"], // Default preferred subjects
-    },
+    preferred_subjects: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subject",
+      default: null,
+    }],
     availability: [
       {
         day: {
@@ -59,8 +61,9 @@ const studentProfileSchema = new mongoose.Schema(
           default: null,
         },
         subject: {
-          type: String,
-          default: "",
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Subject",
+          default: null,
         },
         academic_level_id: {
           type: mongoose.Schema.Types.ObjectId,

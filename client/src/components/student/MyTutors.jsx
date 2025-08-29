@@ -10,6 +10,7 @@ import {
 } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   Star,
@@ -20,14 +21,15 @@ import {
   BookOpen,
   Award
 } from 'lucide-react';
-
+import { useSubject } from '../../hooks/useSubject';
 const MyTutors = () => {
   const { getAuthToken, user } = useAuth();
   const { toast } = useToast();
   const [hiredTutors, setHiredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const { subjects, academicLevels } = useSubject();
+  const navigate = useNavigate();
   useEffect(() => {
     fetchHiredTutors();
   }, []);
@@ -63,6 +65,11 @@ const MyTutors = () => {
     }
   };
 
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => s._id === subjectId);
+    return subject ? subject: '';
+  }
+
   const getHiringStatusBadge = (status) => {
     const statusConfig = {
       'pending': { variant: 'secondary', text: 'Request Pending', color: 'bg-yellow-100 text-yellow-800' },
@@ -92,6 +99,13 @@ const MyTutors = () => {
       );
     }
     return stars;
+  };
+
+  const handleViewTutor = (tutorId) => {
+    navigate(`/tutor`, {
+      state: { tutorId: tutorId }
+    });
+
   };
 
   const formatDate = (dateString) => {
@@ -160,7 +174,7 @@ const MyTutors = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hiredTutors.map((hiredTutor) => (
-              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow">
+              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow" onClick={() => handleViewTutor(hiredTutor._id)}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -209,7 +223,7 @@ const MyTutors = () => {
                       <div className="flex flex-wrap gap-1">
                         {hiredTutor.subjects.slice(0, 3).map((subject, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
-                            {subject}
+                            {getSubjectName(subject).name}
                           </Badge>
                         ))}
                         {hiredTutor.subjects.length > 3 && (
