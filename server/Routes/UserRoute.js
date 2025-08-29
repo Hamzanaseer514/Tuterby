@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword} = require("../Controllers/UserController")
+const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword, registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth} = require("../Controllers/UserController")
 const { getStudentDashboard,updateStudentProfile,
    getStudentSessions,searchTutors, getTutorDetails, 
    requestAdditionalHelp, getStudentHelpRequests ,hireTutor,
@@ -33,6 +33,9 @@ const storage = multer.diskStorage({
 
 router.get("/student/profile/:userId", protect, getStudentProfile);
 router.post("/register", registerUser)
+router.post("/register-google", registerStudentWithGoogle) // Google OAuth registration for students
+router.post("/login-google", loginWithGoogle) // Google OAuth login for all users
+router.get("/test-google-oauth", testGoogleOAuth) // Test Google OAuth configuration
 router.put("/updatestudent/:user_id", updateStudentProfile)  
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
 router.post("/register-parent", registerParent)

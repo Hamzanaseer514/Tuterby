@@ -13,7 +13,9 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: function() {
+      return !this.google_id; // Password not required if Google OAuth
+    }
   },
   phone_number: {
     type: String,
@@ -24,11 +26,20 @@ const userSchema = new mongoose.Schema({
   },
   age: {
     type: Number,
-    min: 0
+    min: 0,
+    default: 15 // Default age for students
   },
   photo_url: {
     type: String,
     default: ''
+  },
+  google_id: {
+    type: String,
+    sparse: true
+  },
+  is_google_user: {
+    type: Boolean,
+    default: false
   },
   created_at: {
     type: Date,
@@ -37,17 +48,17 @@ const userSchema = new mongoose.Schema({
   is_verified: {
     type: String,
     enum: ['active', 'inactive', 'partial_active'],
-    default: 'inactive'
+    default: 'active' // Google users are verified by default
   },
   isEmailVerified: {
     type: Boolean,
-    default: false
+    default: true // Google users have verified emails
   }
 }, { timestamps: true });
 
-// 🔐 Hash password before saving
+// 🔐 Hash password before saving (only if password exists and is modified)
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
+  if (!this.isModified("password") || !this.password) {
     return next();
   }
 
@@ -58,6 +69,7 @@ userSchema.pre("save", async function (next) {
 
 // 🔐 Method to compare entered password with stored hash
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

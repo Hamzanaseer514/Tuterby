@@ -9,15 +9,15 @@ const studentProfileSchema = new mongoose.Schema(
     },
     academic_level: {
       type: String,
-      default: "",
+      default: "Secondary School", // Default academic level
     },
     learning_goals: {
       type: String,
-      default: "",
+      default: "Improve academic performance and develop strong study skills",
     },
     preferred_subjects: {
       type: [String],
-      default: [],
+      default: ["Mathematics", "English", "Science"], // Default preferred subjects
     },
     availability: [
       {
