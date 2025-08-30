@@ -11,6 +11,7 @@ export default function PaymentResult() {
   const query = new URLSearchParams(location.search);
   const success = query.get("success");
   const paymentId = query.get("PI");
+  const isParentPayment = query.get("isParentPayment");
   const { getAuthToken } = useAuth();
   const token = getAuthToken();
   
@@ -27,7 +28,7 @@ export default function PaymentResult() {
         .then((data) => console.log("Payment confirmed:", data))
         .catch((err) => console.error(err));
     }
-  }, [paymentId, success, token]);
+  }, [paymentId, success, token, isParentPayment]);
   
 
   return (
@@ -37,7 +38,7 @@ export default function PaymentResult() {
       ) : (
         <h1 className="text-red-600 text-xl">❌ Payment Canceled</h1>
       )}
-        <Link to="/student-dashboard">
+        <Link to={isParentPayment === "true" ? "/parent-dashboard" : "/student-dashboard"}>
           <Button>
             Go to Dashboard
           </Button>

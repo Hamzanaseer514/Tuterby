@@ -123,6 +123,160 @@ export const ParentProvider = ({ children }) => {
     }
   }, [getAuthToken]);
 
+  const updateChildProfile = useCallback(async (childId, profileData) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${BASE_URL}/api/auth/updatestudent/${childId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update child profile');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating child profile:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const uploadChildPhoto = useCallback(async (childId, photoFile) => {
+    try {
+      const token = getAuthToken();
+      const formData = new FormData();
+      formData.append('photo', photoFile);
+
+      const response = await fetch(`${BASE_URL}/api/auth/user-profile/${childId}/photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload child photo');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error uploading child photo:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const createParentPaymentSession = useCallback(async (paymentData) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      
+      // Validate required payment data
+      if (!paymentData._id || !paymentData.studentEmail) {
+        throw new Error('Missing required payment information');
+      }
+
+      if (!paymentData.monthly_amount && !paymentData.base_amount) {
+        throw new Error('Payment amount is required');
+      }
+
+      // Prepare payment payload with proper validation
+      const paymentPayload = {
+        amount: paymentData.monthly_amount || paymentData.base_amount,
+        paymentId: paymentData._id,
+        tutorName: paymentData.tutor?.user_id?.full_name || 'Tutor',
+        subject: paymentData.subject?.name || 'Subject',
+        academicLevel: paymentData.academic_level?.level || 'Level',
+        studentEmail: paymentData.studentEmail,
+        payment_type: paymentData.payment_type || 'hourly',
+        total_sessions_per_month: paymentData.total_sessions_per_month || 1,
+        base_amount: paymentData.base_amount || 0,
+        discount_percentage: paymentData.discount_percentage || 0,
+        days_remaining: 30, // Default 30 days validity
+        isParentPayment: true, // Flag to identify parent payment
+        studentName: paymentData.student?.full_name || 'Child' // Child's name
+      };
+
+      console.log('Creating parent payment session with data:', paymentPayload);
+      
+      const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentPayload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Payment session creation failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      console.log('Payment session created successfully:', data);
+      
+      return { 
+        success: true, 
+        checkoutUrl: data.url,
+        sessionId: data.sessionId || null
+      };
+      
+    } catch (error) {
+      console.error('Error creating parent payment session:', error);
+      throw new Error(`Payment session creation failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthToken]);
+
+  const getSpecificStudentDetail = useCallback(async (userId) => {
+    try {
+      console.log("userId", userId)
+      const token = getAuthToken();
+      const response = await fetch(`${BASE_URL}/api/parent/student/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch student details');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching student details:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const getParentStudentsPayments = useCallback(async (userId) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${BASE_URL}/api/parent/payments/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch payments');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
   const value = {
     loading,
     setLoading,
@@ -130,7 +284,12 @@ export const ParentProvider = ({ children }) => {
     addChildToParent,
     updateParentProfile,
     getParentDashboardStats,
-    uploadParentPhoto
+    uploadParentPhoto,
+    updateChildProfile,
+    uploadChildPhoto,
+    getSpecificStudentDetail,
+    getParentStudentsPayments,
+    createParentPaymentSession
   };
 
   return (

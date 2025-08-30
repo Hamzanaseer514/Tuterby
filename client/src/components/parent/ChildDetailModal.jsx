@@ -7,14 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { toast } from 'react-toastify';
-import { 
-  Loader2, 
-  User, 
-  Edit3, 
-  Save, 
-  X, 
-  Camera, 
-  BookOpen, 
+import {
+  Loader2,
+  User,
+  Edit3,
+  Save,
+  X,
+  Camera,
+  BookOpen,
   Calendar,
   Mail,
   Phone,
@@ -28,13 +28,13 @@ import { BASE_URL } from '../../config';
 
 const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
   const { updateChildProfile, uploadChildPhoto } = useParent();
-  const { academicLevels, subjects } = useSubject();
-  
+  const { academicLevels, subjects, fetchSubjectRelatedToAcademicLevels, subjectRelatedToAcademicLevels } = useSubject();
+
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     full_name: '',
@@ -54,23 +54,6 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
 
   const [errors, setErrors] = useState({});
 
-  // Learning style options
-  const learningStyles = [
-    'Visual Learner',
-    'Auditory Learner', 
-    'Kinesthetic Learner',
-    'Reading/Writing Learner'
-  ];
-
-  // Availability options
-  const availabilityOptions = [
-    'Weekdays Morning',
-    'Weekdays Afternoon',
-    'Weekdays Evening',
-    'Weekends Morning',
-    'Weekends Afternoon'
-  ];
-
   useEffect(() => {
     if (child) {
       setFormData({
@@ -88,6 +71,23 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
         preferred_learning_style: child.preferred_learning_style || '',
         availability: child.availability || []
       });
+
+      // Fetch subjects for the child's academic level
+      if (child.academic_level?._id) {
+        fetchSubjectRelatedToAcademicLevels([child.academic_level._id]);
+      }
+    }
+  }, [child]); // Removed fetchSubjectRelatedToAcademicLevels from dependencies
+
+  // Debug: Watch for changes in subjectRelatedToAcademicLevels
+  useEffect(() => {
+    console.log('subjectRelatedToAcademicLevels changed:', subjectRelatedToAcademicLevels);
+  }, [subjectRelatedToAcademicLevels]);
+
+  // Auto-open in edit mode if initialEditMode is true
+  useEffect(() => {
+    if (child?.initialEditMode) {
+      setIsEditing(true);
     }
   }, [child]);
 
@@ -119,14 +119,21 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
         [name]: ''
       }));
     }
+
+    // If academic level changes, fetch related subjects
+    if (name === 'academic_level' && value) {
+      fetchSubjectRelatedToAcademicLevels([value]);
+    }
   };
 
-  const handleMultiSelectChange = (name, value) => {
+
+  const removeSubject = (subjectId) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      preferred_subjects: prev.preferred_subjects.filter(id => id !== subjectId)
     }));
   };
+
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -135,6 +142,11 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
       setPhotoPreview(URL.createObjectURL(file));
     }
   };
+  const getAcademicLevelName = (id) => {
+    const academicLevel = academicLevels.find(level => level._id === id);
+    return academicLevel;
+  }
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -177,21 +189,67 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
         age: parseInt(formData.age)
       };
 
-      await updateChildProfile(child._id, updateData);
-      
+      const finalUpdatedChild = await updateChildProfile(child._id, updateData);
+
       // Upload photo if selected
       if (photoFile) {
-        await uploadChildPhoto(child._id, photoFile);
+        const photoResponse = await uploadChildPhoto(child._id, photoFile);
+        
+        // Update the local child object with the new photo URL
+        if (photoResponse && photoResponse.photo_url) {
+          child.photo_url = photoResponse.photo_url;
+          
+          // Clear the photo preview since we now have the actual uploaded photo
+          setPhotoPreview(null);
+        }
       }
-      
+
+      // Immediately update the local child object and form data
+      const updatedChild = { ...child, ...updateData };
+
+      // Update the child object passed from parent
+      Object.assign(child, updateData);
+
+      // Fix academic_level format - ensure it's an object with _id and level
+      if (updateData.academic_level && typeof updateData.academic_level === 'string') {
+        const academicLevelObj = academicLevels.find(level => level._id === updateData.academic_level);
+        if (academicLevelObj) {
+          child.academic_level = academicLevelObj;
+          updatedChild.academic_level = academicLevelObj;
+        }
+      }
+
+      // Update form data to reflect changes
+      setFormData({
+        full_name: updateData.full_name || '',
+        email: updateData.email || '',
+        age: updateData.age || '',
+        academic_level: updateData.academic_level || '',
+        preferred_subjects: updateData.preferred_subjects || [],
+        bio: updateData.bio || '',
+        phone_number: updateData.phone_number || '',
+        address: updateData.address || '',
+        emergency_contact: updateData.emergency_contact || '',
+        learning_goals: updateData.learning_goals || '',
+        special_needs: updateData.special_needs || '',
+        preferred_learning_style: updateData.preferred_learning_style || '',
+        availability: updateData.availability || []
+      });
+
+      // Fetch updated subjects if academic level changed
+      if (updateData.academic_level && updateData.academic_level !== child.academic_level?._id) {
+        fetchSubjectRelatedToAcademicLevels([updateData.academic_level]);
+      }
+
       setIsEditing(false);
       setPhotoFile(null);
       setPhotoPreview(null);
-      
+
       // Notify parent component
-      onChildUpdated({ ...child, ...updateData });
-      
+      onChildUpdated(updatedChild);
+
       toast.success('Child profile updated successfully!');
+
       window.dispatchEvent(new CustomEvent('parentDataUpdated'));
     } catch (error) {
       console.error('Error updating child profile:', error);
@@ -205,7 +263,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
     setIsEditing(false);
     setPhotoFile(null);
     setPhotoPreview(null);
-    
+
     // Reset form data to original values
     if (child) {
       setFormData({
@@ -244,7 +302,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
             {isEditing ? 'Edit Child Profile' : 'Child Profile Details'}
           </DialogTitle>
           <DialogDescription>
-            {isEditing 
+            {isEditing
               ? 'Update your child\'s information and preferences'
               : 'View and manage your child\'s tutoring profile'
             }
@@ -257,22 +315,22 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
             <div className="relative inline-block">
               <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
                 {photoPreview ? (
-                  <img 
-                    src={photoPreview} 
-                    alt="Preview" 
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
                     className="w-24 h-24 rounded-full object-cover"
                   />
                 ) : child.photo_url ? (
-                  <img 
-                    src={`${BASE_URL}${child.photo_url}`} 
-                    alt="Profile" 
+                  <img
+                    src={`${BASE_URL}${child.photo_url}`}
+                    alt="Profile"
                     className="w-24 h-24 rounded-full object-cover"
                   />
                 ) : (
                   child.full_name?.charAt(0)?.toUpperCase() || 'C'
                 )}
               </div>
-              
+
               {isEditing && (
                 <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-primary/80 transition-colors">
                   <Camera className="h-4 w-4" />
@@ -285,7 +343,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                 </label>
               )}
             </div>
-            
+
             {isEditing && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Click the camera icon to change photo
@@ -386,7 +444,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
               <GraduationCap className="h-5 w-5" />
               Academic Information
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="academic_level">Academic Level *</Label>
@@ -405,7 +463,20 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   </Select>
                 ) : (
                   <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <span className="font-medium">{child.academic_level?.level || 'Not specified'}</span>
+                    <span className="font-medium">
+                      {(() => {
+                        // Handle both cases: when academic_level is an object or just an ID
+                        if (child.academic_level && typeof child.academic_level === 'object' && child.academic_level._id) {
+                          // It's an object with _id
+                          return getAcademicLevelName(child.academic_level._id)?.level || 'Not specified';
+                        } else if (child.academic_level && typeof child.academic_level === 'string') {
+                          // It's just an ID string
+                          return getAcademicLevelName(child.academic_level)?.level || 'Not specified';
+                        } else {
+                          return 'Not specified';
+                        }
+                      })()}
+                    </span>
                   </div>
                 )}
                 {errors.academic_level && (
@@ -416,7 +487,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
               <div className="space-y-2">
                 <Label>Account Status</Label>
                 <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <Badge 
+                  <Badge
                     variant={child.is_verified === 'active' ? 'default' : 'secondary'}
                     className={child.is_verified === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                   >
@@ -429,31 +500,82 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
             <div className="space-y-2">
               <Label>Preferred Subjects</Label>
               {isEditing ? (
-                <Select 
-                  value={formData.preferred_subjects} 
-                  onValueChange={(value) => handleMultiSelectChange('preferred_subjects', value)}
-                  multiple
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subjects" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject._id} value={subject.name}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-3">
+                  {/* Show current selected subjects with delete option */}
+                  {formData.preferred_subjects && formData.preferred_subjects.length > 0 && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Currently Selected:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.preferred_subjects.map((subjectId) => {
+                          const subject = subjects.find(s => s._id === subjectId);
+                          return subject ? (
+                            <Badge
+                              key={subjectId}
+                              variant="outline"
+                              className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700"
+                            >
+                              {subject.name}
+                              <button
+                                onClick={() => removeSubject(subjectId)}
+                                className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Subject selection dropdown - only shows subjects related to academic level */}
+                  <div>
+                    <Label className="text-sm text-gray-600 dark:text-gray-400">
+                      Add subjects for {getAcademicLevelName(formData.academic_level)?.level || 'selected level'}:
+                    </Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value && !formData.preferred_subjects.includes(value)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            preferred_subjects: [...prev.preferred_subjects, value]
+                          }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a subject to add" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjectRelatedToAcademicLevels && subjectRelatedToAcademicLevels.length > 0 ? (
+                          subjectRelatedToAcademicLevels
+                            .filter(subject => !formData.preferred_subjects.includes(subject._id))
+                            .map((subject) => (
+                              <SelectItem key={subject._id} value={subject._id}>
+                                {subject.name}
+                              </SelectItem>
+                            ))
+                        ) : (
+                          <SelectItem value="" disabled>
+                            {formData.academic_level ? 'No subjects available for this level' : 'Please select academic level first'}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               ) : (
                 <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   {child.preferred_subjects && child.preferred_subjects.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {child.preferred_subjects.map((subject, index) => (
-                        <Badge key={index} variant="outline">
-                          {subject}
-                        </Badge>
-                      ))}
+                      {child.preferred_subjects.map((subjectId) => {
+                        const subject = subjects.find(s => s._id === subjectId);
+                        return subject ? (
+                          <Badge key={subjectId} variant="outline">
+                            {subject.name}
+                          </Badge>
+                        ) : null;
+                      })}
                     </div>
                   ) : (
                     <span className="text-gray-500">No subjects selected</span>
@@ -464,18 +586,18 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
           </div>
 
           {/* Learning Preferences */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Target className="h-5 w-5" />
               Learning Preferences
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Preferred Learning Style</Label>
                 {isEditing ? (
-                  <Select 
-                    value={formData.preferred_learning_style} 
+                  <Select
+                    value={formData.preferred_learning_style}
                     onValueChange={(value) => handleSelectChange('preferred_learning_style', value)}
                   >
                     <SelectTrigger>
@@ -499,8 +621,8 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
               <div className="space-y-2">
                 <Label>Availability</Label>
                 {isEditing ? (
-                  <Select 
-                    value={formData.availability} 
+                  <Select
+                    value={formData.availability}
                     onValueChange={(value) => handleMultiSelectChange('availability', value)}
                     multiple
                   >
@@ -568,15 +690,15 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* Additional Information */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Star className="h-5 w-5" />
               Additional Information
             </h3>
-            
+
             <div className="space-y-2">
               <Label htmlFor="bio">Bio/Description</Label>
               {isEditing ? (
@@ -630,26 +752,26 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                 )}
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Account Information */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Account Information
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Member Since</Label>
                 <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <span className="font-medium">
-                    {child.created_at 
+                    {child.created_at
                       ? new Date(child.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
                       : 'Not specified'
                     }
                   </span>
@@ -660,19 +782,19 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                 <Label>Last Updated</Label>
                 <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <span className="font-medium">
-                    {child.updated_at 
+                    {child.updated_at
                       ? new Date(child.updated_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
                       : 'Not specified'
                     }
                   </span>
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Action Buttons */}

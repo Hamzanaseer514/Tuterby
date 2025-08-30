@@ -85,6 +85,8 @@ exports.registerUser = asyncHandler(async (req, res) => {
 });
 
 
+
+
 function parseStringArray(field) {
   if (!field) return [];
   if (Array.isArray(field) && field.every(item => typeof item === "string")) {
@@ -123,6 +125,8 @@ function parseObjectIdArray(field) {
   }
   return [];
 }
+
+
 
 exports.registerTutor = asyncHandler(async (req, res) => {
   const {
@@ -439,7 +443,6 @@ exports.registerParent = asyncHandler(async (req, res) => {
 
 
 
-
 exports.loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -616,7 +619,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     };
   }
 
-  user.isEmailVerified = true;
+  user.isEmailVerified = true; 
   await user.save();
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -808,3 +811,235 @@ exports.updateUserPhoto = asyncHandler(async (req, res) => {
   }
 });
 
+exports.registerStudentWithGoogle = asyncHandler(async (req, res) => {
+  const { id_token, role = "student" } = req.body;
+
+  if (!id_token) {
+    res.status(400);
+    throw new Error("Google ID token is required");
+  }
+
+  if (role !== "student") {
+    res.status(400);
+    throw new Error("This endpoint is only for student registration");
+  }
+
+  try {
+    // Verify Google ID token
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    const ticket = await client.verifyIdToken({
+      idToken: id_token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: google_id } = payload;
+
+    // Check if user already exists
+    let user = await User.findOne({ 
+      $or: [{ email }, { google_id }] 
+    });
+
+    if (user) {
+      // User exists, check if they're a student
+      if (user.role !== "student") {
+        res.status(400);
+        throw new Error("Email already registered with a different role");
+      }
+
+      // Account already exists - return error for registration
+      res.status(400);
+      throw new Error("Account already registered with this email. Please login instead.");
+    }
+
+    // Create new user with Google OAuth
+    const newUser = await User.create({
+      full_name: name,
+      email,
+      google_id,
+      is_google_user: true,
+      photo_url: picture,
+      role: "student",
+      age: 15, // Default age for students
+      is_verified: "active",
+      isEmailVerified: true,
+    });
+
+    // Create student profile with default values
+    const studentProfile = await Student.create({
+      user_id: newUser._id,
+      // Default values will be used from schema
+    });
+
+    // Generate tokens
+    const accessToken = generateAccessToken(newUser._id);
+    const refreshToken = generateRefreshToken(newUser._id);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      message: "Student registered successfully with Google",
+      user: {
+        _id: newUser._id,
+        full_name: newUser.full_name,
+        email: newUser.email,
+        age: newUser.age,
+        role: newUser.role,
+        photo_url: newUser.photo_url,
+        is_google_user: newUser.is_google_user,
+      },
+      student: studentProfile,
+      accessToken,
+    });
+
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      res.status(401);
+      throw new Error("Google token expired. Please try again.");
+    }
+    if (error.name === 'JsonWebTokenError') {
+      res.status(401);
+      throw new Error("Invalid Google token.");
+    }
+    
+    res.status(500);
+    throw new Error("Google OAuth registration failed: " + error.message);
+  }
+});
+
+exports.loginWithGoogle = asyncHandler(async (req, res) => {
+  const { id_token } = req.body;
+
+  if (!id_token) {
+    res.status(400);
+    throw new Error("Google ID token is required");
+  }
+
+  try {
+    // Verify Google ID token
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    const ticket = await client.verifyIdToken({
+      idToken: id_token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: google_id } = payload;
+
+    console.log('Google OAuth login payload:', { email, name, google_id });
+
+    // Check if user exists
+    const user = await User.findOne({ 
+      $or: [{ email }, { google_id }] 
+    });
+
+    if (!user) {
+      res.status(404);
+      throw new Error("Account not found. Please register first using the registration page.");
+    }
+
+    console.log('Found user:', { id: user._id, email: user.email, role: user.role });
+
+    // Check if user is a student (only students can login with Google)
+    if (user.role !== "student") {
+      res.status(403);
+      throw new Error("Google OAuth login is only available for students. Please use regular login.");
+    }
+
+    // Update Google OAuth info if not already set
+    if (!user.google_id) {
+      user.google_id = google_id;
+      user.is_google_user = true;
+      user.photo_url = picture || user.photo_url;
+      await user.save();
+    }
+
+    // Check if user is verified
+    if (user.is_verified === "inactive") {
+      res.status(403);
+      throw new Error("User not verified. Please contact admin.");
+    }
+
+    // Get student profile data
+    const studentProfile = await Student.findOne({ user_id: user._id });
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const responseData = {
+      message: "Login successful with Google",
+      user: {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        age: user.age,
+        role: user.role,
+        photo_url: user.photo_url,
+        is_google_user: user.is_google_user,
+        is_verified: user.is_verified,
+        isEmailVerified: user.isEmailVerified
+      },
+      student: studentProfile,
+      accessToken,
+      isOtpTrue: false // No OTP required for Google OAuth
+    };
+
+    console.log('Sending login response:', responseData);
+    res.status(200).json(responseData);
+
+  } catch (error) {
+    console.error('Google OAuth login error:', error);
+    
+    if (error.name === 'TokenExpiredError') {
+      res.status(401);
+      throw new Error("Google token expired. Please try again.");
+    }
+    if (error.name === 'JsonWebTokenError') {
+      res.status(401);
+      throw new Error("Invalid Google token.");
+    }
+    
+    res.status(500);
+    throw new Error("Google OAuth login failed: " + error.message);
+  }
+});
+
+exports.testGoogleOAuth = asyncHandler(async (req, res) => {
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({
+        error: "Google Client ID not configured",
+        message: "Please set GOOGLE_CLIENT_ID in environment variables"
+      });
+    }
+
+    res.status(200).json({
+      message: "Google OAuth configuration is working",
+      clientId: clientId.substring(0, 20) + "...", // Show first 20 chars for security
+      hasGoogleAuth: !!require('google-auth-library')
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Google OAuth test failed",
+      message: error.message
+    });
+  }
+});

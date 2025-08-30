@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import AddChildModal from '../AddChildModal';
 import { BASE_URL } from '../../../config';
+import { useNavigate } from 'react-router-dom';
 
 const ChildrenPage = () => {
     const { user } = useAuth();
@@ -30,7 +31,7 @@ const ChildrenPage = () => {
     const [showAddChildModal, setShowAddChildModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [selectedChild, setSelectedChild] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchChildren();
@@ -285,23 +286,7 @@ const ChildrenPage = () => {
                                                 </span>
                                             </div>
 
-                                            {child.preferred_subjects && child.preferred_subjects.length > 0 && (
-                                                <div className="flex justify-between items-center py-2">
-                                                    <span className="text-sm text-gray-500 dark:text-gray-400">Subjects:</span>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {child.preferred_subjects.slice(0, 2).map((subject, index) => (
-                                                            <Badge key={index} variant="outline" className="text-xs">
-                                                                {subject}
-                                                            </Badge>
-                                                        ))}
-                                                        {child.preferred_subjects.length > 2 && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                +{child.preferred_subjects.length - 2}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
+
                                         </div>
 
                                         {/* Actions */}
@@ -310,7 +295,7 @@ const ChildrenPage = () => {
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
-                                                onClick={() => setSelectedChild(child)}
+                                                onClick={() => navigate(`/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')}`)}
                                             >
                                                 <Eye className="h-3 w-5" />
                                                 View
@@ -320,6 +305,7 @@ const ChildrenPage = () => {
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
+                                                onClick={() => navigate(`/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')}/edit`)}
                                             >
                                                 <Edit className="h-3 w-3 mr-1" />
                                                 Edit
@@ -363,6 +349,8 @@ const ChildrenPage = () => {
                 onChildAdded={handleChildAdded}
                 parentUserId={user._id}
             />
+
+
         </div>
     );
 };

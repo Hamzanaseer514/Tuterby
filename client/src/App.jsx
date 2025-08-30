@@ -166,10 +166,17 @@ function App() {
                   <ParentDashboardPage />
                 </ProtectedRoute>}
               />
+              <Route
+                path="/parent-dashboard/*"
+                element={<ProtectedRoute allowedRoles={["parent"]}>
+                  <ParentDashboardPage />
+                </ProtectedRoute>}
+              />
               <Route path="/payment-result" element={<PaymentResult />} />
-              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>
+              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student","parent"]}>
                 <TutorProfilePage />
               </ProtectedRoute>} />
+            
               <Route
 
               />

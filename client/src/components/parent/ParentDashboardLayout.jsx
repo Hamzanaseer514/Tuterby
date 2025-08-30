@@ -23,7 +23,7 @@ import { cn } from '../../lib/utils';
 import { BASE_URL } from '../../config';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
-const ParentDashboardLayout = ({ children, activeTab, onTabChange }) => {
+const ParentDashboardLayout = ({ children, activeTab }) => {
   // Custom CSS for thin, light grey scrollbars
   useEffect(() => {
     const style = document.createElement('style');
@@ -62,6 +62,7 @@ const ParentDashboardLayout = ({ children, activeTab, onTabChange }) => {
 
   const { user, getUserProfile} = useAuth();
   const { getParentDashboardStats } = useParent();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState('');
   
@@ -131,7 +132,11 @@ const ParentDashboardLayout = ({ children, activeTab, onTabChange }) => {
   };
 
   const handleTabClick = (tabId) => {
-    onTabChange(tabId);
+    if (tabId === 'overview') {
+      navigate('/parent-dashboard');
+    } else {
+      navigate(`/parent-dashboard/${tabId}`);
+    }
     setIsSidebarOpen(false); // Close sidebar on mobile
   };
 

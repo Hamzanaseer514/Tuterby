@@ -22,10 +22,19 @@ exports.createCheckoutSession = async (req, res) => {
         total_sessions_per_month,
         base_amount,
         discount_percentage,
+        isParentPayment, // ✅ New: Flag for parent payments
+        studentName, // ✅ New: Child's name for parent payments
       } = req.body;
   
-      // Build product description (goes into checkout page + email receipts)
-      const description = `📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${amount}`;
+      // Build product description based on payment type
+      let description;
+      if (isParentPayment) {
+        // Parent payment description
+        description = `👨‍👩‍👧‍👦 Parent Payment for ${studentName} | 📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${amount}`;
+      } else {
+        // Student payment description (existing)
+        description = `📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${amount}`;
+      }
   
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -37,7 +46,9 @@ exports.createCheckoutSession = async (req, res) => {
             price_data: {
               currency: "gbp",
               product_data: {
-                name: `🎓 ${subject} Tutoring - ${academicLevel} Level | ${tutorName} | £${amount}`,
+                name: isParentPayment 
+                  ? `👨‍👩‍👧‍👦 ${studentName} - ${subject} Tutoring | ${academicLevel} | ${tutorName} | £${amount}`
+                  : `🎓 ${subject} Tutoring - ${academicLevel} Level | ${tutorName} | £${amount}`,
                 description: description.trim(), // ✅ nicely formatted
               },
               unit_amount: amount * 100, // ✅ final discounted charge
@@ -57,10 +68,12 @@ exports.createCheckoutSession = async (req, res) => {
           base_amount,
           discount_percentage,
           final_amount: amount,
+          isParentPayment: isParentPayment ? "true" : "false", // ✅ Store parent payment flag
+          studentName: studentName || "", // ✅ Store child's name
         },
   
-        success_url: `${process.env.FRONTEND_URL}/payment-result?success=true&PI=${paymentId}`,
-        cancel_url: `${process.env.FRONTEND_URL}/payment-result?success=false&PI=${paymentId}`,
+        success_url: `${process.env.FRONTEND_URL}/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        cancel_url: `${process.env.FRONTEND_URL}/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
   
         billing_address_collection: 'auto',
         locale: 'en-GB',
@@ -69,9 +82,13 @@ exports.createCheckoutSession = async (req, res) => {
   
         custom_text: {
           submit: {
-            message: `🎉 Thank you for choosing ${tutorName} for your ${subject} tutoring! 
+            message: isParentPayment 
+              ? `🎉 Thank you for choosing ${tutorName} for ${studentName}'s ${subject} tutoring! 
   
-  This payment will grant you access for 30 days. You’ll get a confirmation email and can start scheduling sessions right after payment.`,
+  This payment will grant ${studentName} access for 30 days. You'll get a confirmation email and ${studentName} can start scheduling sessions right after payment.`
+              : `🎉 Thank you for choosing ${tutorName} for your ${subject} tutoring! 
+  
+  This payment will grant you access for 30 days. You'll get a confirmation email and can start scheduling sessions right after payment.`,
           },
         },
   
@@ -93,8 +110,12 @@ exports.createCheckoutSession = async (req, res) => {
             base_amount,
             discount_percentage,
             final_amount: amount,
+            isParentPayment: isParentPayment ? "true" : "false", // ✅ Store in payment intent
+            studentName: studentName || "", // ✅ Store child's name
           },
-          description: `🎓 Tutor Payment: ${tutorName} - ${subject} - ${academicLevel}`,
+          description: isParentPayment 
+            ? `👨‍👩‍👧‍👦 Parent Payment: ${studentName} - ${tutorName} - ${subject} - ${academicLevel}`
+            : `🎓 Tutor Payment: ${tutorName} - ${subject} - ${academicLevel}`,
           receipt_email: studentEmail,
         },
   
@@ -111,20 +132,10 @@ exports.createCheckoutSession = async (req, res) => {
   
 
 
-
-
-
-
-
-
-
-
-
 exports.confirmPayment = async (req, res) => {
     const { paymentId } = req.params;
 
     try {
-
         // Calculate validity period (30 days from now)
         const validityStartDate = new Date();
         const validityEndDate = new Date(validityStartDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days

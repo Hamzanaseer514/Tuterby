@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword} = require("../Controllers/UserController")
+const { registerUser,registerTutor,registerParent, loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword, registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth} = require("../Controllers/UserController")
 const { getStudentDashboard,updateStudentProfile,
    getStudentSessions,searchTutors, getTutorDetails, 
    requestAdditionalHelp, getStudentHelpRequests ,hireTutor,
@@ -8,7 +8,6 @@ const { getStudentDashboard,updateStudentProfile,
    getStudentTutorChat,
    getHiredTutors,
    rateSession,
-   requestHelpFromTutor,
    getStudentProfile,
    getStudentPayments,
    processStudentPayment,
@@ -37,10 +36,12 @@ const storage = multer.diskStorage({
 
 router.get("/student/profile/:userId", protect, getStudentProfile);
 router.post("/register", registerUser)
+router.post("/register-google", registerStudentWithGoogle) // Google OAuth registration for students
+router.post("/login-google", loginWithGoogle) // Google OAuth login for all users
+router.get("/test-google-oauth", testGoogleOAuth) // Test Google OAuth configuration
 router.put("/updatestudent/:user_id", updateStudentProfile)  
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
-router.post("/register-parent", upload.single('photo'), registerParent)
-
+router.post("/register-parent", registerParent)
 router.post("/login", loginUser)
 router.post("/verify-otp", verifyOtp)
 router.post("/resend-otp", resendOtp)
@@ -52,7 +53,6 @@ router.get("/get-accepted-tutors", protect, getAcceptedTutorsForStudent);
 router.get('/getstudentchat/:tutorId', protect, getStudentTutorChat);
 router.get('/user-profile/:user_id', protect, getUserProfile);
 router.post('/user-profile/:user_id/photo', protect, upload.single('photo'), updateUserPhoto);
-
 
 // Student dashboard routes
 router.get("/student/dashboard/:userId", protect, getStudentDashboard);
@@ -74,5 +74,9 @@ router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
 router.get("/student/payments/:userId", protect, getStudentPayments);
 router.post("/student/payments/:paymentId/pay", protect, processStudentPayment);
 router.get("/student/payment-status/:userId", protect, checkStudentPaymentStatus);
+
+// Parent routes
+router.post("/register-parent", upload.single('photo'), registerParent)
+
 
 module.exports = router;            

@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BASE_URL } from '@/config';
 import { Link } from 'react-router-dom';
+import GoogleOAuth from './GoogleOAuth';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -393,6 +394,11 @@ export default function LoginForm() {
                   <div className="relative flex justify-center text-sm">
                     <span className="px-2 bg-white text-gray-500">Or continue with</span>
                   </div>
+                </div>
+                
+                {/* Google OAuth for Login */}
+                <div className="mt-4">
+                  <GoogleOAuth mode="login" />
                 </div>
               </div>
             )}

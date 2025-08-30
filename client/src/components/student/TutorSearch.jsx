@@ -408,7 +408,7 @@ const TutorSearch = () => {
       } else if (status === 200) {
         toast({
           title: "Success",
-          description: "Tutor hired successfully!",
+          description: data.message,
         });
         // Close dialog and refresh the tutors list
         setShowHiringDialog(false);

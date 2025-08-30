@@ -40,6 +40,7 @@ import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
 import { useSubject } from "../../hooks/useSubject";
+import GoogleOAuth from "./GoogleOAuth";
 
 const Register = () => {
   const [activeTab, setActiveTab] = useState("student");
@@ -1428,6 +1429,11 @@ const Register = () => {
                 >
                   {getButtonText()}
                 </Button>
+
+                {/* Google OAuth for Students */}
+                {activeTab === "student" && (
+                  <GoogleOAuth role="student" mode="register" />
+                )}
               </form>
 
               <CardFooter className="flex justify-center mt-10">

@@ -14,7 +14,7 @@ const studentProfileSchema = new mongoose.Schema(
     },
     learning_goals: {
       type: String,
-      default: "",
+      default: "Improve academic performance and develop strong study skills",
     },
     preferred_subjects: [{
       type: mongoose.Schema.Types.ObjectId,
