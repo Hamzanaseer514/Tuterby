@@ -62,29 +62,29 @@ const ChildViewPage = () => {
 
     const fetchChildData = async () => {
         try {
-            setLoading(true);
-            const data = await getParentProfile(user._id);
-            const foundChild = data.children?.find(c => c.full_name?.toLowerCase().replace(/\s+/g, '-') === childSlug);
-            console.log("foundChild", foundChild)
-
-            if (foundChild) {
-                setChild(foundChild);
-                // Fetch detailed student information including hired tutors
-                await fetchStudentDetails(foundChild._id);
-            } else {
-                setError('Child not found');
-            }
+          setLoading(true);
+          const data = await getParentProfile(user._id);
+      
+          const idPart = childSlug.split("-").pop();
+          const foundChild = data.children?.find(c => c._id.endsWith(idPart));
+      
+          if (foundChild) {
+            setChild(foundChild);
+            await fetchStudentDetails(foundChild._id);
+          } else {
+            setError("Child not found");
+          }
         } catch (error) {
-            console.error('Error fetching child data:', error);
-            setError('Failed to load child information');
+          console.error("Error fetching child data:", error);
+          setError("Failed to load child information");
         } finally {
-            setLoading(false);
+          setLoading(false);
         }
-    };
+      };
+      
 
     const fetchStudentDetails = async (userId) => {
         try {
-            console.log("studentId", userId)
             const response = await getSpecificStudentDetail(userId);
             if (response.success) {
                 setStudentDetails(response.student);
@@ -116,7 +116,7 @@ const ChildViewPage = () => {
 
     const handleTutorClick = (tutorId) => {
         navigate(`/tutor`, {
-            state: { 
+            state: {
                 tutorId: tutorId,
                 studentId: child._id, // Pass the child's user ID
                 isParentView: true // Flag to indicate this is a parent viewing
@@ -170,10 +170,6 @@ const ChildViewPage = () => {
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
                     The child you're looking for could not be found.
                 </p>
-                <Button onClick={handleBack} variant="outline">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Children
-                </Button>
             </div>
         );
     }
@@ -183,15 +179,7 @@ const ChildViewPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleBack}
-                        className="hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Children
-                    </Button>
+                   
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                             {child.full_name}'s Profile
@@ -286,15 +274,15 @@ const ChildViewPage = () => {
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Total Sessions</span>
-                                <span className="font-semibold text-gray-900 dark:text-white">0</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">{studentDetails.totalSessions}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
-                                <span className="font-semibold text-green-600">0</span>
+                                <span className="font-semibold text-green-600">{studentDetails.completedSessions}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Upcoming</span>
-                                <span className="font-semibold text-blue-600">0</span>
+                                <span className="font-semibold text-blue-600">{studentDetails.upcomingSessions}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -364,7 +352,6 @@ const ChildViewPage = () => {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {console.log("studentDetails", studentDetails)}
                                     {studentDetails.hired_tutors.map((hiredTutor) => (
                                         <div
                                             key={hiredTutor._id}

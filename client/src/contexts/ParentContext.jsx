@@ -176,7 +176,7 @@ export const ParentProvider = ({ children }) => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      
+
       // Validate required payment data
       if (!paymentData._id || !paymentData.studentEmail) {
         throw new Error('Missing required payment information');
@@ -203,8 +203,7 @@ export const ParentProvider = ({ children }) => {
         studentName: paymentData.student?.full_name || 'Child' // Child's name
       };
 
-      console.log('Creating parent payment session with data:', paymentPayload);
-      
+
       const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
         method: 'POST',
         headers: {
@@ -220,14 +219,13 @@ export const ParentProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      console.log('Payment session created successfully:', data);
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         checkoutUrl: data.url,
         sessionId: data.sessionId || null
       };
-      
+
     } catch (error) {
       console.error('Error creating parent payment session:', error);
       throw new Error(`Payment session creation failed: ${error.message}`);
@@ -238,7 +236,6 @@ export const ParentProvider = ({ children }) => {
 
   const getSpecificStudentDetail = useCallback(async (userId) => {
     try {
-      console.log("userId", userId)
       const token = getAuthToken();
       const response = await fetch(`${BASE_URL}/api/parent/student/${userId}`, {
         headers: {
@@ -249,8 +246,8 @@ export const ParentProvider = ({ children }) => {
       if (!response.ok) {
         throw new Error('Failed to fetch student details');
       }
-
-      return await response.json();
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error('Error fetching student details:', error);
       throw error;
@@ -270,12 +267,38 @@ export const ParentProvider = ({ children }) => {
         throw new Error('Failed to fetch payments');
       }
 
-      return await response.json();
+      const data = await response.json();
+        return data;
     } catch (error) {
       console.error('Error fetching payments:', error);
       throw error;
     }
   }, [getAuthToken]);
+
+  const getStudentSessions = useCallback(async (userId) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${BASE_URL}/api/parent/sessions/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+          
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+
+
 
   const value = {
     loading,
@@ -289,7 +312,9 @@ export const ParentProvider = ({ children }) => {
     uploadChildPhoto,
     getSpecificStudentDetail,
     getParentStudentsPayments,
-    createParentPaymentSession
+    createParentPaymentSession,
+    getStudentSessions
+
   };
 
   return (

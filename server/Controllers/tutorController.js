@@ -201,8 +201,7 @@ const calculateBookingAcceptanceRate = async (tutor_id) => {
 // Create a new tutoring session (supports single or multiple students)
 const createSession = asyncHandler(async (req, res) => {
   const { tutor_id, student_id, student_ids, subject, academic_level, session_date, duration_hours, hourly_rate, notes } = req.body;
-  console.log("boy", req.body);
-  // Normalize students: accept legacy single student_id or new array student_ids (both are student user_ids)
+ 
   let studentUserIds = [];
   if (Array.isArray(student_ids) && student_ids.length > 0) {
     studentUserIds = student_ids;
@@ -249,7 +248,6 @@ const createSession = asyncHandler(async (req, res) => {
   // Ensure authorization for all selected students
 
   for (const student of students) {
-    console.log("student", student);
     const hireRecord = (student.hired_tutors || []).find(
       (h) => h.tutor?.toString() === tutor._id.toString() && h.status === "accepted"
     );
@@ -265,7 +263,6 @@ const createSession = asyncHandler(async (req, res) => {
   
   for (const student of students) {
     const canCreate = await canCreateSessionForStudent(tutor._id, student._id, subject, academic_level);
-    console.log("canCreate", canCreate);
     if (!canCreate) {
       allStudentsCanCreate = false;
     }
@@ -1363,7 +1360,6 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
         });
 
         await paymentRecord.save();
-        console.log('Payment record created for accepted hire request:', paymentRecord._id);
       }
     } catch (paymentError) {
       console.error('Error creating payment record for accepted hire request:', paymentError);
@@ -1382,7 +1378,6 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
 
 // Helper function to check if tutor can create sessions for student (payment must be completed and valid)
 const canCreateSessionForStudent = async (tutorId, studentId, subject, academicLevel) => {
-  console.log(tutorId, studentId, subject, academicLevel);
   try {
     const payment = await StudentPayment.findOne({
       student_id: studentId,
@@ -1395,7 +1390,6 @@ const canCreateSessionForStudent = async (tutorId, studentId, subject, academicL
     });
     
     if (!payment) {
-      console.log("Payment not found");
       return false;
     }
     // Check if payment is still valid (not expired and has sessions remaining)
@@ -1882,6 +1876,64 @@ const removeTutorAcademicLevel = asyncHandler(async (req, res) => {
   }
 });
 
+// Get hired subjects and academic levels for a specific tutor-student relationship
+const getHiredSubjectsAndLevels = asyncHandler(async (req, res) => {
+  const { studentId, tutorId } = req.params;
+  console.log("studentId", studentId);
+  console.log("tutorId", tutorId);
+  
+  try {
+      // Get student profile
+      const studentProfile = await StudentProfile.findOne({ user_id: studentId });
+      if (!studentProfile) {
+          res.status(404);
+          throw new Error('Student profile not found');
+      }
+      const tutorProfile = await TutorProfile.findOne({ user_id: tutorId });
+      if (!tutorProfile) {
+          res.status(404);
+          throw new Error('Tutor profile not found');
+      }
+      // Get all accepted hire requests for this student with this specific tutor
+      const acceptedHireRequests = studentProfile.hired_tutors?.filter(hire => 
+          hire.status === 'accepted' && 
+          hire.tutor.toString() === tutorProfile._id.toString()
+      ) || [];
+
+      const hiredSubjects = new Set();
+      const hiredAcademicLevels = new Set();
+
+      for (const hireRequest of acceptedHireRequests) {
+          // Check if payment exists for this hire request
+          const payment = await StudentPayment.findOne({
+              student_id: studentProfile._id,
+              tutor_id: tutorProfile._id,
+              subject: hireRequest.subject,
+              academic_level: hireRequest.academic_level_id,
+              payment_status: 'paid',
+              is_active: true
+          });
+          // Only include if payment is completed and still valid
+          if (payment ) {
+              hiredSubjects.add(hireRequest.subject.toString());
+              hiredAcademicLevels.add(hireRequest.academic_level_id.toString());
+          }
+      }
+      res.status(200).json({
+          success: true,
+          hired_subjects: Array.from(hiredSubjects),
+          hired_academic_levels: Array.from(hiredAcademicLevels)
+      });
+
+  } catch (error) {
+      console.error('Error getting hired subjects and levels:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to get hired subjects and levels',
+          error: error.message
+      });
+  }
+});
 module.exports = {
   uploadDocument,
   getTutorDashboard,
@@ -1915,5 +1967,6 @@ module.exports = {
   removeTutorAcademicLevel,
   sendMeetingLink,
   canCreateSessionForStudent,
-  checkPaymentStatus
+  checkPaymentStatus,
+  getHiredSubjectsAndLevels
 };

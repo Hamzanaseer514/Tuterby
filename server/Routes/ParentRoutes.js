@@ -7,7 +7,8 @@ const {
   updateParentProfile,
   getParentDashboardStats,
   getSpecificStudentDetail,
-  getParentStudentsPayments
+  getParentStudentsPayments,
+  getParentStudentSessions
 } = require("../Controllers/ParentController");
 
 // Parent dashboard routes
@@ -17,5 +18,6 @@ router.put("/profile/:user_id", protect, updateParentProfile);
 router.get("/dashboard-stats/:user_id", protect, getParentDashboardStats);
 router.get("/student/:userId", protect, getSpecificStudentDetail);
 router.get("/payments/:user_id", protect, getParentStudentsPayments);
+router.get("/sessions/:user_id", protect, getParentStudentSessions);
 
 module.exports = router;

@@ -487,8 +487,6 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
     const { tutorId } = req.params;
     const { isParentView, studentId } = req.query; // Fixed: Use req.query instead of req.body
     
-    console.log("isParentView", isParentView);
-    console.log("studentId", studentId);
     
     try {
         let currentStudent;
@@ -496,11 +494,9 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         if (isParentView === "true" && studentId) {
             // Parent view - use studentId from query parameters
             currentStudent = await Student.findOne({ user_id: studentId });
-            console.log("Parent view - currentStudent", currentStudent);
         } else {
             // Student view - use current user ID from auth
             currentStudent = await Student.findOne({ user_id: req.user._id });
-            console.log("Student view - currentStudent", currentStudent);
         }
         
         if (!currentStudent) {
@@ -1404,7 +1400,6 @@ exports.processStudentPayment = asyncHandler(async (req, res) => {
 // Check payment status for all accepted hire requests
 exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    console.log(userId);
     try {
         // Get student profile
         const studentProfile = await Student.findOne({ user_id: userId });

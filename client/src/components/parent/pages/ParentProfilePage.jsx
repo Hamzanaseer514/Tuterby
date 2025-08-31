@@ -419,7 +419,6 @@ const ParentProfilePage = () => {
                     <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg h-11">
                       <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
                       <span className="font-medium">
-                        {console.log(parentProfile)}
                         {parentProfile?.user_id?.updatedAt 
                           ? new Date(parentProfile.user_id.updatedAt).toLocaleDateString('en-US', {
                               year: 'numeric',

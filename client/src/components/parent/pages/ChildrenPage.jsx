@@ -295,18 +295,28 @@ const ChildrenPage = () => {
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
-                                                onClick={() => navigate(`/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')}`)}
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')
+                                                        }-${child._id.slice(-6)}`
+                                                    )
+                                                }
                                             >
                                                 <Eye className="h-3 w-5" />
                                                 View
                                             </Button>
 
+
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
-                                                onClick={() => navigate(`/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')}/edit`)}
-                                            >
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')
+                                                        }-${child._id.slice(-6)}/edit`
+                                                    )
+                                                }                                            >
                                                 <Edit className="h-3 w-3 mr-1" />
                                                 Edit
                                             </Button>

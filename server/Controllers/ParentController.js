@@ -2,8 +2,9 @@ const asyncHandler = require("express-async-handler");
 const User = require("../Models/userSchema");
 const Student = require("../Models/studentProfileSchema");
 const ParentProfile = require("../Models/ParentProfileSchema");
-const StudentPayment = require("../Models/studentPaymentSchema");
 const mongoose = require("mongoose");
+const TutoringSession = require("../Models/tutoringSessionSchema");
+const StudentPayment = require("../Models/studentPaymentSchema");
 
 exports.addStudentToParent = asyncHandler(async (req, res) => {
   const {
@@ -195,7 +196,6 @@ exports.getParentDashboardStats = asyncHandler(async (req, res) => {
 
 exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  console.log("userId", userId);
 
   try {
     // Find the student profile with all related information
@@ -228,12 +228,17 @@ exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
         path: "hired_tutors.academic_level_id",
         select: "level"
       });
-    
+
     if (!studentProfile) {
       res.status(404);
       throw new Error("Student profile not found");
     }
-
+    const Session = await TutoringSession.find({ student_ids: studentProfile._id });
+    const totalSessions = Session.length;
+    const completedSessions = Session.filter(session => session.status === "completed").length;
+    const pendingSessions = Session.filter(session => session.status === "pending").length;
+    const upcomingSessions = Session.filter(session => session.status === "confirmed").length;
+    const cancelledSessions = Session.filter(session => session.status === "cancelled").length;
     // Transform the data for better frontend consumption
     const transformedStudent = {
       _id: studentProfile.user_id._id,
@@ -248,6 +253,11 @@ exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
       preferred_subjects: studentProfile.preferred_subjects,
       learning_goals: studentProfile.learning_goals,
       availability: studentProfile.availability,
+      totalSessions,
+      completedSessions,
+      pendingSessions,
+      upcomingSessions,
+      cancelledSessions,
       hired_tutors: studentProfile.hired_tutors.map(tutor => {
         // find correct hourly rate for the hired academic level
         let hourlyRate = null;
@@ -271,25 +281,24 @@ exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
           },
           subject: tutor.subject
             ? {
-                _id: tutor.subject._id,
-                name: tutor.subject.name
-              }
+              _id: tutor.subject._id,
+              name: tutor.subject.name
+            }
             : null,
           academic_level: tutor.academic_level_id
             ? {
-                _id: tutor.academic_level_id._id,
-                level: tutor.academic_level_id.level
-              }
+              _id: tutor.academic_level_id._id,
+              level: tutor.academic_level_id.level
+            }
             : null,
           status: tutor.status,
           hired_at: tutor.hired_at,
           createdAt: tutor.createdAt,
-          updatedAt: tutor.updatedAt
+          updatedAt: tutor.updatedAt,
         };
-      })
+      }),
     };
 
-    console.log("transformedStudent", transformedStudent.hired_tutors);
 
     res.status(200).json({
       success: true,
@@ -303,7 +312,7 @@ exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
 
 exports.getParentStudentsPayments = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
-  
+
   try {
     // First get the parent profile to find all students
     const parentProfile = await ParentProfile.findOne({ user_id })
@@ -314,7 +323,7 @@ exports.getParentStudentsPayments = asyncHandler(async (req, res) => {
           { path: 'academic_level', select: 'level' },
           { path: 'preferred_subjects', select: 'name' }
         ]
-    });
+      });
 
     if (!parentProfile) {
       res.status(404);
@@ -323,30 +332,30 @@ exports.getParentStudentsPayments = asyncHandler(async (req, res) => {
 
     // Get all payment records for the parent's students
     const studentIds = parentProfile.students.map(student => student._id);
-    
-    const payments = await StudentPayment.find({ 
-      student_id: { $in: studentIds } 
+
+    const payments = await StudentPayment.find({
+      student_id: { $in: studentIds }
     })
-    .populate([
-      { 
-        path: 'student_id', 
-        populate: { 
-          path: 'user_id', 
-          select: 'full_name email photo_url' 
-        } 
-      },
-      { 
-        path: 'tutor_id', 
-        populate: { 
-          path: 'user_id', 
-          select: 'full_name email photo_url' 
+      .populate([
+        {
+          path: 'student_id',
+          populate: {
+            path: 'user_id',
+            select: 'full_name email photo_url'
+          }
         },
-        select: 'average_rating academic_levels_taught'
-      },
-      { path: 'subject', select: 'name' },
-      { path: 'academic_level', select: 'level' }
-    ])
-    .sort({ request_date: -1 }); // Most recent first
+        {
+          path: 'tutor_id',
+          populate: {
+            path: 'user_id',
+            select: 'full_name email photo_url'
+          },
+          select: 'average_rating academic_levels_taught'
+        },
+        { path: 'subject', select: 'name' },
+        { path: 'academic_level', select: 'level' }
+      ])
+      .sort({ request_date: -1 }); // Most recent first
 
     // Transform the data to include student names and other details
     const transformedPayments = payments.map(payment => ({
@@ -388,4 +397,88 @@ exports.getParentStudentsPayments = asyncHandler(async (req, res) => {
     throw new Error("Failed to fetch payments data");
   }
 });
+
+
+exports.getParentStudentSessions = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  const { status, page = 1, limit = 10 } = req.query;
+
+
+  const parentProfile = await ParentProfile.findOne({ user_id: user_id });
+  if (!parentProfile) {
+    res.status(404);
+    throw new Error('Parent profile not found');
+  }
+  // Get all students associated with this parent
+  const students = await Student.find({ _id: { $in: parentProfile.students } });
+  if (!students || students.length === 0) {
+    res.status(404);
+    throw new Error('No students found for this parent');
+  }
+  // Get student IDs for querying sessions
+  const studentIds = students.map(student => student._id);
+  const query = { student_ids: { $in: studentIds } };
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  const sessions = await TutoringSession.find(query)
+    .populate({
+      path: "tutor_id",
+      select: "user_id",
+      populate: {
+        path: "user_id",
+        select: "full_name email",
+      },
+    })
+    .populate({
+      path: 'student_ids',
+      select: "user_id",
+      populate: {
+        path: "user_id",
+        select: "full_name email",
+      },
+    })
+    .populate({
+      path: 'student_responses.student_id',
+      select: 'user_id',
+      populate: { path: 'user_id', select: 'full_name email' }
+    })
+    .populate({
+      path: 'student_ratings.student_id',
+      select: 'user_id',
+      populate: { path: 'user_id', select: 'full_name email' }
+    })
+    .sort({ session_date: -1 })
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit));
+
+  // 🔑 Check payments for each tutor-session
+  const enrichedSessions = await Promise.all(sessions.map(async (session) => {
+    // Check if any of the students in this session have paid for this tutor
+    const hasPayment = await StudentPayment.exists({
+      student_id: { $in: studentIds },
+      tutor_id: session.tutor_id._id,
+      payment_status: 'paid',
+      is_active: true
+    });
+
+    return {
+      ...session.toObject(),
+      payment_required: !hasPayment, // agar kisi bhi student ka payment nhi hai to true
+    };
+  }));
+
+  const total = await TutoringSession.countDocuments(query);
+  res.status(200).json({
+    sessions: enrichedSessions,
+    pagination: {
+      current: parseInt(page),
+      total: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1
+    }
+  });
+});
+
 

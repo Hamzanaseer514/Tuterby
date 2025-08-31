@@ -150,7 +150,6 @@ exports.confirmPayment = async (req, res) => {
 
         }, { new: true });
         res.json({ success: true, payment });
-        console.log("Payment confirmed:", payment);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to confirm payment" });

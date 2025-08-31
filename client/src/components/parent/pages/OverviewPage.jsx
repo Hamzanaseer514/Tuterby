@@ -194,7 +194,7 @@ const OverviewPage = ({ onTabChange }) => {
 
           <Button
 
-            onClick={() => onTabChange('children')}
+            onClick={() => setShowAddChildModal(true)}
 
             className="flex items-center gap-2"
 
@@ -492,7 +492,13 @@ const OverviewPage = ({ onTabChange }) => {
 
                     <div className="flex gap-2">
 
-                      <Button variant="outline" size="sm" className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors">
+                      <Button variant="outline" size="sm" className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
+                      onClick={() =>
+                        navigate(
+                            `/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')
+                            }-${child._id.slice(-6)}`
+                        )
+                    }>
 
                         <Eye className="h-3 w-3 mr-1" />
 
@@ -500,7 +506,13 @@ const OverviewPage = ({ onTabChange }) => {
 
                       </Button>
 
-                      <Button variant="outline" size="sm" className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors">
+                      <Button variant="outline" size="sm" className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
+                      onClick={() =>
+                        navigate(
+                            `/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')
+                            }-${child._id.slice(-6)}/edit`
+                        )
+                    }>
 
                         <Edit className="h-3 w-3 mr-1" />
 
@@ -532,7 +544,9 @@ const OverviewPage = ({ onTabChange }) => {
 
                 className="px-6 py-2"
 
-                onClick={() => onTabChange('children')}
+                onClick={() => {
+                  navigate('/parent-dashboard/children');
+                }}
 
               >
 
@@ -574,6 +588,6 @@ const OverviewPage = ({ onTabChange }) => {
 
 
 
-export default OverviewPage; 
+export default OverviewPage;
 
 

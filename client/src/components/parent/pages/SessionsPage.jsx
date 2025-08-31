@@ -14,65 +14,86 @@ import {
   XCircle,
   AlertCircle
 } from 'lucide-react';
+import { useParent } from '../../../contexts/ParentContext';
+import { useSubject } from '../../../hooks/useSubject';
+
 
 const SessionsPage = () => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { getParentProfile,getStudentSessions } = useParent();
+  const { subjects, academicLevels } = useSubject();
+  const [child, setChild] = useState(null);
+
 
   useEffect(() => {
     // Simulate loading sessions data
     setTimeout(() => {
-      setSessions([
-        {
-          id: 1,
-          childName: 'Emma Johnson',
-          subject: 'GCSE Mathematics',
-          tutor: 'Dr. Sarah Williams',
-          date: '2024-01-15',
-          time: '14:00',
-          duration: '60',
-          status: 'completed',
-          type: 'online',
-          location: 'Zoom Meeting'
-        },
-        {
-          id: 2,
-          childName: 'Emma Johnson',
-          subject: 'GCSE English Literature',
-          tutor: 'Prof. Michael Brown',
-          date: '2024-01-17',
-          time: '16:00',
-          duration: '90',
-          status: 'upcoming',
-          type: 'in-person',
-          location: 'Tutor Center - London'
-        },
-        {
-          id: 3,
-          childName: 'James Johnson',
-          subject: 'A-Level Physics',
-          tutor: 'Dr. Lisa Chen',
-          date: '2024-01-20',
-          time: '10:00',
-          duration: '120',
-          status: 'cancelled',
-          type: 'online',
-          location: 'Google Meet'
-        }
-      ]);
+      // fetchChildData();
+      fetchStudentSessions(user._id);
       setLoading(false);
     }, 1000);
   }, []);
+
+
+//   const fetchChildData = async () => {
+//     try {
+//         setLoading(true);
+//         const data = await getParentProfile(user._id);
+//         const foundChild = data.children?.find(c => c.full_name?.toLowerCase().replace(/\s+/g, '-') === childSlug);
+//         console.log("foundChild", foundChild)
+//         if (foundChild) {
+//             setChild(foundChild);
+//             // Fetch detailed student information including hired tutors
+//             await fetchStudentSessions(foundChild._id);
+//         } else {
+//             setError('Child not found');
+//         }
+//     } catch (error) {
+//         console.error('Error fetching child data:', error);
+//         setError('Failed to load child information');
+//     } finally {
+//         setLoading(false);
+//     }
+// };
+
+const fetchStudentSessions = async (userId) => {
+    try {
+        const response = await getStudentSessions(userId);
+        if (response) {
+            setSessions(response.sessions);
+        }
+    } catch (error) {
+        console.error('Error fetching student sessions:', error);
+    }
+};
+
+const getAcademicLevelName = (id) => {
+    if (!id) return null;
+    const academicLevel = academicLevels.find(level => level._id === id);
+    return academicLevel?.level || id;
+};
+
+const getSubjectName = (id) => {
+    if (!id) return null;
+    const subject = subjects.find(subject => subject._id === id);
+    return subject?.name || id;
+};
+
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'upcoming':
+      case 'confirmed':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       case 'cancelled':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'in_progress':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
@@ -82,10 +103,14 @@ const SessionsPage = () => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4" />;
-      case 'upcoming':
+      case 'confirmed':
         return <AlertCircle className="h-4 w-4" />;
+      case 'pending':
+        return <Clock className="h-4 w-4" />;
       case 'cancelled':
         return <XCircle className="h-4 w-4" />;
+      case 'in_progress':
+        return <AlertCircle className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
     }
@@ -151,15 +176,15 @@ const SessionsPage = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {sessions.filter(s => s.status === 'upcoming').length}
+            <div className="text-2xl font-bold text-yellow-600">
+              {sessions.filter(s => s.status === 'pending').length}
             </div>
             <p className="text-xs text-muted-foreground">
-              Scheduled
+              Awaiting confirmation
             </p>
           </CardContent>
         </Card>
@@ -171,7 +196,7 @@ const SessionsPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {sessions.reduce((total, session) => total + parseInt(session.duration), 0) / 60}
+              {sessions.reduce((total, session) => total + (session.duration_hours || 0), 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Total hours
@@ -214,10 +239,10 @@ const SessionsPage = () => {
                           </div>
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-white">
-                              {session.subject}
+                              {getSubjectName(session.subject)} - {getAcademicLevelName(session.academic_level)}
                             </h4>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              with {session.tutor}
+                              with {session.tutor_id?.user_id?.full_name || 'Unknown Tutor'}
                             </p>
                           </div>
                         </div>
@@ -226,32 +251,36 @@ const SessionsPage = () => {
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600 dark:text-gray-300">
-                              {session.childName}
+                              {session.student_ids.map(id => id.user_id.full_name).join(', ')}
                             </span>
                           </div>
                           
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600 dark:text-gray-300">
-                              {new Date(session.date).toLocaleDateString()}
+                              {new Date(session.session_date).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
                             </span>
                           </div>
                           
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600 dark:text-gray-300">
-                              {session.time} ({session.duration}min)
+                              {new Date(session.session_date).toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                                timeZone: 'UTC'
+                              })} ({session.duration_hours}h)
                             </span>
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            {session.type === 'online' ? (
-                              <Video className="h-4 w-4 text-gray-400" />
-                            ) : (
-                              <MapPin className="h-4 w-4 text-gray-400" />
-                            )}
                             <span className="text-gray-600 dark:text-gray-300">
-                              {session.location}
+                              £{session.hourly_rate}/hr
                             </span>
                           </div>
                         </div>
@@ -259,15 +288,34 @@ const SessionsPage = () => {
                       
                       {/* Status and Actions */}
                       <div className="flex flex-col items-end gap-3">
-                        <Badge 
-                          className={`flex items-center gap-1 px-3 py-1 ${getStatusColor(session.status)}`}
-                        >
-                          {getStatusIcon(session.status)}
-                          {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge 
+                            className={`flex items-center gap-1 px-3 py-1 ${getStatusColor(session.status)}`}
+                          >
+                            {getStatusIcon(session.status)}
+                            {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                          </Badge>
+                          
+                          {session.payment_required && (
+                            <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 text-xs">
+                              Payment Required
+                            </Badge>
+                          )}
+                        </div>
                         
                         <div className="flex gap-2">
-                          {session.status === 'upcoming' && (
+                          {session.status === 'pending' && (
+                            <>
+                              <Button variant="outline" size="sm">
+                                Accept
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                                Decline
+                              </Button>
+                            </>
+                          )}
+                          
+                          {session.status === 'confirmed' && (
                             <>
                               <Button variant="outline" size="sm">
                                 Reschedule

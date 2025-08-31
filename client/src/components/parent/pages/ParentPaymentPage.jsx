@@ -49,7 +49,6 @@ const ParentPaymentPage = () => {
   };
 
   const handlePayment = async (payment) => {
-    console.log("Processing payment for:", payment);
     try {
       setProcessingPayment(payment._id);
       
@@ -63,7 +62,6 @@ const ParentPaymentPage = () => {
       const result = await createParentPaymentSession(paymentData);
       
       if (result.success) {
-        console.log("Stripe checkout url:", result.checkoutUrl);
         // Redirect to Stripe Checkout
         window.location.href = result.checkoutUrl;
       }

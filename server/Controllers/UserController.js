@@ -935,7 +935,6 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, picture, sub: google_id } = payload;
 
-    console.log('Google OAuth login payload:', { email, name, google_id });
 
     // Check if user exists
     const user = await User.findOne({ 
@@ -947,7 +946,6 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
       throw new Error("Account not found. Please register first using the registration page.");
     }
 
-    console.log('Found user:', { id: user._id, email: user.email, role: user.role });
 
     // Check if user is a student (only students can login with Google)
     if (user.role !== "student") {
@@ -1001,7 +999,6 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
       isOtpTrue: false // No OTP required for Google OAuth
     };
 
-    console.log('Sending login response:', responseData);
     res.status(200).json(responseData);
 
   } catch (error) {
