@@ -83,8 +83,7 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
     { id: 'sessions', label: 'Sessions', icon: Calendar, path: '/parent-dashboard/sessions' },
     { id: 'profile', label: 'My Profile', icon: User, path: '/parent-dashboard/profile' },
     { id: 'payments', label: 'Payments', icon: CreditCard, path: '/parent-dashboard/payments' },
-    { id: 'progress', label: 'Progress', icon: BarChart3, path: '/parent-dashboard/progress' },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/parent-dashboard/messages' },
+    { id: 'tutors', label: 'Tutors', icon: BarChart3, path: '/parent-dashboard/tutors' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/parent-dashboard/settings' }
   ];
   
@@ -124,7 +123,6 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
   const fetchDashboardStats = async () => {
     try {
       const data = await getParentDashboardStats(user._id);
-      console.log("data",data);
       setStats(data);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);

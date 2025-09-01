@@ -297,8 +297,75 @@ export const ParentProvider = ({ children }) => {
     }
   }, [getAuthToken]);
 
+  const deleteChildFromParent = useCallback(async (childId, parentUserId) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      
+      const response = await fetch(`${BASE_URL}/api/parent/child/${childId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ parentUserId })
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete child');
+      }
 
+      const data = await response.json();
+      toast.success('Child deleted successfully');
+      return data;
+    } catch (error) {
+      console.error('Error deleting child:', error);
+      toast.error(error.message || 'Failed to delete child');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthToken]);
+
+  const getTutorsForParent = useCallback(async (filters = {}) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      
+      const params = new URLSearchParams({
+        page: filters.page || 1,
+        limit: filters.limit || 12,
+        ...(filters.search && { search: filters.search }),
+        ...(filters.subject_id && { subject_id: filters.subject_id }),
+        ...(filters.academic_level && { academic_level: filters.academic_level }),
+        ...(filters.location && { location: filters.location }),
+        ...(filters.min_rating && { min_rating: filters.min_rating }),
+        ...(filters.preferred_subjects_only && { preferred_subjects_only: filters.preferred_subjects_only })
+      });
+
+      const response = await fetch(`${BASE_URL}/api/parent/tutors/search?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch tutors');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching tutors:', error);
+      toast.error(error.message || 'Failed to fetch tutors');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthToken]);
 
   const value = {
     loading,
@@ -313,8 +380,9 @@ export const ParentProvider = ({ children }) => {
     getSpecificStudentDetail,
     getParentStudentsPayments,
     createParentPaymentSession,
-    getStudentSessions
-
+    getStudentSessions,
+    deleteChildFromParent,
+    getTutorsForParent
   };
 
   return (

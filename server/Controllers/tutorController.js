@@ -226,7 +226,7 @@ const createSession = asyncHandler(async (req, res) => {
   // Fetch profiles
   const students = await StudentProfile.find({ user_id: { $in: studentUserIds } });
   const tutor = await TutorProfile.findOne({ user_id: tutor_id });
-  const tutor_total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id });
+  const tutor_total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id , status: 'completed' });
   const allowed_session = tutor.academic_levels_taught.find(level => level.educationLevel.toString() === academic_level.toString());
   if (allowed_session) {
     if (tutor_total_sessions >= allowed_session.totalSessionsPerMonth) {

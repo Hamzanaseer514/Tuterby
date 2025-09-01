@@ -5,6 +5,8 @@ import ChildrenPage from '../../components/parent/pages/ChildrenPage';
 import SessionsPage from '../../components/parent/pages/SessionsPage';
 import ParentProfilePage from '../../components/parent/pages/ParentProfilePage';
 import ParentPaymentPage from '../../components/parent/pages/ParentPaymentPage';
+import TutorsPage from '../../components/parent/pages/TutorsPage';
+import TutorProfilePage from '../../components/parent/pages/TutorProfilePage';
 import { useLocation, Routes, Route } from 'react-router-dom';
 import ChildViewPage from '../../components/parent/pages/ChildViewPage';
 
@@ -18,8 +20,8 @@ const ParentDashboardPage = () => {
     if (path.includes('/sessions')) return 'sessions';
     if (path.includes('/profile')) return 'profile';
     if (path.includes('/payments')) return 'payments';
+    if (path.includes('/tutors')) return 'tutors';
     if (path.includes('/progress')) return 'progress';
-    if (path.includes('/messages')) return 'messages';
     if (path.includes('/settings')) return 'settings';
     return 'overview';
   };
@@ -36,26 +38,8 @@ const ParentDashboardPage = () => {
         <Route path="/sessions" element={<SessionsPage />} />
         <Route path="/profile" element={<ParentProfilePage />} />
         <Route path="/payments" element={<ParentPaymentPage />} />
-        <Route path="/progress" element={
-          <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              Progress Page
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              Coming soon! This page will show academic progress tracking.
-            </p>
-          </div>
-        } />
-        <Route path="/messages" element={
-          <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              Messages Page
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              Coming soon! This page will show communication with tutors.
-            </p>
-          </div>
-        } />
+        <Route path="/tutors" element={<TutorsPage />} />
+        <Route path="/tutors/profile" element={<TutorProfilePage />} />
         <Route path="/settings" element={
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">

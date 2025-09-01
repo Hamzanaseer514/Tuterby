@@ -81,7 +81,6 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
 
   // Debug: Watch for changes in subjectRelatedToAcademicLevels
   useEffect(() => {
-    console.log('subjectRelatedToAcademicLevels changed:', subjectRelatedToAcademicLevels);
   }, [subjectRelatedToAcademicLevels]);
 
   // Auto-open in edit mode if initialEditMode is true

@@ -19,16 +19,19 @@ import {
     User
 } from 'lucide-react';
 import AddChildModal from '../AddChildModal';
+import DeleteChildModal from '../DeleteChildModal';
 import { BASE_URL } from '../../../config';
 import { useNavigate } from 'react-router-dom';
 
 const ChildrenPage = () => {
     const { user } = useAuth();
-    const { getParentProfile } = useParent();
+    const { getParentProfile, deleteChildFromParent, loading } = useParent();
     const [children, setChildren] = useState([]);
     const [filteredChildren, setFilteredChildren] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
     const [showAddChildModal, setShowAddChildModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [childToDelete, setChildToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const navigate = useNavigate();
@@ -43,13 +46,13 @@ const ChildrenPage = () => {
 
     const fetchChildren = async () => {
         try {
-            setLoading(true);
+            setPageLoading(true);
             const data = await getParentProfile(user._id);
             setChildren(data.children || []);
         } catch (error) {
             console.error('Error fetching children:', error);
         } finally {
-            setLoading(false);
+            setPageLoading(false);
         }
     };
 
@@ -78,9 +81,29 @@ const ChildrenPage = () => {
         window.dispatchEvent(new CustomEvent('parentDataUpdated'));
     };
 
-    const handleChildDeleted = (childId) => {
-        setChildren(prev => prev.filter(child => child._id !== childId));
+    const handleDeleteClick = (child) => {
+        setChildToDelete(child);
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!childToDelete) return;
+
+        try {
+            await deleteChildFromParent(childToDelete._id, user._id);
+            setChildren(prev => prev.filter(child => child._id !== childToDelete._id));
         window.dispatchEvent(new CustomEvent('parentDataUpdated'));
+            setShowDeleteModal(false);
+            setChildToDelete(null);
+        } catch (error) {
+            // Error is already handled in the context with toast
+            console.error('Error deleting child:', error);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setShowDeleteModal(false);
+        setChildToDelete(null);
     };
 
     const handleChildUpdated = (updatedChild) => {
@@ -105,7 +128,7 @@ const ChildrenPage = () => {
         }
     };
 
-    if (loading) {
+    if (pageLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -179,8 +202,6 @@ const ChildrenPage = () => {
                     </CardContent>
                 </Card>
             </div>
-
-
 
             {/* Children List */}
             <Card>
@@ -285,8 +306,6 @@ const ChildrenPage = () => {
                                                     {new Date(child.created_at).toLocaleDateString()}
                                                 </span>
                                             </div>
-
-
                                         </div>
 
                                         {/* Actions */}
@@ -306,7 +325,6 @@ const ChildrenPage = () => {
                                                 View
                                             </Button>
 
-
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -316,7 +334,8 @@ const ChildrenPage = () => {
                                                         `/parent-dashboard/children/${child.full_name.toLowerCase().replace(/\s+/g, '-')
                                                         }-${child._id.slice(-6)}/edit`
                                                     )
-                                                }                                            >
+                                                }
+                                            >
                                                 <Edit className="h-3 w-3 mr-1" />
                                                 Edit
                                             </Button>
@@ -324,8 +343,9 @@ const ChildrenPage = () => {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => handleChildDeleted(child._id)}
+                                                onClick={() => handleDeleteClick(child)}
                                                 className="text-red-600 hover:text-red-700 hover:border-red-600 transition-colors"
+                                                disabled={loading}
                                             >
                                                 <Trash2 className="h-3 w-3" />
                                             </Button>
@@ -360,7 +380,14 @@ const ChildrenPage = () => {
                 parentUserId={user._id}
             />
 
-
+            {/* Delete Child Modal */}
+            <DeleteChildModal
+                isOpen={showDeleteModal}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                childName={childToDelete?.full_name || ''}
+                loading={loading}
+            />
         </div>
     );
 };

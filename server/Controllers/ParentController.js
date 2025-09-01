@@ -5,6 +5,8 @@ const ParentProfile = require("../Models/ParentProfileSchema");
 const mongoose = require("mongoose");
 const TutoringSession = require("../Models/tutoringSessionSchema");
 const StudentPayment = require("../Models/studentPaymentSchema");
+const TutorProfile = require("../Models/tutorProfileSchema");
+const { EducationLevel } = require("../Models/LookupSchema");
 
 exports.addStudentToParent = asyncHandler(async (req, res) => {
   const {
@@ -425,10 +427,10 @@ exports.getParentStudentSessions = asyncHandler(async (req, res) => {
   const sessions = await TutoringSession.find(query)
     .populate({
       path: "tutor_id",
-      select: "user_id",
+      select: "user_id qualifications average_rating total_sessions experience_years bio location phone_number",
       populate: {
         path: "user_id",
-        select: "full_name email",
+        select: "full_name email photo_url",
       },
     })
     .populate({
@@ -479,6 +481,286 @@ exports.getParentStudentSessions = asyncHandler(async (req, res) => {
       hasPrev: page > 1
     }
   });
+});
+
+exports.deleteChildFromParent = asyncHandler(async (req, res) => {
+  const { childId } = req.params;
+  const { parentUserId } = req.body;
+  if (!childId || !parentUserId) {
+    res.status(400);
+    throw new Error("Child ID and Parent User ID are required");
+  }
+
+  try {
+    // Start a database session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // First, verify the child exists and belongs to the parent
+      const parentProfile = await ParentProfile.findOne({ user_id: parentUserId }).session(session);
+      
+      if (!parentProfile) {
+        res.status(404);
+        throw new Error("Parent profile not found");
+      }
+
+      // Find the student profile by user_id (not by _id)
+      const studentProfile = await Student.findOne({ user_id: childId }).session(session);
+      
+      if (!studentProfile) {
+        res.status(404);
+        throw new Error("Child profile not found");
+      }
+
+      // Check if the child belongs to this parent
+      const childBelongsToParent = parentProfile.students.includes(studentProfile._id);
+      if (!childBelongsToParent) {
+        res.status(403);
+        throw new Error("This child does not belong to the specified parent");
+      }
+
+      // Check if child has any active sessions or payments
+      const activeSessions = await TutoringSession.find({
+        student_ids: studentProfile._id,
+        status: { $in: ['confirmed', 'pending'] }
+      }).session(session);
+
+      if (activeSessions.length > 0) {
+        res.status(400);
+        throw new Error("Cannot delete child with active or pending sessions. Please cancel all sessions first.");
+      }
+
+      const activePayments = await StudentPayment.find({
+        student_id: studentProfile._id,
+        payment_status: 'paid',
+        is_active: true
+      }).session(session);
+
+      if (activePayments.length > 0) {
+        res.status(400);
+        throw new Error("Cannot delete child with active payments. Please wait for payments to expire or contact support.");
+      }
+
+      // Remove child from parent's students array
+      await ParentProfile.findByIdAndUpdate(
+        parentProfile._id,
+        { $pull: { students: studentProfile._id } },
+        { session }
+      );
+
+      // Delete the student profile
+      await Student.findByIdAndDelete(studentProfile._id).session(session);
+
+      // Delete the user account
+      await User.findByIdAndDelete(studentProfile.user_id).session(session);
+
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({
+        success: true,
+        message: "Child deleted successfully",
+        deletedChildId: childId
+      });
+
+    } catch (error) {
+      // Rollback transaction on error
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+
+  } catch (error) {
+    console.error("Error deleting child:", error);
+    res.status(500);
+    throw new Error("Failed to delete child: " + error.message);
+  }
+});
+
+
+exports.searchTutors = asyncHandler(async (req, res) => {
+  const {
+      search,
+      subject_id,
+      academic_level,
+      location,
+      min_rating,
+      preferred_subjects_only,
+      page = 1,
+      limit = 10
+  } = req.query;
+
+  try {
+      const query = {
+          // Only show approved tutors
+          profile_status: 'approved',
+      };
+
+      // Subject filter
+      if (subject_id) {
+          if (subject_id.match(/^[0-9a-fA-F]{24}$/)) {
+              query.subjects = { $in: [subject_id] };
+          }
+      }
+
+      // Academic level filter
+      if (academic_level) {
+          if (academic_level.match(/^[0-9a-fA-F]{24}$/)) {
+              query['academic_levels_taught.educationLevel'] = academic_level;
+          }
+      }
+
+      // Location filter
+      if (location) {
+          query.location = new RegExp(location, 'i');
+      }
+
+      // Rating filter
+      if (min_rating) {
+          query.average_rating = { $gte: parseFloat(min_rating) };
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      let searchQuery = { ...query };
+      let userIds = [];
+
+      // Handle search term (name or subject)
+      if (search) {
+          const matchingUsers = await User.find({
+              full_name: { $regex: search, $options: 'i' },
+              role: 'tutor'
+          }).select('_id');
+
+          userIds = matchingUsers.map(user => user._id);
+
+          const searchOrConditions = [
+              ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
+          ];
+
+          // Only add subject search if no specific subject filter is set
+          if (!subject_id) {
+              searchOrConditions.unshift({ subjects: new RegExp(search, 'i') });
+          }
+
+          searchQuery = {
+              ...query,
+              $or: searchOrConditions
+          };
+      }
+
+      // Ensure the subject filter is preserved in the final query
+      if (subject_id && !searchQuery.subjects) {
+          searchQuery.subjects = { $in: [subject_id] };
+      }
+
+      // Fetch matching tutors
+      const tutors = await TutorProfile.find({...searchQuery, profile_status: 'approved'})
+          .populate('user_id', 'full_name email photo_url')
+          .skip(skip)
+          .limit(parseInt(limit))
+          .sort({ average_rating: -1 })
+          .lean();
+
+      // Get all unique education level IDs from all tutors
+      const tutorAcademicLevelIds = tutors.flatMap(tutor =>
+          (tutor.academic_levels_taught || []).map(level => level.educationLevel)
+      );
+
+      const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
+
+      // Create a map for quick lookup
+      const academicLevelMap = {};
+      academicLevels.forEach(level => {
+          academicLevelMap[level._id.toString()] = level;
+      });
+
+      // Count total results
+      const total = await TutorProfile.countDocuments({...searchQuery, profile_status: 'approved'});
+
+      // Get total unique students taught by each tutor
+      const tutorIds = tutors.map(tutor => tutor._id);
+      
+      const sessionsWithStudents = await TutoringSession.find({
+          tutor_id: { $in: tutorIds }
+      }).select('tutor_id student_ids status');
+
+     
+
+      // Create a map of tutor_id to unique student count
+      const tutorStudentCountMap = {};
+      sessionsWithStudents.forEach(session => {
+          const tutorId = session.tutor_id.toString();
+          if (!tutorStudentCountMap[tutorId]) {
+              tutorStudentCountMap[tutorId] = new Set();
+          }
+          
+          // Add all students from this session to the set
+          if (session.student_ids && Array.isArray(session.student_ids)) {
+              session.student_ids.forEach(studentId => {
+                  tutorStudentCountMap[tutorId].add(studentId.toString());
+              });
+          }
+      });
+      
+      // Format tutor output
+      const formattedTutors = tutors
+          .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
+          .map((tutor) => {
+              // Get this tutor's academic levels and hourly rates
+              const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(levelObj => {
+                  const levelDoc = academicLevelMap[levelObj.educationLevel.toString()];
+                  return {
+                      name: levelDoc ? levelDoc.level : levelObj.name || 'Unknown',
+                      hourlyRate: levelObj.hourlyRate || (levelDoc ? levelDoc.hourlyRate : 0)
+                  };
+              });
+
+              const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
+              const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
+              const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
+
+              // Get total unique students taught by this tutor
+              const totalStudentsTaught = tutorStudentCountMap[tutor._id.toString()] ? 
+                  tutorStudentCountMap[tutor._id.toString()].size : 0;
+
+                  return {
+                  _id: tutor._id,
+                  user_id: tutor.user_id,
+                  subjects: tutor.subjects,
+                  academic_levels_taught: tutor.academic_levels_taught,
+                  min_hourly_rate: min_hourly_rate_value,
+                  max_hourly_rate: max_hourly_rate_value,
+                  average_rating: tutor.average_rating,
+                  total_sessions: tutor.total_sessions || 0,
+                  total_students_taught: totalStudentsTaught,
+                  location: tutor.location,
+                  bio: tutor.bio,
+                  qualifications: tutor.qualifications,
+                  experience_years: tutor.experience_years,
+                  is_verified: tutor.is_verified,
+                  is_approved: tutor.is_approved
+              };
+          });
+
+      // Send response
+      res.status(200).json({
+          tutors: formattedTutors,
+          pagination: {
+              current_page: parseInt(page),
+              total_pages: Math.ceil(total / parseInt(limit)),
+              total_tutors: total,
+              has_next: skip + parseInt(limit) < total,
+              has_prev: parseInt(page) > 1
+          }
+      });
+
+  } catch (error) {
+      res.status(500);
+      throw new Error("Failed to search tutors: " + error.message);
+  }
 });
 
 
