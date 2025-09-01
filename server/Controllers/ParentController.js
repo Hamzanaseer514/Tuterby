@@ -582,185 +582,192 @@ exports.deleteChildFromParent = asyncHandler(async (req, res) => {
 
 exports.searchTutors = asyncHandler(async (req, res) => {
   const {
-      search,
-      subject_id,
-      academic_level,
-      location,
-      min_rating,
-      preferred_subjects_only,
-      page = 1,
-      limit = 10
+    search,
+    subject_id,
+    academic_level,
+    location,
+    min_rating,
+    preferred_subjects_only,
+    page = 1,
+    limit = 10
   } = req.query;
 
   try {
-      const query = {
-          // Only show approved tutors
-          profile_status: 'approved',
+    const query = {
+      // Only show approved tutors
+      profile_status: 'approved',
+    };
+
+    // Subject filter
+    if (subject_id && subject_id.match(/^[0-9a-fA-F]{24}$/)) {
+      query.subjects = { $in: [subject_id] };
+    }
+
+    // Academic level filter
+    if (academic_level && academic_level.match(/^[0-9a-fA-F]{24}$/)) {
+      query['academic_levels_taught.educationLevel'] = academic_level;
+    }
+
+    // Location filter
+    if (location) {
+      query.location = new RegExp(location, 'i');
+    }
+
+    // Rating filter
+    if (min_rating) {
+      query.average_rating = { $gte: parseFloat(min_rating) };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    let searchQuery = { ...query };
+    let userIds = [];
+
+    // Handle search term (name or subject)
+    if (search) {
+      const matchingUsers = await User.find({
+        full_name: { $regex: search, $options: 'i' },
+        role: 'tutor'
+      }).select('_id');
+
+      userIds = matchingUsers.map(user => user._id);
+
+      const searchOrConditions = [
+        ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
+      ];
+
+      // Only add subject search if no specific subject filter is set
+      if (!subject_id) {
+        searchOrConditions.unshift({ subjects: new RegExp(search, 'i') });
+      }
+
+      searchQuery = {
+        ...query,
+        $or: searchOrConditions
       };
+    }
 
-      // Subject filter
-      if (subject_id) {
-          if (subject_id.match(/^[0-9a-fA-F]{24}$/)) {
-              query.subjects = { $in: [subject_id] };
-          }
+    // Ensure the subject filter is preserved in the final query
+    if (subject_id && !searchQuery.subjects) {
+      searchQuery.subjects = { $in: [subject_id] };
+    }
+
+    // Fetch matching tutors
+    const tutors = await TutorProfile.find({ ...searchQuery, profile_status: 'approved' })
+      .populate('user_id', 'full_name email photo_url')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ average_rating: -1 })
+      .lean();
+
+    // Get all unique education level IDs from all tutors
+    const tutorAcademicLevelIds = tutors.flatMap(tutor =>
+      (tutor.academic_levels_taught || []).map(level => level.educationLevel)
+    );
+
+    // Fetch all sessions for these tutors (to build reviews + students count)
+    const allSessions = await TutoringSession.find({
+      tutor_id: { $in: tutors.map(tutor => tutor._id) }
+    }).select('tutor_id student_ids status rating feedback student_ratings');
+
+    // Create map tutorId -> reviews
+    const tutorReviewsMap = {};
+    allSessions.forEach(session => {
+      const tutorId = session.tutor_id.toString();
+      if (!tutorReviewsMap[tutorId]) {
+        tutorReviewsMap[tutorId] = [];
       }
+      tutorReviewsMap[tutorId].push({
+        rating: session.rating,
+        feedback: session.feedback,
+        student_ratings: session.student_ratings
+      });
+    });
 
-      // Academic level filter
-      if (academic_level) {
-          if (academic_level.match(/^[0-9a-fA-F]{24}$/)) {
-              query['academic_levels_taught.educationLevel'] = academic_level;
-          }
+    // Create map tutorId -> unique students count
+    const tutorStudentCountMap = {};
+    allSessions.forEach(session => {
+      const tutorId = session.tutor_id.toString();
+      if (!tutorStudentCountMap[tutorId]) {
+        tutorStudentCountMap[tutorId] = new Set();
       }
-
-      // Location filter
-      if (location) {
-          query.location = new RegExp(location, 'i');
+      if (session.student_ids && Array.isArray(session.student_ids)) {
+        session.student_ids.forEach(studentId => {
+          tutorStudentCountMap[tutorId].add(studentId.toString());
+        });
       }
+    });
 
-      // Rating filter
-      if (min_rating) {
-          query.average_rating = { $gte: parseFloat(min_rating) };
-      }
+    const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
 
-      const skip = (parseInt(page) - 1) * parseInt(limit);
+    // Create a map for quick lookup
+    const academicLevelMap = {};
+    academicLevels.forEach(level => {
+      academicLevelMap[level._id.toString()] = level;
+    });
 
-      let searchQuery = { ...query };
-      let userIds = [];
+    // Count total results
+    const total = await TutorProfile.countDocuments({ ...searchQuery, profile_status: 'approved' });
 
-      // Handle search term (name or subject)
-      if (search) {
-          const matchingUsers = await User.find({
-              full_name: { $regex: search, $options: 'i' },
-              role: 'tutor'
-          }).select('_id');
-
-          userIds = matchingUsers.map(user => user._id);
-
-          const searchOrConditions = [
-              ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
-          ];
-
-          // Only add subject search if no specific subject filter is set
-          if (!subject_id) {
-              searchOrConditions.unshift({ subjects: new RegExp(search, 'i') });
-          }
-
-          searchQuery = {
-              ...query,
-              $or: searchOrConditions
+    // Format tutor output
+    const formattedTutors = tutors
+      .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
+      .map(tutor => {
+        // Get this tutor's academic levels and hourly rates
+        const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(levelObj => {
+          const levelDoc = academicLevelMap[levelObj.educationLevel?.toString()];
+          return {
+            name: levelDoc ? levelDoc.level : levelObj.name || 'Unknown',
+            hourlyRate: levelObj.hourlyRate || (levelDoc ? levelDoc.hourlyRate : 0)
           };
+        });
+
+        const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
+        const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
+        const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
+
+        // Get total unique students taught by this tutor
+        const totalStudentsTaught = tutorStudentCountMap[tutor._id.toString()]
+          ? tutorStudentCountMap[tutor._id.toString()].size
+          : 0;
+
+        return {
+          _id: tutor._id,
+          user_id: tutor.user_id,
+          subjects: tutor.subjects,
+          academic_levels_taught: tutor.academic_levels_taught,
+          min_hourly_rate: min_hourly_rate_value,
+          max_hourly_rate: max_hourly_rate_value,
+          average_rating: tutor.average_rating,
+          total_sessions: tutor.total_sessions || 0,
+          total_students_taught: totalStudentsTaught,
+          location: tutor.location,
+          bio: tutor.bio,
+          qualifications: tutor.qualifications,
+          experience_years: tutor.experience_years,
+          is_verified: tutor.is_verified,
+          is_approved: tutor.is_approved,
+          reviews: tutorReviewsMap[tutor._id.toString()] || []  // ✅ add reviews array
+        };
+      });
+
+    // Send response
+    res.status(200).json({
+      tutors: formattedTutors,
+      pagination: {
+        current_page: parseInt(page),
+        total_pages: Math.ceil(total / parseInt(limit)),
+        total_tutors: total,
+        has_next: skip + parseInt(limit) < total,
+        has_prev: parseInt(page) > 1
       }
-
-      // Ensure the subject filter is preserved in the final query
-      if (subject_id && !searchQuery.subjects) {
-          searchQuery.subjects = { $in: [subject_id] };
-      }
-
-      // Fetch matching tutors
-      const tutors = await TutorProfile.find({...searchQuery, profile_status: 'approved'})
-          .populate('user_id', 'full_name email photo_url')
-          .skip(skip)
-          .limit(parseInt(limit))
-          .sort({ average_rating: -1 })
-          .lean();
-
-      // Get all unique education level IDs from all tutors
-      const tutorAcademicLevelIds = tutors.flatMap(tutor =>
-          (tutor.academic_levels_taught || []).map(level => level.educationLevel)
-      );
-
-      const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
-
-      // Create a map for quick lookup
-      const academicLevelMap = {};
-      academicLevels.forEach(level => {
-          academicLevelMap[level._id.toString()] = level;
-      });
-
-      // Count total results
-      const total = await TutorProfile.countDocuments({...searchQuery, profile_status: 'approved'});
-
-      // Get total unique students taught by each tutor
-      const tutorIds = tutors.map(tutor => tutor._id);
-      
-      const sessionsWithStudents = await TutoringSession.find({
-          tutor_id: { $in: tutorIds }
-      }).select('tutor_id student_ids status');
-
-     
-
-      // Create a map of tutor_id to unique student count
-      const tutorStudentCountMap = {};
-      sessionsWithStudents.forEach(session => {
-          const tutorId = session.tutor_id.toString();
-          if (!tutorStudentCountMap[tutorId]) {
-              tutorStudentCountMap[tutorId] = new Set();
-          }
-          
-          // Add all students from this session to the set
-          if (session.student_ids && Array.isArray(session.student_ids)) {
-              session.student_ids.forEach(studentId => {
-                  tutorStudentCountMap[tutorId].add(studentId.toString());
-              });
-          }
-      });
-      
-      // Format tutor output
-      const formattedTutors = tutors
-          .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
-          .map((tutor) => {
-              // Get this tutor's academic levels and hourly rates
-              const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(levelObj => {
-                  const levelDoc = academicLevelMap[levelObj.educationLevel.toString()];
-                  return {
-                      name: levelDoc ? levelDoc.level : levelObj.name || 'Unknown',
-                      hourlyRate: levelObj.hourlyRate || (levelDoc ? levelDoc.hourlyRate : 0)
-                  };
-              });
-
-              const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
-              const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
-              const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
-
-              // Get total unique students taught by this tutor
-              const totalStudentsTaught = tutorStudentCountMap[tutor._id.toString()] ? 
-                  tutorStudentCountMap[tutor._id.toString()].size : 0;
-
-                  return {
-                  _id: tutor._id,
-                  user_id: tutor.user_id,
-                  subjects: tutor.subjects,
-                  academic_levels_taught: tutor.academic_levels_taught,
-                  min_hourly_rate: min_hourly_rate_value,
-                  max_hourly_rate: max_hourly_rate_value,
-                  average_rating: tutor.average_rating,
-                  total_sessions: tutor.total_sessions || 0,
-                  total_students_taught: totalStudentsTaught,
-                  location: tutor.location,
-                  bio: tutor.bio,
-                  qualifications: tutor.qualifications,
-                  experience_years: tutor.experience_years,
-                  is_verified: tutor.is_verified,
-                  is_approved: tutor.is_approved
-              };
-          });
-
-      // Send response
-      res.status(200).json({
-          tutors: formattedTutors,
-          pagination: {
-              current_page: parseInt(page),
-              total_pages: Math.ceil(total / parseInt(limit)),
-              total_tutors: total,
-              has_next: skip + parseInt(limit) < total,
-              has_prev: parseInt(page) > 1
-          }
-      });
+    });
 
   } catch (error) {
-      res.status(500);
-      throw new Error("Failed to search tutors: " + error.message);
+    res.status(500);
+    throw new Error("Failed to search tutors: " + error.message);
   }
 });
+
 
 

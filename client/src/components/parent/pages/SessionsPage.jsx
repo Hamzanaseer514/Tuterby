@@ -200,7 +200,6 @@ const SessionDetailsModal = ({ session, isOpen, onClose, subjects, academicLevel
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-semibold text-gray-900 dark:text-white">
-                    {console.log("session", session)}
                     {session.tutor_id?.user_id?.full_name || 'Unknown Tutor'}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">

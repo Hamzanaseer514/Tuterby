@@ -151,10 +151,10 @@ const TutorProfilePage = () => {
                         {/* Profile Image */}
                         <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center flex-shrink-0">
                             {tutor.user_id?.photo_url ? (
-                                <img 
+                                <img
                                     src={`${BASE_URL}${tutor.user_id.photo_url}`}
-                                    alt="Profile" 
-                                    className="h-full w-full object-cover rounded-full" 
+                                    alt="Profile"
+                                    className="h-full w-full object-cover rounded-full"
                                 />
                             ) : (
                                 <User className="h-12 w-12 text-white" />
@@ -418,19 +418,101 @@ const TutorProfilePage = () => {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Star className="h-5 w-5" />
-                                Student Reviews
+                                Student Reviews ({tutor.reviews?.length || 0})
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-center py-8">
-                                <Star className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                                    No reviews yet
-                                </h3>
-                                <p className="text-gray-500 dark:text-gray-400">
-                                    This tutor hasn't received any reviews yet. Be the first to leave a review after your session!
-                                </p>
-                            </div>
+                            {!tutor.reviews || tutor.reviews.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <Star className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                                        No reviews yet
+                                    </h3>
+                                    <p className="text-gray-500 dark:text-gray-400">
+                                        This tutor hasn't received any reviews yet. Be the first to leave a review after your session!
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {tutor.reviews.map((review, index) => (
+                                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                            {/* Session Rating */}
+                                            {review.rating && (
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="flex items-center gap-1">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star 
+                                                                key={i} 
+                                                                className={`h-4 w-4 ${
+                                                                    i < review.rating 
+                                                                        ? 'text-yellow-400 fill-current' 
+                                                                        : 'text-gray-300'
+                                                                }`} 
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                        {review.rating}/5
+                                                    </span>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Session Feedback */}
+                                            {review.feedback && (
+                                                <div className="mb-3">
+                                                    <p className="text-gray-700 dark:text-gray-300">
+                                                        <strong>Session Feedback:</strong> {review.feedback}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Student Ratings */}
+                                            {review.student_ratings && review.student_ratings.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <h6 className="font-medium text-gray-900 dark:text-white">
+                                                        Individual Student Ratings:
+                                                    </h6>
+                                                    {review.student_ratings.map((studentRating, studentIndex) => (
+                                                        <div key={studentIndex} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <User className="h-4 w-4 text-gray-400" />
+                                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                        Student {studentIndex + 1}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    {[...Array(5)].map((_, i) => (
+                                                                        <Star 
+                                                                            key={i} 
+                                                                            className={`h-3 w-3 ${
+                                                                                i < studentRating.rating 
+                                                                                    ? 'text-yellow-400 fill-current' 
+                                                                                : 'text-gray-300'
+                                                                            }`} 
+                                                                        />
+                                                                    ))}
+                                                                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                        {studentRating.rating}/5
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            {studentRating.feedback && (
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                    "{studentRating.feedback}"
+                                                                </p>
+                                                            )}
+                                                            <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                                                                {new Date(studentRating.rated_at).toLocaleDateString()}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
