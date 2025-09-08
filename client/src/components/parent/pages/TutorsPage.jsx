@@ -72,6 +72,7 @@ const TutorsPage = () => {
 
             const data = await getTutorsForParent(params);
             setTutors(data.tutors || []);
+            console.log("t",tutors)
             setTotalPages(data.pagination?.total || 1);
         } catch (error) {
             console.error('Error loading tutors:', error);
@@ -410,7 +411,8 @@ const TutorsPage = () => {
                                             {parseSubjects(tutor.subjects).slice(0, 3).map((subject, index) => (
                                                 <Badge key={index} variant="secondary" className="text-xs">
                                                     {/* {typeof subject === 'string' ? subject : subject.name} */}
-                                                    {getSubjectName(subject)}
+                                                    {console.log("sub", subject)}
+                                                                                                        {getSubjectName(subject._id)}
                                                 </Badge>
                                             ))}
                                             {parseSubjects(tutor.subjects).length > 3 && (

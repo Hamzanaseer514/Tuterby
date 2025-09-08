@@ -1,13 +1,8 @@
-import React from 'react';
+import React from "react";
 import {
   Box,
-  Tabs,
-  Tab,
   TextField,
-  Button,
   IconButton,
-  Tooltip,
-  Chip,
   Fade,
   Zoom,
   InputAdornment,
@@ -15,198 +10,116 @@ import {
   MenuItem,
   FormControl,
   Select,
-  InputLabel
-} from '@mui/material';
+  InputLabel,
+  Button,
+} from "@mui/material";
 import {
   Search,
   FilterList,
   Clear,
-  School,
-  Person,
-  ContactMail,
   Sort,
-  ViewList,
-  ViewModule,
+  Refresh,
   Download,
   Upload,
-  Refresh
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 const SearchAndFilterBar = ({
   tabValue,
   searchTerm,
-  onTabChange,
   onSearch,
   onClearSearch,
   filters = {},
   onFilterChange,
-  viewMode = 'table',
+  viewMode = "table",
   onViewModeChange,
   onExport,
   onImport,
-  onRefresh
+  onRefresh,
 }) => {
   const [filterAnchorEl, setFilterAnchorEl] = React.useState(null);
   const [sortAnchorEl, setSortAnchorEl] = React.useState(null);
 
-  const handleFilterClick = (event) => {
-    setFilterAnchorEl(event.currentTarget);
-  };
+  const handleFilterClick = (event) => setFilterAnchorEl(event.currentTarget);
+  const handleFilterClose = () => setFilterAnchorEl(null);
 
-  const handleFilterClose = () => {
-    setFilterAnchorEl(null);
-  };
-
-  const handleSortClick = (event) => {
-    setSortAnchorEl(event.currentTarget);
-  };
-
-  const handleSortClose = () => {
-    setSortAnchorEl(null);
-  };
-
+  const handleSortClick = (event) => setSortAnchorEl(event.currentTarget);
+  const handleSortClose = () => setSortAnchorEl(null);
 
   return (
     <Fade in timeout={500}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        mb: 3,
-        p: 2,
-        backgroundColor: 'rgba(248, 249, 250, 0.8)',
-        borderRadius: 2,
-        border: '1px solid #e0e0e0'
-      }}>
-      
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" }, // responsive
+          justifyContent: "space-between",
+          alignItems: { xs: "stretch", md: "center" },
+          gap: 2,
+          mb: 3,
+          p: 2,
+          backgroundColor: "rgba(248, 249, 250, 0.8)",
+          borderRadius: 2,
+          border: "1px solid #e0e0e0",
+        }}
+      >
+        {/* 🔎 Search */}
+        <Zoom in timeout={600}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder={`Search ${tabValue}...`}
+            value={searchTerm}
+            onChange={onSearch}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: "action.active" }} />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={onClearSearch}
+                    sx={{ color: "action.active" }}
+                  >
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              minWidth: { xs: "100%", md: 400 }, // responsive
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                backgroundColor: "white",
+              },
+            }}
+          />
+        </Zoom>
 
-        {/* Search and Actions Section */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Search Field */}
-          <Zoom in timeout={600}>
-            <TextField
-              size="small"
-              placeholder={`Search ${tabValue}...`}
-              value={searchTerm}
-              onChange={onSearch}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'action.active' }} />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={onClearSearch}
-                      sx={{ color: 'action.active' }}
-                    >
-                      <Clear />
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-              sx={{
-                minWidth: 250,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  backgroundColor: 'white',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)'
-                  },
-                  '&.Mui-focused': {
-                    backgroundColor: 'white'
-                  }
-                }
-              }}
-            />
-          </Zoom>
-
-          {/* Active Filters Display */}
-          {Object.keys(filters).length > 0 && (
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {Object.entries(filters).map(([key, value]) => (
-                <Chip
-                  key={key}
-                  label={`${key}: ${value}`}
-                  size="small"
-                  onDelete={() => onFilterChange({ ...filters, [key]: undefined })}
-                  sx={{ fontSize: '0.75rem' }}
-                />
-              ))}
-            </Box>
+        {/* ⚙️ Actions */}
+        <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+          <IconButton onClick={handleFilterClick}>
+            <FilterList />
+          </IconButton>
+          <IconButton onClick={handleSortClick}>
+            <Sort />
+          </IconButton>
+          {onRefresh && (
+            <IconButton onClick={onRefresh}>
+              <Refresh />
+            </IconButton>
           )}
-
-          {/* Filter Button */}
-          <Tooltip title="Advanced Filters">
-            <IconButton
-              onClick={handleFilterClick}
-              sx={{
-                backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                '&:hover': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.2)'
-                }
-              }}
-            >
-              <FilterList />
+          {onExport && (
+            <IconButton onClick={onExport}>
+              <Download />
             </IconButton>
-          </Tooltip>
-
-          {/* Sort Button */}
-          <Tooltip title="Sort Options">
-            <IconButton
-              onClick={handleSortClick}
-              sx={{
-                backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                '&:hover': {
-                  backgroundColor: 'rgba(76, 175, 80, 0.2)'
-                }
-              }}
-            >
-              <Sort />
+          )}
+          {onImport && (
+            <IconButton onClick={onImport}>
+              <Upload />
             </IconButton>
-          </Tooltip>
-
-          {/* View Mode Toggle */}
-          <Box sx={{ display: 'flex', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-            <Tooltip title="Table View">
-              <IconButton
-                size="small"
-                onClick={() => onViewModeChange('table')}
-                sx={{
-                  backgroundColor: viewMode === 'table' ? 'primary.main' : 'transparent',
-                  color: viewMode === 'table' ? 'white' : 'text.secondary',
-                  borderRadius: 0,
-                  borderTopLeftRadius: 4,
-                  borderBottomLeftRadius: 4,
-                  '&:hover': {
-                    backgroundColor: viewMode === 'table' ? 'primary.dark' : 'rgba(0, 0, 0, 0.04)'
-                  }
-                }}
-              >
-                <ViewList fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Card View">
-              <IconButton
-                size="small"
-                onClick={() => onViewModeChange('card')}
-                sx={{
-                  backgroundColor: viewMode === 'card' ? 'primary.main' : 'transparent',
-                  color: viewMode === 'card' ? 'white' : 'text.secondary',
-                  borderRadius: 0,
-                  borderTopRightRadius: 4,
-                  borderBottomRightRadius: 4,
-                  '&:hover': {
-                    backgroundColor: viewMode === 'card' ? 'primary.dark' : 'rgba(0, 0, 0, 0.04)'
-                  }
-                }}
-              >
-                <ViewModule fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          )}
         </Box>
 
         {/* Filter Menu */}
@@ -214,23 +127,19 @@ const SearchAndFilterBar = ({
           anchorEl={filterAnchorEl}
           open={Boolean(filterAnchorEl)}
           onClose={handleFilterClose}
-          PaperProps={{
-            sx: {
-              minWidth: 200,
-              mt: 1
-            }
-          }}
+          PaperProps={{ sx: { minWidth: 200, mt: 1 } }}
         >
           <MenuItem>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
-                value={filters.status || ''}
-                onChange={(e) => onFilterChange({ ...filters, status: e.target.value })}
-                label="Status"
+                value={filters.status || ""}
+                onChange={(e) =>
+                  onFilterChange({ ...filters, status: e.target.value })
+                }
               >
                 <MenuItem value="">All</MenuItem>
-                <MenuItem value="verified">Verified</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
                 <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
               </Select>
@@ -240,15 +149,15 @@ const SearchAndFilterBar = ({
             <FormControl fullWidth size="small">
               <InputLabel>Location</InputLabel>
               <Select
-                value={filters.location || ''}
-                onChange={(e) => onFilterChange({ ...filters, location: e.target.value })}
-                label="Location"
+                value={filters.location || ""}
+                onChange={(e) =>
+                  onFilterChange({ ...filters, location: e.target.value })
+                }
               >
-                <MenuItem value="">All Locations</MenuItem>
-                <MenuItem value="London">London</MenuItem>
-                <MenuItem value="Manchester">Manchester</MenuItem>
-                <MenuItem value="Birmingham">Birmingham</MenuItem>
-                <MenuItem value="Leeds">Leeds</MenuItem>
+                <MenuItem value="">All</MenuItem>
+                <MenuItem value="Lahore">Lahore</MenuItem>
+                <MenuItem value="Karachi">Karachi</MenuItem>
+                <MenuItem value="Islamabad">Islamabad</MenuItem>
               </Select>
             </FormControl>
           </MenuItem>
@@ -259,23 +168,22 @@ const SearchAndFilterBar = ({
           anchorEl={sortAnchorEl}
           open={Boolean(sortAnchorEl)}
           onClose={handleSortClose}
-          PaperProps={{
-            sx: {
-              minWidth: 150,
-              mt: 1
-            }
-          }}
+          PaperProps={{ sx: { minWidth: 180, mt: 1 } }}
         >
-          <MenuItem onClick={() => onFilterChange({ ...filters, sort: 'name' })}>
+          <MenuItem onClick={() => onFilterChange({ ...filters, sort: "name" })}>
             Sort by Name
           </MenuItem>
-          <MenuItem onClick={() => onFilterChange({ ...filters, sort: 'date' })}>
+          <MenuItem onClick={() => onFilterChange({ ...filters, sort: "date" })}>
             Sort by Date
           </MenuItem>
-          <MenuItem onClick={() => onFilterChange({ ...filters, sort: 'status' })}>
+          <MenuItem
+            onClick={() => onFilterChange({ ...filters, sort: "status" })}
+          >
             Sort by Status
           </MenuItem>
-          <MenuItem onClick={() => onFilterChange({ ...filters, sort: 'rating' })}>
+          <MenuItem
+            onClick={() => onFilterChange({ ...filters, sort: "rating" })}
+          >
             Sort by Rating
           </MenuItem>
         </Menu>
@@ -284,4 +192,4 @@ const SearchAndFilterBar = ({
   );
 };
 
-export default SearchAndFilterBar; 
+export default SearchAndFilterBar;

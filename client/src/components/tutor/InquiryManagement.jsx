@@ -52,7 +52,7 @@ const InquiryManagement = () => {
         throw new Error('Failed to fetch inquiries');
       }
       const data = await response.json();
-   
+   console.log("data", data)
       setInquiries(data.inquiries || []);
     } catch (err) {
       console.error('Error fetching inquiries:', err);

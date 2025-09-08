@@ -68,6 +68,10 @@ const AdminSettings = lazy(() =>
   import("./pages/AdminPages/AdminSettings")
 );
 
+const TutorSessionsPage = lazy(() =>
+  import("./pages/AdminPages/TutorSessionsPage")
+);
+
 const PaymentResult = lazy(() => import("./components/PaymentResult"));
 const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
 
@@ -119,6 +123,9 @@ function App() {
               </ProtectedRoute>} />
               <Route path="/admin/chats" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <Chats />
+              </ProtectedRoute>} />
+              <Route path="/admin/tutor-sessions" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <TutorSessionsPage />
               </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>

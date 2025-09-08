@@ -6,7 +6,17 @@ const mongoose = require("mongoose");
 const TutoringSession = require("../Models/tutoringSessionSchema");
 const StudentPayment = require("../Models/studentPaymentSchema");
 const TutorProfile = require("../Models/tutorProfileSchema");
-const { EducationLevel } = require("../Models/LookupSchema");
+const TutorInquiry = require("../Models/tutorInquirySchema");
+
+const {
+
+  EducationLevel,
+
+  Subject,
+
+  SubjectType,
+
+} = require("../Models/LookupSchema");
 
 exports.addStudentToParent = asyncHandler(async (req, res) => {
   const {
@@ -19,19 +29,12 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
     academic_level,
   } = req.body;
 
-  if (
-    !parent_user_id ||
-    !email ||
-    !password ||
-    !full_name ||
-    !academic_level ||
-    !age
-  ) {
+  if (!parent_user_id || !email || !password || !full_name || !academic_level || !age) {
     res.status(400);
     throw new Error("Missing required student fields");
   }
 
-  // Validate that only children under 12 can be added by parents
+  // ✅ Only allow children < 12
   if (age >= 12) {
     res.status(400);
     throw new Error("Only children under 12 can be added by parents. Children 12 and older must register themselves.");
@@ -54,6 +57,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
   }
 
   try {
+    // Create student as a user
     const studentUser = await User.create({
       full_name,
       email,
@@ -64,25 +68,27 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
       is_verified: "active",
     });
 
-    const studentProfile = await Student.create({
-      user_id: studentUser._id,
-      academic_level: academic_level, // This should be ObjectId from frontend
-    });
-
-    const parentProfile = await ParentProfile.findOneAndUpdate(
-      { user_id: parent_user_id },
-      { $push: { students: studentProfile._id } },
-      { new: true }
-    );
-
+    // ✅ Get parent profile first (so we can store its ID)
+    const parentProfile = await ParentProfile.findOne({ user_id: parent_user_id });
     if (!parentProfile) {
       throw new Error("Parent profile not found");
     }
 
+    // ✅ Create student profile linked to parent
+    const studentProfile = await Student.create({
+      user_id: studentUser._id,
+      academic_level: academic_level, // ObjectId of EducationLevel
+      parent_id: parentProfile._id,   // 👈 save parent_id in student profile
+    });
+
+    // ✅ Add student into parent’s students array
+    parentProfile.students.push(studentProfile._id);
+    await parentProfile.save();
+
     res.status(201).json({
       message: "Student added to parent successfully",
-      studentUser: studentUser,
-      studentProfile: studentProfile,
+      studentUser,
+      studentProfile,
       parentProfile,
     });
   } catch (error) {
@@ -90,6 +96,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
     throw new Error("Failed to add student: " + error.message);
   }
 });
+
 
 exports.getParentProfile = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
@@ -594,26 +601,25 @@ exports.searchTutors = asyncHandler(async (req, res) => {
 
   try {
     const query = {
-      // Only show approved tutors
-      profile_status: 'approved',
+      profile_status: 'approved', // Only approved tutors
     };
 
-    // Subject filter
+    // ✅ Subject filter (direct subject_id from query)
     if (subject_id && subject_id.match(/^[0-9a-fA-F]{24}$/)) {
       query.subjects = { $in: [subject_id] };
     }
 
-    // Academic level filter
+    // ✅ Academic level filter
     if (academic_level && academic_level.match(/^[0-9a-fA-F]{24}$/)) {
       query['academic_levels_taught.educationLevel'] = academic_level;
     }
 
-    // Location filter
+    // ✅ Location filter
     if (location) {
       query.location = new RegExp(location, 'i');
     }
 
-    // Rating filter
+    // ✅ Rating filter
     if (min_rating) {
       query.average_rating = { $gte: parseFloat(min_rating) };
     }
@@ -621,62 +627,74 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     let searchQuery = { ...query };
-    let userIds = [];
 
-    // Handle search term (name or subject)
+    // ==============================
+    // 🔍 Handle free-text search
+    // ==============================
     if (search) {
+      // 1. Find tutors whose name matches
       const matchingUsers = await User.find({
         full_name: { $regex: search, $options: 'i' },
         role: 'tutor'
       }).select('_id');
 
-      userIds = matchingUsers.map(user => user._id);
+      const userIds = matchingUsers.map(user => user._id);
 
-      const searchOrConditions = [
-        ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
-      ];
+      // 2. Find subjects whose name matches
+      const matchingSubjects = await Subject.find({
+        name: { $regex: search, $options: 'i' }
+      }).select('_id');
 
-      // Only add subject search if no specific subject filter is set
-      if (!subject_id) {
-        searchOrConditions.unshift({ subjects: new RegExp(search, 'i') });
+      const subjectIds = matchingSubjects.map(subj => subj._id);
+
+      // 3. Build OR conditions
+      const searchOrConditions = [];
+      if (userIds.length) {
+        searchOrConditions.push({ user_id: { $in: userIds } });
+      }
+      if (subjectIds.length) {
+        searchOrConditions.push({ subjects: { $in: subjectIds } });
       }
 
-      searchQuery = {
-        ...query,
-        $or: searchOrConditions
-      };
+      if (searchOrConditions.length > 0) {
+        searchQuery = {
+          ...query,
+          $or: searchOrConditions
+        };
+      }
     }
 
-    // Ensure the subject filter is preserved in the final query
+    // Ensure subject_id filter isn’t lost
     if (subject_id && !searchQuery.subjects) {
       searchQuery.subjects = { $in: [subject_id] };
     }
 
-    // Fetch matching tutors
+    // ==============================
+    // 📌 Fetch Tutors
+    // ==============================
     const tutors = await TutorProfile.find({ ...searchQuery, profile_status: 'approved' })
       .populate('user_id', 'full_name email photo_url')
+      .populate('subjects', 'name') // ✅ populate subjects for frontend
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ average_rating: -1 })
       .lean();
 
-    // Get all unique education level IDs from all tutors
+    // Collect academic level IDs
     const tutorAcademicLevelIds = tutors.flatMap(tutor =>
       (tutor.academic_levels_taught || []).map(level => level.educationLevel)
     );
 
-    // Fetch all sessions for these tutors (to build reviews + students count)
+    // Fetch sessions for reviews + student counts
     const allSessions = await TutoringSession.find({
       tutor_id: { $in: tutors.map(tutor => tutor._id) }
     }).select('tutor_id student_ids status rating feedback student_ratings');
 
-    // Create map tutorId -> reviews
+    // Map tutor -> reviews
     const tutorReviewsMap = {};
     allSessions.forEach(session => {
       const tutorId = session.tutor_id.toString();
-      if (!tutorReviewsMap[tutorId]) {
-        tutorReviewsMap[tutorId] = [];
-      }
+      if (!tutorReviewsMap[tutorId]) tutorReviewsMap[tutorId] = [];
       tutorReviewsMap[tutorId].push({
         rating: session.rating,
         feedback: session.feedback,
@@ -684,36 +702,70 @@ exports.searchTutors = asyncHandler(async (req, res) => {
       });
     });
 
-    // Create map tutorId -> unique students count
+    // Map tutor -> unique student count
     const tutorStudentCountMap = {};
     allSessions.forEach(session => {
       const tutorId = session.tutor_id.toString();
       if (!tutorStudentCountMap[tutorId]) {
         tutorStudentCountMap[tutorId] = new Set();
       }
-      if (session.student_ids && Array.isArray(session.student_ids)) {
-        session.student_ids.forEach(studentId => {
-          tutorStudentCountMap[tutorId].add(studentId.toString());
-        });
+      if (session.student_ids?.length) {
+        session.student_ids.forEach(sid => tutorStudentCountMap[tutorId].add(sid.toString()));
       }
     });
 
-    const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
+    // ==============================
+    // 📌 Inquiry Stats
+    // ==============================
+    const allInquiries = await TutorInquiry.find({
+      tutor_id: { $in: tutors.map(t => t._id) }
+    }).select('tutor_id status replied_at createdAt');
+    console.log("in", allInquiries)
+    const tutorInquiryStatsMap = {};
+    allInquiries.forEach(inquiry => {
+      const tId = inquiry.tutor_id.toString();
+      if (!tutorInquiryStatsMap[tId]) {
+        tutorInquiryStatsMap[tId] = {
+          total_received: 0,
+          total_replied: 0,
+          response_times: [],
+          by_status: {}
+        };
+      }
 
-    // Create a map for quick lookup
+      tutorInquiryStatsMap[tId].total_received += 1;
+      tutorInquiryStatsMap[tId].by_status[inquiry.status] =
+        (tutorInquiryStatsMap[tId].by_status[inquiry.status] || 0) + 1;
+
+      if (inquiry.status === "replied" && inquiry.replied_at) {
+        tutorInquiryStatsMap[tId].total_replied += 1;
+
+        const responseTime =
+          new Date(inquiry.replied_at).getTime() -
+          new Date(inquiry.createdAt).getTime();
+
+        tutorInquiryStatsMap[tId].response_times.push(responseTime);
+      }
+    });
+
+    // Fetch education levels
+    const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
     const academicLevelMap = {};
     academicLevels.forEach(level => {
       academicLevelMap[level._id.toString()] = level;
     });
 
-    // Count total results
+    // Count total tutors
     const total = await TutorProfile.countDocuments({ ...searchQuery, profile_status: 'approved' });
 
-    // Format tutor output
+    // ==============================
+    // 🎯 Format Tutors for Response
+    // ==============================
     const formattedTutors = tutors
-      .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
+      .filter(tutor => tutor.user_id) // remove broken profiles
       .map(tutor => {
-        // Get this tutor's academic levels and hourly rates
+        const tId = tutor._id.toString();
+
         const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(levelObj => {
           const levelDoc = academicLevelMap[levelObj.educationLevel?.toString()];
           return {
@@ -722,36 +774,70 @@ exports.searchTutors = asyncHandler(async (req, res) => {
           };
         });
 
-        const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
-        const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
-        const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
+        const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(r => r > 0);
+        const min_hourly_rate_value = tutorHourlyRates.length ? Math.min(...tutorHourlyRates) : 0;
+        const max_hourly_rate_value = tutorHourlyRates.length ? Math.max(...tutorHourlyRates) : 0;
 
-        // Get total unique students taught by this tutor
-        const totalStudentsTaught = tutorStudentCountMap[tutor._id.toString()]
-          ? tutorStudentCountMap[tutor._id.toString()].size
-          : 0;
+        // Inquiry stats
+        const stats = tutorInquiryStatsMap[tId] || {
+          total_received: 0,
+          total_replied: 0,
+          response_times: [],
+          by_status: {}
+        };
+
+        const avgResponse =
+          stats.response_times.length > 0
+            ? Math.round(
+                stats.response_times.reduce((a, b) => a + b, 0) /
+                  stats.response_times.length /
+                  60000
+              )
+            : null;
+
+        const fastestResponse =
+          stats.response_times.length > 0
+            ? Math.round(Math.min(...stats.response_times) / 60000)
+            : null;
+
+        const replyRate =
+          stats.total_received > 0
+            ? (stats.total_replied / stats.total_received) * 100
+            : 0;
 
         return {
           _id: tutor._id,
           user_id: tutor.user_id,
-          subjects: tutor.subjects,
+          subjects: tutor.subjects, // now populated with subject names
           academic_levels_taught: tutor.academic_levels_taught,
           min_hourly_rate: min_hourly_rate_value,
           max_hourly_rate: max_hourly_rate_value,
           average_rating: tutor.average_rating,
           total_sessions: tutor.total_sessions || 0,
-          total_students_taught: totalStudentsTaught,
+          total_students_taught: tutorStudentCountMap[tId]?.size || 0,
           location: tutor.location,
           bio: tutor.bio,
           qualifications: tutor.qualifications,
           experience_years: tutor.experience_years,
           is_verified: tutor.is_verified,
           is_approved: tutor.is_approved,
-          reviews: tutorReviewsMap[tutor._id.toString()] || []  // ✅ add reviews array
+          reviews: tutorReviewsMap[tId] || [],
+          // 🔹 Inquiry statistics
+          inquiry_stats: {
+            average_response_time: avgResponse ? `${avgResponse} min` : "N/A",
+            fastest_response_time: fastestResponse ? `${fastestResponse} min` : "N/A",
+            total_received: stats.total_received,
+            total_replied: stats.total_replied,
+            reply_rate: replyRate.toFixed(1),
+            by_status: stats.by_status
+          }
         };
       });
 
-    // Send response
+    // ==============================
+    // 📤 Send Response
+    // ==============================
+    console.log("formatted",formattedTutors)
     res.status(200).json({
       tutors: formattedTutors,
       pagination: {
@@ -768,6 +854,7 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     throw new Error("Failed to search tutors: " + error.message);
   }
 });
+
 
 
 

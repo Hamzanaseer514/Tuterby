@@ -46,6 +46,11 @@ import {
   Cancel,
 } from '@mui/icons-material';
 import { useSubject } from '../../../hooks/useSubject';
+import { BASE_URL } from '../../../config';
+import {
+  User,
+  GraduationCap
+} from 'lucide-react';
 
 
 
@@ -88,27 +93,32 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               badgeContent={getStatusIcon(user.status)}
             >
-              <Avatar
-                sx={{
-                  mr: 2,
-                  background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                  color: 'white',
-                  fontWeight: 'bold'
-                }}
-              >
-                {user.name.charAt(0)}
-              </Avatar>
+              
+
+              <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                      {user?.photo_url ? (
+                        <img
+                          src={`${BASE_URL}${user.photo_url}`}
+                          alt="Profile"
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <User className="h-10 w-10 text-white" />
+                      )}
+                    </div>
             </Badge>
-            <Box>
+            <Box style={{marginLeft:"10px"}}>
               <Typography fontWeight="medium" variant="body1">
                 {user.name}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {user.email}
               </Typography>
+              {tabValue === 'tutors' && (
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                 {user.location || 'Location not specified'}
               </Typography>
+              )}
             </Box>
           </Box>
         </TableCell>
@@ -117,11 +127,12 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {console.log(user)}
                 {Array.isArray(user.subjects) && user.subjects.length > 0 ? (
                   user.subjects.slice(0, 3).map(subject => (
                     <Chip
                       key={subject}
-                      label={getSubjectName(subject).name}
+                      label={getSubjectName(subject._id).name}
                       size="small"
                       variant="outlined"
                       sx={{
@@ -234,43 +245,44 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {user.children?.length > 0 ? (
-                  user.children.slice(0, 3).map(child => (
-                    <Chip
-                      key={child}
-                      label={child}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: '0.7rem',
-                        borderColor: 'info.main',
-                        color: 'info.main'
-                      }}
-                    />
-                  ))
+                user.children.slice(0, 3).map(child => (
+                  <Chip
+                    key={child._id}
+                    label={`${child.user_id?.full_name || "Unknown"}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontSize: '0.7rem',
+                      borderColor: 'info.main',
+                      color: 'info.main'
+                    }}
+                  />
+                ))
+                
                 ) : (
                   <Typography variant="body2" color="text.secondary">
                     No children
                   </Typography>
                 )}
                 {user.children?.length > 3 && (
-                  <Tooltip title={user.children.slice(3).join(', ')}>
-                    <Chip
-                      label={`+${user.children.length - 3}`}
-                      size="small"
-                      sx={{ fontSize: '0.7rem' }}
-                    />
-                  </Tooltip>
+                <Tooltip
+                title={user.children
+                  .slice(3)
+                  .map(child => `${child.user_id?.full_name || "Unknown"} (${child.user_id?.email || "No email"})`)
+                  .join(', ')
+                }
+              >
+                <Chip
+                  label={`+${user.children.length - 3}`}
+                  size="small"
+                  sx={{ fontSize: '0.7rem' }}
+                />
+              </Tooltip>
+              
                 )}
               </Box>
             </TableCell>
-            <TableCell>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" fontWeight="medium">
-                  {user.sessionsBooked || 0}
-                </Typography>
-                <School color="primary" fontSize="small" />
-              </Box>
-            </TableCell>
+          
           </>
         )}
 
@@ -421,7 +433,7 @@ const UserTable = ({
     } else if (tabValue === 'students') {
       return [...baseHeaders, 'Subjects', 'Sessions', 'Rating', 'Actions'];
     } else if (tabValue === 'parents') {
-      return [...baseHeaders, 'Children', 'Sessions Booked', 'Actions'];
+      return [...baseHeaders, 'Children', 'Actions'];
     }
 
     return [...baseHeaders, 'Actions'];

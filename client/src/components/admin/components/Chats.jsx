@@ -1114,7 +1114,12 @@ const ChatAdminDashboard = () => {
                     {/* Student Info */}
                     <Box display="flex" alignItems="center" mr={2}>
                       <Tooltip title={group.student.email}>
-                        <Avatar src={`https://i.pravatar.cc/150?u=${group.student.email}`} />
+                        {/* <Avatar src={`https://i.pravatar.cc/150?u=${group.student.email}`} /> */}
+                        <Avatar
+                                  src={`${BASE_URL}${group.student.photo_url}`}
+                                  alt={group.student.full_name}
+                                  sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
+                                />
                       </Tooltip>
                       <Box ml={2}>
                         <Typography variant="subtitle1" fontWeight="medium">
@@ -1137,7 +1142,12 @@ const ChatAdminDashboard = () => {
                         </Typography>
                       </Box>
                       <Tooltip title={group.tutor.email}>
-                        <Avatar src={`https://i.pravatar.cc/150?u=${group.tutor.email}`} />
+                        {/* <Avatar src={`https://i.pravatar.cc/150?u=${group.tutor.email}`} /> */}
+                        <Avatar
+                                  src={`${BASE_URL}${group.tutor.photo_url}`}
+                                  alt={group.tutor.full_name}
+                                  sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
+                                />
                       </Tooltip>
                     </Box>
                   </Box>
@@ -1203,7 +1213,7 @@ const ChatAdminDashboard = () => {
                 >
                   <Box display="flex" alignItems="center">
                     <Avatar 
-                      src={`https://i.pravatar.cc/150?u=${selectedChat.student.email}`} 
+                      src={`${BASE_URL}${selectedChat.student.photo_url}`}
                       sx={{ mr: 2 }} 
                     />
                     <Box>
@@ -1217,7 +1227,7 @@ const ChatAdminDashboard = () => {
                   </Box>
                   <Box display="flex" alignItems="center">
                     <Avatar 
-                      src={`https://i.pravatar.cc/150?u=${selectedChat.tutor.email}`} 
+                      src={`${BASE_URL}${selectedChat.tutor.photo_url}`}
                       sx={{ mr: 2 }} 
                     />
                     <Box textAlign="right">

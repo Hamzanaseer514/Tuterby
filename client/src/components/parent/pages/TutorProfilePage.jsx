@@ -168,9 +168,16 @@ const TutorProfilePage = () => {
                                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                         {tutor.user_id?.full_name}
                                     </h2>
+                                    <div className="flex gap-2 item-center justify-start">
+                                    <p className="text-gray-700 dark:text-gray-400 mb-2 font-semibold">
+  Qualifications: 
+</p>
+
                                     <p className="text-gray-600 dark:text-gray-400 mb-2">
                                         {tutor.qualifications}
                                     </p>
+                                    </div>
+                                  
                                     <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                         <div className="flex items-center gap-1">
                                             <MapPin className="h-4 w-4" />
@@ -178,7 +185,7 @@ const TutorProfilePage = () => {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                                            <span>{tutor.average_rating?.toFixed(1) || 'N/A'} ({tutor.total_sessions || 0} sessions, {tutor.total_students_taught || 0} students)</span>
+                                            <span>{tutor.average_rating?.toFixed(1) || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -237,58 +244,79 @@ const TutorProfilePage = () => {
                 </TabsList>
 
                 {/* Overview Tab */}
-                <TabsContent value="overview" className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* About */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <User className="h-5 w-5" />
-                                    About
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                                    {tutor.bio || 'No bio available for this tutor.'}
-                                </p>
-                            </CardContent>
-                        </Card>
+               {/* Overview Tab */}
+<TabsContent value="overview" className="space-y-6">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {/* About */}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          About
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+          {tutor.bio || 'No bio available for this tutor.'}
+        </p>
+      </CardContent>
+    </Card>
+{console.log(tutor)}
+    {/* Inquiry Statistics */}
+    {tutor.inquiry_stats && (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Inquiry Statistics
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <p className="text-xs text-gray-500">Avg Response</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {tutor.inquiry_stats.average_response_time || "N/A"}
+              </p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <p className="text-xs text-gray-500">Fastest Response</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {tutor.inquiry_stats.fastest_response_time || "N/A"}
+              </p>
+            </div>
+          </div>
 
-                        {/* Contact Information */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Phone className="h-5 w-5" />
-                                    Contact Information
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {/* <div className="flex items-center gap-3">
-                                    <Mail className="h-4 w-4 text-gray-400" />
-                                    <span className="text-gray-700 dark:text-gray-300">
-                                        {tutor.user_id?.email}
-                                    </span>
-                                </div> */}
-                                {tutor.phone_number && (
-                                    <div className="flex items-center gap-3">
-                                        <Phone className="h-4 w-4 text-gray-400" />
-                                        <span className="text-gray-700 dark:text-gray-300">
-                                            {tutor.phone_number}
-                                        </span>
-                                    </div>
-                                )}
-                                {tutor.location && (
-                                    <div className="flex items-center gap-3">
-                                        <MapPin className="h-4 w-4 text-gray-400" />
-                                        <span className="text-gray-700 dark:text-gray-300">
-                                            {tutor.location}
-                                        </span>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <p className="text-xs text-gray-500">Total Received</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {tutor.inquiry_stats.total_received || 0}
+              </p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <p className="text-xs text-gray-500">Total Replied</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {tutor.inquiry_stats.total_replied || 0}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+            <p className="text-xs text-gray-500">Reply Rate</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              {tutor.inquiry_stats.reply_rate
+                ? `${tutor.inquiry_stats.reply_rate}%`
+                : "0%"}
+            </p>
+          </div>
+
+        
+        </CardContent>
+      </Card>
+    )}
+  </div>
+</TabsContent>
 
                 {/* Subjects & Levels Tab */}
                 <TabsContent value="subjects" className="space-y-6">
@@ -306,7 +334,7 @@ const TutorProfilePage = () => {
                                     {parseSubjects(tutor.subjects).map((subject, index) => (
                                         <Badge key={index} variant="secondary" className="text-sm">
                                             {/* {typeof subject === 'string' ? subject : subject.name} */}
-                                            {getSubjectName(subject)}
+                                            {getSubjectName(subject._id)}
                                         </Badge>
                                     ))}
                                 </div>

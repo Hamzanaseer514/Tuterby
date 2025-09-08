@@ -688,7 +688,7 @@ const getSubjectName = (id) => {
                           
                           <Button 
                             variant="outline" 
-                            size="sm" 
+                            size="sm"
                             onClick={() => {
                               setSelectedSession(session);
                               setShowDetailsModal(true);
@@ -707,7 +707,7 @@ const getSubjectName = (id) => {
         </CardContent>
       </Card>
 
-             {/* Session Details Modal */}
+      {/* Session Details Modal */}
        {selectedSession && (
          <SessionDetailsModal
            session={selectedSession}
@@ -719,7 +719,7 @@ const getSubjectName = (id) => {
            subjects={subjects}
            academicLevels={academicLevels}
          />
-       )}
+      )}
     </div>
   );
 };

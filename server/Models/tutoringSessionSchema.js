@@ -11,6 +11,21 @@ const tutoringSessionSchema = new mongoose.Schema({
     ref: 'StudentProfile',
     required: true
   }],
+  // Payment tracking - for group sessions (multiple students)
+  student_payments: [
+    {
+      student_id: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'StudentProfile', 
+        required: true 
+      },
+      payment_id: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'StudentPayment', 
+        required: true 
+      }
+    }
+  ],
   subject: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Subject',

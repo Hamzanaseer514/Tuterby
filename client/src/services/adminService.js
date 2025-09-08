@@ -130,55 +130,49 @@ export const getAllUsers = async (filters = {}) => {
   }
 };
 
-export const getTutorDetails = async (userId) => {
+export const getTutorDetails = async (userId) => { 
   try {
     const details = await apiCall(`/tutors/${userId}`);
-    console.log("details", details)
+    console.log("Tutor Details:", details);
+
     // Fix document URLs
-    if (details.documents && Array.isArray(details.documents)) {
-      details.documents = details.documents.map(doc => ({
+    if (Array.isArray(details.documents)) {
+      details.documents = details.documents.map((doc) => ({
         ...doc,
-        url: getDocumentUrl(doc.url)
+        url: getDocumentUrl(doc.url),
       }));
+    } else {
+      details.documents = [];
     }
-    
-    // Parse subjects
-    if (details.subjects) {
-      if (Array.isArray(details.subjects)) {
-        details.subjects = details.subjects.map(subject => {
-          if (typeof subject === 'string' && subject.startsWith('[') && subject.endsWith(']')) {
-            try {
-              return JSON.parse(subject);
-            } catch (error) {
-              return subject;
-            }
-          }
-          return subject;
-        }).flat();
-      } else if (typeof details.subjects === 'string') {
-        try {
-          details.subjects = JSON.parse(details.subjects);
-        } catch (error) {
-          details.subjects = [];
-        }
-      }
-    }
-    
+
     // Ensure subjects is always an array
     if (!Array.isArray(details.subjects)) {
       details.subjects = [];
     }
 
-    // Normalize interview preferred times to a consistent field the UI expects
+    // Ensure academic_levels_taught is always an array
+    if (!Array.isArray(details.academic_levels_taught)) {
+      details.academic_levels_taught = [];
+    }
+
+    // Normalize interview preferred times
     if (Array.isArray(details.preferred_interview_times)) {
       details.preferredSlots = details.preferred_interview_times;
+    } else if (Array.isArray(details.preferredSlots)) {
+      details.preferredSlots = details.preferredSlots;
+    } else {
+      details.preferredSlots = [];
     }
+
     return details;
   } catch (error) {
-    console.error('Error fetching tutor details:', error);
+    console.error("Error fetching tutor details:", error);
     throw error;
   }
 };
+
+
+
 
 
 // Interview Management - Using your existing endpoint
@@ -317,6 +311,24 @@ export const updateUserStatus = async (userId, status) => {
     method: 'PUT',
     body: JSON.stringify({ status })
   });
+};
+
+// Tutor Sessions Management
+export const getAllTutorSessions = async (filters = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) queryParams.append(key, value);
+    });
+
+    const endpoint = `/tutor-sessions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(endpoint);
+    return response;
+  } catch (error) {
+    console.error('Error fetching tutor sessions:', error);
+    throw error;
+  }
 };
 
 

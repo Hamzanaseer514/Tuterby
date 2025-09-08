@@ -363,6 +363,18 @@ const AdminDashboardPage = () => {
       showDot: newFlags.parents,
       // onSeen: () => markSeen('parents_total', inactiveParents)
     },
+    {
+      title: 'Tutor Sessions',
+      value: dashboardState.stats.sessions?.total || 0,
+      icon: BookOnline,
+      color: 'success',
+      trend: 'up',
+      trendValue: `${dashboardState.stats.sessions?.completed || 0} completed`,
+      secondaryValue: `${dashboardState.stats.sessions?.pending || 0} pending`,
+      link: '/admin/tutor-sessions',
+      showDot: false,
+      // onSeen: () => markSeen('sessions_total', dashboardState.stats.sessions?.total || 0)
+    },
   ];
 
 

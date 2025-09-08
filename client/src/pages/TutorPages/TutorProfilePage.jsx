@@ -74,20 +74,20 @@ const TutorProfilePage = () => {
       const token = getAuthToken();
       // Build URL with proper query parameters
       let url = `${BASE_URL}/api/auth/tutors/${tutorId}`;
-      
+
       if (isParentView && studentId) {
         url += `?isParentView=true&studentId=${studentId}`;
       }
-      
+
       console.log("Fetching tutor details from:", url);
-      
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -160,7 +160,7 @@ const TutorProfilePage = () => {
   const getStudentProfile = async () => {
     try {
       let response;
-      
+
       if (isParentView && studentId) {
         // Parent view - fetch student profile using studentId
         console.log("Parent view - fetching student profile for:", studentId);
@@ -334,8 +334,16 @@ const TutorProfilePage = () => {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-6">
-                    <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-12 h-12 text-blue-600" />
+                    <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                      {tutor.user_id?.photo_url ? (
+                        <img
+                          src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                          alt="Profile"
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <User className="h-7 w-7 text-white" />
+                      )}
                     </div>
 
                     <div className="flex-1">

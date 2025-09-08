@@ -392,12 +392,12 @@ const TutorDashboard = () => {
                     }
                   </span>
                 </div>
-                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-slate-700">
+                {/* <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-slate-700">
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Booking Acceptance Rate</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {metrics.bookingAcceptanceRate.toFixed(1)}%
                   </span>
-                </div>
+                </div> */}
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Session Duration</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -437,7 +437,7 @@ const TutorDashboard = () => {
                         <Badge variant={inquiry.status === 'unread' ? 'destructive' : 'secondary'}>
                           {inquiry.status}
                         </Badge>
-                        <Button
+                        {/* <Button
                           size="sm"
                           variant="outline"
                           onClick={() => openReplyModal(inquiry)}
@@ -445,7 +445,7 @@ const TutorDashboard = () => {
                         >
                           <Reply className="h-3 w-3 mr-1" />
                           Reply
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   ))}
