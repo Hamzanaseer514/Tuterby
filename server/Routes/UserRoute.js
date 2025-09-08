@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, addStudentToParent , loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword, registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth} = require("../Controllers/UserController")
+const { registerUser,registerTutor,registerParent, loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword, registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth} = require("../Controllers/UserController")
 const { getStudentDashboard,updateStudentProfile,
    getStudentSessions,searchTutors, getTutorDetails, 
    requestAdditionalHelp, getStudentHelpRequests ,hireTutor,
@@ -8,7 +8,6 @@ const { getStudentDashboard,updateStudentProfile,
    getStudentTutorChat,
    getHiredTutors,
    rateSession,
-   requestHelpFromTutor,
    getStudentProfile,
    getStudentPayments,
    processStudentPayment,
@@ -43,7 +42,6 @@ router.get("/test-google-oauth", testGoogleOAuth) // Test Google OAuth configura
 router.put("/updatestudent/:user_id", updateStudentProfile)  
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
 router.post("/register-parent", registerParent)
-router.post("/add-student-to-parent", protect, addStudentToParent)
 router.post("/login", loginUser)
 router.post("/verify-otp", verifyOtp)
 router.post("/resend-otp", resendOtp)
@@ -76,5 +74,9 @@ router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
 router.get("/student/payments/:userId", protect, getStudentPayments);
 router.post("/student/payments/:paymentId/pay", protect, processStudentPayment);
 router.get("/student/payment-status/:userId", protect, checkStudentPaymentStatus);
+
+// Parent routes
+router.post("/register-parent", upload.single('photo'), registerParent)
+
 
 module.exports = router;            

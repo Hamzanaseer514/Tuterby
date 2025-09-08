@@ -408,7 +408,7 @@ const TutorSearch = () => {
       } else if (status === 200) {
         toast({
           title: "Success",
-          description: "Tutor hired successfully!",
+          description: data.message,
         });
         // Close dialog and refresh the tutors list
         setShowHiringDialog(false);
@@ -662,10 +662,17 @@ const TutorSearch = () => {
                 <Card key={tutor._id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="w-8 h-8 text-blue-600" />
-                      </div>
-
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                                                {tutor.user_id?.photo_url ? (
+                                                    <img 
+                                                        src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                                                        alt="Profile" 
+                                                        className="h-full w-full object-cover rounded-full" 
+                                                    />
+                                                ) : (
+                                                    <User className="h-6 w-6 text-white" />
+                                                )}
+                                            </div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>

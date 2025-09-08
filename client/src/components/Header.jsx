@@ -114,6 +114,8 @@ const UserDropdown = ({ user, onClose }) => {
         return '/tutor-dashboard';
       case 'student':
         return '/student-dashboard';
+      case 'parent':
+        return '/parent-dashboard';
       default:
         return '/profile';
     }

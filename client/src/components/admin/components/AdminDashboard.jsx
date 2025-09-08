@@ -264,15 +264,20 @@ const AdminDashboard = () => {
   const handleImport = () => {
     showNotification('Import functionality coming soon', 'info');
   };
-
   const filteredUsers = dashboardState.users[uiState.tabValue || 'tutors']?.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(uiState.searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(uiState.searchTerm.toLowerCase()) ||
-      (user.subjects && user.subjects.some(subject => subject.toLowerCase().includes(uiState.searchTerm.toLowerCase())));
+    const search = uiState.searchTerm.toLowerCase();
+    console.log("user",user)
+    const matchesSearch =
+      (user.name && user.name.toLowerCase().includes(search)) ||
+      (user.email && user.email.toLowerCase().includes(search)) ||
+      (user.subjects &&
+        user.subjects.some(subject =>
+          subject.name && subject.name.toLowerCase().includes(search)
+        ));
+  
     return matchesSearch;
   }) || [];
-
-
+  
 
   return (
     <AdminLayout 

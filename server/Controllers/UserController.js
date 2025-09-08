@@ -351,7 +351,15 @@ exports.registerTutor = asyncHandler(async (req, res) => {
 });
 
 exports.registerParent = asyncHandler(async (req, res) => {
-  const { full_name, email, phone_number, password, age, photo_url } = req.body;
+  const { full_name, email, phone_number, password, age } = req.body;
+  
+  // Get photo URL from uploaded file or use default
+  let photo_url = null;
+  if (req.file) {
+    photo_url = `/uploads/documents/${req.file.filename}`;
+  } else if (req.body.photo_url) {
+    photo_url = req.body.photo_url;
+  }
 
   if (!email || !password || !full_name) {
     res.status(400);
@@ -433,190 +441,6 @@ exports.registerParent = asyncHandler(async (req, res) => {
   }
 });
 
-exports.addStudentToParent = asyncHandler(async (req, res) => {
-  const {
-    parent_user_id, // user._id of parent
-    full_name,
-    email,
-    password,
-    age,
-    photo_url,
-    academic_level,
-    learning_goals,
-    preferred_subjects,
-    availability,
-  } = req.body;
-
-  if (
-    !parent_user_id ||
-    !email ||
-    !password ||
-    !full_name ||
-    !academic_level ||
-    !learning_goals ||
-    !preferred_subjects ||
-    !availability
-  ) {
-    res.status(400);
-    throw new Error("Missing required student fields");
-  }
-
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    res.status(400);
-    throw new Error("Student email already exists");
-  }
-
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-  if (!passwordRegex.test(password)) {
-    res.status(400);
-    throw new Error(
-      "Password must be at least 8 characters long, include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character."
-    );
-  }
-
-
-  // const session = await User.startSession();
-  // session.startTransaction();
-
-  try {
-    const studentUser = await User.create(
-      [
-        {
-          full_name,
-          email,
-          password,
-          age,
-          role: "student",
-          photo_url,
-          is_verified: "active",
-        },
-      ]
-      // { session }
-    );
-
-    const studentProfile = await Student.create(
-      [
-        {
-          user_id: studentUser[0]._id,
-          academic_level,
-          learning_goals,
-          preferred_subjects,
-          availability,
-        },
-      ]
-      // { session }
-    );
-
-    const parentProfile = await ParentProfile.findOneAndUpdate(
-      { user_id: parent_user_id },
-      { $push: { students: studentProfile[0] } } // push whole object or just ref
-      // { new: true, session }
-    );
-
-    if (!parentProfile) {
-      throw new Error("Parent profile not found");
-    }
-
-    // await session.commitTransaction();
-    // session.endSession();
-
-    res.status(201).json({
-      message: "Student added to parent successfully",
-      studentUser: studentUser[0],
-      studentProfile: studentProfile[0],
-      parentProfile,
-    });
-  } catch (error) {
-    // await session.abortTransaction();
-    // session.endSession();
-    res.status(500);
-    throw new Error("Failed to add student: " + error.message);
-  }
-});
-
-// exports.loginUser = asyncHandler(async (req, res) => {
-//   const { email, password } = req.body;
-//   if (!email || !password) {
-//     res.status(400);
-//     throw new Error("Email and password are required");
-//   }
-//   const user = await User.findOne({ email });
-//   if (!user || !(await user.matchPassword(password))) {
-//     res.status(401);
-//     throw new Error("Invalid email or password");
-//   }
-//   if (user.is_verified === "inactive") {
-//     res.status(403);
-//     throw new Error(
-//       "User not verified. please be Patient, Admin will verify you soon"
-//     );
-//   }
-//   if (
-//     user.role === "student" ||
-//     user.role === "tutor" ||
-//     user.role === "parent"
-//   ) {
-//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-//     otpStore[user._id] = {
-//       otp,
-//       expiresAt: Date.now() + 60000,
-//       attempts: 1,
-//       maxAttempts: 5,
-//       lockUntil: null,
-//     };
-//     const htmlContent = generateOtpEmail(otp, user.username);
-//     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
-//     res.status(200).json({
-//       message: "OTP sent to your email",
-//       userId: user._id,
-//       email: user.email,
-//     });
-//   } else if (user.role === "admin") {
-//     const accessToken = generateAccessToken(user._id);
-//     const refreshToken = generateRefreshToken(user._id);
-
-//     res.cookie("refreshToken", refreshToken, {
-//       httpOnly: true,
-//       secure: process.env.NODE_ENV === "production",
-//       sameSite: "strict",
-//       maxAge: 7 * 24 * 60 * 60 * 1000,
-//     });
-
-//     res.status(200).json({
-//       message: "Admin login successful",
-//       user: {
-//         _id: user._id,
-//         full_name: user.full_name,
-//         email: user.email,
-//         role: user.role,
-//         is_verified: user.is_verified,
-//       },
-//       accessToken,
-//     });
-
-//     res.cookie("refreshToken", refreshToken, {
-//       httpOnly: true,
-//       secure: process.env.NODE_ENV === "production",
-//       sameSite: "strict",
-//       maxAge: 7 * 24 * 60 * 60 * 1000,
-//     });
-
-//     res.status(200).json({
-//       message: "Admin login successful",
-//       user: {
-//         _id: user._id,
-//         full_name: user.full_name,
-//         email: user.email,
-//         role: user.role,
-//         is_verified: user.is_verified,
-//       },
-//       accessToken,
-//     });
-//   }
-// });
 
 
 exports.loginUser = asyncHandler(async (req, res) => {
@@ -1111,7 +935,6 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, picture, sub: google_id } = payload;
 
-    console.log('Google OAuth login payload:', { email, name, google_id });
 
     // Check if user exists
     const user = await User.findOne({ 
@@ -1123,7 +946,6 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
       throw new Error("Account not found. Please register first using the registration page.");
     }
 
-    console.log('Found user:', { id: user._id, email: user.email, role: user.role });
 
     // Check if user is a student (only students can login with Google)
     if (user.role !== "student") {
@@ -1177,7 +999,6 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
       isOtpTrue: false // No OTP required for Google OAuth
     };
 
-    console.log('Sending login response:', responseData);
     res.status(200).json(responseData);
 
   } catch (error) {

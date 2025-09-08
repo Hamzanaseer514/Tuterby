@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from '@/hooks/useAuth';
 import {SubjectProvider} from '@/hooks/useSubject'; // Import the SubjectProvider
+import { ParentProvider } from '@/contexts/ParentContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -14,8 +15,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <SubjectProvider> {/* ✅ Wrap everything inside AuthProvider */}
         <AuthProvider> {/* ✅ Wrap everything inside AuthProvider */}
+        <ParentProvider> {/* ✅ Wrap everything inside ParentProvider */}
           <App />
           <Toaster />
+        </ParentProvider>
         </AuthProvider>
         </SubjectProvider>
       </BrowserRouter>

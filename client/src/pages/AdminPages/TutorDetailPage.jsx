@@ -1,7 +1,20 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../components/admin/components/AdminLayout";
 import { toast } from "react-toastify";
+import { useSubject } from "../../hooks/useSubject";
+import {
+  User,
+} from 'lucide-react';
 import {
   Box,
   Typography,
@@ -11,7 +24,7 @@ import {
   CardContent,
   List,
   ListItem,
-  ListItemIcon,
+    ListItemIcon,
   ListItemText,
   Accordion,
   AccordionSummary,
@@ -92,7 +105,19 @@ const TutorDetailPage = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+const { subjects, academicLevels } = useSubject();
 
+const getSubjectName = (id) => {
+  const subject = subjects.find((s) => s._id === id);
+  return subject ? subject : "";
+};
+const getAcademicLevel = (level) => {Experience
+  const matchedLevel = academicLevels.find(l => l._id === level);
+  if(matchedLevel){
+    return matchedLevel;
+  }
+  return null;
+}
   const formatDateTimeLabel = (slot) => {
     try {
       if (!slot) return "";
@@ -506,82 +531,152 @@ const TutorDetailPage = () => {
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={3}>
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                      <Avatar sx={{ width: 80, height: 80, mb: 2, background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)", fontSize: "2rem", fontWeight: "bold" }}>
-                        {userName.charAt(0)}
-                      </Avatar>
-                      {userRating && (
-                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                          <Star color="warning" fontSize="small" />
-                          <Typography variant="body2" sx={{ ml: 0.5, fontWeight: "medium" }}>
-                            {userRating}/5
-                          </Typography>
-                        </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 2, width: "100%" }}>
+                        {/* <Avatar sx={{ width: 80, height: 80, background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)", fontSize: "2rem", fontWeight: "bold", mr: 2 }}> */}
+                          {/* {userName.charAt(0)} */}
+                          <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                      {localUser?.photo_url ? (
+                        <img
+                          src={`${BASE_URL}${localUser.photo_url}`}
+                          alt="Profile"
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <User className="h-12 w-12 text-white" />
                       )}
+                    </div>
+                        {/* </Avatar> */}
+                        <Box>
+                          <Typography variant="h5" fontWeight="bold" style={{marginLeft:"19px"}}>
+                            {userName}
+                          </Typography>
+                          {userRating && (
+                            <Box sx={{ display: "flex", alignItems: "center" }} style={{marginLeft:"19px"}}>
+                              <Star color="warning" fontSize="small" />
+                              <Typography variant="body2" sx={{ ml: 0.5, fontWeight: "medium" }}>
+                                {userRating}/5
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
                     </Box>
                   </Grid>
 
                   <Grid item xs={12} md={9}>
-                    <Typography variant="h5" fontWeight="bold" gutterBottom>
-                      {userName}
-                    </Typography>
+                    <Box sx={{ mt: 4 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Tutor Details
+                      </Typography>
 
-                    <List dense>
-                      <ListItem>
-                        <ListItemIcon>
-                          <Email color="primary" />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Email"
-                          secondary={userEmail}
-                          primaryTypographyProps={{ variant: "body2", color: "text.secondary" }}
-                          secondaryTypographyProps={{ variant: "body1", fontWeight: "medium" }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <Phone color="primary" />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Phone"
-                          secondary={userPhone}
-                          primaryTypographyProps={{ variant: "body2", color: "text.secondary" }}
-                          secondaryTypographyProps={{ variant: "body1", fontWeight: "medium" }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <LocationOn color="primary" />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Location"
-                          secondary={userLocation}
-                          primaryTypographyProps={{ variant: "body2", color: "text.secondary" }}
-                          secondaryTypographyProps={{ variant: "body1", fontWeight: "medium" }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <CalendarToday color="primary" />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Joined"
-                          secondary={userJoinDate}
-                          primaryTypographyProps={{ variant: "body2", color: "text.secondary" }}
-                          secondaryTypographyProps={{ variant: "body1", fontWeight: "medium" }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <Work color="primary" />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Last Active"
-                          secondary={userLastActive}
-                          primaryTypographyProps={{ variant: "body2", color: "text.secondary" }}
-                          secondaryTypographyProps={{ variant: "body1", fontWeight: "medium" }}
-                        />
-                      </ListItem>
-                    </List>
+                      <TableContainer component={Paper}>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>#</TableCell>
+                              <TableCell>Full Name</TableCell>
+                              <TableCell>Email</TableCell>
+                              <TableCell>Phone</TableCell>
+                              <TableCell>Location</TableCell>
+                              <TableCell>Join Date</TableCell>
+                              <TableCell>Last Active</TableCell>
+                              <TableCell>Status</TableCell>
+                              <TableCell>Experience</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>1</TableCell>
+                              <TableCell>{userName}</TableCell>
+                              <TableCell>{userEmail}</TableCell>
+                              <TableCell>{userPhone}</TableCell>
+                              <TableCell>{userLocation}</TableCell>
+                              <TableCell>
+                                {userJoinDate
+                                  ? new Date(userJoinDate).toLocaleDateString()
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                {userLastActive
+                                  ? new Date(userLastActive).toLocaleDateString()
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={userStatus || "N/A"}
+                                  color={getStatusColor(userStatus)}
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell>{localUser?.experience_years || "N/A"}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+{console.log(localUser)}
+                    <Box sx={{ mt: 4 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Education Information
+                      </Typography>
+
+                      <TableContainer component={Paper}>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>#</TableCell>
+                              <TableCell>Academic Level</TableCell>
+                              <TableCell>Subjects</TableCell>
+                              <TableCell>Total Session</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>1</TableCell>
+                              <TableCell>
+                                {Array.isArray(localUser?.academic_levels_taught) &&
+                                localUser.academic_levels_taught.length > 0 ? (
+                                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                    {localUser.academic_levels_taught.map((level, idx) => (
+                                      <Chip
+                                        key={idx}
+                                        label={`${level.educationLevel.level} (${level.hourlyRate}$/hr)`}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{
+                                          fontSize: "0.7rem",
+                                          borderColor: "secondary.main",
+                                          color: "secondary.main",
+                                        }}
+                                      />
+                                    ))}
+                                  </Box>
+                                ) : (
+                                  "N/A"
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {localUser?.subjects?.length > 0 ? (
+                                  localUser.subjects.map((s, i) => (
+                                    <Chip
+                                      key={s._id || i}
+                                      label={getSubjectName(s._id).name || "N/A"}
+                                      size="small"
+                                      sx={{ mr: 0.5 }}
+                                    />
+                                  ))
+                                ) : (
+                                  "N/A"
+                                )}
+                              </TableCell>
+                              <TableCell>
+  {localUser?.TotalSessions !== undefined ? localUser.TotalSessions : "N/A"}
+</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
                   </Grid>
                 </Grid>
               </CardContent>
@@ -926,6 +1021,7 @@ const TutorDetailPage = () => {
             </Box>
           </Box>
         </Zoom>
+
 
         <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} message={snackbar.message} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
         {showDocumentModal && selectedDocument && (

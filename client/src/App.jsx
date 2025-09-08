@@ -56,14 +56,20 @@ const StudentPaymentPage = lazy(() =>
   import("./pages/StudentPages/StudentPaymentPage")
 );
 
-const TutorProfilePage = lazy(() =>
-  import("./pages/TutorPages/TutorProfilePage")
-);
 const ParentDashboardPage = lazy(() =>
   import("./pages/ParentPages/ParentDashboardPage")
 );
+
+const TutorProfilePage = lazy(() =>
+  import("./pages/TutorPages/TutorProfilePage")
+);
+
 const AdminSettings = lazy(() =>
   import("./pages/AdminPages/AdminSettings")
+);
+
+const TutorSessionsPage = lazy(() =>
+  import("./pages/AdminPages/TutorSessionsPage")
 );
 
 const PaymentResult = lazy(() => import("./components/PaymentResult"));
@@ -118,6 +124,9 @@ function App() {
               <Route path="/admin/chats" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <Chats />
               </ProtectedRoute>} />
+              <Route path="/admin/tutor-sessions" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <TutorSessionsPage />
+              </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>
                 <TutorDashboardPage />
@@ -158,15 +167,25 @@ function App() {
                   <StudentTutorSearchPage />
                 </ProtectedRoute>}
               />
-              <Route path="/payment-result" element={<PaymentResult />} />
-              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student"]}>
-                <TutorProfilePage />
-              </ProtectedRoute>} />
               <Route
                 path="/parent-dashboard"
                 element={<ProtectedRoute allowedRoles={["parent"]}>
                   <ParentDashboardPage />
                 </ProtectedRoute>}
+              />
+              <Route
+                path="/parent-dashboard/*"
+                element={<ProtectedRoute allowedRoles={["parent"]}>
+                  <ParentDashboardPage />
+                </ProtectedRoute>}
+              />
+              <Route path="/payment-result" element={<PaymentResult />} />
+              <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student","parent"]}>
+                <TutorProfilePage />
+              </ProtectedRoute>} />
+            
+              <Route
+
               />
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />

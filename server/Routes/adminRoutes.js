@@ -34,7 +34,8 @@ const {
   getSubjectTypes,
   updateSubjectType,
   deleteSubjectType,
-  fetchSubjectRelatedToAcademicLevels
+  fetchSubjectRelatedToAcademicLevels,
+  getAllTutorSessions
 } = require("../Controllers/adminController");
 
 
@@ -82,6 +83,7 @@ router.post("/interviews/complete", completeInterview);
 router.get("/interviews/available-slots", getAvailableInterviewSlots);
 router.put("/applications/notes", updateApplicationNotes);
 router.get("/dashboard/stats", getDashboardStats);
+router.get("/tutor-sessions", getAllTutorSessions);
 // User management
 router.put("/users/:user_id/status", require("../Controllers/adminController").updateUserStatus);
 

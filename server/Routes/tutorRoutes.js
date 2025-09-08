@@ -33,7 +33,8 @@ const {
   updateTutorSettings,
   addTutorAcademicLevel,
   removeTutorAcademicLevel,
-  sendMeetingLink
+  sendMeetingLink,
+  getHiredSubjectsAndLevels
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -107,5 +108,6 @@ router.get('/settings/:user_id', getTutorSettings);
 router.put('/settings/update/:user_id', protect, updateTutorSettings);
 router.post('/settings/:user_id/level', protect, addTutorAcademicLevel);
 router.delete('/settings/delete/:user_id/level/:education_level_id', protect, removeTutorAcademicLevel);
+router.get('/hired-subjects-and-levels/:studentId/:tutorId', getHiredSubjectsAndLevels);
 
 module.exports = router;

@@ -120,7 +120,7 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
 
     const studentProfile = await Student.findOne({ user_id: userId });
 
-    const query = { student_ids: studentProfile._id }; 
+    const query = { student_ids: studentProfile._id };
     if (status && status !== 'all') {
         query.status = status;
     }
@@ -218,7 +218,7 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
         if (phone_number) {
             const existingUser = await User.findOne({ phone_number });
             if (existingUser && existingUser._id.toString() !== user_id) {
-                return res.status(400).json({success: false, message: "Phone number already in use"});
+                return res.status(400).json({ success: false, message: "Phone number already in use" });
             }
             userUpdates.phone_number = phone_number;
         }
@@ -277,217 +277,210 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
 
 exports.searchTutors = asyncHandler(async (req, res) => {
     const {
-        search,
-        subject_id, // Changed from subjects to subject (singular)
-        academic_level,
-        location,
-        min_rating,
-        preferred_subjects_only,
-        page = 1,
-        limit = 10
+      search,
+      subject_id, // single subject filter
+      academic_level,
+      location,
+      min_rating,
+      preferred_subjects_only,
+      page = 1,
+      limit = 10
     } = req.query;
-
-    
-    // Check for any unexpected parameters that might cause issues
-    const unexpectedParams = Object.keys(req.query).filter(key => 
-        !['search', 'subject_id', 'academic_level', 'location', 'min_rating', 'preferred_subjects_only', 'page', 'limit', 'user_id'].includes(key)
-    );
-   
+  
     try {
-        // Get current student's profile to check hiring status
-        const currentStudent = await Student.findOne({ user_id: req.user._id });
-        if (!currentStudent) {
-            res.status(404);
-            throw new Error("Student profile not found");
+      // Get current student profile
+      const currentStudent = await Student.findOne({ user_id: req.user._id });
+      if (!currentStudent) {
+        res.status(404);
+        throw new Error("Student profile not found");
+      }
+  
+      const query = {
+        profile_status: "approved", // restrict to approved tutors
+      };
+  
+      // Preferred subjects filter
+      if (
+        preferred_subjects_only === "true" &&
+        currentStudent.preferred_subjects &&
+        currentStudent.preferred_subjects.length > 0
+      ) {
+        query.subjects = { $in: currentStudent.preferred_subjects };
+      } else if (subject_id) {
+        if (subject_id.match(/^[0-9a-fA-F]{24}$/)) {
+          query.subjects = { $in: [subject_id] };
         }
-
-        const query = {
-            // Uncomment below to restrict to verified tutors
-            profile_status: 'approved',
+      }
+  
+      // Academic level filter
+      if (academic_level && academic_level.match(/^[0-9a-fA-F]{24}$/)) {
+        query["academic_levels_taught.educationLevel"] = academic_level;
+      }
+  
+      // Location filter
+      if (location) {
+        query.location = new RegExp(location, "i");
+      }
+  
+      // Rating filter
+      if (min_rating) {
+        query.average_rating = { $gte: parseFloat(min_rating) };
+      }
+  
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+  
+      let searchQuery = { ...query };
+      let userIds = [];
+  
+      // 🔎 Handle search term (name OR subject)
+      if (search) {
+        // Match tutors by name
+        const matchingUsers = await User.find({
+          full_name: { $regex: search, $options: "i" },
+          role: "tutor",
+        }).select("_id");
+  
+        userIds = matchingUsers.map((user) => user._id);
+  
+        // Match subjects by name
+        const matchingSubjects = await Subject.find({
+          name: { $regex: search, $options: "i" },
+        }).select("_id");
+  
+        const subjectIds = matchingSubjects.map((s) => s._id);
+  
+        const searchOrConditions = [
+          ...(userIds.length ? [{ user_id: { $in: userIds } }] : []),
+          ...(subjectIds.length ? [{ subjects: { $in: subjectIds } }] : []),
+        ];
+  
+        searchQuery = {
+          ...query,
+          $or: searchOrConditions.length > 0 ? searchOrConditions : [{}],
         };
-        
-        // Handle preferred subjects filter
-        if (preferred_subjects_only === 'true' && currentStudent.preferred_subjects && currentStudent.preferred_subjects.length > 0) {
-            // Get the subject names from student's preferred subjects (they are strings)
-            query.subjects = { $in: currentStudent.preferred_subjects };
-        } else if (subject_id) {
-            // Single subject filter - search by subject ID directly
-            // Handle both ObjectId and string subject values
-            // Validate that subject_id is a valid ObjectId format
-            if (subject_id.match(/^[0-9a-fA-F]{24}$/)) {
-                query.subjects = { $in: [subject_id] }; // Use $in to match the subject ID in the array
-              
-            } 
-        }
-
-        // Academic level filter - search by academic level ID
-        if (academic_level) {
-            // academic_level is an ID, so we need to find tutors that have this education level
-            // Since academic_levels_taught are objects with educationLevel field, search by that
-            if (academic_level.match(/^[0-9a-fA-F]{24}$/)) {
-                query['academic_levels_taught.educationLevel'] = academic_level;
-            } 
-        }
-
-        // Location filter
-        if (location) {
-            query.location = new RegExp(location, 'i');
-        }
-
-        // Rating filter
-        if (min_rating) {
-            query.average_rating = { $gte: parseFloat(min_rating) };
-        }
-
-        // Hourly rate filter - Note: This filter might not work as expected since hourly_rate is stored in academic_levels_taught
-        // You might need to implement this using aggregation pipeline instead
-        // if (max_hourly_rate) {
-        //     query.hourly_rate = { $lte: parseFloat(max_hourly_rate) };
-        // }
-
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        let searchQuery = { ...query };
-        let userIds = [];
-
-        // Handle search term (name or subject)
-        if (search) {
-            const matchingUsers = await User.find({
-                full_name: { $regex: search, $options: 'i' },
-                role: 'tutor'
-            }).select('_id');
-
-            userIds = matchingUsers.map(user => user._id);
-
-            // If using preferred subjects, we need to handle the $or differently
-            if (preferred_subjects_only === 'true' && currentStudent.preferred_subjects && currentStudent.preferred_subjects.length > 0) {
-                searchQuery = {
-                    ...query,
-                    $or: [
-                        { subjects: { $in: currentStudent.preferred_subjects } },
-                        ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
-                    ]
-                };
-            } else {
-                // Don't override the subject filter if it's already set
-                const searchOrConditions = [
-                    ...(userIds.length ? [{ user_id: { $in: userIds } }] : [])
-                ];
-                
-                // Only add subject search if no specific subject filter is set
-                if (!subject_id) {
-                    searchOrConditions.unshift({ subjects: new RegExp(search, 'i') });
-                }
-                
-                searchQuery = {
-                    ...query,
-                    $or: searchOrConditions
-                };
+      }
+  
+      // Preserve subject filter if provided explicitly
+      if (subject_id && !searchQuery.subjects) {
+        searchQuery.subjects = { $in: [subject_id] };
+      }
+  
+      // Fetch tutors
+      const tutors = await TutorProfile.find(searchQuery)
+        .populate("user_id", "full_name email photo_url")
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ average_rating: -1 })
+        .lean();
+  
+      // Collect academic levels
+      const tutorAcademicLevelIds = tutors.flatMap((tutor) =>
+        (tutor.academic_levels_taught || []).map(
+          (level) => level.educationLevel
+        )
+      );
+  
+      const academicLevels = await EducationLevel.find({
+        _id: { $in: tutorAcademicLevelIds },
+      });
+  
+      const academicLevelMap = {};
+      academicLevels.forEach((level) => {
+        academicLevelMap[level._id.toString()] = level;
+      });
+  
+      // Count total tutors
+      const total = await TutorProfile.countDocuments(searchQuery);
+  
+      // Count sessions for all tutors found
+      const totalSessions = await TutoringSession.countDocuments({
+        tutor_id: { $in: tutors.map((tutor) => tutor._id) },
+      });
+  
+      // Format tutors
+      const formattedTutors = tutors
+        .filter((tutor) => tutor.user_id)
+        .map((tutor) => {
+          const hireRecord = currentStudent.hired_tutors.find(
+            (hire) => hire.tutor.toString() === tutor._id.toString()
+          );
+  
+          const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(
+            (levelObj) => {
+              const levelDoc =
+                academicLevelMap[levelObj.educationLevel?.toString()];
+  
+              return {
+                name: levelDoc ? levelDoc.level : levelObj.name || "Unknown",
+                hourlyRate:
+                  levelObj.hourlyRate || (levelDoc ? levelDoc.hourlyRate : 0),
+              };
             }
-        }
-        
-        // Ensure the subject filter is preserved in the final query
-        if (subject_id && !searchQuery.subjects) {
-            searchQuery.subjects = { $in: [subject_id] };
-        }
-
-        // Fetch matching tutors
-        const tutors = await TutorProfile.find(searchQuery)
-            .populate('user_id', 'full_name email photo_url')
-            .skip(skip)
-            .limit(parseInt(limit))
-            .sort({ average_rating: -1 })
-            .lean(); // For performance
-
-       
-
-        // Get all unique education level IDs from all tutors
-        // Since academic_levels_taught are objects with educationLevel field, extract the IDs
-        const tutorAcademicLevelIds = tutors.flatMap(tutor => 
-            (tutor.academic_levels_taught || []).map(level => level.educationLevel)
-        );
-     
-        const academicLevels = await EducationLevel.find({ _id: { $in: tutorAcademicLevelIds } });
-        
-        // Create a map for quick lookup
-        const academicLevelMap = {};
-        academicLevels.forEach(level => {
-            academicLevelMap[level._id.toString()] = level;
+          );
+  
+          const tutorHourlyRates = tutorAcademicLevels
+            .map((level) => level.hourlyRate)
+            .filter((rate) => rate > 0);
+  
+          const min_hourly_rate_value =
+            tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
+          const max_hourly_rate_value =
+            tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
+  
+          return {
+            _id: tutor._id,
+            user_id: tutor.user_id,
+            subjects: tutor.subjects,
+            academic_levels_taught: tutor.academic_levels_taught,
+            min_hourly_rate: min_hourly_rate_value,
+            max_hourly_rate: max_hourly_rate_value,
+            average_rating: tutor.average_rating,
+            total_sessions: totalSessions,
+            location: tutor.location,
+            bio: tutor.bio,
+            qualifications: tutor.qualifications,
+            experience_years: tutor.experience_years,
+            is_hired: !!hireRecord,
+            hire_status: hireRecord ? hireRecord.status : null,
+            hired_at: hireRecord ? hireRecord.hired_at : null,
+          };
         });
-
-        // Count total results
-        const total = await TutorProfile.countDocuments(searchQuery);
-
-        const total_session = await TutoringSession.countDocuments({tutor_id: {$in: tutors.map(tutor => tutor._id)}});
-        // Format tutor output with hiring information
-        const formattedTutors = tutors
-            .filter(tutor => tutor.user_id) // Filter out orphaned tutor profiles
-            .map((tutor, index) => {
-                
-                // Check if this tutor has been hired by the current student
-                const hireRecord = currentStudent.hired_tutors.find(
-                    hire => hire.tutor.toString() === tutor._id.toString()
-                );
-
-                // Get this tutor's academic levels and hourly rates
-                const tutorAcademicLevels = (tutor.academic_levels_taught || []).map(levelObj => {
-                 
-                    
-                    const levelDoc = academicLevelMap[levelObj.educationLevel.toString()];
-                    
-                    return {
-                        name: levelDoc ? levelDoc.level : levelObj.name || 'Unknown',
-                        hourlyRate: levelObj.hourlyRate || (levelDoc ? levelDoc.hourlyRate : 0)
-                    };
-                });
-
-                const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
-                const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
-                const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
-
-                return {
-                    _id: tutor._id,
-                    user_id: tutor.user_id,
-                    subjects: tutor.subjects,
-                    // academic_levels_taught: tutorAcademicLevels.map(level => level.name),
-                    academic_levels_taught: tutor.academic_levels_taught,
-                    min_hourly_rate: min_hourly_rate_value,
-                    max_hourly_rate: max_hourly_rate_value,
-                    average_rating: tutor.average_rating,
-                    total_sessions: total_session,
-                    location: tutor.location,
-                    bio: tutor.bio,
-                    qualifications: tutor.qualifications,
-                    experience_years: tutor.experience_years,
-                    // Add hiring information
-                    is_hired: !!hireRecord,
-                    hire_status: hireRecord ? hireRecord.status : null,
-                    hired_at: hireRecord ? hireRecord.hired_at : null
-                };
-            });
-        // Send response
-        res.status(200).json({
-            tutors: formattedTutors,
-            pagination: {
-                current_page: parseInt(page),
-                total_pages: Math.ceil(total / parseInt(limit)),
-                total_tutors: total,
-                has_next: skip + parseInt(limit) < total,
-                has_prev: parseInt(page) > 1
-            }
-        });
-
+  
+      // Send response
+      res.status(200).json({
+        tutors: formattedTutors,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: Math.ceil(total / parseInt(limit)),
+          total_tutors: total,
+          has_next: skip + parseInt(limit) < total,
+          has_prev: parseInt(page) > 1,
+        },
+      });
     } catch (error) {
-        res.status(500);
-        throw new Error("Failed to search tutors: " + error.message);
+      res.status(500);
+      throw new Error("Failed to search tutors: " + error.message);
     }
-});
+  });
+
+  
 
 exports.getTutorDetails = asyncHandler(async (req, res) => {
     const { tutorId } = req.params;
+    const { isParentView, studentId } = req.query; // Fixed: Use req.query instead of req.body
+    
+    
     try {
-        // Get current student's profile to check hiring status
-        const currentStudent = await Student.findOne({ user_id: req.user._id });
+        let currentStudent;
+        
+        if (isParentView === "true" && studentId) {
+            // Parent view - use studentId from query parameters
+            currentStudent = await Student.findOne({ user_id: studentId });
+        } else {
+            // Student view - use current user ID from auth
+            currentStudent = await Student.findOne({ user_id: req.user._id });
+        }
+        
         if (!currentStudent) {
             res.status(404);
             throw new Error("Student profile not found");
@@ -496,7 +489,7 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             _id: tutorId,
             profile_status: 'approved', // Changed from is_verified to profile_status
         }).populate('user_id', 'full_name email photo_url');
-        
+
         if (!tutor) {
             res.status(404);
             throw new Error("Tutor not found");
@@ -520,8 +513,8 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         const tutorHourlyRates = tutorAcademicLevels.map(level => level.hourlyRate).filter(rate => rate > 0);
         const min_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.min(...tutorHourlyRates) : 0;
         const max_hourly_rate_value = tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
-      
-       
+
+
         const hireRecord = currentStudent.hired_tutors.find(
             hire => hire.tutor.toString() === tutor._id.toString()
         );
@@ -665,7 +658,8 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
                         path: 'user_id',
                         select: 'full_name email'
                     }
-                });        } catch (error) {
+                });
+        } catch (error) {
             console.error('Error fetching recent inquiries:', error);
             recentInquiries = [];
         }
@@ -689,7 +683,7 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
         inquiryStatusStats.forEach(stat => {
             inquiryStats[stat._id] = stat.count;
         });
-        const total_sessions = await TutoringSession.countDocuments({tutor_id: tutor._id});
+        const total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id });
         const formattedTutor = {
             _id: tutor._id,
             user_id: tutor.user_id,
@@ -1211,7 +1205,7 @@ exports.rateSession = asyncHandler(async (req, res) => {
 // Get student payments
 exports.getStudentPayments = asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    
+
     // Verify the user is requesting their own data
     if (req.user._id.toString() !== userId) {
         res.status(403);
@@ -1251,7 +1245,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
             const tutorName = payment.tutor_id?.user_id?.full_name || 'Unknown Tutor';
             const subject = payment.subject?.name || 'Unknown Subject';
             const academicLevel = payment.academic_level?.level || 'Unknown Level';
-            
+
             // Map payment status to frontend status
             let status = 'pending';
             if (payment.payment_status === 'paid') {
@@ -1261,31 +1255,31 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
             } else if (payment.payment_status === 'cancelled') {
                 status = 'cancelled';
             }
-            
+
             // Calculate validity and session info
             const now = new Date();
             const validityEndDate = new Date(payment.validity_end_date);
             const daysRemaining = Math.ceil((validityEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
             const isValid = payment.isValid ? payment.isValid() : false;
-            
+
             return {
                 _id: payment._id,
                 tutor_name: tutorName,
                 subject: subject,
                 academic_level: academicLevel,
-                
+
                 // Payment Details
                 payment_type: payment.payment_type,
                 base_amount: payment.base_amount,
                 discount_percentage: payment.discount_percentage,
                 discount_amount: payment.discount_amount,
                 final_amount: payment.final_amount,
-                
+
                 // Package Details
                 monthly_amount: payment.monthly_amount,
                 total_sessions_per_month: payment.total_sessions_per_month,
                 max_sessions_per_month: payment.max_sessions_per_month,
-                
+
                 // Validity and Sessions
                 validity_start_date: payment.validity_start_date,
                 validity_end_date: payment.validity_end_date,
@@ -1294,7 +1288,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
                 sessions_remaining: payment.sessions_remaining,
                 days_remaining: Math.max(0, daysRemaining),
                 is_valid: isValid,
-                
+
                 // Status and Dates
                 status: status,
                 created_at: payment.request_date,
@@ -1302,7 +1296,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
                 notes: payment.request_notes,
                 payment_id: payment._id,
                 academic_level_paid: payment.academic_level_paid,
-                
+
                 // Additional Info
                 currency: payment.currency || 'GBP'
             };
@@ -1326,7 +1320,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
 // Process student payment
 exports.processStudentPayment = asyncHandler(async (req, res) => {
     const { paymentId } = req.params;
-    
+
     try {
         // Find the payment record
         const payment = await StudentPayment.findById(paymentId);
@@ -1359,7 +1353,7 @@ exports.processStudentPayment = asyncHandler(async (req, res) => {
         payment.payment_status = 'paid';
         payment.payment_date = new Date();
         payment.academic_level_paid = true; // Now tutor can create sessions for this academic level
-        
+
         await payment.save();
 
         res.status(200).json({
@@ -1388,7 +1382,6 @@ exports.processStudentPayment = asyncHandler(async (req, res) => {
 // Check payment status for all accepted hire requests
 exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    console.log(userId);
     try {
         // Get student profile
         const studentProfile = await Student.findOne({ user_id: userId });
@@ -1399,7 +1392,7 @@ exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
 
         // Get all accepted hire requests for this student
         const acceptedHireRequests = studentProfile.hired_tutors?.filter(hire => hire.status === 'accepted') || [];
-        
+
         const paymentStatuses = [];
         let hasUnpaidRequests = false;
 
@@ -1415,7 +1408,7 @@ exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
 
             // Get tutor, subject, and academic level details
             const tutor = await TutorProfile.findById(hireRequest.tutor).populate('user_id', 'full_name');
-          
+
 
             const isPaid = !!payment;
             if (!isPaid) {
@@ -1435,7 +1428,7 @@ exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
                     sessions_remaining: payment.total_sessions_per_month,
                     validity_end_date: payment.validity_end_date
                 } : null,
-              
+
             });
         }
 

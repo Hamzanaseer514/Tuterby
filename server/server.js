@@ -30,12 +30,16 @@ const UserRoute = require("./Routes/UserRoute");
 const tutorRoutes = require("./Routes/tutorRoutes");
 const adminRoutes = require("./Routes/adminRoutes");
 const paymentRoutes = require("./Routes/PaymentRoute");
+const parentRoutes = require("./Routes/ParentRoutes");
+
 
 // Mount Routes
 app.use("/api/auth", UserRoute);
 app.use("/api/tutor", tutorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/parent", parentRoutes);
+
 
 
 // Error handler (should be AFTER routes)

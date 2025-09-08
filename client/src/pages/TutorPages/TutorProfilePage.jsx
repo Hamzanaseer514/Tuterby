@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BASE_URL } from '@/config';
 
@@ -16,7 +16,7 @@ import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Input } from '../../components/ui/input';
-  import {
+import {
   User,
   Star,
   MapPin,
@@ -33,6 +33,8 @@ import { useSubject } from '../../hooks/useSubject';
 const TutorProfilePage = () => {
   const location = useLocation();
   const tutorId = location.state?.tutorId;
+  const studentId = location.state?.studentId;
+  const isParentView = location.state?.isParentView;
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -51,7 +53,7 @@ const TutorProfilePage = () => {
     }
 
     fetchTutorDetails();
-  }, [tutorId]);
+  }, [tutorId, studentId, isParentView]);
 
   const getSubjectById = useCallback((id) => {
     if (!id) return undefined;
@@ -70,19 +72,30 @@ const TutorProfilePage = () => {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/tutors/${tutorId}`, {
+      // Build URL with proper query parameters
+      let url = `${BASE_URL}/api/auth/tutors/${tutorId}`;
+
+      if (isParentView && studentId) {
+        url += `?isParentView=true&studentId=${studentId}`;
+      }
+
+      console.log("Fetching tutor details from:", url);
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
+
       if (!response.ok) {
-        throw new Error('Failed to fetch tutor details');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch tutor details');
       }
 
       const data = await response.json();
-
+      console.log("tutor data", data);
       const normalizeList = (value) => {
         if (!value) return [];
         if (Array.isArray(value)) {
@@ -146,18 +159,44 @@ const TutorProfilePage = () => {
 
   const getStudentProfile = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      let response;
+
+      if (isParentView && studentId) {
+        // Parent view - fetch student profile using studentId
+        console.log("Parent view - fetching student profile for:", studentId);
+        response = await fetch(`${BASE_URL}/api/auth/student/profile/${studentId}`, {
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } else if (user?._id) {
+        // Student view - fetch current user's profile
+        console.log("Student view - fetching profile for current user:", user._id);
+        response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } else {
+        console.log("No user ID available");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch student profile');
+      }
+
       const data = await response.json();
       setStudentProfile(data.student);
+      console.log("Student profile data:", data);
     } catch (e) {
-      // ignore silently
+      console.error("Error fetching student profile:", e);
+      // Don't throw error, just log it
     }
   };
+
 
 
   const handleBookSession = (tutor) => {
@@ -180,15 +219,15 @@ const TutorProfilePage = () => {
 
   const getHiringStatusBadge = (status) => {
     if (!status) return null;
-    
+
     const statusConfig = {
       'pending': { variant: 'secondary', text: 'Request Pending' },
       'accepted': { variant: 'default', text: 'Hired' },
       'rejected': { variant: 'destructive', text: 'Request Rejected' }
     };
-    
+
     const config = statusConfig[status] || { variant: 'outline', text: status };
-    
+
     return (
       <Badge variant={config.variant} className="ml-2">
         {config.text}
@@ -281,10 +320,10 @@ const TutorProfilePage = () => {
                   )}
                 </div>
               ) : (
-              <Button onClick={() => handleBookSession(tutor)}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Hire Tutor
-              </Button>
+                <Button onClick={() => handleBookSession(tutor)}>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Hire Tutor
+                </Button>
               )}
             </div>
           </div>
@@ -295,8 +334,16 @@ const TutorProfilePage = () => {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-6">
-                    <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-12 h-12 text-blue-600" />
+                    <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                      {tutor.user_id?.photo_url ? (
+                        <img
+                          src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                          alt="Profile"
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <User className="h-7 w-7 text-white" />
+                      )}
                     </div>
 
                     <div className="flex-1">
@@ -361,7 +408,7 @@ const TutorProfilePage = () => {
                           const subjectName = subjectData?.name || subject || 'Unknown Subject';
                           const subjectType = subjectData?.subject_type?.name || 'Unknown Type';
                           const levelName = subjectData?.level_id?.level || 'Unknown Level';
-                          
+
                           return (
                             <Badge key={index} variant="outline">
                               {subjectName} - {subjectType} - {levelName}
@@ -531,12 +578,12 @@ const TutorProfilePage = () => {
                                 {new Date(inquiry.created_at).toLocaleDateString()}
                               </p>
                             </div>
-                            <Badge 
+                            <Badge
                               variant={
-                                inquiry.status === 'replied' ? 'default' : 
-                                inquiry.status === 'converted_to_booking' ? 'default' :
-                                inquiry.status === 'pending' ? 'secondary' : 'outline'
-                              } 
+                                inquiry.status === 'replied' ? 'default' :
+                                  inquiry.status === 'converted_to_booking' ? 'default' :
+                                    inquiry.status === 'pending' ? 'secondary' : 'outline'
+                              }
                               className="text-xs"
                             >
                               {inquiry.status}
@@ -595,37 +642,37 @@ const TutorProfilePage = () => {
                 </Card>
               )}
 
-    {/* Requested For This Tutor */}
-    {studentProfile?.hired_tutors && studentProfile.hired_tutors.length > 0 && (
-      <Card>
-        <CardHeader>
-          <CardTitle>Tutor is Requested For</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Academic Level</span>
-            <span className="font-semibold">
-              {studentProfile.hired_tutors.map((tutor) => {
-                const academicLevel = getAcademicLevelById(tutor.academic_level_id);
-                return academicLevel?.level || 'Unknown Level';
-              }).join(', ')}
-            </span>
-          </div>
+              {/* Requested For This Tutor */}
+              {studentProfile?.hired_tutors && studentProfile.hired_tutors.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tutor is Requested For</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Academic Level</span>
+                      <span className="font-semibold">
+                        {studentProfile.hired_tutors.map((tutor) => {
+                          const academicLevel = getAcademicLevelById(tutor.academic_level_id);
+                          return academicLevel?.level || 'Unknown Level';
+                        }).join(', ')}
+                      </span>
+                    </div>
 
-          {tutor.experience_years && (
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Subject</span>
-              <span className="font-semibold">
-                {studentProfile.hired_tutors.map((tutor) => {
-                  const subject = getSubjectById(tutor.subject);
-                  return subject?.name || 'Unknown Subject';
-                }).join(', ')}
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    )}
+                    {tutor.experience_years && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Subject</span>
+                        <span className="font-semibold">
+                          {studentProfile.hired_tutors.map((tutor) => {
+                            const subject = getSubjectById(tutor.subject);
+                            return subject?.name || 'Unknown Subject';
+                          }).join(', ')}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
 
               {/* Student's Inquiries Summary */}
@@ -646,12 +693,12 @@ const TutorProfilePage = () => {
                       {tutor.student_inquiries.slice(0, 2).map((inquiry, index) => (
                         <div key={index} className="text-left border-l-2 border-blue-200 pl-2">
                           <p className="text-xs font-medium">{inquiry.subject}</p>
-                          <Badge 
+                          <Badge
                             variant={
-                              inquiry.status === 'replied' ? 'default' : 
-                              inquiry.status === 'converted_to_booking' ? 'default' :
-                              inquiry.status === 'pending' ? 'secondary' : 'outline'
-                            } 
+                              inquiry.status === 'replied' ? 'default' :
+                                inquiry.status === 'converted_to_booking' ? 'default' :
+                                  inquiry.status === 'pending' ? 'secondary' : 'outline'
+                            }
                             className="text-xs mt-1"
                           >
                             {inquiry.status}
@@ -705,7 +752,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-        
+
               {/* Contact Actions */}
               <Card>
                 <CardHeader>
@@ -733,9 +780,9 @@ const TutorProfilePage = () => {
                     </>
                   ) : (
                     <Button onClick={() => handleBookSession(tutor)} className="w-full">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Hire Tutor
-                  </Button>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Hire Tutor
+                    </Button>
                   )}
                   {/* <Button onClick={handleContactTutor} variant="outline" className="w-full">
                     <MessageCircle className="w-4 h-4 mr-2" />
