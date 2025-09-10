@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -6,6 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageSquare, X, Send, User, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+
+
 
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,29 +19,57 @@ const ChatbotWidget = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isOfficeHours, setIsOfficeHours] = useState(true); 
+  const [isBotTyping, setIsBotTyping] = useState(false);
 
   const toggleChat = () => setIsOpen(!isOpen);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (inputText.trim() === '') return;
-
-    setMessages(prev => [...prev, { id: Date.now(), text: inputText, sender: 'user' }]);
+  
+    const userMessage = { id: Date.now(), text: inputText, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
     setInputText('');
-
-    
-    setTimeout(() => {
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: "Thanks for your message! An agent will be with you shortly.", sender: 'bot' }]);
-    }, 1000);
+  
+    // Show typing indicator
+    setIsBotTyping(true);
+  
+    try {
+      const res = await fetch("https://hamza121232-tutorragai.hf.space/query/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: inputText,
+          conversation_id: "test-uuid-123"
+        })
+      });
+  
+      const data = await res.json();
+  
+      // Hide typing and add bot reply
+      setIsBotTyping(false);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, text: data.response, sender: "bot" }
+      ]);
+    } catch (error) {
+      setIsBotTyping(false);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, text: "⚠️ Error connecting to server.", sender: "bot" }
+      ]);
+    }
   };
-  
-  
-  React.useEffect(() => {
-    const currentHour = new Date().getHours();
-    
-    setIsOfficeHours(true); 
-  }, []);
 
+  useEffect(() => {
+    const currentHour = new Date().getHours();
+    // Example: office hours 9am - 5pm
+    if (currentHour >= 9 && currentHour < 17) {
+      setIsOfficeHours(true);
+    } else {
+      setIsOfficeHours(false);
+    }
+  }, []);
 
   const fabVariants = {
     initial: { scale: 0, y: 50 },
@@ -96,35 +129,61 @@ const ChatbotWidget = () => {
                 </Button>
               </CardHeader>
               <CardContent className="p-4 h-80 overflow-y-auto custom-scrollbar space-y-3" aria-live="polite">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "flex items-end space-x-2 max-w-[85%]",
-                      msg.sender === 'user' ? "ml-auto flex-row-reverse space-x-reverse" : ""
-                    )}
-                  >
-                    <div className={cn(
-                      "p-1 rounded-full text-white",
-                      msg.sender === 'user' ? 'bg-secondary' : 'bg-primary'
-                    )} aria-hidden="true">
-                      {msg.sender === 'user' ? <User size={16} /> : <Smile size={16} />}
-                    </div>
-                    <div
-                      className={cn(
-                        "p-3 rounded-xl break-words",
-                        msg.sender === 'user'
-                          ? "bg-secondary text-secondary-foreground rounded-br-none"
-                          : "bg-muted text-muted-foreground rounded-bl-none"
-                      )}
-                    >
-                      <p className="text-sm">{msg.text}</p>
-                    </div>
-                  </div>
-                ))}
-                 {!isOfficeHours && messages.length === 1 && (
+              {messages.map((msg) => (
+  <div
+    key={msg.id}
+    className={cn(
+      "flex items-end space-x-2 max-w-[85%]",
+      msg.sender === 'user' ? "ml-auto flex-row-reverse space-x-reverse" : ""
+    )}
+  >
+    <div className={cn(
+      "p-1 rounded-full text-white",
+      msg.sender === 'user' ? 'bg-secondary' : 'bg-primary'
+    )}>
+      {msg.sender === 'user' ? <User size={16} /> : <Smile size={16} />}
+    </div>
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
+        components={{
+          a: ({ node, ...props }) => (
+            <a {...props} className="text-blue-600 underline" />
+          ),
+          code: ({ node, inline, className, children, ...props }) => (
+            <code
+              {...props}
+              className={`bg-gray-200 dark:bg-gray-800 px-1 rounded ${
+                inline ? "text-sm" : "block p-2"
+              }`}
+            >
+              {children}
+            </code>
+          ),
+        }}
+      >
+        {msg.text}
+      </ReactMarkdown>
+    </div>
+  </div>
+))}
+
+{/* 🔥 Bot Typing Indicator */}
+{isBotTyping && (
+  <div className="flex items-end space-x-2 max-w-[85%]">
+    <div className="p-1 rounded-full text-white bg-primary">
+      <Smile size={16} />
+    </div>
+    <div className="p-3 rounded-xl bg-muted text-muted-foreground rounded-bl-none">
+      <p className="text-sm animate-pulse">Typing...</p>
+    </div>
+  </div>
+)}
+
+                {!isOfficeHours && messages.length === 1 && (
                   <div className="text-center text-muted-foreground text-sm p-4 bg-muted rounded-lg">
-                    <p>We're currently offline. Our office hours are [Your Office Hours, e.g., 9 AM - 5 PM GMT].</p>
+                    <p>We're currently offline. Our office hours are 9 AM - 5 PM GMT.</p>
                     <p>Please leave a message, and we'll get back to you as soon as possible!</p>
                   </div>
                 )}
@@ -141,12 +200,18 @@ const ChatbotWidget = () => {
                       disabled={!isOfficeHours && messages.length === 1}
                       aria-label="Type your message here"
                     />
-                    <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90" disabled={!isOfficeHours && messages.length === 1 && inputText.trim() === ''} aria-label="Send message">
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={!isOfficeHours && messages.length === 1 && inputText.trim() === ''}
+                      aria-label="Send message"
+                    >
                       <Send size={18} />
                     </Button>
                   </form>
                 ) : (
-                   <div className="w-full text-center">
+                  <div className="w-full text-center">
                     <Button onClick={() => setMessages(prev => [...prev, {id: Date.now(), text: "I'd like to leave a message.", sender: 'user'}])} aria-label="Leave a message (currently offline)">
                       Leave a Message
                     </Button>
