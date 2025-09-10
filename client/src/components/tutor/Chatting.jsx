@@ -1,29 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { BASE_URL } from '@/config';
+import {useAuth} from '@/hooks/useAuth';
 
 const Chatting = () => {
+  const { getAuthToken, fetchWithAuth } = useAuth();
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [responseText, setResponseText] = useState("");
   const [selectedMessageId, setSelectedMessageId] = useState(null);
-
+  const token = getAuthToken();
   useEffect(() => {
     fetchAllMessages();
   }, []);
 
   const fetchAllMessages = async () => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/tutor/getallmessages`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
-        }
+        },token, (newToken) => localStorage.setItem("authToken", newToken)
       );
       const data = await res.json();
 
@@ -51,15 +53,14 @@ const Chatting = () => {
 
   const fetchChatHistory = async (studentId, studentName) => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/tutor/getallmessages/${studentId}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
-        }
+        }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
       const data = await res.json();
 
@@ -79,19 +80,18 @@ const Chatting = () => {
     if (!responseText.trim()) return;
 
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/tutor/messages/reply`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
           body: JSON.stringify({
             messageId: selectedMessageId,
             response: responseText,
           }),
-        }
+        }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       const data = await res.json();

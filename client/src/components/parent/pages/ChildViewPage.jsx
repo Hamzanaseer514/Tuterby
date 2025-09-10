@@ -36,7 +36,7 @@ const ChildViewPage = () => {
     const { childSlug } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuth();
+    const { user , getAuthToken ,fetchWithAuth} = useAuth();
     const { getParentProfile, getSpecificStudentDetail } = useParent();
     const { academicLevels, subjects } = useSubject();
 

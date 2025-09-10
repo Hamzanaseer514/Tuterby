@@ -34,10 +34,16 @@ import { useSubject } from '../../hooks/useSubject';
 const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user ,fetchWithAuth } = useAuth();
   const { academicLevels, subjects } = useSubject();
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState({
+    student: { full_name: "" },
+    upcomingSessions: [],
+    pastSessions: [],
+    pendingPayments: [],
+    profile: { preferred_subjects: [] }
+  });
+    const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -51,24 +57,32 @@ const StudentDashboard = () => {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/student/dashboard/${user?._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/dashboard/${user?._id}`, {
+       method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
       const data = await response.json();
-      setDashboardData(data);
-    } catch (error) {
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
-        variant: "destructive"
+      // setDashboardData(data);
+      setDashboardData({
+        student: data.student || { full_name: "" },
+        upcomingSessions: data.upcomingSessions || [],
+        pastSessions: data.pastSessions || [],
+        pendingPayments: data.pendingPayments || [],
+        profile: data.profile || { preferred_subjects: [] }
       });
+    } catch (error) {
+      // setError(error.message);
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to load dashboard data",
+      //   variant: "destructive"
+      // });
     } finally {
       setLoading(false);
     }
@@ -130,22 +144,24 @@ const StudentDashboard = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Dashboard</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={fetchDashboardData}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center">
+  //         <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+  //         <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Dashboard</h2>
+  //         <p className="text-gray-600 mb-4">{error}</p>
+  //         <Button onClick={fetchDashboardData}>Try Again</Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  if (!dashboardData) {
-    return null;
-  }
+  // if (dashboardData )
+  //   else
+  
+
+
 
   return (
     <div className="space-y-6">

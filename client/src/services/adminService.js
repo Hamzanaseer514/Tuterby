@@ -4,8 +4,8 @@ import { BASE_URL } from '@/config';
 
 const API_BASE_URL = `${BASE_URL}/api/admin`;
 
-// Helper function to get auth token - use the same method as useAuth hook
-const getAuthToken = () => {
+// Helper function to get auth token - use the same method as useAuth hook 
+export const getAuthToken = () => {
   // Check sessionStorage first, then localStorage (same as useAuth hook)
   return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
 };

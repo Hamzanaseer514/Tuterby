@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TutorDashboard from '../../components/tutor/TutorDashboard';
 import SessionManagement from '../../components/tutor/SessionManagement';
 import InquiryManagement from '../../components/tutor/InquiryManagement';
@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/button';
 import TutorSetting from '../../components/tutor/TutorSetting';
 import TutorSelfProfilePage from './TutorSelfProfilePage';
 import TutorInterviewSlotsPage from './TutorInterviewSlotsPage';
+import TutorPaymentHistory from '../../components/tutor/TutorPaymentHistory';
 import { BASE_URL } from '@/config';
 import {
   LayoutDashboard,
@@ -25,7 +26,8 @@ import {
   Clock,
   BookOpen,
   Briefcase,
-  HelpCircle
+  HelpCircle,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
@@ -45,7 +47,8 @@ const TutorDashboardPage = () => {
   });
   const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0 });
   const navigate = useNavigate();
-  const { user, loading, logout, isTutor, getUserProfile } = useAuth();
+  const { user, loading, logout, isTutor, getUserProfile, fetchWithAuth } = useAuth();
+
   useEffect(() => {
     const fetchProfileImage = async () => {
       try {
@@ -94,7 +97,8 @@ const TutorDashboardPage = () => {
       const token = getAuthToken();
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const inquiriesRes = await fetch(`${BASE_URL}/api/tutor/inquiries/${user._id}?status=unread`, { headers });
+      const inquiriesRes = await fetchWithAuth(`${BASE_URL}/api/tutor/inquiries/${user._id}?status=unread`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const inquiriesJson = inquiriesRes.ok ? await inquiriesRes.json() : { total: 0, inquiries: [] };
       const inquiriesList = inquiriesJson.inquiries || [];
       const inquiriesLatest = inquiriesList[0]?.created_at || inquiriesList[0]?.createdAt || null;
@@ -104,7 +108,8 @@ const TutorDashboardPage = () => {
         inquiriesCount = 0;
       }
 
-      const hiresRes = await fetch(`${BASE_URL}/api/tutor/hire-requests/${user._id}?status=pending`, { headers });
+      const hiresRes = await fetchWithAuth(`${BASE_URL}/api/tutor/hire-requests/${user._id}?status=pending`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const hiresJson = hiresRes.ok ? await hiresRes.json() : { requests: [] };
       const hireList = hiresJson.requests || [];
       const hireLatest = hireList[0]?.updatedAt || hireList[0]?.hired_at || null;
@@ -114,7 +119,8 @@ const TutorDashboardPage = () => {
         hireCount = 0;
       }
 
-      const sessionsRes = await fetch(`${BASE_URL}/api/tutor/sessions/${user._id}?status=pending`, { headers });
+      const sessionsRes = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/${user._id}?status=pending`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const sessionsJson = sessionsRes.ok ? await sessionsRes.json() : { total: 0, sessions: [] };
       const sessList = sessionsJson.sessions || [];
       const sessLatest = sessList[0]?.updatedAt || sessList[0]?.createdAt || sessList[0]?.session_date || null;
@@ -126,7 +132,8 @@ const TutorDashboardPage = () => {
 
       let messagesCount = 0;
       try {
-        const msgRes = await fetch(`${BASE_URL}/api/tutor/getallmessages`, { headers });
+        const msgRes = await fetchWithAuth(`${BASE_URL}/api/tutor/getallmessages`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        );
         if (msgRes.ok) {
           const msgJson = await msgRes.json();
           const data = msgJson.data || [];
@@ -139,16 +146,15 @@ const TutorDashboardPage = () => {
         }
       } catch {}
 
-      // Interviews: show a dot if there is a scheduled time or new admin-provided preferred times since last seen
       let interviewsCount = 0;
       try {
-        const iRes = await fetch(`${BASE_URL}/api/tutor/interview-slots/${user._id}`, { headers });
+        const iRes = await fetchWithAuth(`${BASE_URL}/api/tutor/interview-slots/${user._id}`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        );
         if (iRes.ok) {
           const iJson = await iRes.json();
           const data = iJson?.data || {};
           const preferred = Array.isArray(data.preferred_interview_times) ? data.preferred_interview_times : [];
           const scheduledTime = data.scheduled_time ? new Date(data.scheduled_time).getTime() : 0;
-          // Determine latest timestamp among preferred times or scheduled
           const preferredMs = preferred
             .map(p => {
               const d = new Date(typeof p === 'string' ? p : new Date(p).toISOString());
@@ -159,10 +165,9 @@ const TutorDashboardPage = () => {
           const latest = Math.max(scheduledTime, latestPreferred);
           const seen = Number(localStorage.getItem(lastSeenKey('interviews')) || 0);
           if (latest && seen < latest) {
-            interviewsCount = 1; // dot indicator
+            interviewsCount = 1;
           }
 
-          // Also alert on status changes like Passed/Failed/Scheduled even without timestamp
           const currentStatus = data.interview_status || '';
           localStorage.setItem('tutor_last_known_interviews_status', currentStatus);
           const seenStatus = localStorage.getItem('tutor_last_seen_interviews_status') || '';
@@ -176,13 +181,12 @@ const TutorDashboardPage = () => {
     } catch {}
   }, [user?._id]);
 
-  // Initial fetch + focus refresh + polling
   useEffect(() => {
     if (!user?._id) return;
     fetchCounts();
     const onFocus = () => fetchCounts();
     window.addEventListener('focus', onFocus);
-    const id = setInterval(fetchCounts, 30000); // refresh every 30s
+    const id = setInterval(fetchCounts, 30000);
     return () => {
       window.removeEventListener('focus', onFocus);
       clearInterval(id);
@@ -235,6 +239,12 @@ const TutorDashboardPage = () => {
           name: 'Student Requests',
           icon: Briefcase,
           component: <StudentHireRequests />,
+        },
+        {
+          id: 'payment-history',
+          name: 'Payment History',
+          icon: DollarSign,
+          component: <TutorPaymentHistory />
         }
       ]
     },
@@ -312,14 +322,13 @@ const TutorDashboardPage = () => {
       <aside className="hidden md:flex flex-col w-64 border-r bg-white">
         <div className="p-4 border-b">
           <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
-          {profileImageUrl ? (
-            <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
-          ) : (
-            user?.full_name?.charAt(0) || <User className="h-5 w-5" />
-          )}
-        </div>
-
+            <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
+              {profileImageUrl ? (
+                <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
+              ) : (
+                user?.full_name?.charAt(0) || <User className="h-5 w-5" />
+              )}
+            </div>
             
             <div>
               <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
@@ -328,7 +337,7 @@ const TutorDashboardPage = () => {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-2">
+        <nav className="flex-1 overflow-y-auto p-2" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
           {sidebarItems.map((group) => (
             <div key={group.group} className="mb-2">
               <button
@@ -407,15 +416,13 @@ const TutorDashboardPage = () => {
           <div className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl flex flex-col">
             <div className="p-4 border-b">
               <div className="flex items-center gap-3">
-                {/* // In your desktop sidebar avatar: */}
                 <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
-          {profileImageUrl ? (
-            <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
-          ) : (
-            user?.full_name?.charAt(0) || <User className="h-5 w-5" />
-          )}
-        </div>
-
+                  {profileImageUrl ? (
+                    <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
+                  ) : (
+                    user?.full_name?.charAt(0) || <User className="h-5 w-5" />
+                  )}
+                </div>
                 
                 <div>
                   <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
@@ -424,7 +431,7 @@ const TutorDashboardPage = () => {
               </div>
             </div>
 
-            <nav className="flex-1 overflow-y-auto p-2">
+            <nav className="flex-1 overflow-y-auto p-2" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
               {sidebarItems.map((group) => (
                 <div key={group.group} className="mb-2">
                   <button
@@ -508,17 +515,18 @@ const TutorDashboardPage = () => {
                 .flatMap(group => group.items)
                 .find(item => item.id === activeTab)?.name || 'Dashboard'}
             </h1>
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={profileImageUrl} className="object-cover" />
-              <AvatarFallback>
-                {user?.full_name?.charAt(0) || 'T'}
-              </AvatarFallback>
-            </Avatar>
+            <div className="h-8 w-8 rounded-full flex items-center justify-center text-black">
+              {profileImageUrl ? (
+                <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
+              ) : (
+                user?.full_name?.charAt(0) || <User className="h-5 w-5" />
+              )}
+            </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
           {activeComponent}
         </main>
       </div>
@@ -526,4 +534,4 @@ const TutorDashboardPage = () => {
   );
 };
 
-export default TutorDashboardPage; 
+export default TutorDashboardPage;

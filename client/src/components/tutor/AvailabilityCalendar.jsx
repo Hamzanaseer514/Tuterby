@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 const AvailabilityCalendar = () => {
-  const { user } = useAuth();
+  const { user , getAuthToken , fetchWithAuth } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [availability, setAvailability] = useState(null);
@@ -44,7 +44,7 @@ const AvailabilityCalendar = () => {
   const [showBlackoutModal, setShowBlackoutModal] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
   const [editingBlackout, setEditingBlackout] = useState(null);
-  
+  const token = getAuthToken();
   // Form states
   const [generalSettings, setGeneralSettings] = useState({
     general_availability: {
@@ -97,7 +97,13 @@ const AvailabilityCalendar = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${BASE_URL}/api/tutor/availability/${user._id}`);
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/availability/${user._id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch availability');
       }
@@ -121,11 +127,12 @@ const AvailabilityCalendar = () => {
   const handleGeneralSettingsUpdate = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/availability/${user._id}/general`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/availability/${user._id}/general`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generalSettings)
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to update general settings');
@@ -146,42 +153,7 @@ const AvailabilityCalendar = () => {
     }
   };
 
-  const handleRecurringSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const url = editingSlot 
-        ? `${BASE_URL}/api/tutor/availability/${user._id}/recurring/${editingSlot._id}`
-        : `${BASE_URL}/api/tutor/availability/${user._id}/recurring`;
-      
-      const method = editingSlot ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recurringForm)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save recurring slot');
-      }
-
-      setShowRecurringModal(false);
-      setEditingSlot(null);
-      setRecurringForm({ day_of_week: 1, start_time: "09:00", end_time: "10:00" });
-      fetchAvailability();
-      toast({
-        title: "Success!",
-        description: `Recurring slot ${editingSlot ? 'updated' : 'added'} successfully.`,
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to save recurring slot: " + err.message,
-        variant: "destructive",
-      });
-    }
-  };
-
+ 
 
   const handleBlackoutSubmit = async (e) => {
     e.preventDefault();
@@ -191,12 +163,13 @@ const AvailabilityCalendar = () => {
         : `${BASE_URL}/api/tutor/availability/${user._id}/blackout`;
       
       const method = editingBlackout ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
+
+      const response = await fetchWithAuth(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(blackoutForm)
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to save blackout date');
@@ -248,20 +221,28 @@ const AvailabilityCalendar = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Availability</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={fetchAvailability}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center">
+  //         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+  //         <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Availability</h2>
+  //         <p className="text-gray-600 mb-4">{error}</p>
+  //         <Button onClick={fetchAvailability}>Try Again</Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  if (!availability) return null;
+  // if (!availability) return null;
+  const {
+    general_availability = {},
+    blackout_dates = [],   // was blackout_slots
+    recurring_slots = [],
+    one_time_slots = [],
+  } = availability || {};
+  
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -307,7 +288,7 @@ const AvailabilityCalendar = () => {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-600">Accepting Bookings</p>
                 <p className="text-lg font-semibold">
-                  {availability.is_accepting_bookings ? (
+                  {availability && availability.is_accepting_bookings ? (
                     <span className="text-green-600 flex items-center">
                       <Check className="h-4 w-4 mr-1" />
                       Yes
@@ -322,16 +303,16 @@ const AvailabilityCalendar = () => {
               </div>
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-600">Minimum Notice</p>
-                <p className="text-lg font-semibold">{availability.minimum_notice_hours} hours</p>
+                <p className="text-lg font-semibold">{availability?.minimum_notice_hours ?? "NA"} hours</p>
               </div>
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-600">Max Advance Booking</p>
-                <p className="text-lg font-semibold">{availability.maximum_advance_days} days</p>
-              </div>
+                <p className="text-lg font-semibold">{availability?.maximum_advance_days ?? "NA"} days</p>
+                </div>
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-600">Session Durations</p>
                 <p className="text-sm font-semibold">
-                  {availability.session_durations.map(d => `${d}min`).join(', ')}
+                  {availability?.session_durations.map(d => `${d}min`).join(', ') ?? "NA"}
                 </p>
               </div>
             </div>
@@ -350,7 +331,7 @@ const AvailabilityCalendar = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
               {dayNames.map((day, index) => {
                 const dayKey = day.toLowerCase();
-                const daySettings = availability.general_availability[dayKey];
+                const daySettings = availability?.general_availability[dayKey] ?? "NA";
                 return (
                   <div key={day} className="p-4 border rounded-lg">
                     <h3 className="font-medium text-sm mb-2">{day}</h3>
@@ -375,119 +356,7 @@ const AvailabilityCalendar = () => {
           </CardContent>
         </Card>
 
-        {/* Recurring Availability */}
-        {/* <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 mr-2" />
-                Recurring Availability Slots
-              </div>
-              <Button 
-                size="sm" 
-                onClick={() => {
-                  setEditingSlot(null);
-                  setRecurringForm({ day_of_week: 1, start_time: "09:00", end_time: "10:00" });
-                  setShowRecurringModal(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Recurring Slot
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {availability.recurring_availability.length > 0 ? (
-              <div className="space-y-3">
-                {availability.recurring_availability.map((slot) => (
-                  <div key={slot._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">{dayNames[slot.day_of_week]}</p>
-                      <p className="text-xs text-gray-600">{slot.start_time} - {slot.end_time}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEditRecurring(slot)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteRecurring(slot._id)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No recurring availability slots set</p>
-            )}
-          </CardContent>
-        </Card> */}
-
-        {/* One-time Availability */}
-        {/* <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2" />
-                One-time Availability Slots
-              </div>
-              <Button 
-                size="sm" 
-                onClick={() => {
-                  setEditingSlot(null);
-                  setOneTimeForm({ date: "", start_time: "09:00", end_time: "10:00" });
-                  setShowOneTimeModal(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add One-time Slot
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {availability.one_time_availability.length > 0 ? (
-              <div className="space-y-3">
-                {availability.one_time_availability.map((slot) => (
-                  <div key={slot._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">{formatDate(slot.date)}</p>
-                      <p className="text-xs text-gray-600">{slot.start_time} - {slot.end_time}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEditOneTime(slot)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteOneTime(slot._id)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No one-time availability slots set</p>
-            )}
-          </CardContent>
-        </Card> */}
+  
 
         {/* Blackout Dates */}
         <Card className="mb-6">
@@ -511,7 +380,7 @@ const AvailabilityCalendar = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {availability.blackout_dates.length > 0 ? (
+            {  availability && availability.blackout_dates.length > 0 ? (
               <div className="space-y-3">
                 {availability.blackout_dates.map((blackout) => (
                   <div key={blackout._id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
@@ -644,7 +513,7 @@ const AvailabilityCalendar = () => {
                 <div className="space-y-3 mt-2">
                   {dayNames.map((day, index) => {
                     const dayKey = day.toLowerCase();
-                    const daySettings = generalSettings.general_availability[dayKey];
+                    const daySettings = generalSettings?.general_availability[dayKey] ?? "NA";
                     return (
                       <div key={day} className="flex items-center space-x-4 p-3 border rounded-lg">
                         <div className="flex items-center space-x-2 w-24">
@@ -720,183 +589,7 @@ const AvailabilityCalendar = () => {
         </div>
       )}
 
-      {/* Recurring Slot Modal */}
-      {/* {showRecurringModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
-                {editingSlot ? 'Edit' : 'Add'} Recurring Slot
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowRecurringModal(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <form onSubmit={handleRecurringSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="day_of_week">Day of Week</Label>
-                <Select 
-                  value={recurringForm.day_of_week.toString()} 
-                  onValueChange={(value) => setRecurringForm({...recurringForm, day_of_week: parseInt(value)})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dayNames.map((day, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {day}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="start_time">Start Time</Label>
-                <Select 
-                  value={recurringForm.start_time} 
-                  onValueChange={(value) => setRecurringForm({...recurringForm, start_time: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select start time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="end_time">End Time</Label>
-                <Select 
-                  value={recurringForm.end_time} 
-                  onValueChange={(value) => setRecurringForm({...recurringForm, end_time: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select end time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex space-x-3">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  onClick={() => setShowRecurringModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1">
-                  {editingSlot ? 'Update' : 'Add'} Slot
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )} */}
-
-      {/* One-time Slot Modal */}
-      {/* {showOneTimeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
-                {editingSlot ? 'Edit' : 'Add'} One-time Slot
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowOneTimeModal(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <form onSubmit={handleOneTimeSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="datetime-local"
-                  value={oneTimeForm.date}
-                  onChange={(e) => setOneTimeForm({...oneTimeForm, date: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="start_time">Start Time</Label>
-                <Select 
-                  value={oneTimeForm.start_time} 
-                  onValueChange={(value) => setOneTimeForm({...oneTimeForm, start_time: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select start time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="end_time">End Time</Label>
-                <Select 
-                  value={oneTimeForm.end_time} 
-                  onValueChange={(value) => setOneTimeForm({...oneTimeForm, end_time: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select end time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex space-x-3">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  onClick={() => setShowOneTimeModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1">
-                  {editingSlot ? 'Update' : 'Add'} Slot
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )} */}
+     
 
       {/* Blackout Date Modal */}
       {showBlackoutModal && (

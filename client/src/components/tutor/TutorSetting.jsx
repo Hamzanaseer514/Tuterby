@@ -18,7 +18,7 @@ function calculateMonthlyRate(hourlyRate, totalSessionsPerMonth, discount) {
 }
 
 const TutorSetting = () => {
-    const { user, getAuthToken } = useAuth();
+    const { user, getAuthToken, fetchWithAuth } = useAuth();
     const token = getAuthToken();
     const { toast } = useToast();
     const { subjects, academicLevels } = useSubject();
@@ -55,9 +55,10 @@ const TutorSetting = () => {
     async function loadData() {
         try {
             setLoading(true);
-            const res = await fetch(`${BASE_URL}/api/tutor/settings/${user._id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/${user._id}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             const json = await res.json();
             if (!json.success) throw new Error(json.message || 'Failed to fetch');
 
@@ -72,11 +73,11 @@ const TutorSetting = () => {
             setLevels(enriched);
         } catch (e) {
             console.error(e);
-                toast({
-                title: 'Error', 
-                description: e.message || 'Failed to load settings', 
-                variant: 'destructive' 
-            });
+            //     toast({
+            //     title: 'Error', 
+            //     description: e.message || 'Failed to load settings', 
+            //     variant: 'destructive' 
+            // });
         } finally {
             setLoading(false);
         }
@@ -112,15 +113,14 @@ const TutorSetting = () => {
                 totalSessionsPerMonth: levelDoc.totalSessionsPerMonth || 0,
                 discount: levelDoc.discount || 0
             };
-            
-            const res = await fetch(`${BASE_URL}/api/tutor/settings/${user._id}/level`, {
+
+            const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/${user._id}/level`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json', 
-                    Authorization: `Bearer ${token}` 
+                    'Content-Type': 'application/json' 
                 },
                 body: JSON.stringify(body)
-            });
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             
             const json = await res.json();
             if (!json.success) throw new Error(json.message || 'Failed to add level');
@@ -159,15 +159,14 @@ const TutorSetting = () => {
                 totalSessionsPerMonth: Number(level.totalSessionsPerMonth) || 0,
                 discount: Number(level.discount) || 0
             }];
-            
-            const res = await fetch(`${BASE_URL}/api/tutor/settings/update/${user._id}`, {
+
+            const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/update/${user._id}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ academicLevelSettings: payload })
-            });
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
 
             const json = await res.json();
             if (!json.success) throw new Error(json.message || 'Failed to update');
@@ -196,10 +195,10 @@ const TutorSetting = () => {
     async function removeLevel(level) {
         try {
             setDeletingId(level.educationLevelId);
-            const res = await fetch(`${BASE_URL}/api/tutor/settings/delete/${user._id}/level/${level.educationLevelId}`, {
+            const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/delete/${user._id}/level/${level.educationLevelId}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
+                headers: { 'Content-Type': 'application/json' }
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             
             const json = await res.json();
             if (!json.success) throw new Error(json.message || 'Failed to remove');

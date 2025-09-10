@@ -50,6 +50,8 @@ const userSchema = new mongoose.Schema({
     enum: ['active', 'inactive', 'partial_active'],
     default: 'active' // Google users are verified by default
   },
+  refreshToken: { type: String },
+
   isEmailVerified: {
     type: Boolean,
     default: true // Google users have verified emails

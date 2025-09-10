@@ -934,8 +934,8 @@ const TutorSessionsPage = () => {
 
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <Avatar
-                                  src={`${BASE_URL}${session.tutor.photo_url}`}
-                                  sx={{ width: 24, height: 24, mr: 1 }}
+                        src={`${BASE_URL}${session.tutor.photo_url}`}
+                        sx={{ width: 24, height: 24, mr: 1 }}
                       >
                         <Person />
                       </Avatar>
@@ -1092,8 +1092,8 @@ const TutorSessionsPage = () => {
                   <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     {session.tutor ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar                                  src={`${BASE_URL}${session.tutor.photo_url}`}
- sx={{ width: 32, height: 32 }}>
+                        <Avatar src={`${BASE_URL}${session.tutor.photo_url}`}
+                          sx={{ width: 32, height: 32 }}>
                           <Person />
                         </Avatar>
                         <Box>
@@ -1194,13 +1194,24 @@ const TutorSessionsPage = () => {
     <AdminLayout tabValue="tutor-sessions">
       <Box sx={{ p: isMobile ? 1 : 3 }}>
         {/* Header */}
-        <Box sx={{
-          mb: 4,
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'flex-start' : 'center',
-          justifyContent: 'space-between',
-          gap: 2
+        <Box   sx={{
+                        background: "linear-gradient(90deg, #6a11cb 0%, #2575fc 100%)", // purple → blue
+                        // background: "gradient-text", // purple → blue
+                        color: "white", // make all text/icons readable
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        p: 3,
+                        borderRadius: 2,
+                        mb:4,
+        //             }}sx={{
+        //   mb: 4,
+        //   display: 'flex',
+        //   flexDirection: isMobile ? 'column' : 'row',
+        //   alignItems: isMobile ? 'flex-start' : 'center',
+        //   justifyContent: 'space-between',
+        //   gap: 2
+        // }}>
         }}>
           <Box>
             <Typography variant="h4" fontWeight="700" sx={{
@@ -1209,7 +1220,7 @@ const TutorSessionsPage = () => {
             }}>
               Session Management
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+            <Typography variant="body2"  sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               Monitor and manage all tutoring sessions
             </Typography>
           </Box>
@@ -1221,7 +1232,6 @@ const TutorSessionsPage = () => {
               onClick={loadSessions}
               sx={{ borderRadius: '8px', textTransform: 'none' }}
             >
-              Refresh Data
             </Button>
           )}
         </Box>
@@ -1515,25 +1525,7 @@ const TutorSessionsPage = () => {
           </Box>
         )}
 
-        {/* Error Display */}
-        {error && (
-          <Card
-            sx={{
-              mt: 3,
-              borderRadius: '12px',
-              border: `1px solid ${theme.palette.error.light}`,
-              backgroundColor: alpha(theme.palette.error.main, 0.05)
-            }}
-          >
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
-              <Cancel color="error" />
-              <Typography color="error" variant="body2">
-                {error}
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-
+        
         {/* Session Details Modal */}
         <SessionDetailsModal
           session={selectedSession}

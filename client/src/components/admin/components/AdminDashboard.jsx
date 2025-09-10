@@ -143,7 +143,7 @@ const AdminDashboard = () => {
 
       showNotification('Data loaded successfully');
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      // console.error('Failed to load dashboard data:', error);
       
       if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
         showNotification('Access denied. Please login with admin credentials.', 'error');
@@ -190,7 +190,7 @@ const AdminDashboard = () => {
           window.location.href = '/login';
         }, 2000);
       } else {
-        showNotification(`Failed to load ${userType}: ${error.message}`, 'error');
+        // showNotification(`Failed to load ${userType}: ${error.message}`, 'error');
         updateDashboardState({
           users: { ...dashboardState.users, [userType]: [] },
           loading: false
@@ -255,10 +255,6 @@ const AdminDashboard = () => {
 
   const handleViewModeChange = (mode) => {
     updateUiState({ viewMode: mode });
-  };
-
-  const handleExport = () => {
-    showNotification('Export functionality coming soon', 'info');
   };
 
   const handleImport = () => {
@@ -336,34 +332,7 @@ const AdminDashboard = () => {
                           Refresh
                         </Typography>
                       </Box>
-                      
-                      <Box
-                        component="button"
-                        onClick={handleExport}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          px: 1.75,
-                          py: 1.25,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          bgcolor: 'background.paper',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            bgcolor: 'background.default',
-                            transform: 'translateY(-1px)'
-                          }
-                        }}
-                      >
-                        <Download sx={{ fontSize: 20 }} />
-                        <Typography variant="body2" fontWeight="medium">
-                          Export
-                        </Typography>
-                      </Box>
+                 
                     </Box>
                   </Zoom>
                 </Box>
@@ -399,7 +368,7 @@ const AdminDashboard = () => {
                 onClearSearch={handleClearSearch}
                 onFilterChange={handleFilterChange}
                 onViewModeChange={handleViewModeChange}
-                onExport={handleExport}
+
                 onImport={handleImport}
                 onRefresh={loadDashboardData}
               />
@@ -422,11 +391,11 @@ const AdminDashboard = () => {
             </Paper>
 
             {/* Loading Overlay */}
-            <LoadingOverlay 
+            {/* <LoadingOverlay 
               loading={dashboardState.loading} 
               message="Processing request..."
               type="refresh"
-            />
+            /> */}
 
             {/* Notification Snackbar */}
             <NotificationSnackbar

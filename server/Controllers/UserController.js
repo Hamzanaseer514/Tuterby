@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
-
+const jwt = require("jsonwebtoken")
 const Rules = require("../Models/Rules");
 const {
   generateAccessToken,
@@ -18,6 +18,51 @@ const {
 const sendEmail = require("../Utils/sendEmail");
 const otpStore = require("../Utils/otpStore");
 const generateOtpEmail = require("../Utils/otpTempelate");
+
+
+
+
+
+
+exports.refreshAccessToken = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401);
+    throw new Error("No refresh token, please log in again");
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user || user.refreshToken !== refreshToken) {
+      res.status(403);
+      throw new Error("Invalid refresh token");
+    }
+
+    // Generate new access + refresh tokens
+    const newAccessToken = generateAccessToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    // Save new refresh token, remove old one
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    // Update cookie
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({ accessToken: newAccessToken });
+  } catch (err) {
+    res.status(403).json({ message: "Refresh token expired or invalid, please log in again" });
+  }
+});
+
 
 exports.registerUser = asyncHandler(async (req, res) => {
   const { full_name, email, password, age, academic_level, role } = req.body;
@@ -352,7 +397,7 @@ exports.registerTutor = asyncHandler(async (req, res) => {
 
 exports.registerParent = asyncHandler(async (req, res) => {
   const { full_name, email, phone_number, password, age } = req.body;
-  
+
   // Get photo URL from uploaded file or use default
   let photo_url = null;
   if (req.file) {
@@ -442,6 +487,33 @@ exports.registerParent = asyncHandler(async (req, res) => {
 });
 
 
+exports.logoutUser = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(200).json({ message: "Already logged out" });
+  }
+
+  // 🔥 Refresh token verify karne ki zaroorat nahi
+  const user = await User.findOne({ refreshToken });
+
+  if (user) {
+    user.refreshToken = null; // DB se hata do
+    await user.save();
+  }
+
+  // Cookie clear
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  return res.status(200).json({ message: "Logged out successfully" });
+});
+
+
+
 
 exports.loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -461,6 +533,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     throw new Error("User not verified. Please be patient, Admin will verify you soon");
   }
 
+  // === STUDENT LOGIN ===
   if (user.role === "student") {
     const otpRule = await Rules.findOne();
     const otpActive = otpRule?.otp_rule_active || false;
@@ -476,6 +549,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
       };
       const htmlContent = generateOtpEmail(otp, user.username);
       await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
+
       return res.status(200).json({
         message: "OTP sent to your email",
         isOtpTrue: true,
@@ -486,12 +560,10 @@ exports.loginUser = asyncHandler(async (req, res) => {
       const accessToken = generateAccessToken(user._id);
       const refreshToken = generateRefreshToken(user._id);
 
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      setRefreshCookie(res, refreshToken);
 
       return res.status(200).json({
         message: "Login successful (OTP not required)",
@@ -509,6 +581,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     }
   }
 
+  // === TUTOR OR PARENT LOGIN (OTP first, no refresh token yet) ===
   if (user.role === "tutor" || user.role === "parent") {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[user._id] = {
@@ -518,8 +591,10 @@ exports.loginUser = asyncHandler(async (req, res) => {
       maxAttempts: 5,
       lockUntil: null,
     };
+
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
+
     return res.status(200).json({
       isOtpTrue: true,
       message: "OTP sent to your email",
@@ -528,16 +603,15 @@ exports.loginUser = asyncHandler(async (req, res) => {
     });
   }
 
+  // === ADMIN LOGIN (no OTP, issue tokens immediately) ===
   if (user.role === "admin") {
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    setRefreshCookie(res, refreshToken);
 
     return res.status(200).json({
       message: "Admin login successful",
@@ -553,6 +627,28 @@ exports.loginUser = asyncHandler(async (req, res) => {
     });
   }
 });
+
+// === HELPER: Set Refresh Token Cookie ===
+
+// production
+// function setRefreshCookie(res, refreshToken) {
+//   res.cookie("refreshToken", refreshToken, {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV === "production",
+//     sameSite: "strict",
+//     maxAge: 7 * 24 * 60 * 60 * 1000,
+//   });
+// }
+// local
+function setRefreshCookie(res, refreshToken) {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,        // localhost ke liye false
+    sameSite: "lax",      // dev ke liye lax
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+}
+
 
 exports.verifyOtp = asyncHandler(async (req, res) => {
   const { userId, otp } = req.body;
@@ -588,7 +684,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "User not found" });
   }
 
-  // ✅ Case 1: Forgot Password
+  // ✅ Case 1: Forgot Password (no tokens)
   if (entry.purpose === "forgotPassword") {
     delete otpStore[userId];
     return res.status(200).json({
@@ -597,19 +693,14 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     });
   }
 
+  // === Load role-specific data ===
   let roleData = null;
   if (user.role === "student") {
-    roleData = await Student.findOne({ user_id: user._id }).select(
-      "-__v -createdAt -updatedAt"
-    );
+    roleData = await Student.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
   } else if (user.role === "tutor") {
-    roleData = await TutorProfile.findOne({ user_id: user._id }).select(
-      "-__v -createdAt -updatedAt"
-    );
+    roleData = await TutorProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
   } else if (user.role === "parent") {
-    roleData = await ParentProfile.findOne({ user_id: user._id }).select(
-      "-__v -createdAt -updatedAt"
-    );
+    roleData = await ParentProfile.findOne({ user_id: user._id }).select("-__v -createdAt -updatedAt");
   } else if (user.role === "admin") {
     roleData = {
       _id: user._id,
@@ -619,38 +710,40 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     };
   }
 
-  user.isEmailVerified = true; 
-  await user.save();
+  // === Mark email verified ===
+  user.isEmailVerified = true;
+
+  // === Generate & save refresh token ===
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
+  user.refreshToken = refreshToken;
+  console.log("Generated refresh token for user ID:", user._id);
+  await user.save();
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  // === Set cookie ===
+  setRefreshCookie(res, refreshToken);
 
   delete otpStore[userId];
 
-  const responseData = {
+  return res.status(200).json({
     message: "Login successful",
     user: {
       _id: user._id,
       full_name: user.full_name,
       email: user.email,
       role: user.role,
+      is_verified: user.is_verified,
+      isEmailVerified: user.isEmailVerified,
     },
     data: roleData,
     accessToken,
-  };
-
-  res.status(200).json(responseData);
+  });
 });
+
+
 
 exports.resendOtp = asyncHandler(async (req, res) => {
   const { userId } = req.body;
-
   const entry = otpStore[userId];
 
   if (!entry) {
@@ -663,29 +756,30 @@ exports.resendOtp = asyncHandler(async (req, res) => {
       .json({ message: "Too many attempts. Try after 30 minutes." });
   }
 
-  if (entry.attempts >= entry.maxAttempts) {
-    entry.lockUntil = Date.now() + 30 * 60 * 1000;
+  // Use a separate resend counter
+  entry.resendAttempts = (entry.resendAttempts || 0) + 1;
+  if (entry.resendAttempts > 5) {
+    entry.lockUntil = Date.now() + 30 * 60 * 1000; // 30 mins
     return res
       .status(429)
       .json({ message: "OTP resend limit reached. Try after 30 minutes." });
   }
 
   const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
   otpStore[userId] = {
+    ...entry,
     otp: newOtp,
     expiresAt: Date.now() + 60000,
-    attempts: entry.attempts + 1,
-    maxAttempts: entry.maxAttempts,
-    lockUntil: entry.lockUntil || null,
   };
 
   const user = await User.findById(userId);
   const htmlContent = generateOtpEmail(newOtp, user.username);
-  await sendEmail(user.email, "Your SaferSavvy OTP Code", htmlContent);
+  await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
 
   res.status(200).json({ message: "New OTP sent to your email." });
 });
+
+
 
 exports.addAdmin = asyncHandler(async (req, res) => {
   const { full_name, email, password, phone_number } = req.body;
@@ -828,7 +922,7 @@ exports.registerStudentWithGoogle = asyncHandler(async (req, res) => {
     // Verify Google ID token
     const { OAuth2Client } = require('google-auth-library');
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    
+
     const ticket = await client.verifyIdToken({
       idToken: id_token,
       audience: process.env.GOOGLE_CLIENT_ID
@@ -838,8 +932,8 @@ exports.registerStudentWithGoogle = asyncHandler(async (req, res) => {
     const { email, name, picture, sub: google_id } = payload;
 
     // Check if user already exists
-    let user = await User.findOne({ 
-      $or: [{ email }, { google_id }] 
+    let user = await User.findOne({
+      $or: [{ email }, { google_id }]
     });
 
     if (user) {
@@ -908,7 +1002,7 @@ exports.registerStudentWithGoogle = asyncHandler(async (req, res) => {
       res.status(401);
       throw new Error("Invalid Google token.");
     }
-    
+
     res.status(500);
     throw new Error("Google OAuth registration failed: " + error.message);
   }
@@ -926,7 +1020,7 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
     // Verify Google ID token
     const { OAuth2Client } = require('google-auth-library');
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    
+
     const ticket = await client.verifyIdToken({
       idToken: id_token,
       audience: process.env.GOOGLE_CLIENT_ID
@@ -937,8 +1031,8 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
 
 
     // Check if user exists
-    const user = await User.findOne({ 
-      $or: [{ email }, { google_id }] 
+    const user = await User.findOne({
+      $or: [{ email }, { google_id }]
     });
 
     if (!user) {
@@ -1003,7 +1097,7 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
 
   } catch (error) {
     console.error('Google OAuth login error:', error);
-    
+
     if (error.name === 'TokenExpiredError') {
       res.status(401);
       throw new Error("Google token expired. Please try again.");
@@ -1012,7 +1106,7 @@ exports.loginWithGoogle = asyncHandler(async (req, res) => {
       res.status(401);
       throw new Error("Invalid Google token.");
     }
-    
+
     res.status(500);
     throw new Error("Google OAuth login failed: " + error.message);
   }

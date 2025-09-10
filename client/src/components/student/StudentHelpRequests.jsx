@@ -36,7 +36,7 @@ import {
 import { useSubject } from '../../hooks/useSubject';
 
 const StudentHelpRequests = () => {
-  const { user, getAuthToken } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const token = getAuthToken();
   const { toast } = useToast();
   const { subjects, academicLevels} = useSubject();
@@ -133,13 +133,14 @@ const StudentHelpRequests = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${BASE_URL}/api/auth/student/${user._id}/hired-tutors`, {
+
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/${user._id}/hired-tutors`, {
+       method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch hired tutors');
@@ -162,12 +163,13 @@ const StudentHelpRequests = () => {
 
   const fetchHelpRequests = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/student/${user._id}/help-requests?page=${currentPage}&limit=10`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/${user._id}/help-requests?page=${currentPage}&limit=10`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch help requests');
@@ -179,20 +181,19 @@ const StudentHelpRequests = () => {
       setTutorToUserMap(data.tutorToUserMap || {});
     } catch (err) {
       console.error('Error fetching help requests:', err);
-      toast({
-        title: "Error",
-        description: "Failed to fetch help requests",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to fetch help requests",
+      //   variant: "destructive"
+      // });
     }
   };
 
   const handleRequestHelp = async (tutorId) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/student/${user._id}/request-help`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/${user._id}/request-help`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -200,7 +201,8 @@ const StudentHelpRequests = () => {
           subject: 'General Help Request', // You can make this dynamic
           message: 'I need help with my studies. Please let me know when you are available.'
         })
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to send help request');
@@ -282,10 +284,9 @@ const StudentHelpRequests = () => {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/student/${user._id}/help-request`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/${user._id}/help-request`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -296,7 +297,8 @@ const StudentHelpRequests = () => {
           preferred_schedule: formData.preferred_schedule,
           urgency_level: formData.urgency_level
         })
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to submit help request');
       }
@@ -423,18 +425,18 @@ const StudentHelpRequests = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Tutors</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={fetchHiredTutors}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center">
+  //         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+  //         <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Tutors</h2>
+  //         <p className="text-gray-600 mb-4">{error}</p>
+  //         <Button onClick={fetchHiredTutors}>Try Again</Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

@@ -10,6 +10,7 @@ const protect = asyncHandler(async (req, res, next) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = await User.findById(decoded.id).select("-password");
+        console.log("Passed");
         if (!req.user) {
           res.status(401);
           throw new Error("User not found");
@@ -17,6 +18,7 @@ const protect = asyncHandler(async (req, res, next) => {
 
         next();
       } catch (error) {
+        console.error("Token verification failed");
         res.status(401);
         throw new Error("Invalid or expired token");
       }
@@ -25,6 +27,8 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, no token");
   }
 });
+
+
 
 // ✅ 2. Admin Only Middleware
 const adminOnly = (req, res, next) => {

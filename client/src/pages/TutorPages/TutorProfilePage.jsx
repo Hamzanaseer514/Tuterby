@@ -38,13 +38,13 @@ const TutorProfilePage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user, fetchWithAuth } = useAuth();
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [studentProfile, setStudentProfile] = useState(null);
   const { subjects, academicLevels } = useSubject();
-
+  const token = getAuthToken();
   useEffect(() => {
     if (!tutorId) {
       setError("No tutor ID provided");
@@ -71,7 +71,6 @@ const TutorProfilePage = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = getAuthToken();
       // Build URL with proper query parameters
       let url = `${BASE_URL}/api/auth/tutors/${tutorId}`;
 
@@ -81,12 +80,12 @@ const TutorProfilePage = () => {
 
       console.log("Fetching tutor details from:", url);
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
 
 
       if (!response.ok) {
@@ -164,21 +163,21 @@ const TutorProfilePage = () => {
       if (isParentView && studentId) {
         // Parent view - fetch student profile using studentId
         console.log("Parent view - fetching student profile for:", studentId);
-        response = await fetch(`${BASE_URL}/api/auth/student/profile/${studentId}`, {
+        response = await fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${studentId}`, {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json'
           }
-        });
+        }, token, (newToken) => localStorage.setItem("authToken", newToken));
       } else if (user?._id) {
         // Student view - fetch current user's profile
         console.log("Student view - fetching profile for current user:", user._id);
-        response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+        response = await fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+          method: 'GET',  
           headers: {
-            'Authorization': `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json'
           }
-        });
+        }, token, (newToken) => localStorage.setItem("authToken", newToken));
       } else {
         console.log("No user ID available");
         return;

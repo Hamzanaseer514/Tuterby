@@ -38,14 +38,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 const TutorSearch = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user, fetchWithAuth } = useAuth();
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-
+  const token = getAuthToken();
   const { subjects, academicLevels, fetchSubjectRelatedToAcademicLevels , subjectRelatedToAcademicLevels} = useSubject();
 
   // Debug: Log subjects data
@@ -160,12 +160,13 @@ const TutorSearch = () => {
     try {
       if (!user?._id) return;
 
-      const response = await fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${getAuthToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
+          "Content-Type": "application/json",
+        },
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to fetch student profile: ${response.status}`);
@@ -193,12 +194,13 @@ const TutorSearch = () => {
 
       // Debug: Log the load all params
 
-      const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/tutors/search?${params}`, {
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -215,11 +217,11 @@ const TutorSearch = () => {
     } catch (error) {
       console.error('Load all tutors error:', error);
       setError(error.message || 'Failed to load tutors');
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load tutors",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: error.message || "Failed to load tutors",
+      //   variant: "destructive"
+      // });
     } finally {
       setLoading(false);
     }
@@ -272,12 +274,13 @@ const TutorSearch = () => {
 
 
       // Make the search request with the correct parameters
-      const response = await fetch(`${BASE_URL}/api/auth/tutors/search?${params}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/tutors/search?${params}`, {
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -381,10 +384,9 @@ const TutorSearch = () => {
         if (match) academic_level_id = match._id;
       }
 
-      const response = await fetch(`${BASE_URL}/api/auth/tutors/sessions`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/tutors/sessions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -395,7 +397,8 @@ const TutorSearch = () => {
           notes: hiringData.notes || 'Hiring request from student',
           payment_type: 'hourly'
         })
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       const data = await response.json();
       const status = response.status;
@@ -599,8 +602,8 @@ const TutorSearch = () => {
               <div className="text-red-500 mb-4">
                 <Search className="w-16 h-16 mx-auto" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Results</h3>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Tutor Found</h3>
+              {/* <p className="text-gray-600 mb-4">{error}</p> */}
 
               {/* Helpful error guidance */}
               {error.includes('Cast to ObjectId failed') && (

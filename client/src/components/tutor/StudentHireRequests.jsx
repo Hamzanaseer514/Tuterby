@@ -13,18 +13,16 @@ import { Loader2 } from 'lucide-react';
 
 const API_BASE_URL = `${BASE_URL}/api/tutor`;
 
-const getAuthToken = () => sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-
 const authFetch = async (url, options = {}) => {
   const token = getAuthToken();
-  const res = await fetch(url, {
+  const res = await fetchWithAuth(url, {
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
+      // ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // ...(options.headers || {}),
     },
-    ...options,
-  });
+    // ...options,
+  }, token, (newToken) => localStorage.setItem("authToken", newToken));
   if (!res.ok) {
     const msg = await res.text();
     throw new Error(msg || `Request failed: ${res.status}`);
@@ -107,7 +105,7 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
 };
 
 const StudentHireRequests = () => {
-  const { user } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -115,7 +113,7 @@ const StudentHireRequests = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [status, setStatus] = useState('all'); // all | pending | accepted | rejected
   const [respondingId, setRespondingId] = useState(null);
-
+  const token = getAuthToken();
 
   const fetchRequests = async () => {
     if (!user?._id) return;
@@ -127,7 +125,16 @@ const StudentHireRequests = () => {
     try {
       const query = new URLSearchParams();
       if (status) query.set('status', status);
-      const data = await authFetch(`${API_BASE_URL}/hire-requests/${user._id}?${query.toString()}`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/hire-requests/${user._id}?${query.toString()}`,
+        { method: 'GET' ,
+        headers: { 'Content-Type': 'application/json'
+        },
+      },
+        token, (newToken) => localStorage.setItem("authToken", newToken)
+      );
+
+      const data = await res.json();
+      // const data = await authFetch(`${API_BASE_URL}/hire-requests/${user._id}?${query.toString()}`);
       setRequests(Array.isArray(data.requests) ? data.requests : []);
     } catch (e) {
       setError(e.message || 'Failed to load requests');
@@ -167,11 +174,13 @@ const StudentHireRequests = () => {
     if (!user?._id) return;
     setRespondingId(studentProfileId);
     try {
-      await authFetch(`${API_BASE_URL}/hire-requests/${user._id}/respond`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/hire-requests/${user._id}/respond`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_profile_id: studentProfileId, action }),
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
       toast({ title: `Request ${action}ed` });
+      await res.json();
       await fetchRequests();
     } catch (e) {
       toast({ title: 'Action failed', description: e.message, variant: 'destructive' });
@@ -185,15 +194,15 @@ const StudentHireRequests = () => {
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">Student Requests</h2>
-          <p className="text-sm text-gray-600 mt-1">Review and respond to students who want to hire you.</p>
+          <p className="text-sm text-gray-600 mt-1">Review and respond to students who want to your help in their studies.</p>
         </div>
         <div className="flex gap-2 items-center">
-          <Input
+          {/* <Input
             placeholder="Search by name, email or level..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-64"
-          />
+          /> */}
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Filter" />
@@ -221,11 +230,11 @@ const StudentHireRequests = () => {
       {loading && (
         <div className="py-24 text-center text-gray-500">Loading requests...</div>
       )}
-      {!loading && error && (
+      {/* {!loading && error && (
         <div className="py-6 text-center text-red-600">{error}</div>
-      )}
+      )} */}
       {!loading && !error && filtered.length === 0 && (
-        <div className="py-24 text-center text-gray-500">No pending hire requests.</div>
+        <div className="py-24 text-center text-gray-500">No help requests found.</div>
       )}
 
       {loading && requests.length > 0 && (

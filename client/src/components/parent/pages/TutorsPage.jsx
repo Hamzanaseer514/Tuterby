@@ -72,10 +72,9 @@ const TutorsPage = () => {
 
             const data = await getTutorsForParent(params);
             setTutors(data.tutors || []);
-            console.log("t",tutors)
             setTotalPages(data.pagination?.total || 1);
         } catch (error) {
-            console.error('Error loading tutors:', error);
+            // console.error('Error loading tutors');
         }
     };
 

@@ -32,7 +32,7 @@ function toArray(value) {
 }
 
 const TutorSelfProfilePage = () => {
-  const { user, getAuthToken } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const token = getAuthToken();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -46,13 +46,16 @@ const TutorSelfProfilePage = () => {
     loadProfile();
   }, [user]);
 
+
   const getSubjectName = (id) => {
+    if (!id) return '';
     const subject = subjects.find(s => s._id === id);
-    return subject ? subject: '';
-  }
+    return subject ? subject : '';  // or subject.title depending on your schema
+  };
 
 
   const getAcademicLevelName = (id) => {
+    if (!id) return '';
     const academicLevel = academicLevels.find(a => a._id === id);
     return academicLevel ? academicLevel.level : '';
   }
@@ -60,7 +63,10 @@ const TutorSelfProfilePage = () => {
   async function loadProfile() {
     try {
       setLoading(true);
-      const res = await fetch(`${BASE_URL}/api/tutor/profile/${user._id}`);
+      const res = await fetchWithAuth(`${BASE_URL}/api/tutor/profile/${user._id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
       const json = await res.json();
       const normalized = json && json._id ? json : (json && json._doc ? { ...json._doc, ...json } : json);
       setProfile(normalized);
@@ -77,14 +83,14 @@ const TutorSelfProfilePage = () => {
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="p-6 text-center text-gray-600">Profile not found.</div>
-    );
-  }
+  // if (!profile) {
+  //   return (
+  //     <div className="p-6 text-center text-gray-600">Profile not found.</div>
+  //   );
+  // }
 
-  const subjectsList = toArray(profile.subjects);
-  const qualificationsList = toArray(profile.qualifications);
+  const subjectsList = toArray(profile?.subjects ?? "NA");
+  const qualificationsList = toArray(profile?.qualifications ?? "NA");
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
@@ -110,11 +116,11 @@ const TutorSelfProfilePage = () => {
                       setUploading(true);
                       const formData = new FormData();
                       formData.append('photo', file);
-                      const res = await fetch(`${BASE_URL}/api/auth/user-profile/${user._id}/photo`, {
+                      const res = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${user._id}/photo`, {
                         method: 'POST',
-                        headers: { Authorization: `Bearer ${token}` },
+                        headers: { 'Content-Type': 'application/json' },
                         body: formData,
-                      });
+                      }, token, (newToken) => localStorage.setItem("authToken", newToken));
                       const json = await res.json();
                       if (json?.success && json.photo_url) {
                         // Force refresh local profile image by updating user.photo_url in memory if needed
@@ -131,25 +137,24 @@ const TutorSelfProfilePage = () => {
               </label>
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{profile.user_id?.full_name || 'Tutor'}</h1>
-              <p className="text-sm text-gray-600">{profile.user_id?.email}</p>
-              {profile.profile_status && (
+              <h1 className="text-2xl font-bold text-gray-900">{profile?.user_id?.full_name || 'Tutor'}</h1>
+              <p className="text-sm text-gray-600">{profile?.user_id?.email ?? "NA"}</p>
+              {profile?.profile_status && profile?.is_verified && (
                 <span
-                  className={`inline-block mt-2 text-xs px-2 py-1 rounded border ${
-                    profile.profile_status === 'approved'
+                  className={`inline-block mt-2 text-xs px-2 py-1 rounded border ${profile.profile_status === 'approved'
                       ? 'bg-green-50 text-green-700 border-green-200'
                       : profile.profile_status === 'pending'
-                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                      : profile.profile_status === 'rejected'
-                      ? 'bg-red-50 text-red-700 border-red-200'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'
-                  }`}
+                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                        : profile.profile_status === 'rejected'
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}
                 >
-                  {profile.profile_status.replace('_', ' ')}
+                  {profile.profile_status.replace('_', ' ')} - {profile?.is_verified ? 'Verified' : 'Not Verified'}
                 </span>
               )}
-              {profile.location && (
-                <p className="text-sm text-gray-600 mt-1">{profile.location}</p>
+              {profile?.location && (
+                <p className="text-sm text-gray-600 mt-1">{profile?.location ?? "NA"}</p>
               )}
             </div>
           </div>
@@ -165,43 +170,24 @@ const TutorSelfProfilePage = () => {
             <div>
               <Label>Bio</Label>
               <div className="mt-1 p-2 border rounded bg-gray-50 min-h-[44px]">
-                {profile.bio || '—'}
+                {profile?.bio || '—'}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Experience (years)</Label>
-                <Input value={profile.experience_years || 0} disabled />
-              </div>
-              <div>
-                <Label>Total Sessions</Label>
-                <Input value={profile.total_sessions || 0} disabled />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Average Rating</Label>
-                <Input value={profile.average_rating || 0} disabled />
-              </div>
-              <div>
-                <Label>Location</Label>
-                <Input value={profile.location || ''} disabled />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
+           
+            {/* <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Background Check</Label>
-                <Input value={profile.is_background_checked ? 'Verified' : 'Not Verified'} disabled />
+                <Input value={profile?.is_background_checked ? 'Verified' : 'Not Verified'} disabled />
               </div>
               <div>
                 <Label>References</Label>
-                <Input value={profile.is_reference_verified ? 'Verified' : 'Not Verified'} disabled />
+                <Input value={profile?.is_reference_verified ? 'Verified' : 'Not Verified'} disabled />
               </div>
               <div>
                 <Label>Qualifications</Label>
-                <Input value={profile.is_qualification_verified ? 'Verified' : 'Not Verified'} disabled />
+                <Input value={profile?.is_qualification_verified ? 'Verified' : 'Not Verified'} disabled />
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -210,15 +196,35 @@ const TutorSelfProfilePage = () => {
             <CardTitle>Subjects</CardTitle>
           </CardHeader>
           <CardContent>
-            {subjectsList.length > 0 ? (
+            {subjectsList && subjectsList?.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {subjectsList.map((s, i) => (
-                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{getSubjectName(s).name} - {getSubjectName(s).subject_type.name}</span>
+                {subjectsList?.map((s, i) => (
+                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{getSubjectName(s)?.name} - {getSubjectName(s)?.subject_type?.name}</span>
                 ))}
               </div>
             ) : (
               <p className="text-gray-600 text-sm">No subjects added.</p>
             )}
+             <div className="grid grid-cols-2 gap-3 mt-6">
+              <div>
+                <Label>Experience (years)</Label>
+                <Input value={profile?.experience_years || 0} disabled />
+              </div>
+              <div>
+                <Label>Total Sessions</Label>
+                <Input value={profile?.total_sessions || 0} disabled />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <div>
+                <Label>Average Rating</Label>
+                <Input value={profile?.average_rating || 0} disabled />
+              </div>
+              <div>
+                <Label>Location</Label>
+                <Input value={profile?.location || ''} disabled />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -228,9 +234,9 @@ const TutorSelfProfilePage = () => {
           <CardTitle>Qualifications</CardTitle>
         </CardHeader>
         <CardContent>
-          {qualificationsList.length > 0 ? (
+          {qualificationsList && qualificationsList?.length > 0 ? (
             <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              {qualificationsList.map((q, idx) => (
+              {qualificationsList?.map((q, idx) => (
                 <li key={idx}>{q}</li>
               ))}
             </ul>
@@ -245,11 +251,11 @@ const TutorSelfProfilePage = () => {
           <CardTitle>Academic Levels</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {profile.academic_levels_taught && profile.academic_levels_taught.length > 0 ? (
+          {profile?.academic_levels_taught && profile?.academic_levels_taught.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profile.academic_levels_taught.map((lvl, i) => (
+              {profile?.academic_levels_taught.map((lvl, i) => (
                 <div key={i} className="p-3 border rounded bg-white space-y-1 shadow-sm">
-                
+
                   <div className="font-medium">{getAcademicLevelName(lvl.educationLevel)}</div>
                   <div className="text-sm text-gray-600">£{lvl.hourlyRate}/hr · {lvl.totalSessionsPerMonth} sessions</div>
                   <div className="text-sm text-gray-600">Discount: {lvl.discount}%</div>

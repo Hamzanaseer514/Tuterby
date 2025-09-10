@@ -32,13 +32,13 @@ import {
   XCircle,
   User
 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth} from '../../hooks/useAuth';
 import { useSubject } from '../../hooks/useSubject';
 
 const TutorDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user, fetchWithAuth } = useAuth();
   const token = getAuthToken();
   const { academicLevels, subjects } = useSubject();
   const [parsed_subjects, setParsedSubjects] = useState([]);
@@ -146,12 +146,13 @@ const TutorDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+          "Content-Type": "application/json",
+        },
+      }, token,       (newToken) => localStorage.setItem("authToken", newToken), // ✅ setToken
+);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch dashboard data');
@@ -165,18 +166,21 @@ const TutorDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, token]);
+  }, [user, token,fetchWithAuth]);
 
   const handleReplyToInquiry = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/inquiries/${selectedInquiry._id}/reply`, {
-        method: 'PUT',
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/inquiries/${selectedInquiry._id}/reply`, {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ reply_message: replyMessage }),
-      });
+      },
+      token,
+      (newToken) => localStorage.setItem("authToken", newToken), // ✅ setToken update
+    );
 
       if (!response.ok) {
         throw new Error('Failed to send reply');
@@ -213,7 +217,16 @@ const TutorDashboard = () => {
     
     try {
       setLoadingStudents(true);
-      const response = await fetch(`${BASE_URL}/api/tutor/students/${user._id}`);
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/students/${user._id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+      token,
+      (newToken) => localStorage.setItem("authToken", newToken), // ✅ setToken
+    );
+
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }
@@ -227,7 +240,7 @@ const TutorDashboard = () => {
     } finally {
       setLoadingStudents(false);
     }
-  }, [user]);
+  }, [user, token,fetchWithAuth]);
 
   const formatDate = (dateString) => {
     const [datePart, timePart] = dateString.split('T');
@@ -265,31 +278,40 @@ const TutorDashboard = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-md">
-          <AlertCircle className="h-12 w-12 text-rose-500 mb-4 mx-auto" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
-          <p className="text-gray-600 mb-4">
-            {error === 'Tutor ID is required'
-              ? 'Authentication error. Please log in again.'
-              : error
-            }
-          </p>
-          {error !== 'Tutor ID is required' && (
-            <Button onClick={fetchDashboardData} className="bg-primary hover:bg-primary/90">
-              Try Again
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-md">
+  //         <AlertCircle className="h-12 w-12 text-rose-500 mb-4 mx-auto" />
+  //         <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+  //         <p className="text-gray-600 mb-4">
+  //           {error === 'Tutor ID is required'
+  //             ? 'Authentication error. Please log in again.'
+  //             : error
+  //           }
+  //         </p>
+  //         {error !== 'Tutor ID is required' && (
+  //           <Button onClick={fetchDashboardData} className="bg-primary hover:bg-primary/90">
+  //             Try Again
+  //           </Button>
+  //         )}
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  if (!dashboardData) return null;
+  // if (!dashboardData) return null;
 
-  const { upcomingSessions, recentSessions, pendingInquiries, metrics, users, students } = dashboardData;
+  const {
+    upcomingSessions = [],
+    recentSessions = [],
+    pendingInquiries = [],
+    metrics = { totalHours: 0, totalEarnings: 0, averageRating: 0, completedSessions: 0 },
+    users,
+    students
+  } = dashboardData || {};
+
+  // const { upcomingSessions, recentSessions, pendingInquiries, metrics, users, students } = dashboardData;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 dark:bg-slate-900">
@@ -312,7 +334,7 @@ const TutorDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Hours Taught</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatHours(metrics.totalHours)}
+                    {formatHours(metrics.totalHours) || "NA"}
                   </p>
                 </div>
               </div>
@@ -329,7 +351,7 @@ const TutorDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Earnings ($)</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatCurrency(metrics.totalEarnings)}
+                    {formatCurrency(metrics.totalEarnings) ||"NA"}
                   </p>
                 </div>
               </div>
@@ -346,7 +368,7 @@ const TutorDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Rating</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {metrics.averageRating.toFixed(1)}/5
+                    {metrics.averageRating.toFixed(1) || "NA"}/5  
                   </p>
                 </div>
               </div>
@@ -363,7 +385,7 @@ const TutorDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completed Sessions</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {metrics.completedSessions}
+                    {metrics.completedSessions || "NA"}
                   </p>
                 </div>
               </div>
@@ -386,10 +408,10 @@ const TutorDashboard = () => {
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-slate-700">
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Response Time</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {metrics.avgResponseTime > 0
+                   {metrics.avgResponseTime > 0
                       ? `${Math.round(metrics.avgResponseTime)} minutes`
                       : 'No data'
-                    }
+                     || "NA"}
                   </span>
                 </div>
                 {/* <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-slate-700">
@@ -420,12 +442,12 @@ const TutorDashboard = () => {
                   Recent Inquiries
                 </div>
                 <Badge variant="secondary" className="bg-primary/10 text-primary">
-                  {pendingInquiries.length} New
+                  {pendingInquiries.length } New
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              {pendingInquiries.length > 0 ? (
+              {pendingInquiries &&  pendingInquiries.length > 0 ? (
                 <div className="space-y-3">
                   {pendingInquiries.slice(0, 3).map((inquiry) => (
                     <div key={inquiry._id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg">
@@ -435,7 +457,7 @@ const TutorDashboard = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant={inquiry.status === 'unread' ? 'destructive' : 'secondary'}>
-                          {inquiry.status}
+                          {inquiry.status || "MN"}
                         </Badge>
                         {/* <Button
                           size="sm"
@@ -481,7 +503,7 @@ const TutorDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            {upcomingSessions.length > 0 ? (
+            {upcomingSessions && upcomingSessions.length > 0 ? (
               <div className="space-y-4">
                 {upcomingSessions.map((session) => (
                   <div key={session._id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">

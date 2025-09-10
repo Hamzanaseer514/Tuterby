@@ -283,7 +283,7 @@ const AdminDashboardPage = () => {
   const inactiveTutors = dashboardState.stats.inactive?.tutors || 0;
   const inactiveStudents = dashboardState.stats.inactive?.students || 0;
   const inactiveParents = dashboardState.stats.inactive?.parents || 0;
-
+console.log("dashboardState.stats",dashboardState)
   const statCards = [
     {
       title: 'Total Tutors',
@@ -318,16 +318,19 @@ const AdminDashboardPage = () => {
       link: '/admin/users?tab=parents',
       showDot: newFlags.parents,
     },
-    {
-      title: 'Monthly Revenue',
-      value: `$${(dashboardState.stats.revenue?.thisMonth || 0).toLocaleString()}`,
-      icon: MonetizationOn,
-      color: 'warning',
-      trend: dashboardState.stats.revenue?.change > 0 ? 'up' : 'down',
-      trendValue: `${dashboardState.stats.revenue?.change || 0}%`,
-      secondaryValue: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()} total`,
-      link: '/admin'
-    },  {
+      {
+        title: 'Monthly Revenue',
+        value: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()}`,
+        icon: MonetizationOn,
+        color: 'warning',
+        trend: dashboardState.stats.revenue?.change > 0 ? 'up' : 'down',
+        trendValue: `${dashboardState.stats.revenue?.lastMonthChange || 0}%`,
+        secondaryValue: `$${(dashboardState.stats.revenue?.total || 0).toLocaleString()} total`,
+        secondaryValue: `$${(dashboardState.stats.revenue?.lastMonthRevenue || 0).toLocaleString()} last month`,
+        link: '/admin',
+        showDot: false,
+        // onSeen: () => markSeen('revenue_total', dashboardState.stats.revenue?.total || 0)
+      },  {
       title: 'Inactive Students',
       value: inactiveStudents,
       icon: Person,
@@ -431,24 +434,7 @@ const AdminDashboardPage = () => {
           ))}
         </Grid>
 
-        {/* Error Display */}
-        {dashboardState.error && (
-          <Card 
-            elevation={0}
-            sx={{ 
-              mt: 3,
-              borderRadius: '12px',
-              border: `1px solid ${theme.palette.error.light}`,
-              backgroundColor: alpha(theme.palette.error.main, 0.05)
-            }}
-          >
-            <CardContent>
-              <Typography color="error">
-                {dashboardState.error}
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
+    
       </Box>
     </AdminLayout>
   );

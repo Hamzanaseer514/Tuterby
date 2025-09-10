@@ -34,7 +34,8 @@ const {
   addTutorAcademicLevel,
   removeTutorAcademicLevel,
   sendMeetingLink,
-  getHiredSubjectsAndLevels
+  getHiredSubjectsAndLevels,
+  getTutorPaymentHistory
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -62,41 +63,41 @@ router.get('/verified', getVerifiedTutors);
 router.post('/upload-document', upload.single('document'), uploadDocument);
 
 // Dashboard routes
-router.get('/dashboard/:user_id', getTutorDashboard);
-router.get('/profile/:user_id', getTutorProfile);
+router.get('/dashboard/:user_id', protect, getTutorDashboard);
+router.get('/profile/:user_id', protect, getTutorProfile);
 router.get('/interview-slots/:user_id', protect, getMyInterviewSlots);
 router.post('/interview-slots/:user_id/request-again', protect, requestInterviewAgain);
-router.get('/stats/:user_id', getTutorStats);
+router.get('/stats/:user_id', protect, getTutorStats);
 
 // Session management routes
 router.post('/sessions', protect, createSession);
-router.put('/sessions/update/:session_id',protect, updateSessionStatus);
-router.delete('/sessions/delete/:session_id',protect, deleteSession);
+router.put('/sessions/update/:session_id', protect, updateSessionStatus);
+router.delete('/sessions/delete/:session_id', protect, deleteSession);
 router.post('/sessions/:session_id/send-link', protect, sendMeetingLink);
 
-router.get('/sessions/:user_id',protect,getTutorSessions);
+router.get('/sessions/:user_id', protect, getTutorSessions);
 
 // Inquiry management routes
-router.get('/inquiries/:user_id', getTutorInquiries);
-router.put('/inquiries/:inquiry_id/reply', replyToInquiry);
+router.get('/inquiries/:user_id', protect, getTutorInquiries);
+router.put('/inquiries/:inquiry_id/reply', protect, replyToInquiry);
 
 // Student management routes
-router.get('/students/:user_id', getAvailableStudents);
+router.get('/students/:user_id', protect, getAvailableStudents);
 
 // Availability management routes
 
-router.get('/availability/:user_id', getTutorAvailability);
-router.put('/availability/:user_id/general', updateGeneralAvailability);
-router.post('/availability/:user_id/blackout', addBlackoutDate);
-router.put('/availability/:user_id/blackout/:blackout_id', updateBlackoutDate);
-router.delete('/availability/:user_id/blackout/:blackout_id', removeBlackoutDate);
-router.get('/availability/:user_id/slots', getAvailableSlots);
-router.get('/availability/:user_id/check', checkAvailability);
+router.get('/availability/:user_id', protect, getTutorAvailability);
+router.put('/availability/:user_id/general', protect, updateGeneralAvailability);
+router.post('/availability/:user_id/blackout', protect, addBlackoutDate);
+router.put('/availability/:user_id/blackout/:blackout_id', protect, updateBlackoutDate);
+router.delete('/availability/:user_id/blackout/:blackout_id', protect, removeBlackoutDate);
+router.get('/availability/:user_id/slots', protect, getAvailableSlots);
+router.get('/availability/:user_id/check', protect, checkAvailability);
 
 
 // Hire requests
-router.get('/hire-requests/:user_id', getHireRequests);
-router.post('/hire-requests/:user_id/respond', respondToHireRequest);
+router.get('/hire-requests/:user_id', protect, getHireRequests);
+router.post('/hire-requests/:user_id/respond', protect, respondToHireRequest);
 
 // Message management routes
 router.post('/messages/reply', protect, sendMessageResponse);
@@ -109,5 +110,8 @@ router.put('/settings/update/:user_id', protect, updateTutorSettings);
 router.post('/settings/:user_id/level', protect, addTutorAcademicLevel);
 router.delete('/settings/delete/:user_id/level/:education_level_id', protect, removeTutorAcademicLevel);
 router.get('/hired-subjects-and-levels/:studentId/:tutorId', getHiredSubjectsAndLevels);
+
+// Payment history routes
+router.get('/payment-history/:user_id', protect, getTutorPaymentHistory);
 
 module.exports = router;

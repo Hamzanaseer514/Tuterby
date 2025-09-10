@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
 const MyTutors = () => {
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user, fetchWithAuth } = useAuth();
   const { toast } = useToast();
   const [hiredTutors, setHiredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,12 +40,13 @@ const MyTutors = () => {
       setError(null);
       const token = getAuthToken();
 
-      const response = await fetch(`${BASE_URL}/api/auth/student/${user._id}/hired-tutors`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/${user._id}/hired-tutors`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch hired tutors');
@@ -55,11 +56,11 @@ const MyTutors = () => {
       setHiredTutors(data.tutors || []);
     } catch (error) {
       setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to load hired tutors",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to load hired tutors",
+      //   variant: "destructive"
+      // });
     } finally {
       setLoading(false);
     }
@@ -128,19 +129,19 @@ const MyTutors = () => {
     );
   }
 
-  if (error) {
-    return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Tutors</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            {/* <Button onClick={fetchHiredTutors}>Try Again</Button> */}
-          </div>
-            </div>
-        </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //       <div className="min-h-screen bg-gray-50">
+  //           <div className="container mx-auto px-4 py-8">
+  //         <div className="text-center">
+  //           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Tutors</h2>
+  //           <p className="text-gray-600 mb-4">{error}</p>
+  //           {/* <Button onClick={fetchHiredTutors}>Try Again</Button> */}
+  //         </div>
+  //           </div>
+  //       </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">

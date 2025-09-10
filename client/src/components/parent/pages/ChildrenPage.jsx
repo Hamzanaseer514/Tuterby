@@ -24,7 +24,7 @@ import { BASE_URL } from '../../../config';
 import { useNavigate } from 'react-router-dom';
 
 const ChildrenPage = () => {
-    const { user } = useAuth();
+    const { user, getAuthToken ,fetchWithAuth} = useAuth();
     const { getParentProfile, deleteChildFromParent, loading } = useParent();
     const [children, setChildren] = useState([]);
     const [filteredChildren, setFilteredChildren] = useState([]);

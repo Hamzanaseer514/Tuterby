@@ -357,9 +357,7 @@ const UserTable = ({
   onFilterChange,
   onViewModeChange,
   viewMode = 'table',
-  searchTerm = '',
-  onExport,
-  onImport,
+  searchTerm = '',  onImport,
   onRefresh
 }) => {
   const navigate = useNavigate();

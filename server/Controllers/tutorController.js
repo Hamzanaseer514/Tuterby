@@ -677,7 +677,6 @@ const getTutorSessions = asyncHandler(async (req, res) => {
 const getTutorInquiries = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
   const { status, limit = 10, page = 1 } = req.query;
-console.log(req.params)
   if (!user_id || !mongoose.Types.ObjectId.isValid(user_id)) {
     res.status(400);
     throw new Error("Invalid tutor ID");
@@ -688,12 +687,10 @@ console.log(req.params)
     res.status(404);
     throw new Error("Tutor not found");
   }
-console.log("t", tutor)
   const query = { tutor_id: tutor._id };
   if (status && status !== 'all') {
     query.status = status;
   }
-console.log("qu", query)
   const inquiries = await TutorInquiry.find(query)
     .populate({
       path: 'student_id',
@@ -705,9 +702,7 @@ console.log("qu", query)
     .sort({ created_at: -1 })
     .limit(parseInt(limit))
     .skip((parseInt(page) - 1) * parseInt(limit));
-    console.log("in", inquiries)
   const total = await TutorInquiry.countDocuments(query);
-  console.log("to", total)
   res.json({
     inquiries,
     total,
@@ -1880,8 +1875,7 @@ const removeTutorAcademicLevel = asyncHandler(async (req, res) => {
 // Get hired subjects and academic levels for a specific tutor-student relationship
 const getHiredSubjectsAndLevels = asyncHandler(async (req, res) => {
   const { studentId, tutorId } = req.params;
-  console.log("studentId", studentId);
-  console.log("tutorId", tutorId);
+
 
   try {
     // Get student profile
@@ -1935,6 +1929,187 @@ const getHiredSubjectsAndLevels = asyncHandler(async (req, res) => {
     });
   }
 });
+
+// Get tutor payment history
+const getTutorPaymentHistory = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { page = 1, limit = 10, status, payment_type, start_date, end_date } = req.query;
+
+    // Find tutor profile
+    const tutor = await TutorProfile.findOne({ user_id: user_id });
+    if (!tutor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tutor profile not found'
+      });
+    }
+
+    // Build query filters
+    const query = { tutor_id: tutor._id };
+    
+    if (status) {
+      query.payment_status = status;
+    }
+    
+    if (payment_type) {
+      query.payment_type = payment_type;
+    }
+    
+    if (start_date || end_date) {
+      query.payment_date = {};
+      if (start_date) {
+        query.payment_date.$gte = new Date(start_date);
+      }
+      if (end_date) {
+        query.payment_date.$lte = new Date(end_date);
+      }
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get payment history with populated data
+    const payments = await StudentPayment.find(query)
+      .populate({
+        path: 'student_id',
+        populate: {
+          path: 'user_id',
+          select: 'full_name email'
+        }
+      })
+      .populate('subject', 'name')
+      .populate('academic_level', 'level')
+      .sort({ payment_date: -1, created_at: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const totalPayments = await StudentPayment.countDocuments(query);
+
+    // Calculate summary statistics
+    const summaryStats = await StudentPayment.aggregate([
+      { $match: { tutor_id: tutor._id, payment_status: 'paid' } },
+      {
+        $group: {
+          _id: null,
+          totalEarnings: { $sum: '$base_amount' },
+          totalSessions: { $sum: 1 },
+          averageEarnings: { $avg: '$base_amount' },
+          monthlyEarnings: {
+            $sum: {
+              $cond: [
+                { $eq: ['$payment_type', 'monthly'] },
+                '$base_amount',
+                0
+              ]
+            }
+          },
+          hourlyEarnings: {
+            $sum: {
+              $cond: [
+                { $eq: ['$payment_type', 'hourly'] },
+                '$base_amount',
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    // Get monthly earnings breakdown for the last 12 months
+    const monthlyBreakdown = await StudentPayment.aggregate([
+      {
+        $match: {
+          tutor_id: tutor._id,
+          payment_status: 'paid',
+          payment_date: {
+            $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1))
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$payment_date' },
+            month: { $month: '$payment_date' }
+          },
+          totalEarnings: { $sum: '$base_amount' },
+          sessionCount: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': -1, '_id.month': -1 }
+      },
+      { $limit: 12 }
+    ]);
+
+    const stats = summaryStats[0] || {
+      totalEarnings: 0,
+      totalSessions: 0,
+      averageEarnings: 0,
+      monthlyEarnings: 0,
+      hourlyEarnings: 0
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        payments: payments.map(payment => ({
+          _id: payment._id,
+          student_name: payment.student_id?.user_id?.full_name || 'Unknown Student',
+          student_email: payment.student_id?.user_id?.email || 'Unknown Email',
+          subject: payment.subject?.name || 'Unknown Subject',
+          academic_level: payment.academic_level?.level || 'Unknown Level',
+          payment_type: payment.payment_type,
+          base_amount: payment.base_amount,
+          discount_percentage: payment.discount_percentage,
+          monthly_amount: payment.monthly_amount,
+          total_sessions_per_month: payment.total_sessions_per_month,
+          payment_status: payment.payment_status,
+          payment_method: payment.payment_method,
+          payment_date: payment.payment_date,
+          request_date: payment.request_date,
+          currency: payment.currency,
+          sessions_remaining: payment.sessions_remaining,
+          validity_start_date: payment.validity_start_date,
+          validity_end_date: payment.validity_end_date,
+          is_active: payment.is_active
+        })),
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalPayments / parseInt(limit)),
+          totalPayments,
+          hasNext: skip + parseInt(limit) < totalPayments,
+          hasPrev: parseInt(page) > 1
+        },
+        summary: {
+          totalEarnings: stats.totalEarnings,
+          totalSessions: stats.totalSessions,
+          averageEarnings: Math.round(stats.averageEarnings * 100) / 100,
+          monthlyEarnings: stats.monthlyEarnings,
+          hourlyEarnings: stats.hourlyEarnings
+        },
+        monthlyBreakdown: monthlyBreakdown.map(item => ({
+          month: item._id.month,
+          year: item._id.year,
+          earnings: item.totalEarnings,
+          sessions: item.sessionCount
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tutor payment history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch payment history',
+      error: error.message
+    });
+  }
+});
+
 module.exports = {
   uploadDocument,
   getTutorDashboard,
@@ -1969,5 +2144,6 @@ module.exports = {
   sendMeetingLink,
   canCreateSessionForStudent,
   checkPaymentStatus,
-  getHiredSubjectsAndLevels
+  getHiredSubjectsAndLevels,
+  getTutorPaymentHistory
 };

@@ -1,4 +1,5 @@
 // controllers/adminController.js
+const StudentPayment = require("../Models/studentPaymentSchema");
 
 const TutorApplication = require("../Models/tutorApplicationSchema");
 
@@ -1458,6 +1459,21 @@ exports.getDashboardStats = async (req, res) => {
 
     });
 
+    const totalSessions = await TutoringSession.countDocuments();
+    const completedSessions = await TutoringSession.countDocuments({ status: 'completed' });
+    const pendingSessions = await TutoringSession.countDocuments({ status: 'pending' });
+
+
+    const revenue = await TutoringSession.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$total_earnings' }, change: { $sum: '$total_earnings' } } }
+    ]);
+    const lastMonthRevenue = await TutoringSession.aggregate([
+      { $match: { status: 'completed', createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+      { $group: { _id: null, total: { $sum: '$total_earnings' }, change: { $sum: '$total_earnings' } } }
+    ]);
+
+
     const stats = {
 
       tutors: {
@@ -1495,6 +1511,22 @@ exports.getDashboardStats = async (req, res) => {
         students: inactiveStudents,
 
         parents: inactiveParents,
+
+      },
+
+      sessions: {
+
+        total: totalSessions,
+        completed: completedSessions,
+        pending: pendingSessions,
+      },
+
+      revenue: {
+
+        total: revenue[0].total,
+        change: revenue[0].change,
+        lastMonthRevenue: lastMonthRevenue[0].total,
+        lastMonthChange: lastMonthRevenue[0].change,
 
       },
 
@@ -2690,5 +2722,61 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
 
   });
 
+});
+
+// controllers/adminPaymentController.js
+
+exports.getAllTutorPayments = asyncHandler(async (req, res) => {
+  try {
+    const payments = await StudentPayment.find()
+      .populate({
+        path: "student_id",
+        select: "user_id",
+        populate: {
+          path: "user_id",
+          select: "full_name email photo_url"
+        }
+      })
+      .populate({
+        path: "tutor_id",
+        select: "user_id",
+        populate: {
+          path: "user_id",
+          select: "full_name email photo_url"
+        }
+      })
+      .populate("subject", "name") // subject name
+      .populate("academic_level", "level") // education level name
+      .sort({ createdAt: -1 });
+
+    // ✅ Transform the data for admin dashboard
+    const formattedPayments = payments.map(p => ({
+      payment_id: p._id,
+      student_name: p.student_id?.user_id?.full_name || "Unknown",
+      student_email: p.student_id?.user_id?.email || "",
+      tutor_name: p.tutor_id?.user_id?.full_name || "Unknown",
+      stphoto_url:p.student_id?.user_id?.photo_url,
+      tutor_email: p.tutor_id?.user_id?.email || "",
+      tphoto_url:  p.tutor_id?.user_id?.photo_url,
+      subject: p.subject?.name || "N/A",
+      academic_level: p.academic_level?.level || "N/A",
+      payment_type: p.payment_type,
+      base_amount: p.base_amount,
+      discount: p.discount_percentage,
+      final_amount: p.monthly_amount || p.base_amount, // adjust depending on type
+      payment_status: p.payment_status,
+      payment_method: p.payment_method,
+      payment_date: p.payment_date,
+      validity_start_date: p.validity_start_date,
+      validity_end_date: p.validity_end_date,
+      sessions_remaining: p.sessions_remaining,
+      createdAt: p.createdAt,
+    }));
+console.log(formattedPayments)
+    res.status(200).json({ success: true, payments: formattedPayments });
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 

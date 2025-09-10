@@ -132,7 +132,7 @@ const AdminSettings = () => {
       setOtpActive(data.data?.otp_rule_active || false);
     } catch (error) {
       console.error("Error fetching OTP status:", error);
-      toast.error("Failed to fetch OTP status");
+      // toast.error("Failed to fetch OTP status");
     }
   };
 
@@ -145,7 +145,7 @@ const AdminSettings = () => {
       setFilteredLevels(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching education levels:", error);
-      toast.error("Failed to fetch education levels");
+      // toast.error("Failed to fetch education levels");
     } finally {
       setLoadingLevels(false);
     }
@@ -377,7 +377,7 @@ const AdminSettings = () => {
       setFilteredSubjects(subjectsData);
     } catch (error) {
       console.error("Error fetching subjects:", error);
-      toast.error("Failed to fetch subjects");
+      // toast.error("Failed to fetch subjects");
     } finally {
       setLoadingSubjects(false);
     }
@@ -522,7 +522,7 @@ const AdminSettings = () => {
       setFilteredTypes(types);
     } catch (error) {
       console.error("Error fetching subject types:", error);
-      toast.error("Failed to fetch subject types");
+      // toast.error("Failed to fetch subject types");
     }
   };
 

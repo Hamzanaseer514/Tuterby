@@ -31,7 +31,7 @@ const InquiryManagement = () => {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [replyMessage, setReplyMessage] = useState('');
-  const { user } = useAuth();
+  const { user , getAuthToken , fetchWithAuth } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -46,13 +46,18 @@ const InquiryManagement = () => {
       const url = filter === 'all' 
         ? `${BASE_URL}/api/tutor/inquiries/${user._id}`
         : `${BASE_URL}/api/tutor/inquiries/${user._id}?status=${filter}`;
-      
-      const response = await fetch(url);
+
+      const response = await fetchWithAuth(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }, getAuthToken(), (newToken) => localStorage.setItem("authToken", newToken));
+
       if (!response.ok) {
         throw new Error('Failed to fetch inquiries');
       }
       const data = await response.json();
-   console.log("data", data)
       setInquiries(data.inquiries || []);
     } catch (err) {
       console.error('Error fetching inquiries:', err);
@@ -63,13 +68,13 @@ const InquiryManagement = () => {
 
   const replyToInquiry = async (inquiryId) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/inquiries/${inquiryId}/reply`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/inquiries/${inquiryId}/reply`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ reply_message: replyMessage }),
-      });
+      }, getAuthToken(), (newToken) => localStorage.setItem("authToken", newToken));
 
       if (!response.ok) {
         throw new Error('Failed to send reply');

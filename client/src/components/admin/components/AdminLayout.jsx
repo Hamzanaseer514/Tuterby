@@ -94,6 +94,8 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
     navigate('/admin/chats');
   } else if (newTabValue === 'tutor-sessions') {
     navigate('/admin/tutor-sessions');
+  }else if (newTabValue === 'tutor-payments') {
+    navigate('/admin/tutor-payments');
   }
   
   setMobileOpen(false);
@@ -158,6 +160,17 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           id: 'tutor-sessions', 
           icon: <AcademicCapIcon className="h-5 w-5" />, 
           label: 'Tutor Sessions', 
+          count: null 
+        }
+      ]
+    },
+    { 
+      section: 'Payments',
+      items: [
+        { 
+          id: 'tutor-payments', 
+          icon: <AcademicCapIcon className="h-5 w-5" />, 
+          label: 'Tutor Payments', 
           count: null 
         }
       ]

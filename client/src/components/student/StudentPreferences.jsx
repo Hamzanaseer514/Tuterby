@@ -35,7 +35,7 @@ import {
 const StudentPreferences = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user, fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -69,47 +69,6 @@ const StudentPreferences = () => {
 
   const [newSubject, setNewSubject] = useState("");
 
-  // Common subjects for suggestions
-  const commonSubjects = [
-    "Mathematics",
-    "English",
-    "Science",
-    "Physics",
-    "Chemistry",
-    "Biology",
-    "History",
-    "Geography",
-    "Economics",
-    "Business Studies",
-    "Computer Science",
-    "Art",
-    "Music",
-    "Physical Education",
-    "Religious Studies",
-    "Modern Languages",
-    "French",
-    "German",
-    "Spanish",
-    "Latin",
-    "Greek",
-    "Psychology",
-    "Sociology",
-    "Philosophy",
-    "Literature",
-    "Creative Writing",
-    "Statistics",
-    "Accounting",
-    "Law",
-    "Medicine",
-    "Engineering",
-    "Architecture",
-    "Design",
-    "Drama",
-    "Media Studies",
-    "Politics",
-    "International Relations",
-    "Environmental Science",
-  ];
 
   useEffect(() => {
     if (formData.academic_level) {
@@ -127,14 +86,14 @@ const StudentPreferences = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${BASE_URL}/api/auth/student/dashboard/${user?._id}`,
         {
+          method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
       );
 
       if (!response.ok) {
@@ -159,11 +118,11 @@ const StudentPreferences = () => {
         availability: availabilityMap, // ✅ fixed
       });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load profile data",
-        variant: "destructive",
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to load profile data",
+      //   variant: "destructive",
+      // });
     } finally {
       setLoading(false);
     }
@@ -181,12 +140,11 @@ const StudentPreferences = () => {
     try {
       setSaving(true);
       const token = getAuthToken();
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${BASE_URL}/api/auth/updatestudent/${user?._id}`,
         {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -199,7 +157,7 @@ const StudentPreferences = () => {
             preferred_subjects: formData.preferred_subjects,
             availability: formData.availability,
           }),
-        }
+        }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
       );
       const result = await response.json();
       if (result.success) {

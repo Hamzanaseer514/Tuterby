@@ -7,7 +7,7 @@ import { useToast } from '../../components/ui/use-toast';
 import { RefreshCw, Calendar, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 const TutorInterviewSlotsPage = () => {
-  const { user, getAuthToken } = useAuth();
+  const { user, getAuthToken , fetchWithAuth } = useAuth();
   const token = getAuthToken();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -26,9 +26,10 @@ const TutorInterviewSlotsPage = () => {
   async function loadSlots() {
     try {
       setLoading(true);
-      const res = await fetch(`${BASE_URL}/api/tutor/interview-slots/${user._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`${BASE_URL}/api/tutor/interview-slots/${user._id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
       const json = await res.json();
       if (!json.success) throw new Error(json.message || 'Failed to load');
       setSlots(json.data.preferred_interview_times || []);
@@ -36,7 +37,7 @@ const TutorInterviewSlotsPage = () => {
       setScheduled(json.data.scheduled_time || null);
       setAgain(Boolean(json.data.again_interview));
     } catch (e) {
-      toast({ title: 'Error', description: e.message || 'Failed to load slots', variant: 'destructive' });
+      // toast({ title: 'Error', description: e.message || 'Failed to load slots', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -45,10 +46,10 @@ const TutorInterviewSlotsPage = () => {
   async function requestAgain() {
     try {
       setRequesting(true);
-      const res = await fetch(`${BASE_URL}/api/tutor/interview-slots/${user._id}/request-again`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/tutor/interview-slots/${user._id}/request-again`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-      });
+        headers: { 'Content-Type': 'application/json' }
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
       const json = await res.json();
       if (res.status !== 200 || !json.success) throw new Error(json.message || 'Failed to request again');
       toast({ title: 'Requested', description: 'Re-interview requested successfully' });
@@ -63,11 +64,11 @@ const TutorInterviewSlotsPage = () => {
   async function selectSlot(isoString) {
     try {
       setSelecting(true);
-      const res = await fetch(`${BASE_URL}/api/admin/tutors/interview/select`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/tutors/interview/select`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user._id, scheduled_time: isoString })
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
       const json = await res.json();
       if (res.status !== 200) throw new Error(json.message || 'Failed to select slot');
       toast({ title: 'Scheduled', description: 'Interview slot selected successfully' });

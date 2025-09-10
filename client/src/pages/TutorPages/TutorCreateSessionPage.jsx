@@ -14,9 +14,9 @@ const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const TutorCreateSessionPage = () => {
     const navigate = useNavigate();
-    const { user, getAuthToken } = useAuth();
+    const { user, getAuthToken, fetchWithAuth } = useAuth();
     const { academicLevels, subjects } = useSubject();
-    const authToken = getAuthToken();
+    const token = getAuthToken();
 
     const [availableStudents, setAvailableStudents] = useState([]);
     const [loadingStudents, setLoadingStudents] = useState(false);
@@ -81,23 +81,25 @@ const TutorCreateSessionPage = () => {
     const fetchHiredSubjectsAndLevels = useCallback(async (studentId) => {
         try {
             const response = await
-                fetch(`${BASE_URL}/api/tutor/hired-subjects-and-levels/${studentId}/${user?._id}`,
+                fetchWithAuth(`${BASE_URL}/api/tutor/hired-subjects-and-levels/${studentId}/${user?._id}`,
                     {
-                        headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-                    });
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    }, token, (newToken) => localStorage.setItem("authToken", newToken));
             if (!response.ok) return null;
             const data = await response.json();
             return data;
-        } catch { 
+        } catch {
             return null;
         }
-    }, [user, authToken]);
+    }, [user, token]);
 
     const fetchTutorSubjects = useCallback(async () => {
         try {
-            const response = await fetch(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
-                headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-            });
+            const response = await fetchWithAuth(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             if (!response.ok) return;
             const data = await response.json();
             const field = data?.tutor?.subjects;
@@ -105,17 +107,20 @@ const TutorCreateSessionPage = () => {
             setParsedSubjects(Array.isArray(parsed) ? parsed : []);
             setTutorAcademicLevels(data?.tutor?.academic_levels_taught || []);
         } catch { }
-    }, [user, authToken]);
+    }, [user, token]);
 
     const fetchAvailableStudents = useCallback(async () => {
         try {
             setLoadingStudents(true);
-            const response = await fetch(`${BASE_URL}/api/tutor/students/${user._id}`);
+            const response = await fetchWithAuth(`${BASE_URL}/api/tutor/students/${user._id}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             if (!response.ok) throw new Error('Failed to fetch students');
             const data = await response.json();
             setAvailableStudents(data.students || []);
         } catch (err) {
-            toast.error('Failed to load students');
+            // toast.error('Failed to load students');
         } finally {
             setLoadingStudents(false);
         }
@@ -123,14 +128,15 @@ const TutorCreateSessionPage = () => {
 
     const fetchAvailabilitySettings = useCallback(async () => {
         try {
-            const res = await fetch(`${BASE_URL}/api/tutor/availability/${user?._id}`, {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            });
+            const res = await fetchWithAuth(`${BASE_URL}/api/tutor/availability/${user?._id}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             if (!res.ok) return;
             const data = await res.json();
             setAvailabilitySettings(data);
         } catch { }
-    }, [user, authToken]);
+    }, [user, token]);
 
     useEffect(() => {
         if (!user?._id) return;
@@ -145,12 +151,12 @@ const TutorCreateSessionPage = () => {
 
         try {
             setLoadingPaymentStatus(true);
-            const response = await fetch(`${BASE_URL}/api/auth/student/payment-status/${userId}`, {
+            const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/payment-status/${userId}`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`,
                     'Content-Type': 'application/json',
                 }
-            });
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             if (response.ok) {
                 const data = await response.json();
                 return data;
@@ -184,15 +190,15 @@ const TutorCreateSessionPage = () => {
         setLoadingHiredData(true);
         const newPaymentStatuses = {};
         const studentHiredData = []; // Store hired data for each student
-        
+
         for (const userId of nextIds) {
             const paymentStatus = await checkStudentPaymentStatus(userId);
             const hiredData = await fetchHiredSubjectsAndLevels(userId);
-            
+
             if (paymentStatus) {
                 newPaymentStatuses[userId] = paymentStatus;
             }
-            
+
             // Store hired data for this student
             if (hiredData) {
                 studentHiredData.push({
@@ -202,34 +208,34 @@ const TutorCreateSessionPage = () => {
                 });
             }
         }
-        
+
         // Find COMMON hired subjects and levels (that ALL students have)
         const commonHiredSubjects = [];
         const commonHiredLevels = [];
-        
+
         if (studentHiredData.length > 0) {
             // Get all unique subjects and levels
             const allSubjects = new Set();
             const allLevels = new Set();
-            
+
             studentHiredData.forEach(data => {
                 data.subjects.forEach(subject => allSubjects.add(subject));
                 data.levels.forEach(level => allLevels.add(level));
             });
-            
+
             // Find subjects that exist in ALL students
             allSubjects.forEach(subjectId => {
-                const existsInAllStudents = studentHiredData.every(data => 
+                const existsInAllStudents = studentHiredData.every(data =>
                     data.subjects.includes(subjectId)
                 );
                 if (existsInAllStudents) {
                     commonHiredSubjects.push(subjectId);
                 }
             });
-            
+
             // Find levels that exist in ALL students
             allLevels.forEach(levelId => {
-                const existsInAllStudents = studentHiredData.every(data => 
+                const existsInAllStudents = studentHiredData.every(data =>
                     data.levels.includes(levelId)
                 );
                 if (existsInAllStudents) {
@@ -237,13 +243,13 @@ const TutorCreateSessionPage = () => {
                 }
             });
         }
-        
+
         // Set common hired subjects and levels
         const combinedData = {
             hired_subjects: commonHiredSubjects,
             hired_academic_levels: commonHiredLevels
         };
-    
+
         setHiredSubjectsAndLevels(combinedData);
         setStudentPaymentStatuses(newPaymentStatuses);
         setLoadingHiredData(false);
@@ -311,7 +317,7 @@ const TutorCreateSessionPage = () => {
         try {
             setLoadingSlots(true);
             const url = `${BASE_URL}/api/tutor/availability/${user?._id}/slots?date=${yyyyMmDd}&duration_minutes=${durationHours * 60}`;
-            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const res = await fetchWithAuth(url, { headers: { 'Content-Type': 'application/json' } }, token, (newToken) => localStorage.setItem("authToken", newToken));
             const data = await res.json();
             if (!res.ok) throw new Error(data?.message || 'Failed to load slots');
             const rawSlots = Array.isArray(data.available_slots) ? data.available_slots : [];
@@ -327,9 +333,10 @@ const TutorCreateSessionPage = () => {
             // Fetch existing sessions for the day and filter conflicting slots
             const startISO = `${yyyyMmDd}T00:00:00Z`;
             const endISO = `${yyyyMmDd}T23:59:59Z`;
-            const sessionsRes = await fetch(`${BASE_URL}/api/tutor/sessions/${user?._id}?start_date=${encodeURIComponent(startISO)}&end_date=${encodeURIComponent(endISO)}`, {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            });
+            const sessionsRes = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/${user?._id}?start_date=${encodeURIComponent(startISO)}&end_date=${encodeURIComponent(endISO)}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             const sessionsData = await sessionsRes.json();
             const sessionsList = Array.isArray(sessionsData.sessions) ? sessionsData.sessions : [];
             const blocking = sessionsList.filter(s => ['pending', 'confirmed', 'in_progress'].includes(s.status));
@@ -352,7 +359,7 @@ const TutorCreateSessionPage = () => {
         } finally {
             setLoadingSlots(false);
         }
-    }, [user, authToken]);
+    }, [user, token]);
 
     useEffect(() => {
         if (!selectedDate) return;
@@ -376,10 +383,9 @@ const TutorCreateSessionPage = () => {
                 toast.error('Please select a date and time');
                 return;
             }
-            const response = await fetch(`${BASE_URL}/api/tutor/sessions`, {
+            const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -392,7 +398,7 @@ const TutorCreateSessionPage = () => {
                     hourly_rate: sessionForm.hourly_rate,
                     notes: sessionForm.notes,
                 }),
-            });
+            }, token, (newToken) => localStorage.setItem("authToken", newToken));
             const responseData = await response.json();
             if (response.status == 401) {
                 toast.error(responseData.message || 'This Academic Level is not selected by you. Please add this academic level to your profile.');
@@ -539,7 +545,7 @@ const TutorCreateSessionPage = () => {
                                             <div className="col-span-12 md:col-span-2 text-sm flex justify-center md:justify-start">
                                                 {(() => {
                                                     const paymentStatus = studentPaymentStatuses[student._id];
-                                                
+
                                                     if (!paymentStatus) {
                                                         return (
                                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
@@ -625,7 +631,7 @@ const TutorCreateSessionPage = () => {
                                         <SelectTrigger>
                                             <SelectValue placeholder={
                                                 loadingHiredData ? 'Loading subjects...' :
-                                                (sessionForm.student_ids || []).length > 0 ? 'Select subject' : 'Select student(s) first'
+                                                    (sessionForm.student_ids || []).length > 0 ? 'Select subject' : 'Select student(s) first'
                                             } />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -661,7 +667,7 @@ const TutorCreateSessionPage = () => {
                                         <SelectTrigger>
                                             <SelectValue placeholder={
                                                 loadingHiredData ? 'Loading academic levels...' :
-                                                (sessionForm.student_ids || []).length > 0 ? 'Select academic level' : 'Select student(s) first'
+                                                    (sessionForm.student_ids || []).length > 0 ? 'Select academic level' : 'Select student(s) first'
                                             } />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -678,9 +684,9 @@ const TutorCreateSessionPage = () => {
                                                     );
                                                 })
                                             ) : (
-                                                        <div className="p-2 text-sm text-gray-500">
+                                                <div className="p-2 text-sm text-gray-500">
                                                     No hired academic levels found for selected students
-                                                        </div>
+                                                </div>
                                             )}
                                         </SelectContent>
                                     </Select>

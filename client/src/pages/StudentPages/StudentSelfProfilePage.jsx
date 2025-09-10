@@ -22,7 +22,7 @@ function toArray(value) {
         const parsed = JSON.parse(trimmed);
         return Array.isArray(parsed) ? parsed : [trimmed];
       } catch {
-        // fall through to comma split
+        // fallback
       }
     }
     return trimmed.split(',').map(s => s.trim()).filter(Boolean);
@@ -31,16 +31,30 @@ function toArray(value) {
 }
 
 const StudentSelfProfilePage = () => {
-  const { user, getAuthToken } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const token = getAuthToken();
   const [loading, setLoading] = useState(true);
-  const [baseUser, setBaseUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+
+  // ✅ safe defaults
+  const [baseUser, setBaseUser] = useState({
+    full_name: '',
+    email: '',
+    photo_url: '',
+    phone_number: '',
+    age: null
+  });
+
+  const [profile, setProfile] = useState({
+    academic_level: '',
+    learning_goals: '',
+    preferred_subjects: [],
+    hired_tutors: []
+  });
+
   const [uploading, setUploading] = useState(false);
   const avatarUrl = useMemo(() => buildImageUrl(baseUser?.photo_url), [baseUser]);
   const { academicLevels, subjects } = useSubject();
 
-  // Move useCallback to the top, before any conditional logic
   const getSubjectById = useCallback((id) => {
     if (!id) return undefined;
     const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
@@ -56,43 +70,48 @@ const StudentSelfProfilePage = () => {
     try {
       setLoading(true);
       const [userRes, profileRes] = await Promise.all([
-        fetch(`${BASE_URL}/api/auth/user-profile/${user._id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${user._id}`, {
+          method: 'GET',
+          headers: {
+            "Content-Type": "application/json"
+          },
+        }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        ),
+        fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
+          method: 'GET',
+          headers: {
+            "Content-Type": "application/json"
+          },
+        }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        ),
       ]);
+
       const userJson = await userRes.json();
       const profileJson = await profileRes.json();
-      setBaseUser(userJson);
-      setProfile(profileJson?.student || null);
+
+      setBaseUser({
+        full_name: userJson?.full_name || '',
+        email: userJson?.email || '',
+        photo_url: userJson?.photo_url || '',
+        phone_number: userJson?.phone_number || '',
+        age: userJson?.age || null
+      });
+
+      setProfile({
+        academic_level: profileJson?.student?.academic_level || '',
+        learning_goals: profileJson?.student?.learning_goals || '',
+        preferred_subjects: profileJson?.student?.preferred_subjects || [],
+        hired_tutors: profileJson?.student?.hired_tutors || []
+      });
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!baseUser || !profile) {
-    return (
-      <div className="p-6 text-center text-gray-600">Profile not found.</div>
-    );
-  }
-
   const matchAcademicLevel = (level) => {
-    const matchedLevel = academicLevels.find(l => l._id === level);
-    if(matchedLevel){
-      return matchedLevel.level;
-    }
-    return null;
-  }
+    const matchedLevel = (academicLevels || []).find(l => l._id === level);
+    return matchedLevel ? matchedLevel.level : '';
+  };
 
   const preferredSubjects = toArray(profile.preferred_subjects);
   const hiredTutors = Array.isArray(profile.hired_tutors) ? profile.hired_tutors : [];
@@ -102,6 +121,7 @@ const StudentSelfProfilePage = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+      {/* Avatar & Info */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
@@ -124,11 +144,12 @@ const StudentSelfProfilePage = () => {
                       setUploading(true);
                       const formData = new FormData();
                       formData.append('photo', file);
-                      const res = await fetch(`${BASE_URL}/api/auth/user-profile/${user._id}/photo`, {
+                      const res = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${user._id}/photo`, {
                         method: 'POST',
-                        headers: { Authorization: `Bearer ${token}` },
+                        headers: { 'Content-Type': `multipart/form-data` },
                         body: formData,
-                      });
+                      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+                      );
                       const json = await res.json();
                       if (json?.success && json.photo_url) {
                         await loadProfile();
@@ -145,7 +166,7 @@ const StudentSelfProfilePage = () => {
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">{baseUser.full_name || 'Student'}</h1>
-              <p className="text-sm text-gray-600">{baseUser.email}</p>
+              <p className="text-sm text-gray-600">{baseUser.email || '—'}</p>
               {baseUser.age && (
                 <p className="text-sm text-gray-600 mt-1">Age: {baseUser.age}</p>
               )}
@@ -154,6 +175,7 @@ const StudentSelfProfilePage = () => {
         </CardContent>
       </Card>
 
+      {/* About + Preferred Subjects */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-blue-100">
           <CardHeader>
@@ -186,9 +208,19 @@ const StudentSelfProfilePage = () => {
           <CardContent>
             {preferredSubjects.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {preferredSubjects.map((s, i) => (
-                  <span key={i} className="px-2 py-1 text-sm border rounded bg-white shadow-sm">{getSubjectById(s)?.name + " - " + getSubjectById(s)?.subject_type.name + " - " + getSubjectById(s)?.level_id.level || s}</span>
-                ))}
+                {preferredSubjects.map((s, i) => {
+                  const subj = getSubjectById(s);
+                  return (
+                    <span
+                      key={i}
+                      className="px-2 py-1 text-sm border rounded bg-white shadow-sm"
+                    >
+                      {subj
+                        ? `${subj.name || ''} - ${subj.subject_type?.name || ''} - ${subj.level_id?.level || ''}`
+                        : s}
+                    </span>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-600 text-sm">No preferred subjects added.</p>
@@ -197,26 +229,7 @@ const StudentSelfProfilePage = () => {
         </Card>
       </div>
 
-      {/* <Card className="border-blue-100">
-        <CardHeader>
-          <CardTitle>Availability</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {Array.isArray(profile.availability) && profile.availability.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {profile.availability.map((slot, idx) => (
-                <div key={idx} className="p-3 border rounded bg-white shadow-sm flex items-center justify-between">
-                  <span className="font-medium">{slot.day}</span>
-                  <span className="text-sm text-gray-600">{slot.duration}</span>
-                </div>
-              ))}
-            </div> 
-          ) : (
-            <p className="text-gray-600 text-sm">No availability set.</p>
-          )}
-        </CardContent>
-      </Card> */}
-
+      {/* Hiring Summary */}
       <Card className="border-blue-100">
         <CardHeader>
           <CardTitle>Hiring Summary</CardTitle>
@@ -243,5 +256,3 @@ const StudentSelfProfilePage = () => {
 };
 
 export default StudentSelfProfilePage;
-
-

@@ -94,7 +94,7 @@ const SessionManagement = () => {
   const [parsed_subjects, setParsedSubjects] = useState([]);
   const [selectedStudentSubjects, setSelectedStudentSubjects] = useState([]);
   const [selectedStudentAcademicLevels, setSelectedStudentAcademicLevels] = useState([]);
-  const { user, getAuthToken } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const authToken = getAuthToken();
   const location = useLocation();
   const navigate = useNavigate();
@@ -167,12 +167,13 @@ const SessionManagement = () => {
         ? `${BASE_URL}/api/tutor/sessions/${user._id}`
         : `${BASE_URL}/api/tutor/sessions/${user._id}?status=${filter}`;
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
-      });
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken), // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch sessions');
       }
@@ -188,7 +189,7 @@ const SessionManagement = () => {
     if (!id) return undefined;
     const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
     return s;
-}, [subjects]);
+  }, [subjects]);
   const parseField = (field) => {
     if (!field) return [];
     if (Array.isArray(field)) {
@@ -218,12 +219,13 @@ const SessionManagement = () => {
 
   const fetchTutorSubjects = useCallback(async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/dashboard/${user?._id}`, {
+       method: 'GET',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
-      });
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken), // ✅ setToken
+      );
       if (!response.ok) return;
       const data = await response.json();
       const parsed = parseField(data?.tutor?.subjects);
@@ -239,7 +241,13 @@ const SessionManagement = () => {
   const fetchAvailableStudents = useCallback(async () => {
     try {
       setLoadingStudents(true);
-      const response = await fetch(`${BASE_URL}/api/tutor/students/${user._id}`);
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/students/${user._id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken), // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }
@@ -325,17 +333,17 @@ const SessionManagement = () => {
   const handleUpdateSession = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/update/${selectedSession._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/update/${selectedSession._id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...updateSessionForm,
           total_earnings: updateSessionForm.duration_hours * updateSessionForm.hourly_rate
         }),
-      });
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const responseData = await response.json();
       if (!response.ok) {
         throw new Error(responseData.message || 'Failed to update session');
@@ -363,16 +371,16 @@ const SessionManagement = () => {
 
   const approveReschedule = async (session) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/update/${session._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/update/${session._id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           approve_proposed: true
         })
-      });
+      },authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || 'Failed to approve');
@@ -388,14 +396,14 @@ const SessionManagement = () => {
 
   const rejectReschedule = async (session) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/update/${session._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/update/${session._id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ reject_proposed: true })
-      });
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || 'Failed to reject');
@@ -413,13 +421,13 @@ const SessionManagement = () => {
 
 
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/delete/${sessionId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/delete/${sessionId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
-      });
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const responseData = await response.json();
       if (!response.ok) {
         throw new Error(responseData.message || 'Failed to delete session');
@@ -434,14 +442,14 @@ const SessionManagement = () => {
 
   const sendMeetingLink = async (session, meetingLink) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/tutor/sessions/${session._id}/send-link`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/${session._id}/send-link`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ meeting_link: meetingLink })
-      });
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || 'Failed to send meeting link');
@@ -730,25 +738,25 @@ const SessionManagement = () => {
                     {selectedSession.student_ids && selectedSession.student_ids.map((student, index) => {
                       const resp = Array.isArray(selectedSession.student_responses)
                         ? selectedSession.student_responses.find(r => {
-                            const sid = r?.student_id?._id || r?.student_id;
-                            return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
-                          })
+                          const sid = r?.student_id?._id || r?.student_id;
+                          return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
+                        })
                         : null;
                       const status = resp?.status || 'pending';
                       const badgeClass = status === 'confirmed'
                         ? 'bg-green-100 text-green-700'
                         : status === 'declined'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700';
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-yellow-100 text-yellow-700';
                       return (
-                      <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                        <p className="font-medium text-gray-900">
-                          {student.user_id?.full_name || 'Student Name'}
-                        </p>
-                        
+                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                          <p className="font-medium text-gray-900">
+                            {student.user_id?.full_name || 'Student Name'}
+                          </p>
+
                           <div className="mt-2">
                             <Badge className={badgeClass}>Response: {status}</Badge>
-                      </div>
+                          </div>
                         </div>
                       );
                     })}
@@ -873,19 +881,19 @@ const SessionManagement = () => {
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h4 className="text-lg font-semibold text-blue-900 mb-3">Session Overview</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+                    <div>
                       <Label className="text-sm font-medium text-blue-700">Subject</Label>
                       <p className="text-lg font-semibold text-blue-900">
                         {getSubjectById(selectedSession.subject)?.name || selectedSession.subject}
-                    </p>
-                  </div>
+                      </p>
+                    </div>
                     <div>
                       <Label className="text-sm font-medium text-blue-700">Academic Level</Label>
                       <p className="text-lg font-semibold text-blue-900">
                         {resolveLevelName(selectedSession.academic_level)}
                       </p>
-                </div>
-                <div>
+                    </div>
+                    <div>
                       <Label className="text-sm font-medium text-blue-700">Current Status</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className={getStatusColor(selectedSession.status)}>
@@ -904,17 +912,17 @@ const SessionManagement = () => {
                     {selectedSession.student_ids && selectedSession.student_ids.map((student, index) => {
                       const studentResponse = Array.isArray(selectedSession.student_responses)
                         ? selectedSession.student_responses.find(r => {
-                            const sid = r?.student_id?._id || r?.student_id;
-                            return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
-                          })
+                          const sid = r?.student_id?._id || r?.student_id;
+                          return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
+                        })
                         : null;
                       const studentRating = Array.isArray(selectedSession.student_ratings)
                         ? selectedSession.student_ratings.find(r => {
-                            const sid = r?.student_id?._id || r?.student_id;
-                            return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
-                          })
+                          const sid = r?.student_id?._id || r?.student_id;
+                          return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
+                        })
                         : null;
-                      
+
                       return (
                         <div key={index} className="bg-white p-4 rounded-lg border">
                           <div className="flex items-center justify-between mb-3">
@@ -923,13 +931,13 @@ const SessionManagement = () => {
                             </h5>
                             <Badge className={
                               studentResponse?.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                              studentResponse?.status === 'declined' ? 'bg-red-100 text-red-700' :
-                              'bg-yellow-100 text-yellow-700'
+                                studentResponse?.status === 'declined' ? 'bg-red-100 text-red-700' :
+                                  'bg-yellow-100 text-yellow-700'
                             }>
                               {studentResponse?.status || 'pending'}
                             </Badge>
                           </div>
-                          
+
                           <div className="space-y-2 text-sm">
                             {studentResponse?.note && (
                               <p className="text-gray-600">
@@ -948,9 +956,9 @@ const SessionManagement = () => {
                                 {studentRating.feedback && (
                                   <span className="text-gray-600">• {studentRating.feedback}</span>
                                 )}
-                  </div>
+                              </div>
                             )}
-                </div>
+                          </div>
                         </div>
                       );
                     })}
@@ -962,7 +970,7 @@ const SessionManagement = () => {
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                     <h4 className="text-lg font-semibold text-green-900 mb-3">Meeting Link</h4>
                     <div className="space-y-3">
-                <div>
+                      <div>
                         <Label className="text-sm font-medium text-green-700">Current Link</Label>
                         <div className="flex items-center gap-2 mt-1">
                           <Input
@@ -978,7 +986,7 @@ const SessionManagement = () => {
                           >
                             Copy
                           </Button>
-                </div>
+                        </div>
                       </div>
                       {selectedSession.meeting_link_sent_at && (
                         <p className="text-sm text-green-700">
@@ -995,33 +1003,33 @@ const SessionManagement = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
                     <div className="space-y-4">
-                {/* Session Date & Time */}
-                <div>
+                      {/* Session Date & Time */}
+                      <div>
                         <Label htmlFor="session_date" className="text-sm font-medium text-gray-700">
                           Session Date & Time
                         </Label>
-                  <Input
-                    id="session_date"
-                    type="datetime-local"
-                    value={updateSessionForm.session_date}
-                    onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
-                    required
+                        <Input
+                          id="session_date"
+                          type="datetime-local"
+                          value={updateSessionForm.session_date}
+                          onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
+                          required
                           className="mt-1"
-                  />
-                </div>
+                        />
+                      </div>
 
-                {/* Duration */}
-                <div>
+                      {/* Duration */}
+                      <div>
                         <Label className="text-sm font-medium text-gray-700">Duration</Label>
                         <div className="p-3 bg-white rounded-lg border mt-1">
                           <p className="text-sm font-semibold text-gray-900">
                             {selectedSession.duration_hours} hour{selectedSession.duration_hours !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
+                          </p>
+                        </div>
+                      </div>
 
-                {/* Hourly Rate */}
-                <div>
+                      {/* Hourly Rate */}
+                      <div>
                         <Label className="text-sm font-medium text-gray-700">Hourly Rate</Label>
                         <div className="p-3 bg-white rounded-lg border mt-1">
                           <p className="text-sm font-semibold text-gray-900">
@@ -1039,37 +1047,37 @@ const SessionManagement = () => {
                         <div className="p-3 bg-green-50 rounded-lg border mt-1">
                           <p className="text-lg font-semibold text-green-700">
                             £{selectedSession.total_earnings}
-                    </p>
-                  </div>
-                </div>
+                          </p>
+                        </div>
+                      </div>
 
-                {/* Status */}
-                <div>
+                      {/* Status */}
+                      <div>
                         <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
-                  <Select
-                    value={updateSessionForm.status}
-                    onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
-                  >
+                        <Select
+                          value={updateSessionForm.status}
+                          onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
+                        >
                           <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-  {updateSessionForm.status === "confirmed" && (
-    <SelectItem value="confirmed" disabled>
-      Confirmed
-    </SelectItem>
-  )}
-                    </SelectContent>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            {updateSessionForm.status === "confirmed" && (
+                              <SelectItem value="confirmed" disabled>
+                                Confirmed
+                              </SelectItem>
+                            )}
+                          </SelectContent>
 
-                  </Select>
-                </div>
+                        </Select>
+                      </div>
 
                       {/* Subject */}
-                <div>
+                      <div>
                         <Label htmlFor="subject" className="text-sm font-medium text-gray-700">Subject</Label>
                         <Select
                           value={updateSessionForm.subject}
@@ -1122,10 +1130,10 @@ const SessionManagement = () => {
                       <h5 className="font-semibold text-yellow-800">Status Change Warning</h5>
                     </div>
                     <p className="text-sm text-yellow-700">
-                      Changing status to 'pending' will clear the meeting link and all student responses. 
+                      Changing status to 'pending' will clear the meeting link and all student responses.
                       Students will need to confirm their attendance again.
-                  </p>
-                </div>
+                    </p>
+                  </div>
                 )}
 
                 {/* Action Buttons */}
@@ -1134,16 +1142,16 @@ const SessionManagement = () => {
                     Last updated: {selectedSession.updatedAt ? new Date(selectedSession.updatedAt).toLocaleString() : 'N/A'}
                   </div>
                   <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowUpdateSessionModal(false)}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowUpdateSessionModal(false)}
                     >
-                    Cancel
-                  </Button>
+                      Cancel
+                    </Button>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                    Update Session
-                  </Button>
+                      Update Session
+                    </Button>
                   </div>
                 </div>
               </form>

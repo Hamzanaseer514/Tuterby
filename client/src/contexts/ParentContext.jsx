@@ -1,25 +1,26 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { BASE_URL } from '../config';
-
+import { useAuth } from '../hooks/useAuth';
 const ParentContext = createContext();
 
 export const ParentProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
-  const getAuthToken = useCallback(() => {
-    return localStorage.getItem('authToken');
-  }, []);
+  const { getAuthToken, fetchWithAuth } = useAuth();
+  const token = getAuthToken();
+
+  // Function to fetch parent profile
 
   const getParentProfile = useCallback(async (userId) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/profile/${userId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/profile/${userId}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'content-type': 'application/json',
         }
-      });
-
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch parent profile');
       }
@@ -33,15 +34,14 @@ export const ParentProvider = ({ children }) => {
 
   const addChildToParent = useCallback(async (childData) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/add-student`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/add-student`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(childData)
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -57,15 +57,14 @@ export const ParentProvider = ({ children }) => {
 
   const updateParentProfile = useCallback(async (userId, profileData) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/profile/${userId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/profile/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(profileData)
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to update parent profile');
@@ -80,12 +79,14 @@ export const ParentProvider = ({ children }) => {
 
   const getParentDashboardStats = useCallback(async (userId) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/dashboard-stats/${userId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/dashboard-stats/${userId}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
+    
 
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats');
@@ -100,17 +101,17 @@ export const ParentProvider = ({ children }) => {
 
   const uploadParentPhoto = useCallback(async (userId, photoFile) => {
     try {
-      const token = getAuthToken();
       const formData = new FormData();
       formData.append('photo', photoFile);
 
-      const response = await fetch(`${BASE_URL}/api/auth/user-profile/${userId}/photo`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${userId}/photo`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
         },
         body: formData
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to upload photo');
@@ -125,15 +126,14 @@ export const ParentProvider = ({ children }) => {
 
   const updateChildProfile = useCallback(async (childId, profileData) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/updatestudent/${childId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/updatestudent/${childId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(profileData)
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -153,13 +153,14 @@ export const ParentProvider = ({ children }) => {
       const formData = new FormData();
       formData.append('photo', photoFile);
 
-      const response = await fetch(`${BASE_URL}/api/auth/user-profile/${childId}/photo`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${childId}/photo`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json" // Let browser set this with boundary
         },
         body: formData
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to upload child photo');
@@ -204,14 +205,14 @@ export const ParentProvider = ({ children }) => {
       };
 
 
-      const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/payment/create-checkout-session`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(paymentPayload)
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -237,11 +238,13 @@ export const ParentProvider = ({ children }) => {
   const getSpecificStudentDetail = useCallback(async (userId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/student/${userId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/student/${userId}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch student details');
@@ -257,18 +260,20 @@ export const ParentProvider = ({ children }) => {
   const getParentStudentsPayments = useCallback(async (userId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/payments/${userId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/payments/${userId}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch payments');
       }
 
       const data = await response.json();
-        return data;
+      return data;
     } catch (error) {
       console.error('Error fetching payments:', error);
       throw error;
@@ -278,17 +283,19 @@ export const ParentProvider = ({ children }) => {
   const getStudentSessions = useCallback(async (userId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/parent/sessions/${userId}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/sessions/${userId}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
-          
+          'Content-Type': 'application/json',
+
         }
-      });
-      
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
+
       if (!response.ok) {
         throw new Error('Failed to fetch sessions');
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -300,16 +307,15 @@ export const ParentProvider = ({ children }) => {
   const deleteChildFromParent = useCallback(async (childId, parentUserId) => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      
-      const response = await fetch(`${BASE_URL}/api/parent/child/${childId}`, {
+
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/child/${childId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ parentUserId })
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -331,8 +337,7 @@ export const ParentProvider = ({ children }) => {
   const getTutorsForParent = useCallback(async (filters = {}) => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      
+
       const params = new URLSearchParams({
         page: filters.page || 1,
         limit: filters.limit || 12,
@@ -344,12 +349,13 @@ export const ParentProvider = ({ children }) => {
         ...(filters.preferred_subjects_only && { preferred_subjects_only: filters.preferred_subjects_only })
       });
 
-      const response = await fetch(`${BASE_URL}/api/parent/tutors/search?${params}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/tutors/search?${params}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -360,7 +366,7 @@ export const ParentProvider = ({ children }) => {
       return data;
     } catch (error) {
       console.error('Error fetching tutors:', error);
-      toast.error(error.message || 'Failed to fetch tutors');
+      // toast.error(error.message || 'Failed to fetch tutors');
       throw error;
     } finally {
       setLoading(false);

@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const StudentPaymentPage = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const { getAuthToken, user } = useAuth();
+    const { getAuthToken, user, fetchWithAuth } = useAuth();
 
     const [loading, setLoading] = useState(true);
     const [payments, setPayments] = useState([]);
@@ -57,12 +57,13 @@ const StudentPaymentPage = () => {
             setLoading(true);
             const token = getAuthToken();
 
-            const response = await fetch(`${BASE_URL}/api/auth/student/payments/${user._id}`, {
+            const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/payments/${user._id}`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
-            });
+            },token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+            );
 
             if (!response.ok) {
                 throw new Error('Failed to fetch payments');
@@ -73,11 +74,11 @@ const StudentPaymentPage = () => {
             console.log("data", data);
         } catch (error) {
             console.error('Error fetching payments:', error);
-            toast({
-                title: "Error",
-                description: "Failed to load payment data",
-                variant: "destructive"
-            });
+            // toast({
+            //     title: "Error",
+            //     description: "Failed to load payment data",
+            //     variant: "destructive"
+            // });
         } finally {
             setLoading(false);
         }
@@ -125,11 +126,10 @@ const StudentPaymentPage = () => {
         try {
             setLoading(true);
             const token = getAuthToken();
-    
-            const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
+
+            const response = await fetchWithAuth(`${BASE_URL}/api/payment/create-checkout-session`, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
@@ -145,7 +145,8 @@ const StudentPaymentPage = () => {
                     discount_percentage: payment.discount_percentage,
                     days_remaining: payment.days_remaining,
                 })
-            });
+            }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+            );
     
             if (!response.ok) throw new Error("Failed to create checkout session");
     

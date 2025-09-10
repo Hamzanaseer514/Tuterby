@@ -110,16 +110,7 @@ const SearchAndFilterBar = ({
               <Refresh />
             </IconButton>
           )}
-          {onExport && (
-            <IconButton onClick={onExport}>
-              <Download />
-            </IconButton>
-          )}
-          {onImport && (
-            <IconButton onClick={onImport}>
-              <Upload />
-            </IconButton>
-          )}
+         
         </Box>
 
         {/* Filter Menu */}

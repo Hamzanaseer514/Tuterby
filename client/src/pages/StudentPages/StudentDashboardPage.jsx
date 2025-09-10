@@ -54,7 +54,7 @@ const StudentDashboardPage = () => {
   });
   const [badgeCounts, setBadgeCounts] = useState({ sessions: 0, requests: 0, chat: 0 });
 
-  const { user, logout, loading: authLoading, getUserProfile, getAuthToken } = useAuth();
+  const { user, logout, loading: authLoading, getUserProfile, getAuthToken, fetchWithAuth } = useAuth();
   useEffect(() => {
     const fetchProfileImage = async () => {
       try {
@@ -113,7 +113,8 @@ const StudentDashboardPage = () => {
       // Sessions: pending, compare latest update with lastSeen
       let sessionsCount = 0;
       try {
-        const sRes = await fetch(`${BASE_URL}/api/auth/student/sessions/${user._id}?status=pending`, { headers });
+        const sRes = await fetchWithAuth(`${BASE_URL}/api/auth/student/sessions/${user._id}?status=pending`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        );
         if (sRes.ok) {
           const sJson = await sRes.json();
           const list = sJson.sessions || [];
@@ -127,7 +128,8 @@ const StudentDashboardPage = () => {
       // Help Requests: replied/unread since lastSeen
       let requestsCount = 0;
       try {
-        const rRes = await fetch(`${BASE_URL}/api/auth/student/${user._id}/help-requests?page=1&limit=50`, { headers });
+        const rRes = await fetchWithAuth(`${BASE_URL}/api/auth/student/${user._id}/help-requests?page=1&limit=50`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        );
         if (rRes.ok) {
           const rJson = await rRes.json();
           const list = rJson.inquiries || [];

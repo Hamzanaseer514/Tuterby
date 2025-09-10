@@ -1044,15 +1044,15 @@ const ChatAdminDashboard = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <Typography color="error" variant="h6">
-          {error}
-        </Typography>
-      </Box>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+  //       <Typography color="error" variant="h6">
+  //         {error}
+  //       </Typography>
+  //     </Box>
+  //   );
+  // }
 
   return (
     <AdminLayout tabValue="chat">

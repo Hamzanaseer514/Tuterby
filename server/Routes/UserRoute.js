@@ -1,37 +1,39 @@
 const express = require("express")
 const router = express.Router()
-const { registerUser,registerTutor,registerParent, loginUser, verifyOtp, resendOtp, addAdmin, forgotPassword,resetPassword, registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth} = require("../Controllers/UserController")
-const { getStudentDashboard,updateStudentProfile,
-   getStudentSessions,searchTutors, getTutorDetails, 
-   requestAdditionalHelp, getStudentHelpRequests ,hireTutor,
-   sendMessage,getAcceptedTutorsForStudent,
-   getStudentTutorChat,
-   getHiredTutors,
-   rateSession,
-   getStudentProfile,
-   getStudentPayments,
-   processStudentPayment,
-   checkStudentPaymentStatus} = require("../Controllers/StudentController")
-const { getUserProfile, updateUserPhoto } = require("../Controllers/UserController")
+const { registerUser, registerTutor, registerParent, loginUser, verifyOtp, resendOtp,
+  addAdmin, forgotPassword, resetPassword,
+  registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth } = require("../Controllers/UserController")
+const { getStudentDashboard, updateStudentProfile,
+  getStudentSessions, searchTutors, getTutorDetails,
+  requestAdditionalHelp, getStudentHelpRequests, hireTutor,
+  sendMessage, getAcceptedTutorsForStudent,
+  getStudentTutorChat,
+  getHiredTutors,
+  rateSession,
+  getStudentProfile,
+  getStudentPayments,
+  processStudentPayment,
+  checkStudentPaymentStatus } = require("../Controllers/StudentController")
+const { getUserProfile, updateUserPhoto, refreshAccessToken, logoutUser } = require("../Controllers/UserController")
 
 const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/documents/');
-    },
-    filename: (req, file, cb) => {
-      const timestamp = Date.now();
-      const ext = path.extname(file.originalname);
-      const base = path.basename(file.originalname, ext);
-      const newName = `${timestamp}_${base}${ext}`;
-      cb(null, newName);
-    }
-  });
-  
-  const upload = multer({ storage });
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/documents/');
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext);
+    const newName = `${timestamp}_${base}${ext}`;
+    cb(null, newName);
+  }
+});
+
+const upload = multer({ storage });
 
 
 router.get("/student/profile/:userId", protect, getStudentProfile);
@@ -39,10 +41,13 @@ router.post("/register", registerUser)
 router.post("/register-google", registerStudentWithGoogle) // Google OAuth registration for students
 router.post("/login-google", loginWithGoogle) // Google OAuth login for all users
 router.get("/test-google-oauth", testGoogleOAuth) // Test Google OAuth configuration
-router.put("/updatestudent/:user_id", updateStudentProfile)  
+router.put("/updatestudent/:user_id", updateStudentProfile)
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
 router.post("/register-parent", registerParent)
 router.post("/login", loginUser)
+router.post("/refresh", refreshAccessToken);
+router.post("/logout", logoutUser);
+
 router.post("/verify-otp", verifyOtp)
 router.post("/resend-otp", resendOtp)
 router.post("/add-admin", addAdmin)

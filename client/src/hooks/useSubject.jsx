@@ -5,6 +5,7 @@ const SubjectContext = createContext();
 
 export const SubjectProvider = ({ children }) => {
   const [subjects, setSubjects] = useState([]);
+
   const [subjectRelatedToAcademicLevels, setSubjectRelatedToAcademicLevels] = useState([]);
   const [academicLevels, setAcademicLevels] = useState([]);
   const [loading, setLoading] = useState(true);

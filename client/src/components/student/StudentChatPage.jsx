@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { BASE_URL } from '@/config';
+import { useAuth } from '../../hooks/useAuth';
 
 const StudentChatting = () => {
+  const { fetchWithAuth, user, getAuthToken } = useAuth();
   const [tutors, setTutors] = useState([]);
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [messageText, setMessageText] = useState("");
-
+  const token = getAuthToken();
   useEffect(() => {
     fetchAcceptedTutors();
   }, []);
@@ -14,13 +16,13 @@ const StudentChatting = () => {
   // Fetch tutors who accepted this student
   const fetchAcceptedTutors = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/get-accepted-tutors`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/auth/get-accepted-tutors`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const data = await res.json();
       if (data.success) {
         setTutors(data.data);
@@ -33,13 +35,13 @@ const StudentChatting = () => {
   // Fetch messages with selected tutor
   const fetchChatHistory = async (tutorId) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/getstudentchat/${tutorId}`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/auth/getstudentchat/${tutorId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       const data = await res.json();
       if (data.success) {
         setChatHistory(data.data);
@@ -54,17 +56,17 @@ const StudentChatting = () => {
   const sendMessage = async () => {
     if (!messageText.trim() || !selectedTutor) return;
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/send-message`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/auth/send-message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
         body: JSON.stringify({
           tutorId: selectedTutor.tutorId,
           message: messageText,
         }),
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
 
       const data = await res.json();
       if (data.success) {
@@ -86,11 +88,10 @@ const StudentChatting = () => {
             <div
               key={tutor.tutorId}
               onClick={() => fetchChatHistory(tutor.tutorId)}
-              className={`p-3 mb-3 rounded-lg cursor-pointer transition-transform transform hover:scale-[1.02] shadow-sm hover:shadow-md ${
-                selectedTutor?.tutorId === tutor.tutorId
+              className={`p-3 mb-3 rounded-lg cursor-pointer transition-transform transform hover:scale-[1.02] shadow-sm hover:shadow-md ${selectedTutor?.tutorId === tutor.tutorId
                   ? "bg-blue-200 shadow-md"
                   : "bg-white"
-              }`}
+                }`}
             >
               <p className="font-semibold text-gray-800">{tutor.full_name}</p>
               <p className="text-gray-500 text-sm truncate">

@@ -28,7 +28,7 @@ import { useSubject } from '../../hooks/useSubject';
 const StudentSessions = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getAuthToken, user } = useAuth();
+  const { getAuthToken, user, fetchWithAuth } = useAuth();
   const { academicLevels, subjects } = useSubject();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,13 +58,14 @@ const StudentSessions = () => {
     try {
       setLoadingPaymentStatus(true);
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/student/payment-status/${user?._id}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/payment-status/${user?._id}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
-      
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
+
       if (response.ok) {
         const data = await response.json();
         setPaymentStatus(data);
@@ -87,12 +88,13 @@ const StudentSessions = () => {
         ...(statusFilter !== 'all' && { status: statusFilter })
       });
 
-      const response = await fetch(`${BASE_URL}/api/auth/student/sessions/${user?._id}?${params}`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/sessions/${user?._id}?${params}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch sessions');
       }
@@ -101,11 +103,11 @@ const StudentSessions = () => {
       setTotalPages(data.pagination.total);
     } catch (error) {
       setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to load sessions",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to load sessions",
+      //   variant: "destructive"
+      // });
     } finally {
       setLoading(false);
     }
@@ -121,14 +123,14 @@ const StudentSessions = () => {
       subject: session.subject,
       academic_level: session.academic_level
     };
-    const response = await fetch(`${BASE_URL}/api/tutor/sessions/update/${session._id}`, {
+    const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/update/${session._id}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ ...baseBody, ...updates })
-    });
+    }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+    );
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       throw new Error(data.message || 'Failed to update session');
@@ -200,14 +202,14 @@ const StudentSessions = () => {
     if (!ratingSession) return;
     try {
       const token = getAuthToken();
-      const response = await fetch(`${BASE_URL}/api/auth/student/sessions/${ratingSession._id}/rate`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/sessions/${ratingSession._id}/rate`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ rating: ratingValue, feedback: ratingFeedback })
-      });
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message || 'Failed to submit rating');
@@ -217,7 +219,7 @@ const StudentSessions = () => {
       toast({ title: 'Thank you!', description: 'Your rating has been submitted.' });
       fetchSessions();
     } catch (e) {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      // toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
   };
 
@@ -284,17 +286,17 @@ const StudentSessions = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Sessions</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={fetchSessions}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center">
+  //         <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Sessions</h2>
+  //         <p className="text-gray-600 mb-4">{error}</p>
+  //         <Button onClick={fetchSessions}>Try Again</Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-6">
