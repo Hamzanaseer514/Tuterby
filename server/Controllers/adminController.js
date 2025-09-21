@@ -33,7 +33,138 @@ const sendEmail = require("../Utils/sendEmail");
 
 const generateOtpEmail = require("../Utils/otpTempelate");
 
+const { v4: uuidv4 } = require('uuid');
+
 const asyncHandler = require("express-async-handler");
+
+// Function to generate interview token
+const generateInterviewToken = () => {
+  return uuidv4();
+};
+
+// Function to create interview scheduling email template
+const createInterviewEmailTemplate = (tutorName, clientUrl, token) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Interview Scheduling - Tutorby</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+            .content { padding: 20px; background-color: #f9f9f9; }
+            .button { display: inline-block; background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Interview Scheduling Invitation</h1>
+            </div>
+            <div class="content">
+                <h2>Hello ${tutorName},</h2>
+                <p>Great news! We have received your tutor application and would like to schedule an interview with you.</p>
+                <p>Please click the button below to access your interview scheduling portal where you can:</p>
+                <ul>
+                    <li>View your available interview time slots</li>
+                    <li>Select your preferred interview time</li>
+                    <li>Confirm your interview details</li>
+                </ul>
+                <div style="text-align: center;">
+                    <a href="${clientUrl}/interview/${token}" class="button">Schedule Your Interview</a>
+                </div>
+                <p><strong>Important:</strong> This link will expire in 7 days. Please schedule your interview as soon as possible.</p>
+                <p>If you have any questions, please don't hesitate to contact our support team.</p>
+                <p>Best regards,<br>The Tutorby Team</p>
+            </div>
+            <div class="footer">
+                <p>This is an automated email. Please do not reply to this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+};
+
+// Function to create interview result email template
+const createInterviewResultEmailTemplate = (tutorName, result, notes = '') => {
+  const isPassed = result === 'passed';
+  const headerColor = isPassed ? '#4CAF50' : '#f44336';
+  const resultText = isPassed ? 'Congratulations!' : 'Interview Result';
+  const statusText = isPassed ? 'PASSED' : 'FAILED';
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Interview Result - Tutorby</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: ${headerColor}; color: white; padding: 20px; text-align: center; }
+            .content { padding: 20px; background-color: #f9f9f9; }
+            .result-badge { display: inline-block; background-color: ${headerColor}; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
+            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+            .notes { background-color: #e8f4fd; padding: 15px; border-left: 4px solid #2196F3; margin: 15px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>${resultText}</h1>
+            </div>
+            <div class="content">
+                <h2>Hello ${tutorName},</h2>
+                <p>We hope this email finds you well. We are writing to inform you about the result of your recent interview.</p>
+                
+                <div style="text-align: center;">
+                    <span class="result-badge">${statusText}</span>
+                </div>
+                
+                ${isPassed ? `
+                    <p><strong>Congratulations!</strong> We are pleased to inform you that you have successfully passed your interview.</p>
+                    <p>Your application has been approved and you are now officially part of the Tutorby teaching community.</p>
+                    <p>Next steps:</p>
+                    <ul>
+                        <li>You can now start accepting tutoring sessions</li>
+                        <li>Complete your profile setup if not already done</li>
+                        <li>Set your availability schedule</li>
+                        <li>Begin connecting with students</li>
+                    </ul>
+                ` : `
+                    <p>We regret to inform you that you have not passed the interview at this time.</p>
+                    <p>This decision was made after careful consideration of your interview performance and application materials.</p>
+                    <p>Please note that this does not mean you cannot reapply in the future. We encourage you to:</p>
+                    <ul>
+                        <li>Review the feedback provided below</li>
+                        <li>Consider reapplying after addressing any areas for improvement</li>
+                        <li>Contact our support team if you have any questions</li>
+                    </ul>
+                `}
+                
+                ${notes ? `
+                    <div class="notes">
+                        <h3>Interview Feedback:</h3>
+                        <p>${notes}</p>
+                    </div>
+                ` : ''}
+                
+                <p>If you have any questions or need further clarification, please don't hesitate to contact our support team.</p>
+                <p>Thank you for your interest in joining Tutorby.</p>
+                <p>Best regards,<br>The Tutorby Team</p>
+            </div>
+            <div class="footer">
+                <p>This is an automated email. Please do not reply to this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+};
 
 
 
@@ -121,6 +252,10 @@ exports.setAvailableInterviewSlots = async (req, res) => {
 
 
 
+    // Generate interview token and expiration time
+    const interviewToken = generateInterviewToken();
+    const tokenExpiration = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
     if (!application) {
 
       application = new TutorApplication({
@@ -133,11 +268,15 @@ exports.setAvailableInterviewSlots = async (req, res) => {
 
         application_status: "Pending",
 
+        interview_token: interviewToken,
+
+        expire_token: tokenExpiration,
+
       });
 
     } else {
 
-      // Case 1: If tutor already scheduled, don’t add that into preferred again
+      // Case 1: If tutor already scheduled, don't add that into preferred again
 
       const scheduled = application.scheduled_time
 
@@ -170,16 +309,40 @@ exports.setAvailableInterviewSlots = async (req, res) => {
 
 
       application.preferred_interview_times = mergedTimes;
+      
+      // Update token and expiration time
+      application.interview_token = interviewToken;
+      application.expire_token = tokenExpiration;
 
     }
 
-
-
     await application.save();
+
+    // Get tutor's user information for email
+    const tutorUser = await User.findById(user_id);
+    
+    if (tutorUser && tutorUser.email) {
+      // Send email to tutor with interview scheduling link
+      const clientUrl = process.env.FRONTEND_URL;
+      const emailSubject = 'Interview Scheduling Invitation - Tutorby';
+      const emailContent = createInterviewEmailTemplate(
+        tutorUser.full_name, 
+        clientUrl, 
+        interviewToken
+      );
+
+      try {
+        await sendEmail(tutorUser.email, emailSubject, emailContent);
+        console.log(`Interview scheduling email sent to ${tutorUser.email}`);
+      } catch (emailError) {
+        console.error('Error sending interview email:', emailError);
+        // Don't fail the entire request if email fails
+      }
+    }
 
     res.status(200).json({
 
-      message: "Available interview slots set successfully",
+      message: "Available interview slots set successfully and email sent to tutor",
 
       data: application,
 
@@ -341,11 +504,33 @@ exports.completeInterview = async (req, res) => {
 
       return res.status(404).json({ message: "Tutor application not found" });
 
+    // Get tutor user details for email
+    const tutorUser = await User.findById(userId);
+    
+    if (tutorUser && tutorUser.email) {
+      // Send interview result email to tutor
+      const emailSubject = result === "passed" 
+        ? 'Congratulations! Interview Passed - Tutorby' 
+        : 'Interview Result - Tutorby';
+      
+      const emailContent = createInterviewResultEmailTemplate(
+        tutorUser.full_name, 
+        result, 
+        notes || ''
+      );
 
+      try {
+        await sendEmail(tutorUser.email, emailSubject, emailContent);
+        console.log(`Interview result email sent to ${tutorUser.email} - Result: ${result}`);
+      } catch (emailError) {
+        console.error('Error sending interview result email:', emailError);
+        // Don't fail the entire request if email fails
+      }
+    }
 
     res.status(200).json({
 
-      message: "Interview completed successfully",
+      message: "Interview completed successfully and email sent to tutor",
 
       application,
 
@@ -1473,6 +1658,10 @@ exports.getDashboardStats = async (req, res) => {
       { $group: { _id: null, total: { $sum: '$total_earnings' }, change: { $sum: '$total_earnings' } } }
     ]);
 
+    // Handle empty revenue results
+    const totalRevenue = revenue.length > 0 ? revenue[0].total : 0;
+    const lastMonthTotal = lastMonthRevenue.length > 0 ? lastMonthRevenue[0].total : 0;
+
 
     const stats = {
 
@@ -1522,12 +1711,10 @@ exports.getDashboardStats = async (req, res) => {
       },
 
       revenue: {
-
-        total: revenue[0].total,
-        change: revenue[0].change,
-        lastMonthRevenue: lastMonthRevenue[0].total,
-        lastMonthChange: lastMonthRevenue[0].change,
-
+        total: totalRevenue,
+        change: totalRevenue,
+        lastMonthRevenue: lastMonthTotal,
+        lastMonthChange: lastMonthTotal,
       },
 
     };

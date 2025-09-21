@@ -40,6 +40,21 @@ import AdminLayout from '../../components/admin/components/AdminLayout';
 import { Link } from 'react-router-dom';
 import { getDashboardStats } from '../../services/adminService';
 
+// Add CSS animation for spinning refresh icon
+const spinKeyframes = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+// Inject the CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = spinKeyframes;
+  document.head.appendChild(style);
+}
+
 const statKey = (k) => `admin_last_seen_${k}`;
 
 const StatCard = ({ 
@@ -221,6 +236,7 @@ const AdminDashboardPage = () => {
     error: null
   });
   const [newFlags, setNewFlags] = useState({ tutors: false, students: false, parents: false });
+  const [lastRefreshTime, setLastRefreshTime] = useState(null);
 
   const computeFlags = useCallback((stats) => {
     const tutorsTotal = stats.tutors?.total || 0;
@@ -248,6 +264,7 @@ const AdminDashboardPage = () => {
         loading: false
       }));
       computeFlags(statsData);
+      setLastRefreshTime(new Date());
     } catch (error) {
       setDashboardState(prev => ({
         ...prev,
@@ -257,20 +274,13 @@ const AdminDashboardPage = () => {
     }
   }, [computeFlags]);
 
+  // Initial load
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  // Refresh on focus and every 30s
-  useEffect(() => {
-    const onFocus = () => loadDashboardData();
-    window.addEventListener('focus', onFocus);
-    const id = setInterval(loadDashboardData, 30000);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      clearInterval(id);
-    };
-  }, [loadDashboardData]);
+  // No auto-refresh - only manual refresh via button
+  // Removed all automatic refresh mechanisms
 
   // const markSeen = (key, currentValue) => {
   //   localStorage.setItem(statKey(key), String(currentValue));
@@ -404,23 +414,36 @@ console.log("dashboardState.stats",dashboardState)
                 day: 'numeric' 
               })}
             </Typography>
+            {lastRefreshTime && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Last updated: {lastRefreshTime.toLocaleTimeString()}
+              </Typography>
+            )}
           </Box>
           
-          <Button
-            variant="outlined"
-            onClick={loadDashboardData}
-            disabled={dashboardState.loading}
-            startIcon={<Refresh />}
-            sx={{
-              borderRadius: '8px',
-              textTransform: 'none',
-              fontWeight: '500',
-              px: 3,
-              mt: isMobile ? 2 : 0
-            }}
-          >
-            Refresh
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {dashboardState.loading && (
+              <Typography variant="caption" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Refresh sx={{ fontSize: 14, animation: 'spin 1s linear infinite' }} />
+                Refreshing...
+              </Typography>
+            )}
+            <Button
+              variant="outlined"
+              onClick={loadDashboardData}
+              disabled={dashboardState.loading}
+              startIcon={<Refresh />}
+              sx={{
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontWeight: '500',
+                px: 3,
+                mt: isMobile ? 2 : 0
+              }}
+            >
+              Refresh
+            </Button>
+          </Box>
         </Box>
 
         {/* Stats Cards Section */}
