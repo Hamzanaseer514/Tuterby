@@ -43,12 +43,30 @@ const statusColors = {
 const AdminDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // State management
-  const [dashboardState, setDashboardState] = useState({
-    users: { tutors: [], students: [], parents: [] },
-    stats: {},
-    loading: false,
-    error: null
+  // State management with localStorage persistence
+  const [dashboardState, setDashboardState] = useState(() => {
+    // Try to load from localStorage first
+    const savedState = localStorage.getItem('adminDashboardState');
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        // Check if data is not too old (less than 5 minutes)
+        if (parsed.lastUpdated && (Date.now() - new Date(parsed.lastUpdated).getTime()) < 5 * 60 * 1000) {
+          return parsed;
+        }
+      } catch (error) {
+        console.error('Error parsing saved dashboard state:', error);
+      }
+    }
+    
+    // Default state if no saved data or data is too old
+    return {
+      users: { tutors: [], students: [], parents: [] },
+      stats: {},
+      loading: false,
+      error: null,
+      lastUpdated: null
+    };
   });
 
   const [uiState, setUiState] = useState({
@@ -91,29 +109,63 @@ const AdminDashboard = () => {
     setFormState(prev => ({ ...prev, ...updates }));
   };
 
+  // Save state to localStorage whenever dashboardState changes
+  useEffect(() => {
+    if (dashboardState.lastUpdated) {
+      localStorage.setItem('adminDashboardState', JSON.stringify(dashboardState));
+    }
+  }, [dashboardState]);
+
   const showNotification = (message, severity = 'success') => {
     updateUiState({
       snackbar: { open: true, message, severity }
     });
   };
 
-  // Initialize tab from query param
+  // Initialize tab from query param or navigation state
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     const valid = ['tutors', 'students', 'parents'];
+    
+    // Check if coming back from detail page with preserved data
+    const preserveData = location.state?.preserveData;
+    const navTabValue = location.state?.tabValue;
+    
+    if (preserveData && navTabValue && valid.includes(navTabValue)) {
+      // Coming back from detail page - switch tab and ensure data exists
+      setUiState(prev => ({ ...prev, tabValue: navTabValue }));
+      
+      // Check if data exists for this tab, if not load it
+      if (!dashboardState.users[navTabValue] || dashboardState.users[navTabValue].length === 0) {
+        loadUsers(navTabValue);
+      }
+      return;
+    }
+    
     if (tab && valid.includes(tab)) {
       setUiState(prev => ({ ...prev, tabValue: tab }));
-      // ensure data for requested tab
-      loadUsers(tab);
+      // Only load if data doesn't exist for this tab
+      if (!dashboardState.users[tab] || dashboardState.users[tab].length === 0) {
+        loadUsers(tab);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
+  }, [location.search, location.state]);
 
-  // Load initial data
+  // Load initial data only once
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    // Don't load if coming back from detail page with preserved data
+    const preserveData = location.state?.preserveData;
+    if (preserveData) {
+      return;
+    }
+    
+    // Only load if no data exists
+    if (!dashboardState.stats || Object.keys(dashboardState.stats).length === 0) {
+      loadDashboardData();
+    }
+  }, [location.state]); // Add location.state as dependency
 
   const loadDashboardData = async () => {
     updateDashboardState({ loading: true, error: null });
@@ -138,7 +190,8 @@ const AdminDashboard = () => {
         ...prev,
         stats: statsData,
         users: { ...prev.users, [uiState.tabValue || 'tutors']: usersData },
-        loading: false
+        loading: false,
+        lastUpdated: new Date()
       }));
 
       showNotification('Data loaded successfully');
@@ -161,13 +214,19 @@ const AdminDashboard = () => {
           ...prev,
           stats: statsData,
           users: { ...prev.users, [uiState.tabValue || 'tutors']: usersData },
-          loading: false
+          loading: false,
+          lastUpdated: new Date()
         }));
       }
     }
   };
 
-  const loadUsers = async (userType) => {
+  const loadUsers = async (userType, forceReload = false) => {
+    // Don't reload if data already exists and not forced
+    if (!forceReload && dashboardState.users[userType] && dashboardState.users[userType].length > 0) {
+      return;
+    }
+
     updateDashboardState({ loading: true });
     
     try {
@@ -175,7 +234,8 @@ const AdminDashboard = () => {
       setDashboardState(prev => ({
         ...prev,
         users: { ...prev.users, [userType]: usersData },
-        loading: false
+        loading: false,
+        lastUpdated: new Date()
       }));
 
       if (usersData.length === 0) {
@@ -200,7 +260,9 @@ const AdminDashboard = () => {
   };
 
   const handleRequestReload = () => {
-    loadUsers(uiState.tabValue);
+    // Clear localStorage cache when manually refreshing
+    localStorage.removeItem('adminDashboardState');
+    loadUsers(uiState.tabValue, true); // Force reload
   };
 
   // Event handlers
@@ -239,7 +301,10 @@ const AdminDashboard = () => {
       tabValue: newValue,
       page: 0
     });
-    loadUsers(newValue || 'tutors');
+    // Only load if data doesn't exist for this tab
+    if (!dashboardState.users[newValue] || dashboardState.users[newValue].length === 0) {
+      loadUsers(newValue || 'tutors');
+    }
   };
 
   const handleMenuClick = (event, user) => {
@@ -302,7 +367,7 @@ const AdminDashboard = () => {
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <Box
                         component="button"
-                        onClick={loadDashboardData}
+                        onClick={handleRequestReload}
                         disabled={dashboardState.loading}
                         sx={{
                           display: 'flex',

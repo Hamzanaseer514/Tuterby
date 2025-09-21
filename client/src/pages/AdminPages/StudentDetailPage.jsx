@@ -194,7 +194,7 @@ const StudentDetailPage = () => {
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Tooltip title="Go back">
               <IconButton
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })}
                 sx={{
                   mr: 2,
                   backgroundColor: "action.hover",
@@ -210,7 +210,7 @@ const StudentDetailPage = () => {
           </Box>
           <Button
             variant="outlined"
-            onClick={() => navigate("/admin/users")}
+            onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })}
             sx={{ textTransform: "none", borderRadius: 2, px: 3, py: 1 }}
           >
             Back to Users

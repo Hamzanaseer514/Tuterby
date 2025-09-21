@@ -508,7 +508,7 @@ const getAcademicLevel = (level) => {Experience
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate("/admin/users")} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -1018,7 +1018,7 @@ const getAcademicLevel = (level) => {Experience
                   </Button>
                 )}
               </>
-              <Button onClick={() => navigate("/admin/users")} variant="outlined" sx={{ minHeight: 48, minWidth: 120, px: 3, py: 1.5, fontSize: "0.875rem", fontWeight: 500, cursor: "pointer", userSelect: "none" }}>
+              <Button onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })} variant="outlined" sx={{ minHeight: 48, minWidth: 120, px: 3, py: 1.5, fontSize: "0.875rem", fontWeight: 500, cursor: "pointer", userSelect: "none" }}>
                 Back
               </Button>
             </Box>
