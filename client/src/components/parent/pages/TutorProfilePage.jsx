@@ -278,6 +278,7 @@ const TutorProfilePage = () => {
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {tutor.inquiry_stats.average_response_time || "N/A"}
               </p>
+              {console.log(tutor.inquiry_stats)}
             </div>
             <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
               <p className="text-xs text-gray-500">Fastest Response</p>

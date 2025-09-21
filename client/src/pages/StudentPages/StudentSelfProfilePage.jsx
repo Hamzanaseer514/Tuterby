@@ -146,7 +146,7 @@ const StudentSelfProfilePage = () => {
                       formData.append('photo', file);
                       const res = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${user._id}/photo`, {
                         method: 'POST',
-                        headers: { 'Content-Type': `multipart/form-data` },
+                        // headers: { 'Content-Type': `multipart/form-data` },
                         body: formData,
                       }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
                       );

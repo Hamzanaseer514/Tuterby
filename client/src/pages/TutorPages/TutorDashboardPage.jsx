@@ -144,7 +144,7 @@ const TutorDashboardPage = () => {
             messagesCount = 0;
           }
         }
-      } catch {}
+      } catch { }
 
       let interviewsCount = 0;
       try {
@@ -175,10 +175,10 @@ const TutorDashboardPage = () => {
             interviewsCount = 1;
           }
         }
-      } catch {}
+      } catch { }
 
       setBadgeCounts({ inquiries: inquiriesCount, chat: messagesCount, 'student-requests': hireCount, sessions: sessionsCount, interviews: interviewsCount });
-    } catch {}
+    } catch { }
   }, [user?._id]);
 
   useEffect(() => {
@@ -329,7 +329,7 @@ const TutorDashboardPage = () => {
                 user?.full_name?.charAt(0) || <User className="h-5 w-5" />
               )}
             </div>
-            
+
             <div>
               <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
               <p className="text-xs text-gray-500">Tutor Account</p>
@@ -423,7 +423,7 @@ const TutorDashboardPage = () => {
                     user?.full_name?.charAt(0) || <User className="h-5 w-5" />
                   )}
                 </div>
-                
+
                 <div>
                   <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
                   <p className="text-xs text-gray-500">Tutor Account</p>

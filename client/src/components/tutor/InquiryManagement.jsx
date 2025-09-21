@@ -275,9 +275,9 @@ const InquiryManagement = () => {
                   </div>
                 </div>
                 
-                {selectedInquiry.status === 'replied' && selectedInquiry.response_time_minutes && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Response Time</Label>
+                {selectedInquiry.status === 'replied' && (
+                  <div className='flex gap-2 '>
+                    <Label className="text-sm font-medium text-gray-600">Response Time: </Label>
                     <p className="text-sm text-gray-600">
                       {Math.round(selectedInquiry.response_time_minutes)} minutes
                     </p>

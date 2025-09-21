@@ -79,13 +79,16 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
     return `£${tutor.min_hourly_rate} - £${tutor.max_hourly_rate}/hr`;
   };
 
-  return (
+ return (
     <Card 
       elevation={0}
       sx={{ 
         height: 'auto',
         minHeight: '320px',
+        width: '100%', // Ensure full width of grid item
         borderRadius: 3,
+        display: 'flex',
+        flexDirection: 'column',
         border: `1px solid ${theme.palette.divider}`,
         transition: 'all 0.3s ease',
         '&:hover': {
@@ -271,7 +274,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
           )}
 
           {/* Stats Section - Compact */}
-          <Box sx={{ 
+          {/* <Box sx={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
@@ -302,7 +305,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                 Years
               </Typography>
             </Box>
-          </Box>
+          </Box> */}
 
           {/* Verification Badges - Compact */}
           {(tutor.is_background_checked || tutor.is_qualification_verified) && (

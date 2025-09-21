@@ -489,34 +489,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-              {/* Response Time Statistics */}
-              {tutor.response_statistics?.total_replied >= 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      Response Time
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Average Response:</span>
-                        <span className="font-semibold">{formatResponseTime(tutor.response_statistics.average_response_time_minutes)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Fastest Response:</span>
-                        <span className="font-semibold text-green-600">{formatResponseTime(tutor.response_statistics.fastest_response_minutes)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Total Replied:</span>
-                        <span className="font-semibold">{tutor.response_statistics.total_replied}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
+             
               {/* Inquiry Statistics */}
               <Card>
                 <CardHeader>
@@ -558,7 +531,7 @@ const TutorProfilePage = () => {
               </Card>
 
               {/* Student's Inquiries to This Tutor */}
-              {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
+              {/* {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -602,17 +575,17 @@ const TutorProfilePage = () => {
                               )}
                             </div>
                           )}
-                          {/* {inquiry.response_time_minutes && (
+                          {inquiry.response_time_minutes && (
                             <p className="text-xs text-gray-500 mt-1">
                               Responded in: {formatResponseTime(inquiry.response_time_minutes)}
                             </p>
-                          )} */}
+                          )}
                         </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              )} */}
 
 
             </div>
@@ -789,6 +762,36 @@ const TutorProfilePage = () => {
                   </Button> */}
                 </CardContent>
               </Card>
+
+
+               {/* Response Time Statistics */}
+              {tutor.response_statistics?.total_replied >= 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Response Time
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Average Response:</span>
+                        <span className="font-semibold">{formatResponseTime(tutor.response_statistics.average_response_time_minutes)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Fastest Response:</span>
+                        <span className="font-semibold text-green-600">{formatResponseTime(tutor.response_statistics.fastest_response_minutes)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Replied:</span>
+                        <span className="font-semibold">{tutor.response_statistics.total_replied}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
             </div>
           </div>
         </div>

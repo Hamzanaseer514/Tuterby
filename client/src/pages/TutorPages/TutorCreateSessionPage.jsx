@@ -194,7 +194,7 @@ const TutorCreateSessionPage = () => {
         for (const userId of nextIds) {
             const paymentStatus = await checkStudentPaymentStatus(userId);
             const hiredData = await fetchHiredSubjectsAndLevels(userId);
-
+            console.log(`Hired data for student ${userId}:`, hiredData);
             if (paymentStatus) {
                 newPaymentStatuses[userId] = paymentStatus;
             }
@@ -222,7 +222,6 @@ const TutorCreateSessionPage = () => {
                 data.subjects.forEach(subject => allSubjects.add(subject));
                 data.levels.forEach(level => allLevels.add(level));
             });
-
             // Find subjects that exist in ALL students
             allSubjects.forEach(subjectId => {
                 const existsInAllStudents = studentHiredData.every(data =>
@@ -242,6 +241,8 @@ const TutorCreateSessionPage = () => {
                     commonHiredLevels.push(levelId);
                 }
             });
+
+          
         }
 
         // Set common hired subjects and levels

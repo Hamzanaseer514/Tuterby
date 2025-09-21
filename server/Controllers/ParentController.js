@@ -148,7 +148,7 @@ exports.getParentProfile = asyncHandler(async (req, res) => {
 exports.updateParentProfile = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
   const updateData = req.body;
-
+  console.log("Update data:", updateData);
   try {
     const user = await User.findByIdAndUpdate(
       user_id,
@@ -506,7 +506,7 @@ exports.deleteChildFromParent = asyncHandler(async (req, res) => {
     try {
       // First, verify the child exists and belongs to the parent
       const parentProfile = await ParentProfile.findOne({ user_id: parentUserId }).session(session);
-      
+
       if (!parentProfile) {
         res.status(404);
         throw new Error("Parent profile not found");
@@ -514,7 +514,7 @@ exports.deleteChildFromParent = asyncHandler(async (req, res) => {
 
       // Find the student profile by user_id (not by _id)
       const studentProfile = await Student.findOne({ user_id: childId }).session(session);
-      
+
       if (!studentProfile) {
         res.status(404);
         throw new Error("Child profile not found");
@@ -720,7 +720,6 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     const allInquiries = await TutorInquiry.find({
       tutor_id: { $in: tutors.map(t => t._id) }
     }).select('tutor_id status replied_at createdAt');
-    console.log("in", allInquiries)
     const tutorInquiryStatsMap = {};
     allInquiries.forEach(inquiry => {
       const tId = inquiry.tutor_id.toString();
@@ -786,20 +785,20 @@ exports.searchTutors = asyncHandler(async (req, res) => {
           by_status: {}
         };
 
-        const avgResponse =
-          stats.response_times.length > 0
-            ? Math.round(
-                stats.response_times.reduce((a, b) => a + b, 0) /
-                  stats.response_times.length /
-                  60000
-              )
-            : null;
+      const avgResponse =
+  stats.response_times.length > 0
+    ? Math.ceil(
+        (stats.response_times.reduce((a, b) => a + b, 0) / stats.response_times.length) / 60000
+      )
+    : null;
 
-        const fastestResponse =
-          stats.response_times.length > 0
-            ? Math.round(Math.min(...stats.response_times) / 60000)
-            : null;
 
+        const fastestResponse = stats.response_times.length
+          ? Math.ceil(Math.min(...stats.response_times) / 60000)
+          : null;
+
+        console.log("stats", stats)
+        console.log("fast", fastestResponse)
         const replyRate =
           stats.total_received > 0
             ? (stats.total_replied / stats.total_received) * 100
@@ -837,7 +836,6 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     // ==============================
     // 📤 Send Response
     // ==============================
-    console.log("formatted",formattedTutors)
     res.status(200).json({
       tutors: formattedTutors,
       pagination: {

@@ -397,15 +397,15 @@ exports.registerTutor = asyncHandler(async (req, res) => {
 
 exports.registerParent = asyncHandler(async (req, res) => {
   const { full_name, email, phone_number, password, age } = req.body;
-
+console.log(req.body)
   // Get photo URL from uploaded file or use default
   let photo_url = null;
-  if (req.file) {
-    photo_url = `/uploads/documents/${req.file.filename}`;
+  if (req.body.photo_url) {
+    photo_url = `/uploads/documents/${req.body.photo_url}`;
   } else if (req.body.photo_url) {
     photo_url = req.body.photo_url;
   }
-
+  console.log("Photo URL:", photo_url);
   if (!email || !password || !full_name) {
     res.status(400);
     throw new Error("Full name, email, and password are required");
@@ -717,7 +717,6 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
   user.refreshToken = refreshToken;
-  console.log("Generated refresh token for user ID:", user._id);
   await user.save();
 
   // === Set cookie ===
@@ -885,6 +884,7 @@ exports.getUserProfile = asyncHandler(async (req, res) => {
 });
 
 exports.updateUserPhoto = asyncHandler(async (req, res) => {
+  console.log(req.params);
   try {
     const { user_id } = req.params;
     if (!req.file) {

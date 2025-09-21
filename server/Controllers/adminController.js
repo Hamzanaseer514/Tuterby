@@ -1045,7 +1045,6 @@ exports.getAllUsers = async (req, res) => {
         return baseUser;
       })
     );
-    console.log(formattedUsers)
     res.status(200).json(formattedUsers);
   } catch (err) {
 
@@ -1235,11 +1234,7 @@ exports.getTutorDetails = async (req, res) => {
       applicationNotes: application ? application.admin_notes : "",
     };
 
-    
-
-
-console.log(tutorDetails)
-    res.status(200).json(tutorDetails);
+      res.status(200).json(tutorDetails);
 
   } catch (err) {
 
@@ -1406,147 +1401,61 @@ exports.updateApplicationNotes = async (req, res) => {
 // Get dashboard statistics
 
 exports.getDashboardStats = async (req, res) => {
-
   try {
+    const totalTutors      = await TutorProfile.countDocuments();
+    const pendingTutors    = await TutorProfile.countDocuments({ profile_status: "pending" });
+    const verifiedTutors   = await TutorProfile.countDocuments({ profile_status: "approved" });
 
-    const totalTutors = await TutorProfile.countDocuments();
+    const totalStudents    = await StudentProfile.countDocuments();
+    const totalParents     = await ParentProfile.countDocuments();
 
-    const pendingTutors = await TutorProfile.countDocuments({
+    const pendingInterviews = await TutorApplication.countDocuments({ interview_status: "Scheduled" });
+    const inactiveTutors    = await TutorProfile.countDocuments({ profile_status: "unverified" });
+    const inactiveStudents  = await User.countDocuments({ role: "student", is_verified: "inactive" });
+    const inactiveParents   = await User.countDocuments({ role: "parent",  is_verified: "inactive" });
 
-      profile_status: "pending",
+    const totalSessions    = await TutoringSession.countDocuments();
+    const completedSessions= await TutoringSession.countDocuments({ status: "completed" });
+    const pendingSessions  = await TutoringSession.countDocuments({ status: "pending" });
 
-    });
-
-    const verifiedTutors = await TutorProfile.countDocuments({
-
-      profile_status: "approved",
-
-    });
-
-
-
-    const totalStudents = await StudentProfile.countDocuments();
-
-    const totalParents = await ParentProfile.countDocuments();
-
-
-
-    const pendingInterviews = await TutorApplication.countDocuments({
-
-      interview_status: "Scheduled",
-
-    });
-
-    const inactiveTutors = await TutorProfile.countDocuments({
-
-      profile_status: "unverified",
-
-    });
-
-    const inactiveStudents = await User.countDocuments({
-
-      role: "student",
-
-      is_verified: "inactive",
-
-    });
-
-    const inactiveParents = await User.countDocuments({
-
-      role: "parent",
-
-      is_verified: "inactive",
-
-    });
-
-    const totalSessions = await TutoringSession.countDocuments();
-    const completedSessions = await TutoringSession.countDocuments({ status: 'completed' });
-    const pendingSessions = await TutoringSession.countDocuments({ status: 'pending' });
-
-
-    const revenue = await TutoringSession.aggregate([
-      { $match: { status: 'completed' } },
-      { $group: { _id: null, total: { $sum: '$total_earnings' }, change: { $sum: '$total_earnings' } } }
-    ]);
-    const lastMonthRevenue = await TutoringSession.aggregate([
-      { $match: { status: 'completed', createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
-      { $group: { _id: null, total: { $sum: '$total_earnings' }, change: { $sum: '$total_earnings' } } }
+    const revenueAgg = await TutoringSession.aggregate([
+      { $match: { status: "completed" } },
+      { $group: { _id: null, total: { $sum: "$total_earnings" } } }
     ]);
 
+    const lastMonthAgg = await TutoringSession.aggregate([
+      { $match: { status: "completed", createdAt: { $gte: new Date(Date.now() - 30*24*60*60*1000) } } },
+      { $group: { _id: null, total: { $sum: "$total_earnings" } } }
+    ]);
+
+    const totalRevenue     = revenueAgg[0]?.total || 0;
+    const lastMonthRevenue = lastMonthAgg[0]?.total || 0;
 
     const stats = {
-
-      tutors: {
-
-        total: totalTutors,
-
-        pending: pendingTutors,
-
-        verified: verifiedTutors,
-
-      },
-
-      students: {
-
-        total: totalStudents,
-
-      },
-
-      parents: {
-
-        total: totalParents,
-
-      },
-
-      interviews: {
-
-        pending: pendingInterviews,
-
-      },
-
-      inactive: {
-
-        tutors: inactiveTutors,
-
-        students: inactiveStudents,
-
-        parents: inactiveParents,
-
-      },
-
-      sessions: {
-
-        total: totalSessions,
-        completed: completedSessions,
-        pending: pendingSessions,
-      },
-
-      revenue: {
-
-        total: revenue[0].total,
-        change: revenue[0].change,
-        lastMonthRevenue: lastMonthRevenue[0].total,
-        lastMonthChange: lastMonthRevenue[0].change,
-
-      },
-
+      tutors:   { total: totalTutors, pending: pendingTutors, verified: verifiedTutors },
+      students: { total: totalStudents || 0 },
+      parents:  { total: totalParents },
+      interviews: { pending: pendingInterviews },
+      inactive: { tutors: inactiveTutors, students: inactiveStudents, parents: inactiveParents },
+      sessions: { total: totalSessions, completed: completedSessions, pending: pendingSessions },
+      revenue:  {
+        total: totalRevenue,
+        lastMonthRevenue,
+        // if you need a “change” percentage or amount, calculate it safely
+        change: totalRevenue,        // or compute delta if desired
+        lastMonthChange: lastMonthRevenue
+      }
     };
 
     res.status(200).json(stats);
-
   } catch (err) {
-
     res.status(500).json({
-
       message: "Failed to get dashboard statistics",
-
-      error: err.message,
-
+      error: err.message
     });
-
   }
-
 };
+
 
 
 
@@ -2772,7 +2681,6 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
       sessions_remaining: p.sessions_remaining,
       createdAt: p.createdAt,
     }));
-console.log(formattedPayments)
     res.status(200).json({ success: true, payments: formattedPayments });
   } catch (error) {
     console.error("Error fetching payments:", error);

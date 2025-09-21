@@ -103,12 +103,12 @@ export const ParentProvider = ({ children }) => {
     try {
       const formData = new FormData();
       formData.append('photo', photoFile);
-
+      console.log("Uploading photo for user:", userId, photoFile, formData);
       const response = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${userId}/photo`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        // headers: {
+        //   // 'Content-Type': 'application/json',
+        // },
         body: formData
       }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
       );
@@ -155,9 +155,9 @@ export const ParentProvider = ({ children }) => {
 
       const response = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${childId}/photo`, {
         method: 'POST',
-        headers: {
-          "Content-Type": "application/json" // Let browser set this with boundary
-        },
+        // headers: {
+        //   // "Content-Type": "application/json" // Let browser set this with boundary
+        // },
         body: formData
       }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
       );

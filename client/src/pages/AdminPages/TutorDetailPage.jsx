@@ -210,6 +210,7 @@ const getAcademicLevel = (level) => {Experience
               },
             ],
       }));
+      console.log("Interview toggle updated:", newValue);
       toast.success("Interview toggle updated successfully!");
     } catch (error) {
       console.error("Failed to update interview toggle:", error);
@@ -329,6 +330,7 @@ const getAcademicLevel = (level) => {Experience
 
   const handleApproveTutor = async () => {
     const res = await approveTutorProfile(user.id, profileStatusReason);
+    console.log("res", res);
     if (res.status === 400) {
       toast.error(res.data.message);
     } else if (res.status === 200) {
@@ -345,6 +347,7 @@ const getAcademicLevel = (level) => {Experience
 
   const handlePartialApproveTutor = async () => {
     const res = await partialApproveTutor(user.id, profileStatusReason);
+    console.log("ap", res)
     if (res.status === 400) {
       toast.error(res.data.message);
     } else if (res.status === 200) {

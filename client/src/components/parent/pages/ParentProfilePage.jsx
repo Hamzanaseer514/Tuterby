@@ -96,12 +96,12 @@ const ParentProfilePage = () => {
       setSaving(true);
       // Update profile data
       await updateParentProfile(user._id, formData);
-      
+
       // Upload photo if selected
+      console.log("In Component:", user._id, photoFile);
       if (photoFile) {
         await uploadParentPhoto(user._id, photoFile);
       }
-      
       setIsEditing(false);
       setPhotoFile(null);
       setPhotoPreview(null);
