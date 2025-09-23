@@ -224,44 +224,44 @@ const TutorSetting = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex items-center justify-center min-h-[60vh] p-4">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-gray-600">Loading your settings...</p>
+                    <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
+                    <p className="text-gray-600 text-sm sm:text-base text-center">Loading your settings...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="container px-4 py-8">
-            <div className="max-w-6xl mx-auto space-y-8">
+        <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6 lg:p-8">
+            <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
                 {/* Header Section */}
-                <div className="space-y-2">
-                    <h1 className="text-3xl font-bold text-gray-900">Tutor Settings</h1>
-                    <p className="text-gray-600">Manage your education levels, rates, and subjects</p>
+                <div className="space-y-2 sm:space-y-3">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Tutor Settings</h1>
+                    <p className="text-sm sm:text-base md:text-lg text-gray-600">Manage your education levels, rates, and subjects</p>
                 </div>
 
                 {/* Subjects Section */}
                 <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xl">Subjects Taught</CardTitle>
-                        <CardDescription>Your current subject specializations</CardDescription>
+                    <CardHeader className="p-4 sm:p-6">
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl">Subjects Taught</CardTitle>
+                        <CardDescription className="text-sm sm:text-base">Your current subject specializations</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-2">
+                    <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
                             {subjectIds.length > 0 ? (
                                 subjectIds.map((subject, index) => (
                                     <Badge 
                                         key={index} 
                                         variant="secondary" 
-                                        className="px-3 py-1 text-sm"
+                                        className="px-2 sm:px-3 py-1 text-xs sm:text-sm break-words"
                                     >
                                         {getSubjectName(subject).name} - {getSubjectName(subject).subject_type.name} - {getSubjectName(subject).level_id.level}
                                     </Badge>
                                 ))
                             ) : (
-                                <p className="text-gray-500">No subjects assigned yet</p>
+                                <p className="text-gray-500 text-sm sm:text-base">No subjects assigned yet</p>
                             )}
                         </div>
                     </CardContent>
@@ -269,22 +269,22 @@ const TutorSetting = () => {
 
                 {/* Add Level Section */}
                 <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xl">Add Education Level</CardTitle>
-                        <CardDescription>
+                    <CardHeader className="p-4 sm:p-6">
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl">Add Education Level</CardTitle>
+                        <CardDescription className="text-sm sm:text-base">
                             Select a level to add to your profile
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col sm:flex-row gap-4 items-end">
+                    <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-end">
                             <div className="flex-1 w-full">
-                                <Label htmlFor="add-level">Education Level</Label>
+                                <Label htmlFor="add-level" className="text-sm sm:text-base font-medium">Education Level</Label>
                                 <Select
                                     value={selectedLevelId}
                                     onValueChange={setSelectedLevelId}
                                     disabled={availableLevels.length === 0}
                                 >
-                                    <SelectTrigger className="mt-1">
+                                    <SelectTrigger className="mt-1 sm:mt-2 text-sm sm:text-base">
                                         <SelectValue placeholder={
                                             availableLevels.length === 0 
                                                 ? "No available levels to add" 
@@ -306,7 +306,7 @@ const TutorSetting = () => {
                             <Button 
                                 onClick={addLevel} 
                                 disabled={!selectedLevelId || adding || availableLevels.length === 0}
-                                className="w-full sm:w-auto"
+                                className="w-full sm:w-auto text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
                             >
                                 {adding ? (
                                     <>
@@ -326,27 +326,28 @@ const TutorSetting = () => {
 
                 {/* Current Levels Section */}
                 <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xl">Your Education Levels</CardTitle>
-                        <CardDescription>
+                    <CardHeader className="p-4 sm:p-6">
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl">Your Education Levels</CardTitle>
+                        <CardDescription className="text-sm sm:text-base">
                             Manage rates and settings for each level
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-4 sm:p-6">
                         {levels.length === 0 ? (
-                            <div className="py-8 text-center">
-                                <p className="text-gray-500 mb-4">You haven't added any education levels yet</p>
+                            <div className="py-8 sm:py-12 text-center">
+                                <p className="text-gray-500 mb-4 text-sm sm:text-base">You haven't added any education levels yet</p>
                                 <Button 
                                     variant="outline"
                                     onClick={() => setSelectedLevelId(availableLevels[0]?._id || '')}
                                     disabled={availableLevels.length === 0}
+                                    className="text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
                                 >
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Add Your First Level
                                 </Button>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-4 sm:space-y-6">
                                 {levels.map((level, idx) => {
                                     const monthlyRate = calculateMonthlyRate(
                                         level.hourlyRate,
@@ -358,35 +359,36 @@ const TutorSetting = () => {
                                     return (
                                         <div 
                                             key={level.educationLevelId} 
-                                            className="border rounded-lg p-4 bg-white shadow-sm"
+                                            className="border rounded-lg p-4 sm:p-6 bg-white shadow-sm"
                                         >
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
                                                 <div>
-                                                    <h3 className="font-semibold text-lg">
+                                                    <h3 className="font-semibold text-base sm:text-lg md:text-lg">
                                                         {level.educationLevelName}
-                                            </h3>
+                                                    </h3>
                                                     {locked && (
-                                                        <p className="text-sm text-amber-600 mt-1">
+                                                        <p className="text-xs sm:text-xs text-amber-600 mt-1">
                                                             Rates are managed by admin and cannot be changed
                                                         </p>
                                                     )}
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => removeLevel(level)}
                                                         disabled={deletingId === level.educationLevelId}
+                                                        className="text-xs sm:text-sm px-3 sm:px-4 py-2"
                                                     >
                                                         {deletingId === level.educationLevelId ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1 sm:mr-2" />
                                                         ) : (
-                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                                                         )}
                                                         Remove
                                                     </Button>
-                                            <Button 
-                                                size="sm"
+                                                    <Button 
+                                                        size="sm"
                                                         onClick={() => updateLevel(level)}
                                                         disabled={
                                                             savingId === level.educationLevelId || 
@@ -396,64 +398,65 @@ const TutorSetting = () => {
                                                                 level[k] !== levelsById.get(String(level.educationLevelId))?.[k]
                                                             )
                                                         )}
+                                                        className="text-xs sm:text-sm px-3 sm:px-4 py-2"
                                                     >
                                                         {savingId === level.educationLevelId ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1 sm:mr-2" />
                                                         ) : (
-                                                            <Save className="h-4 w-4 mr-2" />
+                                                            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                                                         )}
                                                         Save
-                                            </Button>
+                                                    </Button>
                                                 </div>
-                                        </div>
+                                            </div>
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div>
-                                                    <Label htmlFor={`hr-${idx}`}>Hourly Rate (£)</Label>
-                                                <Input
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                                                <div>
+                                                    <Label htmlFor={`hr-${idx}`} className="text-sm sm:text-base font-medium">Hourly Rate (£)</Label>
+                                                    <Input
                                                         id={`hr-${idx}`}
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
                                                         value={level.hourlyRate}
                                                         onChange={(e) => onFieldChange(level.educationLevelId, 'hourlyRate', e.target.value)}
                                                         disabled={locked}
-                                                    className="mt-1"
-                                                />
-                                            </div>
-                                            <div>
-                                                    <Label htmlFor={`ts-${idx}`}>Monthly Sessions</Label>
-                                                <Input
+                                                        className="mt-1 sm:mt-2 text-sm sm:text-base"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor={`ts-${idx}`} className="text-sm sm:text-base font-medium">Monthly Sessions</Label>
+                                                    <Input
                                                         id={`ts-${idx}`}
-                                                    type="number"
-                                                    min="0"
+                                                        type="number"
+                                                        min="0"
                                                         value={level.totalSessionsPerMonth}
                                                         onChange={(e) => onFieldChange(level.educationLevelId, 'totalSessionsPerMonth', e.target.value)}
                                                         disabled={locked}
-                                                    className="mt-1"
-                                                />
-                                            </div>
-                                            <div>
-                                                    <Label htmlFor={`dc-${idx}`}>Discount (%)</Label>
-                                                <Input
+                                                        className="mt-1 sm:mt-2 text-sm sm:text-base"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor={`dc-${idx}`} className="text-sm sm:text-base font-medium">Discount (%)</Label>
+                                                    <Input
                                                         id={`dc-${idx}`}
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    step="0.01"
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="0.01"
                                                         value={level.discount}
                                                         onChange={(e) => onFieldChange(level.educationLevelId, 'discount', e.target.value)}
                                                         disabled={locked}
-                                                    className="mt-1"
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label>Monthly Rate (£)</Label>
-                                                    <div className="mt-1 p-2 bg-gray-50 border rounded-md text-gray-700 font-medium">
+                                                        className="mt-1 sm:mt-2 text-sm sm:text-base"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-sm sm:text-base font-medium">Monthly Rate (£)</Label>
+                                                    <div className="mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 border rounded-md text-gray-700 font-medium text-sm sm:text-base">
                                                         {monthlyRate.toFixed(2)}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
                                     </div>
                                     );
                                 })}

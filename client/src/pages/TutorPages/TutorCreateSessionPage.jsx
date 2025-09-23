@@ -10,14 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+import { ChevronLeft, ChevronRight, Calendar, Clock, Users, BookOpen, GraduationCap, DollarSign, FileText } from "lucide-react";
 
 const TutorCreateSessionPage = () => {
     const navigate = useNavigate();
     const { user, getAuthToken, fetchWithAuth } = useAuth();
     const { academicLevels, subjects } = useSubject();
     const token = getAuthToken();
-
+    const dayNamesShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
     const [availableStudents, setAvailableStudents] = useState([]);
     const [loadingStudents, setLoadingStudents] = useState(false);
     const [parsedSubjects, setParsedSubjects] = useState([]);
@@ -51,8 +52,7 @@ const TutorCreateSessionPage = () => {
     const [loadingPaymentStatus, setLoadingPaymentStatus] = useState(false);
     const [hiredSubjectsAndLevels, setHiredSubjectsAndLevels] = useState({ hired_subjects: [], hired_academic_levels: [] });
     const [loadingHiredData, setLoadingHiredData] = useState(false);
-
-
+    const [activeTab, setActiveTab] = useState("details"); // "details" or "schedule"
 
     const getSubjectById = useCallback((id) => {
         if (!id) return undefined;
@@ -76,7 +76,6 @@ const TutorCreateSessionPage = () => {
         const rate = typeof level?.hourlyRate === 'number' ? level.hourlyRate : 0;
         setSessionForm(prev => ({ ...prev, hourly_rate: rate }));
     }, [sessionForm.academic_level, getLevelById]);
-
 
     const fetchHiredSubjectsAndLevels = useCallback(async (studentId) => {
         try {
@@ -420,66 +419,47 @@ const TutorCreateSessionPage = () => {
         return displayMonth.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
     }, [displayMonth]);
 
-    const allSubjects = useMemo(() => {
-        if (!sessionForm.student_ids || sessionForm.student_ids.length === 0) {
-            return [];
-        }
-
-        // Get subjects for each selected student
-        const selectedStudents = availableStudents.filter(s => sessionForm.student_ids.includes(s._id));
-        const studentSubjectSets = selectedStudents.map(student => {
-            const studentSubjects = Array.isArray(student.preferred_subjects) ? student.preferred_subjects : [];
-            return new Set(studentSubjects);
-        });
-
-        // Get tutor subjects
-        const tutorSubjectIds = new Set(parsedSubjects);
-
-        // Find subjects that exist in ALL students AND tutor
-        const commonSubjects = [];
-        tutorSubjectIds.forEach(subjectId => {
-            // Check if this subject exists in ALL selected students
-            const existsInAllStudents = studentSubjectSets.every(studentSet =>
-                studentSet.has(subjectId)
-            );
-
-            if (existsInAllStudents) {
-                commonSubjects.push(subjectId);
-            }
-        });
-
-        return commonSubjects.sort();
-    }, [selectedStudentSubjects, parsedSubjects, sessionForm.student_ids, availableStudents]);
-
-    // const allAcademicLevels = useMemo(() => {
-    //     const s = new Set();
-    //     selectedStudentAcademicLevels.forEach(x => s.add(x));
-    //     // tutorAcademicLevels.forEach(x => s.add(x));
-    //     return Array.from(s).sort();
-    // }, [selectedStudentAcademicLevels]);
-
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-8 flex items-center justify-between">
+                <div className="mb-6 md:mb-8 flex items-center justify-between">
                     <div>
-
-                        <h1 className="text-3xl font-bold text-gray-900">Create New Session</h1>
-                        <p className="text-gray-600">Plan a new tutoring session with your students</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Create New Session</h1>
+                        <p className="text-gray-600 text-sm md:text-base">Plan a new tutoring session with your students</p>
                     </div>
-                    <Button variant="outline" onClick={() => navigate(-1)}>Back</Button>
+                    <Button variant="outline" onClick={() => navigate(-1)} className="hidden md:flex">Back</Button>
+                    <Button variant="outline" onClick={() => navigate(-1)} size="sm" className="md:hidden">
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
                 </div>
+
+                {/* Mobile tabs */}
+                <div className="md:hidden flex border-b mb-4">
+                    <button
+                        className={`flex-1 py-2 text-center font-medium ${activeTab === "details" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+                        onClick={() => setActiveTab("details")}
+                    >
+                        Details
+                    </button>
+                    <button
+                        className={`flex-1 py-2 text-center font-medium ${activeTab === "schedule" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"}`}
+                        onClick={() => setActiveTab("schedule")}
+                    >
+                        Schedule
+                    </button>
+                </div>
+
                 {/* Student Details Summary */}
                 {sessionForm.student_ids && sessionForm.student_ids.length > 0 && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-5">
-                        <h4 className="font-medium text-blue-900 mb-3">Selected Students Summary</h4>
+                    <div className="p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4 md:mb-5">
+                        <h4 className="font-medium text-blue-900 mb-2 md:mb-3 text-sm md:text-base">Selected Students Summary</h4>
 
-                        {/* Header Row */}
-                        <div className="grid grid-cols-12 gap-2 mb-3 pb-2 border-b border-blue-200">
-                            <div className="col-span-12 md:col-span-4 font-semibold text-blue-900 text-sm">Name</div>
-                            <div className="col-span-6 md:col-span-3 font-semibold text-blue-900 text-sm">Subjects</div>
-                            <div className="col-span-6 md:col-span-3 font-semibold text-blue-900 text-sm">Academic Level</div>
-                            <div className="col-span-12 md:col-span-2 font-semibold text-blue-900 text-sm text-center md:text-left">Payment Status</div>
+                        {/* Header Row - Hidden on mobile */}
+                        <div className="hidden md:grid md:grid-cols-12 gap-2 mb-3 pb-2 border-b border-blue-200">
+                            <div className="col-span-4 font-semibold text-blue-900 text-sm">Name</div>
+                            <div className="col-span-3 font-semibold text-blue-900 text-sm">Subjects</div>
+                            <div className="col-span-3 font-semibold text-blue-900 text-sm">Academic Level</div>
+                            <div className="col-span-2 font-semibold text-blue-900 text-sm">Payment Status</div>
                         </div>
 
                         {/* Student Rows */}
@@ -512,13 +492,69 @@ const TutorCreateSessionPage = () => {
                                     }
 
                                     return (
-                                        <div key={student._id} className="grid grid-cols-12 gap-2 border-l-4 border-blue-300 pl-3 py-2 items-center">
+                                        <div key={student._id} className="border-l-4 border-blue-300 pl-2 py-2 md:grid md:grid-cols-12 md:gap-2 items-center">
+                                            {/* Mobile view */}
+                                            <div className="md:hidden space-y-2">
+                                                <div className="font-medium text-blue-800 text-sm">
+                                                    {student.full_name || student?.user_id?.full_name}
+                                                </div>
+                                                <div className="text-xs text-blue-700">
+                                                    <span className="font-semibold">Subjects:</span> {studentSubjects.length > 0
+                                                        ? studentSubjects.map(subjectId => {
+                                                            const subject = getSubjectById(subjectId);
+                                                            return subject?.name || subjectId;
+                                                        }).join(', ')
+                                                        : 'No subjects selected'
+                                                    }
+                                                </div>
+                                                <div className="text-xs text-blue-700">
+                                                    <span className="font-semibold">Levels:</span> {studentLevels.length > 0
+                                                        ? studentLevels.map((levelItem, index) => {
+                                                            // Check if levelItem is already an object with level property
+                                                            if (typeof levelItem === 'object' && levelItem.level) {
+                                                                return levelItem.level;
+                                                            }
+                                                            // If it's an ID, get the level object
+                                                            const level = getLevelById(levelItem);
+                                                            return level?.level || levelItem;
+                                                        }).join(', ')
+                                                        : 'No academic levels selected'
+                                                    }
+                                                </div>
+                                                <div className="text-xs">
+                                                    {(() => {
+                                                        const paymentStatus = studentPaymentStatuses[student._id];
 
-                                            <div className="col-span-12 md:col-span-4 font-medium text-blue-800">
-                                                {student.full_name || student?.user_id?.full_name}
+                                                        if (!paymentStatus) {
+                                                            return (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                                                    ⏳ Checking...
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        if (paymentStatus.has_unpaid_requests) {
+                                                            return (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                    ❌ Payment Required
+                                                                </span>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                    ✅ Payment Complete
+                                                                </span>
+                                                            );
+                                                        }
+                                                    })()}
+                                                </div>
                                             </div>
 
-                                            <div className="col-span-6 md:col-span-3 text-sm text-blue-700">
+                                            {/* Desktop view */}
+                                            <div className="hidden md:col-span-4 md:block font-medium text-blue-800">
+                                                {student.full_name || student?.user_id?.full_name}
+                                            </div>
+                                            <div className="hidden md:col-span-3 md:block text-sm text-blue-700">
                                                 {studentSubjects.length > 0
                                                     ? studentSubjects.map(subjectId => {
                                                         const subject = getSubjectById(subjectId);
@@ -527,8 +563,7 @@ const TutorCreateSessionPage = () => {
                                                     : 'No subjects selected'
                                                 }
                                             </div>
-
-                                            <div className="col-span-6 md:col-span-3 text-sm text-blue-700">
+                                            <div className="hidden md:col-span-3 md:block text-sm text-blue-700">
                                                 {studentLevels.length > 0
                                                     ? studentLevels.map((levelItem, index) => {
                                                         // Check if levelItem is already an object with level property
@@ -542,8 +577,7 @@ const TutorCreateSessionPage = () => {
                                                     : 'No academic levels selected'
                                                 }
                                             </div>
-
-                                            <div className="col-span-12 md:col-span-2 text-sm flex justify-center md:justify-start">
+                                            <div className="hidden md:col-span-2 md:block text-sm">
                                                 {(() => {
                                                     const paymentStatus = studentPaymentStatuses[student._id];
 
@@ -577,19 +611,22 @@ const TutorCreateSessionPage = () => {
                     </div>
                 )}
 
-
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-                    <div className="lg:col-span-3 space-y-6">
-
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+                    {/* Details Section - Always visible on desktop, conditional on mobile */}
+                    <div className={`lg:col-span-3 space-y-4 md:space-y-6 ${activeTab === "details" || !activeTab ? "block" : "hidden md:block"}`}>
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Session Details</CardTitle>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                                    <Users className="h-5 w-5" />
+                                    Session Details
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-
                                 <div>
-                                    <Label>Select Students</Label>
+                                    <Label className="flex items-center gap-1 mb-1">
+                                        <Users className="h-4 w-4" />
+                                        Select Students
+                                    </Label>
                                     <div className="border rounded-md p-2 max-h-64 overflow-auto bg-white">
                                         {loadingStudents ? (
                                             <div className="p-2 text-sm text-gray-500">Loading students...</div>
@@ -621,9 +658,11 @@ const TutorCreateSessionPage = () => {
                                     <p className="text-xs text-gray-500 mt-1">You can select multiple students for a group session.</p>
                                 </div>
 
-
                                 <div>
-                                    <Label>Subject</Label>
+                                    <Label className="flex items-center gap-1 mb-1">
+                                        <BookOpen className="h-4 w-4" />
+                                        Subject
+                                    </Label>
                                     <Select
                                         value={sessionForm.subject}
                                         onValueChange={(value) => setSessionForm({ ...sessionForm, subject: value })}
@@ -659,7 +698,10 @@ const TutorCreateSessionPage = () => {
                                 </div>
 
                                 <div>
-                                    <Label>Academic Level</Label>
+                                    <Label className="flex items-center gap-1 mb-1">
+                                        <GraduationCap className="h-4 w-4" />
+                                        Academic Level
+                                    </Label>
                                     <Select
                                         value={sessionForm.academic_level}
                                         onValueChange={(value) => setSessionForm({ ...sessionForm, academic_level: value })}
@@ -698,9 +740,9 @@ const TutorCreateSessionPage = () => {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="md:col-span-1">
-                                        <Label>Duration</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                                    <div>
+                                        <Label>Duration (Hours)</Label>
                                         <Input
                                             type="number"
                                             value={1}
@@ -710,12 +752,15 @@ const TutorCreateSessionPage = () => {
                                         <input type="hidden" name="duration_hours" value={1} />
                                     </div>
 
-                                    <div className="md:col-span-1">
-                                        <Label>Hourly Rate (£)</Label>
+                                    <div>
+                                        <Label className="flex items-center gap-1">
+                                            <DollarSign className="h-4 w-4" />
+                                            Hourly Rate (£)
+                                        </Label>
                                         <Input type="number" value={sessionForm.hourly_rate} disabled />
                                     </div>
 
-                                    <div className="md:col-span-1">
+                                    <div>
                                         <Label>Total</Label>
                                         <div className="p-2 bg-gray-50 rounded border text-green-700 font-semibold">
                                             £{(1 * sessionForm.hourly_rate).toFixed(2)}
@@ -723,9 +768,11 @@ const TutorCreateSessionPage = () => {
                                     </div>
                                 </div>
 
-
                                 <div>
-                                    <Label>Notes (Optional)</Label>
+                                    <Label className="flex items-center gap-1 mb-1">
+                                        <FileText className="h-4 w-4" />
+                                        Notes (Optional)
+                                    </Label>
                                     <Textarea
                                         value={sessionForm.notes}
                                         onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
@@ -756,30 +803,38 @@ const TutorCreateSessionPage = () => {
                         </div>
                     </div>
 
-                    <div className="lg:col-span-2 space-y-6">
+                    {/* Schedule Section - Always visible on desktop, conditional on mobile */}
+                    <div className={`lg:col-span-2 space-y-4 md:space-y-6 ${activeTab === "schedule" || !activeTab ? "block" : "hidden md:block"}`}>
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Choose Date</CardTitle>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                                    <Calendar className="h-5 w-5" />
+                                    Choose Date
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex items-center justify-between mb-3">
-                                    <Button variant="outline" onClick={() => {
+                                    <Button variant="outline" size="sm" onClick={() => {
                                         const d = new Date(displayMonth);
                                         d.setMonth(d.getMonth() - 1);
                                         setDisplayMonth(d);
-                                    }}>Prev</Button>
-                                    <div className="font-semibold">{monthTitle}</div>
-                                    <Button variant="outline" onClick={() => {
+                                    }}>
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <div className="font-semibold text-sm md:text-base">{monthTitle}</div>
+                                    <Button variant="outline" size="sm" onClick={() => {
                                         const d = new Date(displayMonth);
                                         d.setMonth(d.getMonth() + 1);
                                         setDisplayMonth(d);
-                                    }}>Next</Button>
+                                    }}>
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
                                 </div>
 
-                                <div className="grid grid-cols-7 gap-2 text-center mb-2 text-xs text-gray-500">
+                                <div className="grid grid-cols-7 gap-1 md:gap-2 text-center mb-2 text-xs text-gray-500">
                                     {dayNamesShort.map(d => <div key={d} className="py-1">{d}</div>)}
                                 </div>
-                                <div className="grid grid-cols-7 gap-2">
+                                <div className="grid grid-cols-7 gap-1 md:gap-2">
                                     {monthDays.map((d, idx) => {
                                         if (!d) return <div key={`blank-${idx}`} />;
                                         const yyyyMmDd = formatLocalYyyyMmDd(d);
@@ -791,7 +846,7 @@ const TutorCreateSessionPage = () => {
                                                 type="button"
                                                 disabled={!selectable}
                                                 onClick={() => { setSelectedDate(yyyyMmDd); setSelectedTime(""); }}
-                                                className={`p-2 rounded border text-sm ${selectable ? 'bg-white hover:bg-blue-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} ${isSelected ? 'border-blue-600 ring-2 ring-blue-200' : 'border-gray-200'}`}
+                                                className={`p-1 md:p-2 rounded border text-xs md:text-sm ${selectable ? 'bg-white hover:bg-blue-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} ${isSelected ? 'border-blue-600 ring-2 ring-blue-200' : 'border-gray-200'}`}
                                             >
                                                 {d.getDate()}
                                             </button>
@@ -802,8 +857,11 @@ const TutorCreateSessionPage = () => {
                         </Card>
 
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Available Time Slots</CardTitle>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                                    <Clock className="h-5 w-5" />
+                                    Available Time Slots
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {!selectedDate && (
@@ -816,7 +874,7 @@ const TutorCreateSessionPage = () => {
                                     <div className="text-sm text-gray-500">No slots available for this day.</div>
                                 )}
                                 {selectedDate && !loadingSlots && availableSlots.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                                         {availableSlots.map((slot) => {
                                             const isActive = selectedTime === slot;
                                             const isConflict = conflictingSlots.includes(slot);
@@ -826,7 +884,7 @@ const TutorCreateSessionPage = () => {
                                                     type="button"
                                                     disabled={isConflict}
                                                     onClick={() => !isConflict && setSelectedTime(slot)}
-                                                    className={`px-3 py-2 rounded border text-sm ${isConflict
+                                                    className={`px-2 py-2 rounded border text-xs md:text-sm ${isConflict
                                                         ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                                         : (isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 border-gray-200')
                                                         }`}
@@ -848,4 +906,3 @@ const TutorCreateSessionPage = () => {
 };
 
 export default TutorCreateSessionPage;
-

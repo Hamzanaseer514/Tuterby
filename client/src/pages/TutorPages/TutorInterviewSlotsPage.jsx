@@ -7,7 +7,7 @@ import { useToast } from '../../components/ui/use-toast';
 import { RefreshCw, Calendar, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 const TutorInterviewSlotsPage = () => {
-  const { user, getAuthToken , fetchWithAuth } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const token = getAuthToken();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ const TutorInterviewSlotsPage = () => {
       setScheduled(json.data.scheduled_time || null);
       setAgain(Boolean(json.data.again_interview));
     } catch (e) {
-      // toast({ title: 'Error', description: e.message || 'Failed to load slots', variant: 'destructive' });
+      // Error handling
     } finally {
       setLoading(false);
     }
@@ -82,16 +82,16 @@ const TutorInterviewSlotsPage = () => {
 
   const StatusBadge = ({ status }) => {
     const statusConfig = {
-      Pending: { icon: <Clock className="w-4 h-4" />, color: 'bg-yellow-100 text-yellow-800' },
-      Scheduled: { icon: <CheckCircle2 className="w-4 h-4" />, color: 'bg-green-100 text-green-800' },
-      Failed: { icon: <XCircle className="w-4 h-4" />, color: 'bg-red-100 text-red-800' },
-      Completed: { icon: <CheckCircle2 className="w-4 h-4" />, color: 'bg-blue-100 text-blue-800' }
+      Pending: { icon: <Clock className="w-3 h-3 md:w-4 md:h-4" />, color: 'bg-yellow-100 text-yellow-800' },
+      Scheduled: { icon: <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4" />, color: 'bg-green-100 text-green-800' },
+      Failed: { icon: <XCircle className="w-3 h-3 md:w-4 md:h-4" />, color: 'bg-red-100 text-red-800' },
+      Completed: { icon: <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4" />, color: 'bg-blue-100 text-blue-800' }
     };
     
-    const config = statusConfig[status] || { icon: <AlertCircle className="w-4 h-4" />, color: 'bg-gray-100 text-gray-800' };
+    const config = statusConfig[status] || { icon: <AlertCircle className="w-3 h-3 md:w-4 md:h-4" />, color: 'bg-gray-100 text-gray-800' };
     
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>
+      <span className={`inline-flex items-center px-2 py-1 md:px-3 md:py-1 rounded-full text-xs font-medium ${config.color}`}>
         {config.icon}
         <span className="ml-1">{status}</span>
       </span>
@@ -107,11 +107,11 @@ const TutorInterviewSlotsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-3 sm:px-4 py-6 md:py-8 max-w-4xl">
       <Card className="border shadow-sm">
-        <CardHeader className="border-b">
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
+        <CardHeader className="border-b p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Calendar className="w-5 h-5 text-blue-600" />
               <span>Interview Scheduling</span>
             </CardTitle>
@@ -120,16 +120,18 @@ const TutorInterviewSlotsPage = () => {
               size="sm" 
               onClick={loadSlots}
               disabled={loading}
+              className="self-start sm:self-auto"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`w-4 h-4 mr-1 md:mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+        <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
+          {/* Status Card */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-gray-500">Interview Status</h3>
+              <h3 className="text-xs md:text-sm font-medium text-gray-500">Interview Status</h3>
               <div className="flex items-center gap-2">
                 <StatusBadge status={status} />
               </div>
@@ -137,8 +139,8 @@ const TutorInterviewSlotsPage = () => {
             
             {scheduled && (
               <div className="space-y-1">
-                <h3 className="text-sm font-medium text-gray-500">Scheduled Time</h3>
-                <div className="flex items-center gap-2 text-sm">
+                <h3 className="text-xs md:text-sm font-medium text-gray-500">Scheduled Time</h3>
+                <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2 text-xs md:text-sm">
                   <span className="font-medium text-gray-900">
                     {new Date(scheduled).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                   </span>
@@ -154,29 +156,30 @@ const TutorInterviewSlotsPage = () => {
                 variant="outline" 
                 onClick={requestAgain}
                 disabled={requesting}
-                className="ml-auto"
+                className="mt-2 sm:mt-0 sm:ml-auto text-xs md:text-sm py-1 h-8"
               >
                 {requesting ? 'Requesting...' : 'Request New Interview'}
               </Button>
             )}
             
             {status === 'Failed' && again && (
-              <div className="text-sm text-gray-600 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-500" />
+              <div className="text-xs md:text-sm text-gray-600 flex items-center gap-2 mt-2 sm:mt-0">
+                <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                 <span>Re-interview requested. Waiting for admin.</span>
               </div>
             )}
           </div>
 
+          {/* Slots Section */}
           {(!slots || slots.length === 0) ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No interview slots available yet.</p>
-              <p className="text-sm text-gray-400 mt-1">Please wait for the admin to assign time slots.</p>
+            <div className="text-center py-6 md:py-8">
+              <p className="text-gray-500 text-sm md:text-base">No interview slots available yet.</p>
+              <p className="text-xs md:text-sm text-gray-400 mt-1">Please wait for the admin to assign time slots.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-gray-700">Available Time Slots</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-3 md:space-y-4">
+              <h3 className="text-sm md:text-base font-medium text-gray-700">Available Time Slots</h3>
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
                 {slots.map((s, idx) => {
                   const raw = typeof s === 'string' ? s : new Date(s).toISOString();
                   const isoZ = raw.endsWith('Z') ? raw : new Date(raw).toISOString();
@@ -189,17 +192,26 @@ const TutorInterviewSlotsPage = () => {
                       variant={isSelected ? 'default' : 'outline'}
                       disabled={Boolean(scheduled) || selecting}
                       onClick={() => selectSlot(isoZ)}
-                      className={`h-auto py-3 ${isSelected ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                      className={`h-auto py-2 md:py-3 ${isSelected ? 'bg-blue-600 hover:bg-blue-700' : ''} text-xs md:text-sm`}
                     >
                       <div className="flex flex-col items-center w-full">
                         <span className="font-medium">
-                          {date.toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' })}
+                          {date.toLocaleDateString(undefined, { 
+                            timeZone: 'UTC', 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
                         </span>
-                        <span className="text-sm font-normal mt-1">
-                          {date.toLocaleTimeString(undefined, { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}
+                        <span className="font-normal mt-1">
+                          {date.toLocaleTimeString(undefined, { 
+                            timeZone: 'UTC', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
                         </span>
                         {isSelected && (
-                          <span className="text-xs mt-1 flex items-center gap-1">
+                          <span className="mt-1 flex items-center gap-1 text-xs">
                             <CheckCircle2 className="w-3 h-3" />
                             Selected
                           </span>

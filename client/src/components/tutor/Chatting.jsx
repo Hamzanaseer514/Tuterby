@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { BASE_URL } from '@/config';
-import {useAuth} from '@/hooks/useAuth';
+import { BASE_URL } from "@/config";
+import { useAuth } from "@/hooks/useAuth";
 
 const Chatting = () => {
   const { getAuthToken, fetchWithAuth } = useAuth();
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
+  const [selectedStudentPhoto, setSelectedStudentPhoto] = useState(""); // ✅ added
   const [chatHistory, setChatHistory] = useState([]);
   const [responseText, setResponseText] = useState("");
   const [selectedMessageId, setSelectedMessageId] = useState(null);
+
   const token = getAuthToken();
+
   useEffect(() => {
     fetchAllMessages();
   }, []);
@@ -23,9 +26,11 @@ const Chatting = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
-        },token, (newToken) => localStorage.setItem("authToken", newToken)
+        },
+        token,
+        (newToken) => localStorage.setItem("authToken", newToken)
       );
       const data = await res.json();
 
@@ -40,6 +45,7 @@ const Chatting = () => {
               studentId: msg.studentId._id,
               name: msg.studentId.full_name,
               latestMessage: msg.message,
+              photo_url: msg.studentId.photo_url || "",
             });
           }
         });
@@ -51,16 +57,14 @@ const Chatting = () => {
     }
   };
 
-  const fetchChatHistory = async (studentId, studentName) => {
+  // ✅ accepts studentPhoto and stores it
+  const fetchChatHistory = async (studentId, studentName, studentPhoto) => {
     try {
       const res = await fetchWithAuth(
         `${BASE_URL}/api/tutor/getallmessages/${studentId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }, token, (newToken) => localStorage.setItem("authToken", newToken)
+        { method: "GET", headers: { "Content-Type": "application/json" } },
+        token,
+        (newToken) => localStorage.setItem("authToken", newToken)
       );
       const data = await res.json();
 
@@ -68,6 +72,7 @@ const Chatting = () => {
         setChatHistory(data.data);
         setSelectedStudent(studentId);
         setSelectedStudentName(studentName);
+        setSelectedStudentPhoto(studentPhoto || "");
         setSelectedMessageId(null);
         setResponseText("");
       }
@@ -78,20 +83,19 @@ const Chatting = () => {
 
   const sendResponse = async () => {
     if (!responseText.trim()) return;
-
     try {
       const res = await fetchWithAuth(
         `${BASE_URL}/api/tutor/messages/reply`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messageId: selectedMessageId,
             response: responseText,
           }),
-        }, token, (newToken) => localStorage.setItem("authToken", newToken)
+        },
+        token,
+        (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       const data = await res.json();
@@ -104,7 +108,6 @@ const Chatting = () => {
               : msg
           )
         );
-
         setResponseText("");
         setSelectedMessageId(null);
       }
@@ -114,25 +117,46 @@ const Chatting = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Left Sidebar */}
-      <div className="w-1/4 bg-white shadow-lg p-4 overflow-y-auto border-r border-gray-200">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      {/* Sidebar – only visible on large screens */}
+      <div className="hidden lg:block w-64 p-4 bg-white border-r border-gray-200 overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-blue-600">Students</h2>
-        {students.length > 0 ? (
+        {students.length ? (
           students.map((student) => (
             <div
               key={student.studentId}
-              onClick={() => fetchChatHistory(student.studentId, student.name)}
-              className={`p-3 mb-3 rounded-lg cursor-pointer transition-transform transform hover:scale-[1.02] shadow-sm hover:shadow-md ${
+              onClick={() =>
+                fetchChatHistory(
+                  student.studentId,
+                  student.name,
+                  student.photo_url
+                )
+              }
+              className={`p-3 mb-3 rounded-lg cursor-pointer transition hover:shadow-md ${
                 selectedStudent === student.studentId
                   ? "bg-blue-200 shadow-md"
                   : "bg-white"
               }`}
             >
-              <p className="font-semibold text-gray-800">{student.name}</p>
-              <p className="text-gray-500 text-sm truncate">
-                {student.latestMessage}
-              </p>
+              <div className="flex items-center gap-3">
+                {student.photo_url ? (
+                  <img
+                    src={`${BASE_URL}${student.photo_url}`}
+                    alt={student.name}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold">
+                    {student.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800">{student.name}</p>
+                  <p className="text-gray-500 text-sm truncate">
+                    {student.latestMessage}
+                  </p>
+                </div>
+              </div>
             </div>
           ))
         ) : (
@@ -141,14 +165,41 @@ const Chatting = () => {
       </div>
 
       {/* Right Chat Window */}
-      <div className="w-3/4 flex flex-col">
+      <div className="flex-1 flex flex-col w-full">
+        {/* Mobile dropdown to choose student */}
+        <div className="lg:hidden p-3 bg-white border-b border-gray-200">
+          <select
+            className="w-full border border-gray-300 rounded-lg p-2"
+            onChange={(e) => {
+              const s = students.find((st) => st.studentId === e.target.value);
+              if (s) fetchChatHistory(s.studentId, s.name, s.photo_url);
+            }}
+            value={selectedStudent || ""}
+          >
+            <option value="">Select a student</option>
+            {students.map((s) => (
+              <option key={s.studentId} value={s.studentId}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {selectedStudent ? (
           <>
             {/* Chat Header */}
             <div className="flex items-center gap-3 bg-white shadow p-4 border-b border-gray-200">
-              <div className="w-10 h-10 rounded-full bg-blue-300 flex items-center justify-center text-white font-bold">
-                {selectedStudentName.charAt(0).toUpperCase()}
-              </div>
+              {selectedStudentPhoto ? (
+                <img
+                  src={`${BASE_URL}${selectedStudentPhoto}`}
+                  alt={selectedStudentName}
+                  className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-blue-300 flex items-center justify-center text-white font-bold">
+                  {selectedStudentName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">
                   {selectedStudentName}
@@ -157,27 +208,27 @@ const Chatting = () => {
               </div>
             </div>
 
-            {/* Chat Messages */}
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-blue-50 to-white">
               {chatHistory.map((msg) => (
                 <div key={msg._id} className="mb-4 flex flex-col">
-                  {/* Student message on LEFT */}
+                  {/* Student message */}
                   <div className="flex justify-start">
-                    <div className="bg-white shadow p-3 rounded-xl max-w-xs text-gray-800 border border-gray-200">
-                      <p className="text-sm">{msg.message}</p>
+                    <div className="bg-white shadow p-3 rounded-xl max-w-xs sm:max-w-md text-gray-800 border border-gray-200">
+                      <p className="text-sm break-words">{msg.message}</p>
                     </div>
                   </div>
 
-                  {/* Tutor response on RIGHT */}
+                  {/* Tutor response */}
                   {msg.response && (
                     <div className="flex justify-end mt-2">
-                      <div className="bg-green-500 text-white shadow p-3 rounded-xl max-w-xs">
-                        <p className="text-sm">{msg.response}</p>
+                      <div className="bg-green-500 text-white shadow p-3 rounded-xl max-w-xs sm:max-w-md">
+                        <p className="text-sm break-words">{msg.response}</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Unanswered click option */}
+                  {/* Reply option */}
                   {!msg.response && msg.status === "unanswered" && (
                     <div
                       className="text-right text-blue-500 text-sm mt-1 cursor-pointer"
@@ -192,7 +243,7 @@ const Chatting = () => {
 
             {/* Response Box */}
             {selectedMessageId && (
-              <div className="p-3 border-t border-gray-300 bg-white flex">
+              <div className="p-3 border-t border-gray-300 bg-white flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={responseText}
@@ -202,7 +253,7 @@ const Chatting = () => {
                 />
                 <button
                   onClick={sendResponse}
-                  className="ml-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                 >
                   Send
                 </button>
@@ -210,7 +261,7 @@ const Chatting = () => {
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center flex-1 text-gray-400">
+          <div className="flex items-center justify-center flex-1 text-gray-400 text-center p-4">
             Select a student to view chat
           </div>
         )}

@@ -29,33 +29,33 @@ import { BASE_URL } from '@/config';
 import { Textarea } from '../ui/textarea';
 import { useSubject } from '../../hooks/useSubject';
 
-const SendLinkButton = ({ session, onSend }) => {
-  const [open, setOpen] = useState(false);
-  const [link, setLink] = useState(session.meeting_link || '');
-  return (
-    <>
-      <Button size="sm" onClick={() => setOpen(true)}>Send meeting link</Button>
-      {open && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Send meeting link</h3>
-            <div className="space-y-4">
-              <div>
-                <Label className="block text-sm text-gray-700 mb-1">Link</Label>
-                <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." />
-              </div>
-              <p className="text-sm text-gray-600">This will be emailed to all students who have confirmed.</p>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={async () => { await onSend(session, link); setOpen(false); }}>Send</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
+// const SendLinkButton = ({ session, onSend }) => {
+//   const [open, setOpen] = useState(false);
+//   const [link, setLink] = useState(session.meeting_link || '');
+//   return (
+//     <>
+//       <Button size="sm" onClick={() => setOpen(true)}>Send meeting link</Button>
+//       {open && (
+//         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+//           <div className="bg-white rounded-lg p-6 w-full max-w-md">
+//             <h3 className="text-lg font-semibold mb-4">Send meeting link</h3>
+//             <div className="space-y-4">
+//               <div>
+//                 <Label className="block text-sm text-gray-700 mb-1">Link</Label>
+//                 <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." />
+//               </div>
+//               <p className="text-sm text-gray-600">This will be emailed to all students who have confirmed.</p>
+//               <div className="flex gap-2 justify-end">
+//                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+//                 <Button onClick={async () => { await onSend(session, link); setOpen(false); }}>Send</Button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </>
+//   );
+// };
 
 const SessionManagement = () => {
   const [sessions, setSessions] = useState([]);
@@ -510,17 +510,17 @@ const SessionManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Session Management</h1>
-          <div className="flex items-center justify-between">
-            <p className="text-gray-600">Manage your tutoring sessions and track progress</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Session Management</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-sm sm:text-base text-gray-600">Manage your tutoring sessions and track progress</p>
             <Button
               size="sm"
               onClick={() => navigate('/tutor-dashboard/create-session')}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
             >
               Create Session
             </Button>
@@ -529,10 +529,10 @@ const SessionManagement = () => {
 
         {/* Filters */}
         <div className="mb-6">
-          <div className="flex items-center space-x-4">
-            <Label htmlFor="status-filter">Filter by Status:</Label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <Label htmlFor="status-filter" className="text-sm sm:text-base">Filter by Status:</Label>
             <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -548,50 +548,45 @@ const SessionManagement = () => {
         </div>
 
         {/* Sessions List */}
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {sessions.length > 0 ? (
             sessions.map((session) => (
               <Card key={session._id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-blue-100 rounded-full">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex items-start space-x-3 sm:space-x-4">
+                      <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
                         <Calendar className="h-4 w-4 text-blue-600" />
                       </div>
-                      <div>
-                        {/* {session.student_ids.map((student, index) => (
-                          <p key={index} className="text-sm font-semibold">
-                            {student.user_id.full_name}
-                          </p>
-                        ))} */}
-                        <p className="text-gray-600 font-bold">{getSubjectById(session.subject)?.name || session.subject}</p>
-                        <p className="text-xs text-gray-600 font-semibold mt-1">Level: {session.academic_level_name || resolveLevelName(session.academic_level)}</p>
-                        <p className="text-sm text-gray-500 mt-1">{formatDate(session.session_date)}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base text-gray-600 font-bold truncate">{getSubjectById(session.subject)?.name || session.subject}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 font-semibold mt-1">Level: {session.academic_level_name || resolveLevelName(session.academic_level)}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">{formatDate(session.session_date)}</p>
                         {session.student_proposed_date && (
                           <p className="text-xs text-yellow-700 font-semibold mt-1">
                             Student proposed: {formatDate(new Date(session.student_proposed_date).toISOString())}
                           </p>
                         )}
-                        <div className="flex items-center space-x-4 mt-1">
-                          <span className="text-sm text-gray-600">
-                            <Clock className="h-3 w-3 inline mr-1" />
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
+                          <span className="text-xs sm:text-sm text-gray-600 flex items-center">
+                            <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
                             {session.duration_hours} hours
                           </span>
-                          <span className="text-sm text-gray-600">
-                            <DollarSign className="h-3 w-3 inline mr-1" />
+                          <span className="text-xs sm:text-sm text-gray-600 flex items-center">
+                            <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
                             {formatCurrency(session.total_earnings)}
                           </span>
                           {session.rating && (
-                            <span className="text-sm text-gray-600">
-                              <Star className="h-3 w-3 inline mr-1" />
+                            <span className="text-xs sm:text-sm text-gray-600 flex items-center">
+                              <Star className="h-3 w-3 mr-1 flex-shrink-0" />
                               {session.rating}/5
                             </span>
                           )}
                         </div>
                         {Array.isArray(session.student_responses) && session.student_responses.length > 0 && (
-                          <div className="mt-2">
-                            <div className="text-sm font-semibold text-gray-800 mb-1">Student responses</div>
-                            <div className="flex flex-wrap gap-2">
+                          <div className="mt-3">
+                            <div className="text-xs sm:text-sm font-semibold text-gray-800 mb-1">Student responses</div>
+                            <div className="flex flex-wrap gap-1 sm:gap-2">
                               {session.student_responses.map((r, idx) => {
                                 const name = r.student_id?.user_id?.full_name || 'Student';
                                 const color = r.status === 'confirmed' ? 'bg-green-100 text-green-700' : r.status === 'declined' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700';
@@ -601,7 +596,7 @@ const SessionManagement = () => {
                                   return sid && rsid && sid.toString() === rsid.toString();
                                 }) : null;
                                 return (
-                                  <Badge key={idx} className={color}>
+                                  <Badge key={idx} className={`${color} text-xs`}>
                                     {name}: {r.status}{ratingEntry ? ` • ${ratingEntry.rating}/5` : ''}
                                   </Badge>
                                 );
@@ -611,13 +606,14 @@ const SessionManagement = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <Badge className={getStatusColor(session.status)}>
-                        {getStatusIcon(session.status)}
-                        <span className="ml-1">{session.status}</span>
-                      </Badge>
-                      {/* {getActionButton(session)} */}
-                      <div className="flex space-x-2 ml-2">
+                    <div className="flex flex-col sm:flex-row items-end sm:items-end gap-3">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
+                      <Badge className={`${getStatusColor(session.status)} text-xs lg:text-sm`}>
+  {getStatusIcon(session.status)}
+  <span className="ml-1 hidden lg:inline">{session.status}</span>
+</Badge>
+
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -625,9 +621,10 @@ const SessionManagement = () => {
                             setSelectedSession(session);
                             setShowSessionModal(true);
                           }}
+                          className="text-xs sm:text-sm px-2 sm:px-3"
                         >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">View</span>
                         </Button>
                         {session.status !== 'completed' && (
                           <Button
@@ -636,9 +633,10 @@ const SessionManagement = () => {
                             onClick={() => {
                               openUpdateSessionModal(session);
                             }}
+                            className="text-xs sm:text-sm px-2 sm:px-3"
                           >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Update
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Update</span>
                           </Button>
                         )}
                         {session.student_proposed_date && (
@@ -649,9 +647,10 @@ const SessionManagement = () => {
                               setSelectedSession(session);
                               setShowApproveModal(true);
                             }}
+                            className="text-xs sm:text-sm px-2 sm:px-3"
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Approve</span>
                           </Button>
                         )}
                         {session.student_proposed_date && (
@@ -662,24 +661,21 @@ const SessionManagement = () => {
                               setSelectedSession(session);
                               setShowRejectModal(true);
                             }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs sm:text-sm px-2 sm:px-3"
                           >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Reject
+                            <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Reject</span>
                           </Button>
                         )}
-                        <Button
+                        {/* <Button
                           size="sm"
                           variant="outline"
                           onClick={() => deleteSession(session._id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs sm:text-sm px-2 sm:px-3"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                        {Array.isArray(session.student_responses) && session.student_responses.some(r => r.status === 'confirmed') && (
-                          <SendLinkButton session={session} onSend={sendMeetingLink} />
-                        )}
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">Delete</span>
+                        </Button> */}
                       </div>
                     </div>
                   </div>
@@ -699,42 +695,42 @@ const SessionManagement = () => {
 
         {/* Session Detail Modal */}
         {showSessionModal && selectedSession && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">Session Details</h3>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 className="text-lg sm:text-xl font-semibold">Session Details</h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSessionModal(false)}
                 >
-                  <XCircle className="h-5 w-5" />
+                  <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Session Header */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-lg font-semibold text-blue-900">
-                        {selectedSession.academic_level_name || resolveLevelName(selectedSession.academic_level)} -   {getSubjectById(selectedSession.subject)?.name || selectedSession.subject}
+                <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-base sm:text-lg font-semibold text-blue-900 break-words">
+                        {selectedSession.academic_level_name || resolveLevelName(selectedSession.academic_level)} - {getSubjectById(selectedSession.subject)?.name || selectedSession.subject}
                       </h4>
-                      <p className="text-blue-700">
+                      <p className="text-sm sm:text-base text-blue-700 mt-1">
                         {formatDate(selectedSession.session_date)}
                       </p>
                     </div>
-                    <Badge className={getStatusColor(selectedSession.status)}>
+                    <Badge className={`${getStatusColor(selectedSession.status)} text-xs sm:text-sm flex-shrink-0`}>
                       {getStatusIcon(selectedSession.status)}
-                      <span className="ml-1">{selectedSession.status}</span>
+                      <span className="ml-1 hidden sm:inline">{selectedSession.status}</span>
                     </Badge>
                   </div>
                 </div>
 
                 {/* Student Information */}
                 <div>
-                  <h5 className="text-md font-semibold mb-3 text-gray-800">Student Information</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h5 className="text-sm sm:text-base font-semibold mb-3 text-gray-800">Student Information</h5>
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {selectedSession.student_ids && selectedSession.student_ids.map((student, index) => {
                       const resp = Array.isArray(selectedSession.student_responses)
                         ? selectedSession.student_responses.find(r => {
@@ -750,12 +746,14 @@ const SessionManagement = () => {
                           : 'bg-yellow-100 text-yellow-700';
                       return (
                         <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <p className="font-medium text-gray-900">
-                            {student.user_id?.full_name || 'Student Name'}
+                          <p className="font-medium text-gray-900 text-sm sm:text-base">
+                            {student.user_id?.full_name || 'Student Name'} 
                           </p>
 
                           <div className="mt-2">
-                            <Badge className={badgeClass}>Response: {status}</Badge>
+                            <Badge className={`${badgeClass} text-xs sm:text-sm`}>Response: {status}</Badge>
+                            {/* <Badge className={`${badgeClass} text-xs sm:text-sm`}>Response: {ra}</Badge> */}
+
                           </div>
                         </div>
                       );
@@ -765,30 +763,30 @@ const SessionManagement = () => {
 
                 {/* Session Details */}
                 <div>
-                  <h5 className="text-md font-semibold mb-3 text-gray-800">Session Details</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h5 className="text-sm sm:text-base font-semibold mb-3 text-gray-800">Session Details</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <Label className="text-sm font-medium text-gray-600">Duration</Label>
-                      <p className="text-lg font-semibold">
+                      <Label className="text-xs sm:text-sm font-medium text-gray-600">Duration</Label>
+                      <p className="text-sm sm:text-base font-semibold mt-1">
                         {selectedSession.duration_hours} hour{selectedSession.duration_hours !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <Label className="text-sm font-medium text-gray-600">Total Earnings</Label>
-                      <p className="text-lg font-semibold text-green-600">
+                      <Label className="text-xs sm:text-sm font-medium text-gray-600">Total Earnings</Label>
+                      <p className="text-sm sm:text-base font-semibold text-green-600 mt-1">
                         {formatCurrency(selectedSession.total_earnings)}
                       </p>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <Label className="text-sm font-medium text-gray-600">Session Date</Label>
-                      <p className="text-lg font-semibold">
+                      <Label className="text-xs sm:text-sm font-medium text-gray-600">Session Date</Label>
+                      <p className="text-sm sm:text-base font-semibold mt-1">
                         {formatDate(selectedSession.session_date)}
                       </p>
                     </div>
                     {selectedSession.student_proposed_date && (
-                      <div className="bg-yellow-50 p-3 rounded-lg">
-                        <Label className="text-sm font-medium text-yellow-700">Student Proposed Date</Label>
-                        <p className="text-lg font-semibold text-yellow-800">
+                      <div className="bg-yellow-50 p-3 rounded-lg sm:col-span-2">
+                        <Label className="text-xs sm:text-sm font-medium text-yellow-700">Student Proposed Date</Label>
+                        <p className="text-sm sm:text-base font-semibold text-yellow-800 mt-1">
                           {formatDate(new Date(selectedSession.student_proposed_date).toISOString())}
                         </p>
                         <div className="text-xs text-yellow-700 mt-1">
@@ -799,12 +797,12 @@ const SessionManagement = () => {
                       </div>
                     )}
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <Label className="text-sm font-medium text-gray-600">Status</Label>
-                      <p className="text-lg font-semibold">
-                        <Badge className={getStatusColor(selectedSession.status)}>
+                      <Label className="text-xs sm:text-sm font-medium text-gray-600">Status</Label>
+                      <div className="mt-1">
+                        <Badge className={`${getStatusColor(selectedSession.status)} text-xs sm:text-sm`}>
                           {selectedSession.status}
                         </Badge>
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -812,20 +810,20 @@ const SessionManagement = () => {
                 {/* Notes */}
                 {selectedSession.notes && (
                   <div>
-                    <h5 className="text-md font-semibold mb-3 text-gray-800">Notes</h5>
+                    <h5 className="text-sm sm:text-base font-semibold mb-3 text-gray-800">Notes</h5>
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-gray-700">{selectedSession.notes}</p>
+                      <p className="text-sm sm:text-base text-gray-700">{selectedSession.notes}</p>
                     </div>
                   </div>
                 )}
 
 
                 {/* Actions */}
-                <div className="flex space-x-3 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t">
                   <Button
                     variant="outline"
                     onClick={() => setShowSessionModal(false)}
-                    className="flex-1"
+                    className="flex-1 text-sm sm:text-base"
                   >
                     Close
                   </Button>
@@ -835,23 +833,23 @@ const SessionManagement = () => {
                         setShowSessionModal(false);
                         openUpdateSessionModal(selectedSession);
                       }}
-                      className="flex-1"
+                      className="flex-1 text-sm sm:text-base"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       Edit Session
                     </Button>
                   )}
-                  <Button
+                  {/* <Button
                     variant="outline"
                     onClick={() => {
                       setShowSessionModal(false);
                       deleteSession(selectedSession._id);
                     }}
-                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-sm sm:text-base"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Delete Session
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             </div>
@@ -860,43 +858,44 @@ const SessionManagement = () => {
 
         {/* Update Session Modal */}
         {showUpdateSessionModal && selectedSession && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">Update Session</h3>
-                  <p className="text-sm text-gray-600 mt-1">Modify session details and manage student responses</p>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Update Session</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Modify session details and manage student responses</p>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowUpdateSessionModal(false)}
+                  className="flex-shrink-0 ml-2"
                 >
-                  <XCircle className="h-5 w-5" />
+                  <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
 
-              <form onSubmit={handleUpdateSession} className="space-y-6">
+              <form onSubmit={handleUpdateSession} className="space-y-4 sm:space-y-6">
                 {/* Session Overview Card */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="text-lg font-semibold text-blue-900 mb-3">Session Overview</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+                  <h4 className="text-base sm:text-lg font-semibold text-blue-900 mb-3">Session Overview</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-blue-700">Subject</Label>
-                      <p className="text-lg font-semibold text-blue-900">
+                      <Label className="text-xs sm:text-sm font-medium text-blue-700">Subject</Label>
+                      <p className="text-sm sm:text-base font-semibold text-blue-900 mt-1 break-words">
                         {getSubjectById(selectedSession.subject)?.name || selectedSession.subject}
                       </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-blue-700">Academic Level</Label>
-                      <p className="text-lg font-semibold text-blue-900">
+                      <Label className="text-xs sm:text-sm font-medium text-blue-700">Academic Level</Label>
+                      <p className="text-sm sm:text-base font-semibold text-blue-900 mt-1">
                         {resolveLevelName(selectedSession.academic_level)}
                       </p>
                     </div>
-                    <div>
-                      <Label className="text-sm font-medium text-blue-700">Current Status</Label>
+                    <div className="sm:col-span-2 lg:col-span-1">
+                      <Label className="text-xs sm:text-sm font-medium text-blue-700">Current Status</Label>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge className={getStatusColor(selectedSession.status)}>
+                        <Badge className={`${getStatusColor(selectedSession.status)} text-xs sm:text-sm`}>
                           {getStatusIcon(selectedSession.status)}
                           <span className="ml-1">{selectedSession.status}</span>
                         </Badge>
@@ -906,9 +905,9 @@ const SessionManagement = () => {
                 </div>
 
                 {/* Student Information Section */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Student Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Student Information</h4>
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {selectedSession.student_ids && selectedSession.student_ids.map((student, index) => {
                       const studentResponse = Array.isArray(selectedSession.student_responses)
                         ? selectedSession.student_responses.find(r => {
@@ -924,21 +923,21 @@ const SessionManagement = () => {
                         : null;
 
                       return (
-                        <div key={index} className="bg-white p-4 rounded-lg border">
-                          <div className="flex items-center justify-between mb-3">
-                            <h5 className="font-semibold text-gray-900">
+                        <div key={index} className="bg-white p-3 sm:p-4 rounded-lg border">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                            <h5 className="font-semibold text-gray-900 text-sm sm:text-base">
                               {student.user_id?.full_name || 'Student Name'}
                             </h5>
-                            <Badge className={
+                            <Badge className={`${
                               studentResponse?.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                                 studentResponse?.status === 'declined' ? 'bg-red-100 text-red-700' :
                                   'bg-yellow-100 text-yellow-700'
-                            }>
+                            } text-xs sm:text-sm flex-shrink-0`}>
                               {studentResponse?.status || 'pending'}
                             </Badge>
                           </div>
 
-                          <div className="space-y-2 text-sm">
+                          <div className="space-y-2 text-xs sm:text-sm">
                             {studentResponse?.note && (
                               <p className="text-gray-600">
                                 <span className="font-medium">Note:</span> {studentResponse.note}
@@ -951,7 +950,7 @@ const SessionManagement = () => {
                             )}
                             {studentRating && (
                               <div className="flex items-center gap-2 mt-2">
-                                <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 fill-current" />
                                 <span className="font-medium">{studentRating.rating}/5</span>
                                 {studentRating.feedback && (
                                   <span className="text-gray-600">• {studentRating.feedback}</span>
@@ -967,29 +966,30 @@ const SessionManagement = () => {
 
                 {/* Meeting Link Section */}
                 {selectedSession.meeting_link && (
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <h4 className="text-lg font-semibold text-green-900 mb-3">Meeting Link</h4>
+                  <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
+                    <h4 className="text-base sm:text-lg font-semibold text-green-900 mb-3">Meeting Link</h4>
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-sm font-medium text-green-700">Current Link</Label>
-                        <div className="flex items-center gap-2 mt-1">
+                        <Label className="text-xs sm:text-sm font-medium text-green-700">Current Link</Label>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
                           <Input
                             value={selectedSession.meeting_link}
                             readOnly
-                            className="bg-white"
+                            className="bg-white text-xs sm:text-sm"
                           />
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
                             onClick={() => navigator.clipboard.writeText(selectedSession.meeting_link)}
+                            className="text-xs sm:text-sm flex-shrink-0"
                           >
                             Copy
                           </Button>
                         </div>
                       </div>
                       {selectedSession.meeting_link_sent_at && (
-                        <p className="text-sm text-green-700">
+                        <p className="text-xs sm:text-sm text-green-700">
                           Sent to confirmed students on: {new Date(selectedSession.meeting_link_sent_at).toLocaleString()}
                         </p>
                       )}
@@ -998,14 +998,14 @@ const SessionManagement = () => {
                 )}
 
                 {/* Session Details Section */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Session Details</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Session Details</h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {/* Left Column */}
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {/* Session Date & Time */}
                       <div>
-                        <Label htmlFor="session_date" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="session_date" className="text-xs sm:text-sm font-medium text-gray-700">
                           Session Date & Time
                         </Label>
                         <Input
@@ -1014,38 +1014,30 @@ const SessionManagement = () => {
                           value={updateSessionForm.session_date}
                           onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, session_date: e.target.value })}
                           required
-                          className="mt-1"
+                          className="mt-1 text-xs sm:text-sm"
                         />
                       </div>
 
                       {/* Duration */}
                       <div>
-                        <Label className="text-sm font-medium text-gray-700">Duration</Label>
-                        <div className="p-3 bg-white rounded-lg border mt-1">
-                          <p className="text-sm font-semibold text-gray-900">
+                        <Label className="text-xs sm:text-sm font-medium text-gray-700">Duration</Label>
+                        <div className="p-2 sm:p-3 bg-white rounded-lg border mt-1">
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900">
                             {selectedSession.duration_hours} hour{selectedSession.duration_hours !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </div>
 
-                      {/* Hourly Rate */}
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Hourly Rate</Label>
-                        <div className="p-3 bg-white rounded-lg border mt-1">
-                          <p className="text-sm font-semibold text-gray-900">
-                            £{selectedSession.hourly_rate}/hour
-                          </p>
-                        </div>
-                      </div>
+                    
                     </div>
 
                     {/* Right Column */}
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {/* Total Earnings */}
                       <div>
-                        <Label className="text-sm font-medium text-gray-700">Total Earnings</Label>
-                        <div className="p-3 bg-green-50 rounded-lg border mt-1">
-                          <p className="text-lg font-semibold text-green-700">
+                        <Label className="text-xs sm:text-sm font-medium text-gray-700">Total Earnings</Label>
+                        <div className="p-2 sm:p-3 bg-green-50 rounded-lg border mt-1">
+                          <p className="text-sm sm:text-base font-semibold text-green-700">
                             £{selectedSession.total_earnings}
                           </p>
                         </div>
@@ -1053,12 +1045,12 @@ const SessionManagement = () => {
 
                       {/* Status */}
                       <div>
-                        <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
+                        <Label htmlFor="status" className="text-xs sm:text-sm font-medium text-gray-700">Status</Label>
                         <Select
                           value={updateSessionForm.status}
                           onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, status: value })}
                         >
-                          <SelectTrigger className="mt-1">
+                          <SelectTrigger className="mt-1 text-xs sm:text-sm">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1077,13 +1069,13 @@ const SessionManagement = () => {
                       </div>
 
                       {/* Subject */}
-                      <div>
-                        <Label htmlFor="subject" className="text-sm font-medium text-gray-700">Subject</Label>
+                      {/* <div>
+                        <Label htmlFor="subject" className="text-xs sm:text-sm font-medium text-gray-700">Subject</Label>
                         <Select
                           value={updateSessionForm.subject}
                           onValueChange={(value) => setUpdateSessionForm({ ...updateSessionForm, subject: value })}
                         >
-                          <SelectTrigger className="mt-1">
+                          <SelectTrigger className="mt-1 text-xs sm:text-sm">
                             <SelectValue placeholder="Select subject" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1104,32 +1096,32 @@ const SessionManagement = () => {
                             })()}
                           </SelectContent>
                         </Select>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
 
                 {/* Notes Section */}
                 <div>
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">Notes</Label>
+                  <Label htmlFor="notes" className="text-xs sm:text-sm font-medium text-gray-700">Notes</Label>
                   <Textarea
                     id="notes"
                     value={updateSessionForm.notes}
                     onChange={(e) => setUpdateSessionForm({ ...updateSessionForm, notes: e.target.value })}
-                    rows={4}
+                    rows={3}
                     placeholder="Add any additional notes about the session..."
-                    className="mt-1"
+                    className="mt-1 text-xs sm:text-sm"
                   />
                 </div>
 
                 {/* Warning for Status Change */}
                 {updateSessionForm.status === 'pending' && selectedSession.status !== 'pending' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Clock className="h-5 w-5 text-yellow-600" />
-                      <h5 className="font-semibold text-yellow-800">Status Change Warning</h5>
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
+                      <h5 className="font-semibold text-yellow-800 text-sm sm:text-base">Status Change Warning</h5>
                     </div>
-                    <p className="text-sm text-yellow-700">
+                    <p className="text-xs sm:text-sm text-yellow-700">
                       Changing status to 'pending' will clear the meeting link and all student responses.
                       Students will need to confirm their attendance again.
                     </p>
@@ -1137,19 +1129,20 @@ const SessionManagement = () => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-6 border-t">
-                  <div className="text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 sm:pt-6 border-t">
+                  <div className="text-xs sm:text-sm text-gray-600">
                     Last updated: {selectedSession.updatedAt ? new Date(selectedSession.updatedAt).toLocaleString() : 'N/A'}
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setShowUpdateSessionModal(false)}
+                      className="text-xs sm:text-sm"
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm">
                       Update Session
                     </Button>
                   </div>

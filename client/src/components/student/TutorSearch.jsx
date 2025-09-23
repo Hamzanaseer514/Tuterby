@@ -46,7 +46,7 @@ const TutorSearch = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const token = getAuthToken();
-  const { subjects, academicLevels, fetchSubjectRelatedToAcademicLevels , subjectRelatedToAcademicLevels} = useSubject();
+  const { subjects, academicLevels, fetchSubjectRelatedToAcademicLevels, subjectRelatedToAcademicLevels } = useSubject();
 
   // Debug: Log subjects data
   useEffect(() => {
@@ -107,12 +107,12 @@ const TutorSearch = () => {
   // Helper functions
   const parseField = (field) => {
     if (!field) return [];
-  
+
     // If it's already array of objects, keep it
     if (Array.isArray(field) && field.every(item => typeof item === "object")) {
       return field;
     }
-  
+
     // Handle array case like ['["Math","Physics"]']
     if (Array.isArray(field)) {
       if (field.length === 1 && typeof field[0] === "string" && field[0].startsWith("[")) {
@@ -129,7 +129,7 @@ const TutorSearch = () => {
       }
       return [];
     }
-  
+
     if (typeof field === "string" && field.startsWith("[")) {
       try {
         const parsed = JSON.parse(field);
@@ -139,10 +139,10 @@ const TutorSearch = () => {
         return [];
       }
     }
-  
+
     return [];
   };
-  
+
 
   const cleanTutorData = (tutors) => {
     return tutors.map((tutor) => {
@@ -321,7 +321,7 @@ const TutorSearch = () => {
     if (key === "academic_level") {
       fetchSubjectRelatedToAcademicLevels([value]);
     }
-    
+
   };
 
 
@@ -355,9 +355,9 @@ const TutorSearch = () => {
     // Auto-select first academic level when tutor data loads
     if (tutor?.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
       const firstLevel = tutor.academic_levels_taught[0];
-      setHiringData(prev => ({ 
-        ...prev, 
-        academic_level: firstLevel.educationLevel 
+      setHiringData(prev => ({
+        ...prev,
+        academic_level: firstLevel.educationLevel
       }));
     }
     setShowHiringDialog(true);
@@ -665,29 +665,24 @@ const TutorSearch = () => {
                 <Card key={tutor._id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                                                {tutor.user_id?.photo_url ? (
-                                                    <img 
-                                                        src={`${BASE_URL}${tutor.user_id.photo_url}`}
-                                                        alt="Profile" 
-                                                        className="h-full w-full object-cover rounded-full" 
-                                                    />
-                                                ) : (
-                                                    <User className="h-6 w-6 text-white" />
-                                                )}
-                                            </div>
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                        {tutor.user_id?.photo_url ? (
+                          <img
+                            src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                            alt="Profile"
+                            className="h-full w-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <User className="h-6 w-6 text-white" />
+                        )}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">
                               {tutor.user_id?.full_name || 'Unknown Tutor'}
                             </h3>
-                            {tutor.location && typeof tutor.location === 'string' && (
-                              <div className="flex items-center gap-1 text-sm text-gray-600 blur-sm">
-                                <MapPin className="w-4 h-4" />
-                                {tutor.location}
-                              </div>
-                            )}
+                           
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-gray-900">
@@ -857,7 +852,7 @@ const TutorSearch = () => {
               Request {selectedTutor?.user_id?.full_name}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedTutor && (
             <div className="space-y-6">
               {/* Subject Selection */}

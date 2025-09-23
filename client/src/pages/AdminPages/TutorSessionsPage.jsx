@@ -1027,7 +1027,7 @@ const TutorSessionsPage = () => {
 
               {/* Cells visible only on sm and up */}
               <TableCell sx={{ fontWeight: 'bold', display: { xs: 'none', sm: 'table-cell' } }}>Amount</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', display: { xs: 'none', sm: 'table-cell' } }}>Rating</TableCell>
+              {/* <TableCell sx={{ fontWeight: 'bold', display: { xs: 'none', sm: 'table-cell' } }}>Rating</TableCell> */}
 
               <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
@@ -1153,14 +1153,14 @@ const TutorSessionsPage = () => {
                     </Typography>
                   </TableCell>
 
-                  {/* Rating cell - visible only on sm and up */}
+                  {/* Rating cell - visible only on sm and up
                   <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                     {session.rating ? renderStars(session.rating) : (
                       <Typography variant="caption" color="text.secondary">
                         No rating
                       </Typography>
                     )}
-                  </TableCell>
+                  </TableCell> */}
 
                   {/* Actions cell - always visible */}
                   <TableCell>

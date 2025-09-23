@@ -517,6 +517,7 @@ exports.logoutUser = asyncHandler(async (req, res) => {
 
 exports.loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  console.log(req.body);
   if (!email || !password) {
     res.status(400);
     throw new Error("Email and password are required");

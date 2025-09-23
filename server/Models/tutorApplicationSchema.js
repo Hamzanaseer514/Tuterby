@@ -38,6 +38,14 @@ const tutorApplicationSchema = new mongoose.Schema({
   applied_at: {
     type: Date,
     default: Date.now
+  },
+  interview_token: {
+    type: String,
+    default: null
+  },
+  expire_token: {
+    type: Date,
+    default: null
   }
 });
 

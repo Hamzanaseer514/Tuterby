@@ -160,9 +160,31 @@ const StudentDashboardPage = () => {
     };
   }, [user?._id, fetchBadgeCounts]);
 
+  // Listen for URL changes and update active tab
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabFromUrl = params.get('tab') || 'dashboard';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [location.search, activeTab]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    // Update URL with the tab parameter
+    navigate(`/student-dashboard?tab=${tabId}`, { replace: true });
+    
+    // Handle badge counts and last seen
+    if (badgeCounts[tabId] > 0) {
+      setBadgeCounts(prev => ({ ...prev, [tabId]: 0 }));
+    }
+    localStorage.setItem(lastSeenKey(tabId), String(Date.now()));
+    fetchBadgeCounts();
   };
 
   const toggleSection = (section) => {
@@ -309,12 +331,7 @@ const StudentDashboardPage = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (badgeCounts[tab.id] > 0) setBadgeCounts(prev => ({ ...prev, [tab.id]: 0 }));
-                      localStorage.setItem(lastSeenKey(tab.id), String(Date.now()));
-                      fetchBadgeCounts();
-                    }}
+                    onClick={() => handleTabClick(tab.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50'
@@ -353,12 +370,7 @@ const StudentDashboardPage = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (badgeCounts[tab.id] > 0) setBadgeCounts(prev => ({ ...prev, [tab.id]: 0 }));
-                      localStorage.setItem(lastSeenKey(tab.id), String(Date.now()));
-                      fetchBadgeCounts();
-                    }}
+                    onClick={() => handleTabClick(tab.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50'
@@ -397,12 +409,7 @@ const StudentDashboardPage = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (badgeCounts[tab.id] > 0) setBadgeCounts(prev => ({ ...prev, [tab.id]: 0 }));
-                      localStorage.setItem(lastSeenKey(tab.id), String(Date.now()));
-                      fetchBadgeCounts();
-                    }}
+                    onClick={() => handleTabClick(tab.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-gray-600 hover:bg-gray-50'

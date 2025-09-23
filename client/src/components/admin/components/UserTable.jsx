@@ -127,7 +127,6 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {console.log(user)}
                 {Array.isArray(user.subjects) && user.subjects.length > 0 ? (
                   user.subjects.slice(0, 3).map(subject => (
                     <Chip

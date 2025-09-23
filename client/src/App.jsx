@@ -77,6 +77,7 @@ const PaymentResult = lazy(() => import("./components/PaymentResult"));
 const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
 
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
+const PublicInterviewPage = lazy(() => import("./pages/PublicInterviewPage"));
 
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen">
@@ -184,6 +185,7 @@ function App() {
                 </ProtectedRoute>}
               />
               <Route path="/payment-result" element={<PaymentResult />} />
+              <Route path="/interview/:token" element={<PublicInterviewPage />} />
               <Route path="/tutor" element={<ProtectedRoute allowedRoles={["student","parent"]}>
                 <TutorProfilePage />
               </ProtectedRoute>} />

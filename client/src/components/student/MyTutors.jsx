@@ -10,6 +10,7 @@ import {
 } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Avatar } from '../../components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -19,9 +20,11 @@ import {
   Calendar,
   MessageCircle,
   BookOpen,
-  Award
+  Award,
+  MessageSquare
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
+import TutorReviewModal from './TutorReviewModal';
 const MyTutors = () => {
   const { getAuthToken, user, fetchWithAuth } = useAuth();
   const { toast } = useToast();
@@ -30,6 +33,11 @@ const MyTutors = () => {
   const [error, setError] = useState(null);
   const { subjects, academicLevels } = useSubject();
   const navigate = useNavigate();
+  
+  // Review modal state
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [tutorPaymentStatus, setTutorPaymentStatus] = useState({});
   useEffect(() => {
     fetchHiredTutors();
   }, []);
@@ -54,6 +62,9 @@ const MyTutors = () => {
 
       const data = await response.json();
       setHiredTutors(data.tutors || []);
+      
+      // Check payment status for each tutor
+      await checkPaymentStatusForTutors(data.tutors || []);
     } catch (error) {
       setError(error.message);
       // toast({
@@ -63,6 +74,36 @@ const MyTutors = () => {
       // });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkPaymentStatusForTutors = async (tutors) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetchWithAuth(
+        `${BASE_URL}/api/auth/student/payment-status/${user._id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        },
+        token,
+        (newToken) => localStorage.setItem("authToken", newToken)
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const paymentStatusMap = {};
+        
+        data.payment_statuses.forEach(status => {
+          paymentStatusMap[status.tutor_id] = status.is_paid;
+        });
+        
+        setTutorPaymentStatus(paymentStatusMap);
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
     }
   };
 
@@ -107,6 +148,21 @@ const MyTutors = () => {
       state: { tutorId: tutorId }
     });
 
+  };
+
+  const handleOpenReviewModal = (tutor) => {
+    setSelectedTutor(tutor);
+    setReviewModalOpen(true);
+  };
+
+  const handleCloseReviewModal = () => {
+    setReviewModalOpen(false);
+    setSelectedTutor(null);
+  };
+
+  const handleReviewSubmitted = () => {
+    // Refresh the tutors list to show updated ratings
+    fetchHiredTutors();
   };
 
   const formatDate = (dateString) => {
@@ -160,8 +216,19 @@ const MyTutors = () => {
           <Card>
             <CardContent className="p-8 text-center">
               <div className="text-gray-400 mb-4">
-                <User className="w-16 h-16 mx-auto" />
-              </div>
+              {user.photo_url ? (
+              <img
+                src={`${BASE_URL}${user.photo_url}`}
+                alt={user.full_name || "Student"}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+              />
+            ) : (
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <div className="h-full w-full bg-blue-100 flex items-center justify-center rounded-full">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+              </Avatar>
+            )}              </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Tutor Requests</h3>
               <p className="text-gray-600 mb-4">
                 You haven't sent any tutor requests yet. Start by searching for tutors in your area.
@@ -175,12 +242,20 @@ const MyTutors = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hiredTutors.map((hiredTutor) => (
-              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow" onClick={() => handleViewTutor(hiredTutor._id)}>
+              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow" >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-blue-600" />
+                      {hiredTutor.user_id?.photo_url ? (
+                          <img
+                            src={`${BASE_URL}${hiredTutor.user_id.photo_url}`}
+                            alt="Profile"
+                            className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+                          />
+                        ) : (
+                          <User className="h-6 w-6 text-white" />
+                        )}
                       </div>
                       <div>
                         <CardTitle className="text-lg">{hiredTutor.full_name}</CardTitle>
@@ -211,7 +286,7 @@ const MyTutors = () => {
                         <span className="text-gray-600">Rating:</span>
                         <div className="flex items-center gap-1">
                           {renderStars(hiredTutor.rating)}
-                          <span className="font-semibold ml-1">{hiredTutor.rating}</span>
+                          {/* <span className="font-semibold ml-1">{hiredTutor.rating.toFixed(1)}</span> */}
                         </div>
                       </div>
                     )}
@@ -251,34 +326,44 @@ const MyTutors = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  {/* <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2 pt-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="flex-1"
-                      onClick={() => handleViewProfile(hiredTutor)}
+                      onClick={() => handleViewTutor(hiredTutor._id)}
                     >
                       <User className="w-4 h-4 mr-2" />
                       View Profile
                     </Button>
                     
-                    {hiredTutor.hireStatus === 'accepted' && (
+                    {hiredTutor.hireStatus === 'accepted' && tutorPaymentStatus[hiredTutor._id] && (
                       <Button 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleContactTutor(hiredTutor)}
+                        onClick={() => handleOpenReviewModal(hiredTutor)}
                       >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Contact
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Rate & Review
                       </Button>
-                      )}
-                  </div> */}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+      
+      {/* Review Modal */}
+      {selectedTutor && (
+        <TutorReviewModal
+          tutor={selectedTutor}
+          isOpen={reviewModalOpen}
+          onClose={handleCloseReviewModal}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
     </div>
   );
 };

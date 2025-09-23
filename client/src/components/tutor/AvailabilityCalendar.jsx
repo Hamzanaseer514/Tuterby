@@ -26,25 +26,26 @@ import {
   AlertCircle,
   Settings,
   CalendarDays,
-  ArrowLeft
+  ArrowLeft,
+  Menu
 } from 'lucide-react';
 
 const AvailabilityCalendar = () => {
-  const { user , getAuthToken , fetchWithAuth } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [availability, setAvailability] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   // Modal states
   const [showGeneralSettingsModal, setShowGeneralSettingsModal] = useState(false);
-  // const [showRecurringModal, setShowRecurringModal] = useState(false);
-  // const [showOneTimeModal, setShowOneTimeModal] = useState(false);
   const [showBlackoutModal, setShowBlackoutModal] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
   const [editingBlackout, setEditingBlackout] = useState(null);
   const token = getAuthToken();
+  
   // Form states
   const [generalSettings, setGeneralSettings] = useState({
     general_availability: {
@@ -62,18 +63,6 @@ const AvailabilityCalendar = () => {
     is_accepting_bookings: true
   });
   
-  // const [recurringForm, setRecurringForm] = useState({
-  //   day_of_week: 1,
-  //   start_time: "09:00",
-  //   end_time: "10:00"
-  // });
-  
-  // const [oneTimeForm, setOneTimeForm] = useState({
-  //   date: "",
-  //   start_time: "09:00",
-  //   end_time: "10:00"
-  // });
-  
   const [blackoutForm, setBlackoutForm] = useState({
     start_date: "",
     end_date: "",
@@ -81,11 +70,6 @@ const AvailabilityCalendar = () => {
   });
 
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minute = i % 2 === 0 ? '00' : '30';
-    return `${hour.toString().padStart(2, '0')}:${minute}`;
-  });
 
   useEffect(() => {
     if (user) {
@@ -102,7 +86,7 @@ const AvailabilityCalendar = () => {
         headers: {
           'Content-Type': 'application/json',
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
       if (!response.ok) {
         throw new Error('Failed to fetch availability');
@@ -131,7 +115,7 @@ const AvailabilityCalendar = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generalSettings)
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -153,8 +137,6 @@ const AvailabilityCalendar = () => {
     }
   };
 
- 
-
   const handleBlackoutSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -168,7 +150,7 @@ const AvailabilityCalendar = () => {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(blackoutForm)
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -191,8 +173,6 @@ const AvailabilityCalendar = () => {
       });
     }
   };
-
-
 
   const openEditBlackout = (blackout) => {
     setEditingBlackout(blackout);
@@ -221,73 +201,61 @@ const AvailabilityCalendar = () => {
     );
   }
 
-  // if (error) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-  //         <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Availability</h2>
-  //         <p className="text-gray-600 mb-4">{error}</p>
-  //         <Button onClick={fetchAvailability}>Try Again</Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  // if (!availability) return null;
   const {
     general_availability = {},
-    blackout_dates = [],   // was blackout_slots
+    blackout_dates = [],
     recurring_slots = [],
     one_time_slots = [],
   } = availability || {};
-  
-  
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden fixed top-4 right-4 z-20">
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="p-2 bg-blue-600 text-white rounded-lg shadow-md"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Availability Management</h1>
-              <p className="text-gray-600">Manage your teaching schedule and availability</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Availability Management</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Manage your teaching schedule and availability</p>
             </div>
-            <Button 
-              variant="outline"
-                onClick={() => navigate(`/tutor-dashboard`)}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
-            </Button>
+           
           </div>
         </div>
 
         {/* General Settings Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+        <Card className="mb-4 sm:mb-6">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center">
                 <Settings className="h-5 w-5 mr-2" />
-                General Availability Settings
+                <span className="text-lg sm:text-xl">General Availability Settings</span>
               </div>
               <Button 
                 size="sm" 
                 variant="outline"
                 onClick={() => setShowGeneralSettingsModal(true)}
+                className="mt-2 sm:mt-0"
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit Settings
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-600">Accepting Bookings</p>
-                <p className="text-lg font-semibold">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Accepting Bookings</p>
+                <p className="text-base sm:text-lg font-semibold">
                   {availability && availability.is_accepting_bookings ? (
                     <span className="text-green-600 flex items-center">
                       <Check className="h-4 w-4 mr-1" />
@@ -301,18 +269,18 @@ const AvailabilityCalendar = () => {
                   )}
                 </p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-600">Minimum Notice</p>
-                <p className="text-lg font-semibold">{availability?.minimum_notice_hours ?? "NA"} hours</p>
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Minimum Notice</p>
+                <p className="text-base sm:text-lg font-semibold">{availability?.minimum_notice_hours ?? "NA"} hours</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-600">Max Advance Booking</p>
-                <p className="text-lg font-semibold">{availability?.maximum_advance_days ?? "NA"} days</p>
-                </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-600">Session Durations</p>
-                <p className="text-sm font-semibold">
-                  {availability?.session_durations.map(d => `${d}min`).join(', ') ?? "NA"}
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Max Advance Booking</p>
+                <p className="text-base sm:text-lg font-semibold">{availability?.maximum_advance_days ?? "NA"} days</p>
+              </div>
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Session Durations</p>
+                <p className="text-xs sm:text-sm font-semibold">
+                  {availability?.session_durations?.map(d => `${d}min`).join(', ') ?? "NA"}
                 </p>
               </div>
             </div>
@@ -320,26 +288,27 @@ const AvailabilityCalendar = () => {
         </Card>
 
         {/* Weekly Schedule */}
-        <Card className="mb-6">
-          <CardHeader>
+        <Card className="mb-4 sm:mb-6">
+          <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center">
               <CalendarDays className="h-5 w-5 mr-2" />
-              Weekly Schedule
+              <span className="text-lg sm:text-xl">Weekly Schedule</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {dayNames.map((day, index) => {
                 const dayKey = day.toLowerCase();
-                const daySettings = availability?.general_availability[dayKey] ?? "NA";
+                const daySettings = availability?.general_availability[dayKey] ?? { available: false };
                 return (
-                  <div key={day} className="p-4 border rounded-lg">
-                    <h3 className="font-medium text-sm mb-2">{day}</h3>
+                  <div key={day} className="p-3 sm:p-4 border rounded-lg">
+                    <h3 className="font-medium text-sm mb-2">{day.slice(0, 3)}</h3>
                     <div className="space-y-2">
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
                         <Checkbox 
                           checked={daySettings.available}
                           disabled
+                          className="h-4 w-4"
                         />
                         <span className="text-xs text-gray-600">Available</span>
                       </div>
@@ -356,15 +325,13 @@ const AvailabilityCalendar = () => {
           </CardContent>
         </Card>
 
-  
-
         {/* Blackout Dates */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+        <Card className="mb-4 sm:mb-6">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center">
                 <X className="h-5 w-5 mr-2" />
-                Blackout Dates
+                <span className="text-lg sm:text-xl">Blackout Dates</span>
               </div>
               <Button 
                 size="sm" 
@@ -373,41 +340,41 @@ const AvailabilityCalendar = () => {
                   setBlackoutForm({ start_date: "", end_date: "", reason: "" });
                   setShowBlackoutModal(true);
                 }}
+                className="mt-2 sm:mt-0"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Add Blackout Date
+                Add Blackout
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            {  availability && availability.blackout_dates.length > 0 ? (
+          <CardContent className="p-4 sm:p-6">
+            {availability && availability.blackout_dates && availability.blackout_dates.length > 0 ? (
               <div className="space-y-3">
                 {availability.blackout_dates.map((blackout) => (
-                  <div key={blackout._id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                    <div>
+                  <div key={blackout._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-red-50 rounded-lg gap-3">
+                    <div className="flex-1">
                       <p className="font-medium text-sm">
                         {formatDate(blackout.start_date)} - {formatDate(blackout.end_date)}
                       </p>
                       {blackout.reason && (
-                        <p className="text-xs text-gray-600">{blackout.reason}</p>
+                        <p className="text-xs text-gray-600 mt-1">{blackout.reason}</p>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 self-end sm:self-auto">
                       <Button 
                         size="sm" 
                         variant="outline"
                         onClick={() => openEditBlackout(blackout)}
+                        className="h-8 px-2"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        <Edit className="h-3 w-3" />
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleDeleteBlackout(blackout._id)}
+                        className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
@@ -422,8 +389,8 @@ const AvailabilityCalendar = () => {
 
       {/* General Settings Modal */}
       {showGeneralSettingsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">General Availability Settings</h3>
               <Button 
@@ -435,7 +402,7 @@ const AvailabilityCalendar = () => {
               </Button>
             </div>
             
-            <form onSubmit={handleGeneralSettingsUpdate} className="space-y-6">
+            <form onSubmit={handleGeneralSettingsUpdate} className="space-y-4 sm:space-y-6">
               {/* Accepting Bookings */}
               <div className="flex items-center space-x-2">
                 <Checkbox 
@@ -445,12 +412,12 @@ const AvailabilityCalendar = () => {
                     setGeneralSettings({...generalSettings, is_accepting_bookings: checked})
                   }
                 />
-                <Label htmlFor="accepting_bookings">Accepting new bookings</Label>
+                <Label htmlFor="accepting_bookings" className="text-sm sm:text-base">Accepting new bookings</Label>
               </div>
 
               {/* Notice Period */}
               <div>
-                <Label htmlFor="minimum_notice">Minimum Notice Period (hours)</Label>
+                <Label htmlFor="minimum_notice" className="text-sm sm:text-base">Minimum Notice Period (hours)</Label>
                 <Input
                   id="minimum_notice"
                   type="number"
@@ -460,12 +427,13 @@ const AvailabilityCalendar = () => {
                     ...generalSettings, 
                     minimum_notice_hours: parseInt(e.target.value)
                   })}
+                  className="mt-1"
                 />
               </div>
 
               {/* Advance Booking */}
               <div>
-                <Label htmlFor="maximum_advance">Maximum Advance Booking (days)</Label>
+                <Label htmlFor="maximum_advance" className="text-sm sm:text-base">Maximum Advance Booking (days)</Label>
                 <Input
                   id="maximum_advance"
                   type="number"
@@ -475,13 +443,14 @@ const AvailabilityCalendar = () => {
                     ...generalSettings, 
                     maximum_advance_days: parseInt(e.target.value)
                   })}
+                  className="mt-1"
                 />
               </div>
 
               {/* Session Durations */}
               <div>
-                <Label>Session Duration Options (minutes)</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
+                <Label className="text-sm sm:text-base">Session Duration Options (minutes)</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                   {[15, 30, 45, 60, 90, 120, 180, 240].map((duration) => (
                     <div key={duration} className="flex items-center space-x-2">
                       <Checkbox 
@@ -500,8 +469,9 @@ const AvailabilityCalendar = () => {
                             });
                           }
                         }}
+                        className="h-4 w-4"
                       />
-                      <Label htmlFor={`duration_${duration}`}>{duration} minutes</Label>
+                      <Label htmlFor={`duration_${duration}`} className="text-xs sm:text-sm">{duration} minutes</Label>
                     </div>
                   ))}
                 </div>
@@ -509,14 +479,14 @@ const AvailabilityCalendar = () => {
 
               {/* Weekly Schedule */}
               <div>
-                <Label>Weekly Schedule</Label>
-                <div className="space-y-3 mt-2">
+                <Label className="text-sm sm:text-base">Weekly Schedule</Label>
+                <div className="space-y-2 mt-2">
                   {dayNames.map((day, index) => {
                     const dayKey = day.toLowerCase();
-                    const daySettings = generalSettings?.general_availability[dayKey] ?? "NA";
+                    const daySettings = generalSettings?.general_availability[dayKey] || { available: false, start: "09:00", end: "17:00" };
                     return (
-                      <div key={day} className="flex items-center space-x-4 p-3 border rounded-lg">
-                        <div className="flex items-center space-x-2 w-24">
+                      <div key={day} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-3 border rounded-lg">
+                        <div className="flex items-center space-x-2 sm:w-24">
                           <Checkbox 
                             id={`available_${dayKey}`}
                             checked={daySettings.available}
@@ -529,11 +499,12 @@ const AvailabilityCalendar = () => {
                                 }
                               })
                             }
+                            className="h-4 w-4"
                           />
-                          <Label htmlFor={`available_${dayKey}`}>{day}</Label>
+                          <Label htmlFor={`available_${dayKey}`} className="text-sm">{day.slice(0, 3)}</Label>
                         </div>
                         {daySettings.available && (
-                          <div className="flex items-center space-x-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                             <Input
                               type="time"
                               value={daySettings.start}
@@ -546,9 +517,9 @@ const AvailabilityCalendar = () => {
                                   }
                                 })
                               }
-                              className="w-28 pl-2"
+                              className="w-full sm:w-28"
                             />
-                            <span>to</span>
+                            <span className="text-sm hidden sm:block">to</span>
                             <Input
                               type="time"
                               value={daySettings.end}
@@ -561,7 +532,7 @@ const AvailabilityCalendar = () => {
                                   }
                                 })
                               }
-                              className="w-28 pl-2"
+                              className="w-full sm:w-28"
                             />
                           </div>
                         )}
@@ -571,7 +542,7 @@ const AvailabilityCalendar = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
                 <Button 
                   type="button"
                   variant="outline"
@@ -589,12 +560,10 @@ const AvailabilityCalendar = () => {
         </div>
       )}
 
-     
-
       {/* Blackout Date Modal */}
       {showBlackoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">
                 {editingBlackout ? 'Edit' : 'Add'} Blackout Date
@@ -610,39 +579,42 @@ const AvailabilityCalendar = () => {
             
             <form onSubmit={handleBlackoutSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="start_date">Start Date</Label>
+                <Label htmlFor="start_date" className="text-sm sm:text-base">Start Date</Label>
                 <Input
                   id="start_date"
                   type="date"
                   value={blackoutForm.start_date}
                   onChange={(e) => setBlackoutForm({...blackoutForm, start_date: e.target.value})}
                   required
+                  className="mt-1"
                 />
               </div>
               
               <div>
-                <Label htmlFor="end_date">End Date</Label>
+                <Label htmlFor="end_date" className="text-sm sm:text-base">End Date</Label>
                 <Input
                   id="end_date"
                   type="date"
                   value={blackoutForm.end_date}
                   onChange={(e) => setBlackoutForm({...blackoutForm, end_date: e.target.value})}
                   required
+                  className="mt-1"
                 />
               </div>
               
               <div>
-                <Label htmlFor="reason">Reason (Optional)</Label>
+                <Label htmlFor="reason" className="text-sm sm:text-base">Reason (Optional)</Label>
                 <Textarea
                   id="reason"
                   value={blackoutForm.reason}
                   onChange={(e) => setBlackoutForm({...blackoutForm, reason: e.target.value})}
                   rows={3}
                   placeholder="e.g., Vacation, Holiday, Personal time..."
+                  className="mt-1"
                 />
               </div>
               
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
                 <Button 
                   type="button"
                   variant="outline" 
@@ -663,4 +635,4 @@ const AvailabilityCalendar = () => {
   );
 };
 
-export default AvailabilityCalendar; 
+export default AvailabilityCalendar;

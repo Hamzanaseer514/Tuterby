@@ -328,7 +328,7 @@ const ParentDetailPage = () => {
           }}
         >
           <Button
-            onClick={() => navigate("/admin/users")}
+            onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })}
             variant="outlined"
             sx={{
               minHeight: 48,

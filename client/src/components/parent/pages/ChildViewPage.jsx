@@ -218,14 +218,14 @@ const ChildViewPage = () => {
                 </div> */}
                             </div>
                             <CardTitle className="text-xl">{child.full_name}</CardTitle>
-                            <CardDescription>
+                            {/* <CardDescription>
                                 <Badge
                                     variant={child.is_verified === 'active' ? 'default' : 'secondary'}
                                     className={child.is_verified === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                                 >
                                     {child.is_verified === 'active' ? 'Active Account' : 'Inactive Account'}
                                 </Badge>
-                            </CardDescription>
+                            </CardDescription> */}
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-3">
@@ -468,7 +468,7 @@ const ChildViewPage = () => {
                     )}
 
                     {/* Quick Actions */}
-                    <Card>
+                    {/* <Card>
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Star className="h-5 w-5" />
@@ -495,7 +495,7 @@ const ChildViewPage = () => {
                                 </Button>
                             </div>
                         </CardContent>
-                    </Card>
+                    </Card> */}
                 </div>
             </div>
 

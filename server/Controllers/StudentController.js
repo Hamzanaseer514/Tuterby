@@ -6,6 +6,7 @@ const TutoringSession = require("../Models/tutoringSessionSchema"); // Added for
 const TutorInquiry = require("../Models/tutorInquirySchema"); // Added for tutor search and help requests
 const StudentPayment = require("../Models/studentPaymentSchema"); // Added for student payments
 const Message = require("../Models/messageSchema"); // Added for messaging
+const TutorReview = require("../Models/tutorReviewSchema"); // Added for tutor reviews
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 
 
@@ -131,18 +132,18 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
             select: "user_id",
             populate: {
                 path: "user_id",
-                select: "full_name email",
+                select: "full_name email photo_url",
             },
         })
         .populate({
             path: 'student_responses.student_id',
             select: 'user_id',
-            populate: { path: 'user_id', select: 'full_name email' }
+            populate: { path: 'user_id', select: 'full_name email photo_url' }
         })
         .populate({
             path: 'student_ratings.student_id',
             select: 'user_id',
-            populate: { path: 'user_id', select: 'full_name email' }
+            populate: { path: 'user_id', select: 'full_name email photo_url' }
         })
         .sort({ session_date: -1 })
         .skip((page - 1) * limit)
@@ -156,6 +157,7 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
             payment_status: 'paid',
             is_active: true
         });
+
 
         return {
             ...session.toObject(),
@@ -461,9 +463,219 @@ exports.searchTutors = asyncHandler(async (req, res) => {
       res.status(500);
       throw new Error("Failed to search tutors: " + error.message);
     }
-  });
+});
 
-  
+// Rate a tutor (not session-specific)
+exports.rateTutor = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { tutor_id, rating, review_text } = req.body;
+
+    if (!tutor_id || !rating || Number(rating) < 1 || Number(rating) > 5) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Tutor ID and rating (1-5) are required' 
+        });
+    }
+
+    try {
+        // Get student profile
+        const studentProfile = await Student.findOne({ user_id: userId });
+        if (!studentProfile) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Student profile not found' 
+            });
+        }
+
+        // Verify tutor exists
+        const tutor = await TutorProfile.findById(tutor_id);
+        if (!tutor) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tutor not found' 
+            });
+        }
+
+        // Check if student has hired this tutor
+        const hireRecord = studentProfile.hired_tutors.find(
+            hire => hire.tutor.toString() === tutor_id.toString()
+        );
+      
+        
+        if (!hireRecord) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only rate tutors you have paid.' 
+            });
+        }
+
+        // Check if student has paid for this tutor
+        const payment = await StudentPayment.findOne({
+            student_id: studentProfile._id,
+            tutor_id: tutor_id,
+            payment_status: 'paid',
+            is_active: true
+        });
+
+        if (!payment) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only rate tutors after making payment' 
+            });
+        }
+
+        // Create or update review
+        const existingReview = await TutorReview.findOne({
+            student_id: studentProfile._id,
+            tutor_id: tutor_id
+        });
+
+        let review;
+        if (existingReview) {
+            // Update existing review
+            existingReview.rating = Number(rating);
+            existingReview.review_text = review_text || '';
+            existingReview.updated_at = new Date();
+            await existingReview.save();
+            review = existingReview;
+        } else {
+            // Create new review
+            review = await TutorReview.create({
+                student_id: studentProfile._id,
+                tutor_id: tutor_id,
+                rating: Number(rating),
+                review_text: review_text || ''
+            });
+        }
+
+        // Update tutor's average rating
+        const reviews = await TutorReview.find({ tutor_id: tutor_id });
+        const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+        const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+
+        await TutorProfile.findByIdAndUpdate(
+            tutor_id,
+            { average_rating: Math.round(averageRating * 10) / 10 },
+            { new: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: existingReview ? 'Review updated successfully' : 'Review submitted successfully',
+            review: {
+                _id: review._id,
+                rating: review.rating,
+                review_text: review.review_text,
+                created_at: review.created_at,
+                updated_at: review.updated_at
+            }
+        });
+
+    } catch (error) {
+        console.error('Error rating tutor:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to submit review',
+            error: error.message
+        });
+    }
+});
+
+// Get tutor reviews
+exports.getTutorReviews = asyncHandler(async (req, res) => {
+    const { tutorId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    try {
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const reviews = await TutorReview.find({ tutor_id: tutorId })
+            .populate({
+                path: 'student_id',
+                select: 'user_id',
+                populate: {
+                    path: 'user_id',
+                    select: 'full_name photo_url'
+                }
+            })
+            .sort({ created_at: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await TutorReview.countDocuments({ tutor_id: tutorId });
+
+        const formattedReviews = reviews.map(review => ({
+            _id: review._id,
+            rating: review.rating,
+            review_text: review.review_text,
+            student_name: review.student_id?.user_id?.full_name || 'Anonymous',
+            student_photo: review.student_id?.user_id?.photo_url || '',
+            created_at: review.created_at,
+            updated_at: review.updated_at
+        }));
+
+        res.status(200).json({
+            success: true,
+            reviews: formattedReviews,
+            pagination: {
+                current_page: parseInt(page),
+                total_pages: Math.ceil(total / parseInt(limit)),
+                total_reviews: total,
+                has_next: skip + parseInt(limit) < total,
+                has_prev: parseInt(page) > 1
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching tutor reviews:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch reviews',
+            error: error.message
+        });
+    }
+});
+
+// Get student's review for a specific tutor
+exports.getStudentTutorReview = asyncHandler(async (req, res) => {
+    const { userId, tutorId } = req.params;
+
+    try {
+        const studentProfile = await Student.findOne({ user_id: userId });
+        if (!studentProfile) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Student profile not found' 
+            });
+        }
+
+        const review = await TutorReview.findOne({
+            student_id: studentProfile._id,
+            tutor_id: tutorId
+        });
+
+        res.status(200).json({
+            success: true,
+            review: review ? {
+                _id: review._id,
+                rating: review.rating,
+                review_text: review.review_text,
+                created_at: review.created_at,
+                updated_at: review.updated_at
+            } : null
+        });
+
+    } catch (error) {
+        console.error('Error fetching student tutor review:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch review',
+            error: error.message
+        });
+    }
+});
+
+
 
 exports.getTutorDetails = asyncHandler(async (req, res) => {
     const { tutorId } = req.params;
@@ -1056,7 +1268,7 @@ exports.getStudentTutorChat = asyncHandler(async (req, res) => {
 
 
     const messages = await Message.find({ studentId, tutorId: tutor.user_id })
-        .populate("tutorId", "full_name") // populate tutor details
+        .populate("tutorId", "full_name", "photo_url") // populate tutor details
         .sort({ createdAt: 1 }); // oldest first for proper chat order
 
     res.status(200).json({
@@ -1191,11 +1403,11 @@ exports.rateSession = asyncHandler(async (req, res) => {
         { $match: { tutor_id: session.tutor_id, status: { $in: ['completed', 'in_progress'] }, rating: { $exists: true } } },
         { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } }
     ]);
-    const avgRating = ratingsAgg[0]?.average || 0;
+    // const avgRating = ratingsAgg[0]?.average || 0;
     const totalSessions = ratingsAgg[0]?.count || 0;
     await TutorProfile.findOneAndUpdate(
         { _id: session.tutor_id },
-        { average_rating: avgRating, total_sessions: totalSessions },
+        {total_sessions: totalSessions },
         { new: true }
     );
 
@@ -1227,7 +1439,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
                 path: 'tutor_id',
                 populate: {
                     path: 'user_id',
-                    select: 'full_name'
+                    select: 'full_name photo_url'
                 }
             },
             {
@@ -1243,6 +1455,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
         // Transform payments into frontend format
         const formattedPayments = payments.map(payment => {
             const tutorName = payment.tutor_id?.user_id?.full_name || 'Unknown Tutor';
+            const tutorPhotoUrl = payment.tutor_id?.user_id?.photo_url || '';
             const subject = payment.subject?.name || 'Unknown Subject';
             const academicLevel = payment.academic_level?.level || 'Unknown Level';
 
@@ -1267,7 +1480,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
                 tutor_name: tutorName,
                 subject: subject,
                 academic_level: academicLevel,
-
+                tutor_photo_url: tutorPhotoUrl,
                 // Payment Details
                 payment_type: payment.payment_type,
                 base_amount: payment.base_amount,
@@ -1450,8 +1663,4 @@ exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
         });
     }
 });
-
-
-
-
 

@@ -43,6 +43,10 @@ const TutorProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [studentProfile, setStudentProfile] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
   const { subjects, academicLevels } = useSubject();
   const token = getAuthToken();
   useEffect(() => {
@@ -138,6 +142,9 @@ const TutorProfilePage = () => {
 
       setTutor(parsedTutor);
       // setTutor(data);
+      
+      // Fetch reviews after tutor data is loaded
+      fetchTutorReviews();
     } catch (error) {
       setError(error.message);
       toast({
@@ -147,6 +154,34 @@ const TutorProfilePage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTutorReviews = async (page = 1) => {
+    if (!tutorId) return;
+    
+    try {
+      setLoadingReviews(true);
+      const response = await fetch(`${BASE_URL}/api/auth/tutor/${tutorId}/reviews?page=${page}&limit=5`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch reviews');
+      }
+
+      const data = await response.json();
+      setReviews(data.reviews || []);
+      setReviewsTotal(data.pagination?.total_reviews || 0);
+      setReviewsPage(page);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      // Don't show error toast for reviews, just log it
+    } finally {
+      setLoadingReviews(false);
     }
   };
 
@@ -351,12 +386,7 @@ const TutorProfilePage = () => {
                           <h2 className="text-2xl font-bold text-gray-900 mb-2">
                             {tutor.user_id.full_name}
                           </h2>
-                          {tutor.location && (
-                            <div className="flex items-center gap-1 text-gray-600 mb-2 blur-sm">
-                              <MapPin className="w-4 h-4" />
-                              {tutor.location}
-                            </div>
-                          )}
+                      
                           {tutor.average_rating && (
                             <div className="flex items-center gap-1 mb-2">
                               {renderStars(tutor.average_rating)}
@@ -389,69 +419,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-              {/* Subjects and Levels */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5" />
-                    Subjects & Levels
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Subjects Taught</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {tutor.subjects?.map((subject, index) => {
-                          const subjectData = getSubjectById(subject);
-                          const subjectName = subjectData?.name || subject || 'Unknown Subject';
-                          const subjectType = subjectData?.subject_type?.name || 'Unknown Type';
-                          const levelName = subjectData?.level_id?.level || 'Unknown Level';
-
-                          return (
-                            <Badge key={index} variant="outline">
-                              {subjectName} - {subjectType} - {levelName}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Academic Levels</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {tutor.academic_levels_taught?.map((level, index) => (
-                          <Badge key={index} variant="secondary">
-                            {level}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Qualifications */}
-              {tutor.qualifications && tutor.qualifications.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="w-5 h-5" />
-                      Qualifications
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {tutor.qualifications.map((qualification, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <GraduationCap className="w-4 h-4 text-gray-500" />
-                          <span className="text-gray-700">{qualification}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+           
 
               {/* Hiring Statistics */}
               <Card>
@@ -530,63 +498,115 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-              {/* Student's Inquiries to This Tutor */}
-              {/* {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="w-5 h-5" />
-                      Your Inquiries
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {tutor.student_inquiries.map((inquiry, index) => (
-                        <div key={index} className="border-l-4 border-blue-200 pl-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-medium text-sm">{inquiry.subject} - {inquiry.academic_level}</p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(inquiry.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={
-                                inquiry.status === 'replied' ? 'default' :
-                                  inquiry.status === 'converted_to_booking' ? 'default' :
-                                    inquiry.status === 'pending' ? 'secondary' : 'outline'
-                              }
-                              className="text-xs"
-                            >
-                              {inquiry.status}
-                            </Badge>
-                          </div>
-                          {inquiry.description && (
-                            <p className="text-sm text-gray-600 mb-2">{inquiry.description}</p>
-                          )}
-                          {inquiry.reply_message && (
-                            <div className="bg-gray-50 p-2 rounded text-sm">
-                              <p className="font-medium text-gray-700 mb-1">Tutor's Reply:</p>
-                              <p className="text-gray-600">{inquiry.reply_message}</p>
-                              {inquiry.replied_at && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Replied on: {new Date(inquiry.replied_at).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                          {inquiry.response_time_minutes && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Responded in: {formatResponseTime(inquiry.response_time_minutes)}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+            
+              {/* Tutor Reviews */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="w-5 h-5" />
+                    Reviews & Ratings
+                    {tutor.average_rating > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {tutor.average_rating.toFixed(1)} ⭐
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingReviews ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
-                  </CardContent>
-                </Card>
-              )} */}
+                  ) : reviews.length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Average Rating Summary */}
+                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900">
+                            {tutor.average_rating > 0 ? tutor.average_rating.toFixed(1) : 'N/A'}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-4 h-4 ${
+                                  star <= Math.round(tutor.average_rating || 0)
+                                    ? 'text-yellow-500 fill-current'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">
+                            Based on {reviewsTotal} review{reviewsTotal !== 1 ? 's' : ''}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Average rating from students
+                          </p>
+                        </div>
+                      </div>
 
+                      {/* Individual Reviews */}
+                      <div className="space-y-3">
+                        {reviews.map((review) => (
+                          <div key={review._id} className="border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`w-4 h-4 ${
+                                        star <= review.rating
+                                          ? 'text-yellow-500 fill-current'
+                                          : 'text-gray-300'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {review.student_name}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {new Date(review.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {review.review_text && (
+                              <p className="text-sm text-gray-600 mt-2">
+                                {review.review_text}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Load More Button */}
+                      {reviewsTotal > reviews.length && (
+                        <div className="text-center pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => fetchTutorReviews(reviewsPage + 1)}
+                            disabled={loadingReviews}
+                          >
+                            {loadingReviews ? 'Loading...' : 'Load More Reviews'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Star className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium mb-2">No Reviews Yet</p>
+                      <p className="text-sm">
+                        This tutor hasn't received any reviews from students yet.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
             </div>
 
@@ -613,43 +633,98 @@ const TutorProfilePage = () => {
                   </CardContent>
                 </Card>
               )}
+   {/* Subjects and Levels */}
+   <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Subjects & Levels
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Subjects Taught</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {tutor.subjects?.map((subject, index) => {
+                          const subjectData = getSubjectById(subject);
+                          const subjectName = subjectData?.name || subject || 'Unknown Subject';
+                          const subjectType = subjectData?.subject_type?.name || 'Unknown Type';
+                          const levelName = subjectData?.level_id?.level || 'Unknown Level';
 
-              {/* Requested For This Tutor */}
-              {studentProfile?.hired_tutors && studentProfile.hired_tutors.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tutor is Requested For</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Academic Level</span>
-                      <span className="font-semibold">
-                        {studentProfile.hired_tutors.map((tutor) => {
-                          const academicLevel = getAcademicLevelById(tutor.academic_level_id);
-                          return academicLevel?.level || 'Unknown Level';
-                        }).join(', ')}
-                      </span>
+                          return (
+                            <Badge key={index} variant="outline">
+                              {subjectName} - {subjectType} - {levelName}
+                            </Badge>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    {tutor.experience_years && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Subject</span>
-                        <span className="font-semibold">
-                          {studentProfile.hired_tutors.map((tutor) => {
-                            const subject = getSubjectById(tutor.subject);
-                            return subject?.name || 'Unknown Subject';
-                          }).join(', ')}
-                        </span>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Academic Levels</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {tutor.academic_levels_taught?.map((level, index) => (
+                          <Badge key={index} variant="secondary">
+                            {level}
+                          </Badge>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Qualifications */}
+              {tutor.qualifications && tutor.qualifications.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="w-5 h-5" />
+                      Qualifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {tutor.qualifications.map((qualification, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700">{qualification}</span>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               )}
+              {/* Requested For This Tutor */}
+              {studentProfile?.hired_tutors?.length > 0 && (
+  <Card>
+    <CardHeader>
+      <CardTitle>Tutor is Requested For</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-600">Academic Level</span>
+        <span className="font-semibold">
+          {getAcademicLevelById(studentProfile.hired_tutors[0].academic_level_id)?.level || 'Unknown Level'}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className="text-gray-600">Subject</span>
+        <span className="font-semibold">
+          {getSubjectById(studentProfile.hired_tutors[0].subject)?.name || 'Unknown Subject'}
+        </span>
+      </div>
+    </CardContent>
+  </Card>
+)}
+
 
 
               {/* Student's Inquiries Summary */}
               {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
-                <Card>
+                <Card className="cursor-pointer"  onClick={() => navigate(`/student-dashboard?tab=requests`)}   >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MessageCircle className="w-5 h-5" />
@@ -662,7 +737,7 @@ const TutorProfilePage = () => {
                       <p className="text-sm text-gray-600">Total Inquiries</p>
                     </div>
                     <div className="space-y-2">
-                      {tutor.student_inquiries.slice(0, 2).map((inquiry, index) => (
+                      {tutor.student_inquiries.slice(0, 1).map((inquiry, index) => (
                         <div key={index} className="text-left border-l-2 border-blue-200 pl-2">
                           <p className="text-xs font-medium">{inquiry.subject}</p>
                           <Badge
@@ -677,9 +752,9 @@ const TutorProfilePage = () => {
                           </Badge>
                         </div>
                       ))}
-                      {tutor.student_inquiries.length > 2 && (
+                      {tutor.student_inquiries.length > 1 && (
                         <p className="text-xs text-gray-500 text-center">
-                          +{tutor.student_inquiries.length - 2} more
+                          +{tutor.student_inquiries.length - 1} more
                         </p>
                       )}
                     </div>
@@ -710,7 +785,7 @@ const TutorProfilePage = () => {
                       <span className="text-gray-600">Rating</span>
                       <div className="flex items-center gap-1">
                         {renderStars(tutor.average_rating)}
-                        <span className="font-semibold ml-1">{tutor.average_rating}</span>
+                        {/* <span className="font-semibold ml-1">{tutor.average_rating}</span> */}
                       </div>
                     </div>
                   )}

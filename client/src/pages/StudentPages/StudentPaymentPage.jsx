@@ -26,6 +26,7 @@ import {
     Eye,
     RefreshCw
 } from 'lucide-react';
+import { Avatar } from '../../components/ui/avatar';
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
@@ -339,10 +340,22 @@ const StudentPaymentPage = () => {
                                 <CardContent className="p-0">
                                     <div className="p-6 cursor-pointer" onClick={() => toggleExpandPayment(payment._id)}>
                                         <div className="flex items-start justify-between">
+                                            {console.log("payment", payment)}
                                             <div className="flex items-start gap-4 flex-1">
                                                 <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
-                                                    <User className="w-6 h-6 text-blue-600" />
-                                                </div>
+                                                {payment.tutor_photo_url ? (
+              <img
+                src={`${BASE_URL}${payment.tutor_photo_url}`}
+                alt={payment.tutor_name || "Student"}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+              />
+            ) : (
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <div className="h-full w-full bg-blue-100 flex items-center justify-center rounded-full">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+              </Avatar>
+            )}                                                </div>
 
                                                 <div className="flex-1">
                                                     <div className="flex flex-col md:flex-row md:items-start justify-between mb-3 gap-4">

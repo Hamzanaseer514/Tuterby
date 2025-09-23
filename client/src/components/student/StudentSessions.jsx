@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useToast } from '../ui/use-toast';
+import { Avatar } from '../ui/avatar';
 import { 
   Calendar, 
   Clock, 
@@ -53,6 +54,14 @@ const StudentSessions = () => {
       checkPaymentStatus();
     }
   }, [user, currentPage, statusFilter]);
+
+  
+  // useEffect(() => {
+  //   if (user) {
+  //     fetchSessions();
+  //     checkPaymentStatus();
+  //   }
+  // }, [user, currentPage, statusFilter, sessions]);
 
   const checkPaymentStatus = async () => {
     try {
@@ -266,9 +275,14 @@ const StudentSessions = () => {
   const filteredSessions = sessions.filter(session => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
+      const tutorName = (session.tutor_id?.user_id?.full_name || '').toLowerCase();
+      const subjectName = (getSubjectById(session.subject)?.name || session.subject || '').toLowerCase();
+      const academicLevelName = (matchAcademicLevel(session.academic_level) || '').toLowerCase();
+      
       return (
-        session.tutor_id.full_name.toLowerCase().includes(searchLower) ||
-        session.subject.toLowerCase().includes(searchLower)
+        tutorName.includes(searchLower) ||
+        subjectName.includes(searchLower) ||
+        academicLevelName.includes(searchLower)
       );
     }
     return true;
@@ -368,7 +382,7 @@ const StudentSessions = () => {
             <div className="flex-1 max-w-md">
               <input
                 type="text"
-                placeholder="Search by tutor name or subject..."
+                placeholder="Search by tutor name, subject, or academic level..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -403,8 +417,19 @@ const StudentSessions = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600" />
-                    </div>
+                    {session.tutor_id.user_id.photo_url ? (
+              <img
+                src={`${BASE_URL}${session.tutor_id.user_id.photo_url}`}
+                alt={session.tutor_id.user_id.full_name || "Student"}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+              />
+            ) : (
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <div className="h-full w-full bg-blue-100 flex items-center justify-center rounded-full">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+              </Avatar>
+            )}                    </div>
                     <div className="flex-1">
                       
                       <div className="flex items-center gap-2 mb-2">
@@ -520,37 +545,64 @@ const StudentSessions = () => {
                     )}
 
                     {/* Student actions */}
-                    <div className="flex flex-wrap gap-2 mt-2 justify-end">
-                      {(() => {
-                        const myResp = Array.isArray(session.student_responses) ? session.student_responses.find(r => {
-                          const uid = r?.student_id?.user_id?._id || r?.student_id?.user_id;
-                          return uid && uid.toString() === user?._id?.toString();
-                        }) : null;
-                        const effectiveStatus = myResp?.status === 'declined' ? 'cancelled' : session.status;
-                        return effectiveStatus === 'pending';
-                      })() && (
-                        <>
-                          <Button size="sm" onClick={() => handleStudentConfirm(session)}>Confirm</Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleStudentDecline(session)}>Not available</Button>
-                        </>
-                      )}
-                      {/* Allow rating/feedback while in progress and after completion */}
-                      {(() => {
-                        // Hide rate button if student declined
-                        const myResp = Array.isArray(session.student_responses) ? session.student_responses.find(r => {
-                          const uid = r?.student_id?.user_id?._id || r?.student_id?.user_id;
-                          return uid && uid.toString() === user?._id?.toString();
-                        }) : null;
-                        const declined = myResp?.status === 'declined';
-                        const allowed = !declined && ['in_progress', 'completed'].includes(session.status);
-                        return allowed ? (
-                          <Button size="sm" onClick={() => openRatingModal(session)}>
-                            {session.status === 'completed' ? 'Rate Session' : 'Rate Now'}
-                          </Button>
-                        ) : null;
-                      })()}
-                      {/* No reschedule allowed when confirmed */}
-                    </div>
+                  {/* Student actions */}
+<div className="flex flex-wrap gap-2 mt-2 justify-end">
+  {(() => {
+    // Find this student's own response
+    const myResp = Array.isArray(session.student_responses)
+      ? session.student_responses.find(r => {
+          const uid = r?.student_id?.user_id?._id || r?.student_id?._id;
+          return uid && uid.toString() === user?._id?.toString();
+        })
+      : null;
+
+    const alreadyResponded =
+      myResp?.status === "confirmed" || myResp?.status === "declined";
+
+    // Show buttons only if session is still pending
+    // AND this student has not responded yet
+    if (session.status === "pending" && !alreadyResponded) {
+      return (
+        <>
+          <Button size="sm" onClick={() => handleStudentConfirm(session)}>
+            Confirm
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => handleStudentDecline(session)}
+          >
+            Not available
+          </Button>
+        </>
+      );
+    }
+
+    return null;
+  })()}
+
+  {/* Allow rating/feedback while in progress or after completion */}
+  {(() => {
+    const myResp = Array.isArray(session.student_responses)
+      ? session.student_responses.find(r => {
+          const uid = r?.student_id?.user_id?._id || r?.student_id?._id;
+          return uid && uid.toString() === user?._id?.toString();
+        })
+      : null;
+
+    const declined = myResp?.status === "declined";
+    const allowed =
+      !declined && ["in_progress", "completed"].includes(session.status);
+
+    return allowed ? (
+      <Button size="sm" onClick={() => openRatingModal(session)}>
+        {session.status === "completed" ? "Rate Session" : "Rate Now"}
+      </Button>
+    ) : null;
+  })()}
+</div>
+
+
                   </div>
                 </div>
               </CardContent>
@@ -634,42 +686,92 @@ const StudentSessions = () => {
         </div>
       )}
 
-      {/* Rating Modal */}
-      {showRatingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Rate Your Session</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Rating</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  value={ratingValue}
-                  onChange={(e) => setRatingValue(Number(e.target.value))}
+    {/* Rating Modal */}
+{showRatingModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-xl font-bold text-gray-900">Rate Your Session</h3>
+        <button 
+          onClick={() => setShowRatingModal(false)}
+          className="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">How would you rate this session?</label>
+          <div className="flex justify-center space-x-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                className={`p-1 rounded-full transition-all duration-150 ${
+                  star <= ratingValue ? 'transform scale-110' : ''
+                }`}
+                onClick={() => setRatingValue(star)}
+                aria-label={`Rate ${star} stars`}
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className={`h-10 w-10 ${
+                    star <= ratingValue 
+                      ? 'text-yellow-400 fill-current' 
+                      : 'text-gray-300 fill-current'
+                  }`} 
+                  viewBox="0 0 20 20" 
+                  fill="currentColor"
                 >
-                  {[5,4,3,2,1].map(v => (
-                    <option key={v} value={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Feedback (optional)</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows={3}
-                  value={ratingFeedback}
-                  onChange={(e) => setRatingFeedback(e.target.value)}
-                  placeholder="Share your feedback"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowRatingModal(false)}>Cancel</Button>
-                <Button onClick={submitRating}>Submit</Button>
-              </div>
-            </div>
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </button>
+            ))}
+          </div>
+          <div className="text-center mt-2 text-sm text-gray-500">
+            {ratingValue === 5 ? 'Excellent' : 
+             ratingValue === 4 ? 'Good' : 
+             ratingValue === 3 ? 'Average' : 
+             ratingValue === 2 ? 'Fair' : 
+             'Poor'}
           </div>
         </div>
-      )}
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Your feedback (optional)</label>
+          <textarea
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            rows={4}
+            value={ratingFeedback}
+            onChange={(e) => setRatingFeedback(e.target.value)}
+            placeholder="What did you like about the session? How could it be improved?"
+          />
+        </div>
+        
+        <div className="flex gap-3 justify-end pt-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowRatingModal(false)}
+            className="px-5 py-2.5"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={submitRating}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700"
+            disabled={ratingValue === 0}
+          >
+            Submit Rating
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

@@ -270,30 +270,14 @@ const TutorDashboardPage = () => {
       group: 'account',
       name: 'Account',
       items: [
-        {
-          id: 'analytics',
-          name: 'Analytics',
-          icon: TrendingUp,
-          component: <div className="p-6">Analytics coming soon...</div>
-        },
-        {
-          id: 'resources',
-          name: 'Resources',
-          icon: BookOpen,
-          component: <div className="p-6">Resources management coming soon...</div>
-        },
+        
         {
           id: 'profile',
           name: 'Profile',
           icon: User,
           component: <TutorSelfProfilePage />
         },
-        {
-          id: 'help',
-          name: 'Help Center',
-          icon: HelpCircle,
-          component: <div className="p-6">Help center coming soon...</div>
-        },
+      
         {
           id: 'settings',
           name: 'Settings',

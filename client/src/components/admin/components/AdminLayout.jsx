@@ -63,8 +63,8 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
   useEffect(() => {
     let isMounted = true;
     fetchCounts();
-    const interval = setInterval(() => { if (isMounted) fetchCounts(); }, 30000);
-    return () => { isMounted = false; clearInterval(interval); };
+    // Removed auto-refresh interval - only fetch once on mount
+    return () => { isMounted = false; };
   }, []);
 
   // Listen for cross-app updates to refresh counts instantly when users change

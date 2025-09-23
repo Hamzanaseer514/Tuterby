@@ -606,11 +606,15 @@ const StudentHelpRequests = () => {
                   <Card key={tutor._id || tutor.tutor_id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-4">
                       <div className="flex items-center space-x-4">
-                        <Avatar className="h-16 w-16">
-                          <div className="h-full w-full bg-blue-100 flex items-center justify-center">
-                            <User className="h-8 w-8 text-blue-600" />
-                          </div>
-                        </Avatar>
+                      {tutor.user_id?.photo_url ? (
+                          <img
+                            src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                            alt="Profile"
+                            className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+                          />
+                        ) : (
+                          <User className="h-6 w-6 text-white" />
+                        )}
                         <div className="flex-1">
                           <CardTitle className="text-lg">
                             {tutor.full_name || tutor.user_id?.full_name || 'Tutor Name'}
@@ -649,27 +653,13 @@ const StudentHelpRequests = () => {
                         </div>
                       )}
 
-                      {/* Location */}
-                      {tutor.location && (
-                        <div className="flex items-center space-x-2 text-sm text-gray-600 blur-sm">
-                          <MapPin className="h-4 w-4" />
-                          <span>{tutor.location}</span>
-                        </div>
-                      )}
+                     
 
                       {/* Experience */}
                       {tutor.experience && (
                         <div className="flex items-center space-x-2 text-sm text-gray-600">
                           <BookOpen className="h-4 w-4" />
                           <span>{tutor.experience} years experience</span>
-                        </div>
-                      )}
-
-                      {/* Hired Date */}
-                      {tutor.hired_at && (
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                          <Calendar className="h-4 w-4" />
-                          <span>Hired on {new Date(tutor.hired_at).toLocaleDateString()}</span>
                         </div>
                       )}
 

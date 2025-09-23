@@ -13,7 +13,10 @@ const { getStudentDashboard, updateStudentProfile,
   getStudentProfile,
   getStudentPayments,
   processStudentPayment,
-  checkStudentPaymentStatus } = require("../Controllers/StudentController")
+  checkStudentPaymentStatus,
+  rateTutor,
+  getTutorReviews,
+  getStudentTutorReview } = require("../Controllers/StudentController")
 const { getUserProfile, updateUserPhoto, refreshAccessToken, logoutUser } = require("../Controllers/UserController")
 
 const { protect } = require("../Middleware/authMiddleware")
@@ -79,6 +82,11 @@ router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
 router.get("/student/payments/:userId", protect, getStudentPayments);
 router.post("/student/payments/:paymentId/pay", protect, processStudentPayment);
 router.get("/student/payment-status/:userId", protect, checkStudentPaymentStatus);
+
+// Tutor rating and review routes
+router.post("/student/:userId/rate-tutor", protect, rateTutor);
+router.get("/tutor/:tutorId/reviews", getTutorReviews);
+router.get("/student/:userId/tutor/:tutorId/review", protect, getStudentTutorReview);
 
 // Parent routes
 router.post("/register-parent", upload.single('photo'), registerParent)

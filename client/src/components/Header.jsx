@@ -103,7 +103,7 @@ const UserDropdown = ({ user, onClose }) => {
     logout();
     onClose();
     toast.success("Logged out successfully");
-    navigate("/");
+    navigate("/login");
   }, [logout, onClose, navigate]);
 
   const getDashboardPath = () => {
@@ -344,7 +344,7 @@ const Header = () => {
                       variant="ghost"
                       className="w-full justify-start px-4 py-2 text-sm font-medium hover:text-primary"
                       onClick={() => {
-                        logout();
+                        handleLogout();
                         closeMobileMenu();
                       }}
                     >

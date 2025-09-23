@@ -93,6 +93,7 @@ const TutorDetailPage = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotError, setSlotError] = useState("");
   const [schedulingStatus, setSchedulingStatus] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isInterview, setIsInterview] = useState(
     Boolean(
       user?.is_interview || (user?.interviewSlots || []).some((s) => s.is_interview)
@@ -271,8 +272,9 @@ const getAcademicLevel = (level) => {Experience
     setSchedulingStatus("scheduling");
     try {
       const scheduledDateTimes = selectedTimes.map((time) => `${selectedDate}T${time}`);
-      await setAvailableInterviewSlots(user.id, scheduledDateTimes);
+      const response = await setAvailableInterviewSlots(user.id, scheduledDateTimes);
       setSchedulingStatus("success");
+      setSuccessMessage(response.message || "Interview scheduled successfully!");
       setLocalUser((prev) => ({
         ...prev,
         preferredSlots: Array.isArray(prev?.preferredSlots)
@@ -287,6 +289,7 @@ const getAcademicLevel = (level) => {Experience
       }
       setTimeout(() => {
         setSchedulingStatus("");
+        setSuccessMessage("");
         setSelectedTimes([]);
       }, 2000);
     } catch (error) {
@@ -508,7 +511,7 @@ const getAcademicLevel = (level) => {Experience
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate("/admin/users")} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -557,7 +560,7 @@ const getAcademicLevel = (level) => {Experience
                             <Box sx={{ display: "flex", alignItems: "center" }} style={{marginLeft:"19px"}}>
                               <Star color="warning" fontSize="small" />
                               <Typography variant="body2" sx={{ ml: 0.5, fontWeight: "medium" }}>
-                                {userRating}/5
+                                {userRating.toFixed(1)}/5
                               </Typography>
                             </Box>
                           )}
@@ -965,8 +968,8 @@ const getAcademicLevel = (level) => {Experience
                           </Box>
                           <Box sx={{ mt: 2 }}>
                             {schedulingStatus === "success" && (
-                              <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }} onClose={() => setSchedulingStatus(null)}>
-                                Interview scheduled successfully!
+                              <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }} onClose={() => {setSchedulingStatus(null); setSuccessMessage("");}}>
+                                {successMessage}
                               </Alert>
                             )}
                             {schedulingStatus === "error" && (
@@ -1018,7 +1021,7 @@ const getAcademicLevel = (level) => {Experience
                   </Button>
                 )}
               </>
-              <Button onClick={() => navigate("/admin/users")} variant="outlined" sx={{ minHeight: 48, minWidth: 120, px: 3, py: 1.5, fontSize: "0.875rem", fontWeight: 500, cursor: "pointer", userSelect: "none" }}>
+              <Button onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })} variant="outlined" sx={{ minHeight: 48, minWidth: 120, px: 3, py: 1.5, fontSize: "0.875rem", fontWeight: 500, cursor: "pointer", userSelect: "none" }}>
                 Back
               </Button>
             </Box>
