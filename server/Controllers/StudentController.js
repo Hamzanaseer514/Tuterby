@@ -1260,16 +1260,21 @@ exports.getAcceptedTutorsForStudent = async (req, res) => {
 exports.getStudentTutorChat = asyncHandler(async (req, res) => {
     const studentId = req.user._id; // logged-in student
     const { tutorId } = req.params;
+    
+    // Find tutor profile by ID
     const tutor = await TutorProfile.findById(tutorId);
     if (!tutor) {
         res.status(404);
         throw new Error("Tutor not found");
     }
 
-
-    const messages = await Message.find({ studentId, tutorId: tutor.user_id })
-        .populate("tutorId", "full_name", "photo_url") // populate tutor details
-        .sort({ createdAt: 1 }); // oldest first for proper chat order
+    // Find messages between student and tutor
+    const messages = await Message.find({ 
+        studentId, 
+        tutorId: tutor.user_id 
+    })
+    .populate("tutorId", "full_name photo_url") // Fixed populate syntax
+    .sort({ createdAt: 1 }); // oldest first for proper chat order
 
     res.status(200).json({
         success: true,

@@ -344,11 +344,7 @@ const StudentDashboard = () => {
             )}
           </CardContent>
         </Card>
-
-     
       </div>
-
-  
     </div>
   );
 };

@@ -1013,7 +1013,7 @@ const getTutorProfile = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Tutor profile not found");
   }
-
+console.log("profile", profile);
   res.json({ ...profile, total_sessions });
 });
 
@@ -1800,6 +1800,22 @@ const getTutorMessages = asyncHandler(async (req, res) => {
   });
 });
 
+// Get count of unanswered messages for badge notifications
+const getUnansweredMessagesCount = asyncHandler(async (req, res) => {
+  const tutorId = req.user._id; // Logged-in tutor
+
+  const unansweredCount = await Message.countDocuments({ 
+    tutorId, 
+    status: 'unanswered',
+    response: { $exists: false }
+  });
+
+  res.status(200).json({
+    success: true,
+    count: unansweredCount,
+  });
+});
+
 
 const getSpecificUserChat = asyncHandler(async (req, res) => {
   const tutorId = req.user._id;
@@ -2461,6 +2477,7 @@ module.exports = {
   respondToHireRequest,
   sendMessageResponse,
   getTutorMessages,
+  getUnansweredMessagesCount,
   getSpecificUserChat,
   deleteSession,
   getVerifiedTutors,

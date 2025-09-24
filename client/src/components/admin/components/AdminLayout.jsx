@@ -96,6 +96,8 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
     navigate('/admin/tutor-sessions');
   }else if (newTabValue === 'tutor-payments') {
     navigate('/admin/tutor-payments');
+  } else if (newTabValue === 'tutor-reviews') {
+    navigate('/admin/tutor-reviews');
   }
   
   setMobileOpen(false);
@@ -171,6 +173,17 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           id: 'tutor-payments', 
           icon: <AcademicCapIcon className="h-5 w-5" />, 
           label: 'Tutor Payments', 
+          count: null 
+        }
+      ]
+    },
+    { 
+      section: 'Reviews & Feedback',
+      items: [
+        { 
+          id: 'tutor-reviews', 
+          icon: <AcademicCapIcon className="h-5 w-5" />, 
+          label: 'Tutor Reviews', 
           count: null 
         }
       ]

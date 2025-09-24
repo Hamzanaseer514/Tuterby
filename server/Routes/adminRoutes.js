@@ -36,7 +36,8 @@ const {
   deleteSubjectType,
   fetchSubjectRelatedToAcademicLevels,
     getAllTutorSessions,
-  getAllTutorPayments
+  getAllTutorPayments,
+  getAllTutorReviews
 } = require("../Controllers/adminController");
 
 
@@ -86,6 +87,7 @@ router.put("/applications/notes", updateApplicationNotes);
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/tutor-sessions", getAllTutorSessions);
 router.get("/tutor-payments", getAllTutorPayments);
+router.get("/tutor-reviews", getAllTutorReviews);
 // User management
 router.put("/users/:user_id/status", require("../Controllers/adminController").updateUserStatus);
 

@@ -140,8 +140,41 @@ const StudentDashboardPage = () => {
         }
       } catch { }
 
-      // Chat dot left as 0 unless endpoint exists
-      const chatCount = 0;
+      // Chat count - check for new tutor responses
+      let chatCount = 0;
+      try {
+        const tutorsRes = await fetchWithAuth(`${BASE_URL}/api/auth/get-accepted-tutors`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+        );
+        if (tutorsRes.ok) {
+          const tutorsJson = await tutorsRes.json();
+          if (tutorsJson.success && tutorsJson.data) {
+            // Check each tutor for new responses
+            for (const tutor of tutorsJson.data) {
+              try {
+                const chatRes = await fetchWithAuth(`${BASE_URL}/api/auth/getstudentchat/${tutor.tutorId}`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken));
+                if (chatRes.ok) {
+                  const chatJson = await chatRes.json();
+                  if (chatJson.success && chatJson.data) {
+                    // Count messages with responses (tutor replies)
+                    const messagesWithResponses = chatJson.data.filter(msg => msg.response && msg.status === 'answered');
+                    if (messagesWithResponses.length > 0) {
+                      const latestResponseTime = Math.max(...messagesWithResponses.map(msg => new Date(msg.updatedAt || msg.createdAt).getTime()));
+                      const lastSeenKey = `student_last_seen_${tutor.tutorId}`;
+                      const lastSeenTime = Number(localStorage.getItem(lastSeenKey) || 0);
+                      
+                      if (latestResponseTime > lastSeenTime) {
+                        chatCount++;
+                      }
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error(`Error checking chat for tutor ${tutor.tutorId}:`, error);
+              }
+            }
+          }
+        }
+      } catch { }
 
       setBadgeCounts({ sessions: sessionsCount, requests: requestsCount, chat: chatCount });
     } catch { }
@@ -216,20 +249,7 @@ const StudentDashboardPage = () => {
       component: <StudentSessions />,
       section: 'learning'
     },
-    {
-      id: 'assignments',
-      name: 'Assignments',
-      icon: FileText,
-      component: <div className="p-6">Assignments coming soon...</div>,
-      section: 'learning'
-    },
-    {
-      id: 'notes',
-      name: 'Notes',
-      icon: BookOpen,
-      component: <div className="p-6">Notes coming soon...</div>,
-      section: 'learning'
-    },
+
     {
       id: 'chat',
       name: 'Messages',

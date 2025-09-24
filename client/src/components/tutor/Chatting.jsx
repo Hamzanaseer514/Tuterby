@@ -7,7 +7,7 @@ const Chatting = () => {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
-  const [selectedStudentPhoto, setSelectedStudentPhoto] = useState(""); // ✅ added
+  const [selectedStudentPhoto, setSelectedStudentPhoto] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [responseText, setResponseText] = useState("");
   const [selectedMessageId, setSelectedMessageId] = useState(null);
@@ -16,6 +16,9 @@ const Chatting = () => {
 
   useEffect(() => {
     fetchAllMessages();
+    // Set up polling to check for new messages every 30 seconds
+    const interval = setInterval(fetchAllMessages, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchAllMessages = async () => {
@@ -35,20 +38,43 @@ const Chatting = () => {
       const data = await res.json();
 
       if (data.success) {
-        const uniqueStudents = [];
-        const seen = new Set();
+        const studentMap = new Map();
 
+        // Process all messages to group by student and count unanswered
         data.data.forEach((msg) => {
-          if (!seen.has(msg.studentId._id)) {
-            seen.add(msg.studentId._id);
-            uniqueStudents.push({
-              studentId: msg.studentId._id,
+          const studentId = msg.studentId._id;
+          
+          if (!studentMap.has(studentId)) {
+            studentMap.set(studentId, {
+              studentId: studentId,
               name: msg.studentId.full_name,
-              latestMessage: msg.message,
               photo_url: msg.studentId.photo_url || "",
+              latestMessage: msg.message,
+              latestMessageTime: msg.createdAt,
+              unansweredCount: 0,
+              hasUnansweredMessages: false
             });
           }
+
+          const student = studentMap.get(studentId);
+          
+          // Update latest message if this one is newer
+          if (new Date(msg.createdAt) > new Date(student.latestMessageTime)) {
+            student.latestMessage = msg.message;
+            student.latestMessageTime = msg.createdAt;
+          }
+
+          // Count unanswered messages
+          if (msg.status === 'unanswered' && !msg.response) {
+            student.unansweredCount++;
+            student.hasUnansweredMessages = true;
+          }
         });
+
+        // Convert map to array and sort by latest message time
+        const uniqueStudents = Array.from(studentMap.values()).sort((a, b) => 
+          new Date(b.latestMessageTime) - new Date(a.latestMessageTime)
+        );
 
         setStudents(uniqueStudents);
       }
@@ -75,6 +101,15 @@ const Chatting = () => {
         setSelectedStudentPhoto(studentPhoto || "");
         setSelectedMessageId(null);
         setResponseText("");
+        
+        // Mark messages as seen by updating the student's unanswered count
+        setStudents(prevStudents => 
+          prevStudents.map(student => 
+            student.studentId === studentId 
+              ? { ...student, hasUnansweredMessages: false, unansweredCount: 0 }
+              : student
+          )
+        );
       }
     } catch (error) {
       console.error(error);
@@ -110,6 +145,9 @@ const Chatting = () => {
         );
         setResponseText("");
         setSelectedMessageId(null);
+        
+        // Refresh the student list to update notification counts
+        fetchAllMessages();
       }
     } catch (error) {
       console.error(error);
@@ -132,26 +170,43 @@ const Chatting = () => {
                   student.photo_url
                 )
               }
-              className={`p-3 mb-3 rounded-lg cursor-pointer transition hover:shadow-md ${
+              className={`p-3 mb-3 rounded-lg cursor-pointer transition hover:shadow-md relative ${
                 selectedStudent === student.studentId
                   ? "bg-blue-200 shadow-md"
                   : "bg-white"
               }`}
             >
               <div className="flex items-center gap-3">
-                {student.photo_url ? (
-                  <img
-                    src={`${BASE_URL}${student.photo_url}`}
-                    alt={student.name}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold">
-                    {student.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <div className="relative">
+                  {student.photo_url ? (
+                    <img
+                      src={`${BASE_URL}${student.photo_url}`}
+                      alt={student.name}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold">
+                      {student.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {/* Red dot notification for unanswered messages */}
+                  {student.hasUnansweredMessages && (
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-bold">
+                        {student.unansweredCount > 9 ? '9+' : student.unansweredCount}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-800">{student.name}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-gray-800">{student.name}</p>
+                    {student.hasUnansweredMessages && (
+                      <span className="text-xs text-red-500 font-medium">
+                        New
+                      </span>
+                    )}
+                  </div>
                   <p className="text-gray-500 text-sm truncate">
                     {student.latestMessage}
                   </p>
@@ -179,7 +234,7 @@ const Chatting = () => {
             <option value="">Select a student</option>
             {students.map((s) => (
               <option key={s.studentId} value={s.studentId}>
-                {s.name}
+                {s.name} {s.hasUnansweredMessages ? '(New Messages)' : ''}
               </option>
             ))}
           </select>

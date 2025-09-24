@@ -26,6 +26,7 @@ const {
   respondToHireRequest,
   sendMessageResponse,
   getTutorMessages,
+  getUnansweredMessagesCount,
   getSpecificUserChat,
   deleteSession,
   getVerifiedTutors,
@@ -35,7 +36,7 @@ const {
   removeTutorAcademicLevel,
   sendMeetingLink,
   getHiredSubjectsAndLevels,
-  getTutorPaymentHistory
+  getTutorPaymentHistory,
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -103,6 +104,7 @@ router.post('/hire-requests/:user_id/respond', protect, respondToHireRequest);
 router.post('/messages/reply', protect, sendMessageResponse);
 router.get('/getallmessages', protect, getTutorMessages);
 router.get('/getallmessages/:studentId', protect, getSpecificUserChat);
+router.get('/unanswered-messages-count', protect, getUnansweredMessagesCount);
 
 // Tutor settings routes
 router.get('/settings/:user_id', getTutorSettings);

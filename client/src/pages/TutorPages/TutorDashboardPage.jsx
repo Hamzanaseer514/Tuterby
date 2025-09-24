@@ -11,6 +11,7 @@ import TutorSetting from '../../components/tutor/TutorSetting';
 import TutorSelfProfilePage from './TutorSelfProfilePage';
 import TutorInterviewSlotsPage from './TutorInterviewSlotsPage';
 import TutorPaymentHistory from '../../components/tutor/TutorPaymentHistory';
+import TutorReviewsPageForTutor from './TutorReviewsPage';
 import { BASE_URL } from '@/config';
 import {
   LayoutDashboard,
@@ -27,7 +28,8 @@ import {
   BookOpen,
   Briefcase,
   HelpCircle,
-  DollarSign
+  DollarSign,
+  Star
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
@@ -245,6 +247,12 @@ const TutorDashboardPage = () => {
           name: 'Payment History',
           icon: DollarSign,
           component: <TutorPaymentHistory />
+        },
+        {
+          id: 'reviews',
+          name: 'Student Reviews',
+          icon: Star,
+          component: <TutorReviewsPageForTutor />
         }
       ]
     },

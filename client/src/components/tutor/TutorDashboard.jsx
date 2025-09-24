@@ -13,24 +13,23 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useToast } from '../ui/use-toast';
+import { useToast } from '../ui/use-toast'
 import { Toaster } from '../ui/toaster';
 import {
   Calendar,
   Clock,
   DollarSign,
-  Star,
   MessageSquare,
   TrendingUp,
   Users,
+  Star,
   CheckCircle,
   AlertCircle,
   Eye,
   Plus,
   Edit,
   Reply,
-  XCircle,
-  User
+  XCircle
 } from 'lucide-react';
 import { useAuth} from '../../hooks/useAuth';
 import { useSubject } from '../../hooks/useSubject';

@@ -72,6 +72,12 @@ const TutorSessionsPage = lazy(() =>
   import("./pages/AdminPages/TutorSessionsPage")
 );
 const TutorPayments = lazy(() => import("./pages/AdminPages/TutorPyaments"));
+const TutorReviewsPage = lazy(() =>
+  import("./pages/AdminPages/TutorReviewsPage")
+);
+const TutorReviewsPageForTutor = lazy(() =>
+  import("./pages/TutorPages/TutorReviewsPage")
+);
 
 const PaymentResult = lazy(() => import("./components/PaymentResult"));
 const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
@@ -132,6 +138,9 @@ function App() {
               <Route path="/admin/tutor-payments" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <TutorPayments />
               </ProtectedRoute>} />
+              <Route path="/admin/tutor-reviews" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <TutorReviewsPage />
+              </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>
                 <TutorDashboardPage />
@@ -146,6 +155,12 @@ function App() {
                 path="/tutor-dashboard/create-session"
                 element={<ProtectedRoute allowedRoles={["tutor"]}>
                   <TutorCreateSessionPage />
+                </ProtectedRoute>}
+              />
+              <Route
+                path="/tutor-dashboard/reviews"
+                element={<ProtectedRoute allowedRoles={["tutor"]}>
+                  <TutorReviewsPageForTutor />
                 </ProtectedRoute>}
               />
               <Route

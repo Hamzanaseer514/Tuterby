@@ -331,4 +331,22 @@ export const getAllTutorSessions = async (filters = {}) => {
   }
 };
 
+// Tutor Reviews Management
+export const getAllTutorReviews = async (filters = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) queryParams.append(key, value);
+    });
+
+    const endpoint = `/tutor-reviews${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(endpoint);
+    return response;
+  } catch (error) {
+    console.error('Error fetching tutor reviews:', error);
+    throw error;
+  }
+};
+
 

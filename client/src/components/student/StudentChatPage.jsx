@@ -9,11 +9,15 @@ const StudentChatting = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [messageText, setMessageText] = useState("");
   const token = getAuthToken();
+  
   useEffect(() => {
     fetchAcceptedTutors();
+    // Set up polling to check for new messages every 30 seconds
+    const interval = setInterval(fetchAcceptedTutors, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Fetch tutors who accepted this student
+  // Fetch tutors who accepted this student with message status
   const fetchAcceptedTutors = async () => {
     try {
       const res = await fetchWithAuth(`${BASE_URL}/api/auth/get-accepted-tutors`, {
@@ -25,7 +29,48 @@ const StudentChatting = () => {
       );
       const data = await res.json();
       if (data.success) {
-        setTutors(data.data);
+        // Fetch message status for each tutor
+        const tutorsWithStatus = await Promise.all(
+          data.data.map(async (tutor) => {
+            try {
+              const chatRes = await fetchWithAuth(`${BASE_URL}/api/auth/getstudentchat/${tutor.tutorId}`, {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }, token, (newToken) => localStorage.setItem("authToken", newToken));
+              
+              const chatData = await chatRes.json();
+              if (chatData.success) {
+                // Count messages with responses (tutor replies)
+                const messagesWithResponses = chatData.data.filter(msg => msg.response && msg.status === 'answered');
+                const latestResponseTime = messagesWithResponses.length > 0 
+                  ? Math.max(...messagesWithResponses.map(msg => new Date(msg.updatedAt || msg.createdAt).getTime()))
+                  : 0;
+                
+                // Check if student has seen the latest response
+                const lastSeenKey = `student_last_seen_${tutor.tutorId}`;
+                const lastSeenTime = Number(localStorage.getItem(lastSeenKey) || 0);
+                
+                return {
+                  ...tutor,
+                  hasNewResponse: latestResponseTime > lastSeenTime,
+                  responseCount: messagesWithResponses.length
+                };
+              }
+            } catch (error) {
+              console.error(`Error fetching chat for tutor ${tutor.tutorId}:`, error);
+            }
+            
+            return {
+              ...tutor,
+              hasNewResponse: false,
+              responseCount: 0
+            };
+          })
+        );
+        
+        setTutors(tutorsWithStatus);
       }
     } catch (error) {
       console.error(error);
@@ -46,6 +91,19 @@ const StudentChatting = () => {
       if (data.success) {
         setChatHistory(data.data);
         setSelectedTutor(tutors.find((t) => t.tutorId === tutorId));
+        
+        // Mark messages as seen by updating the tutor's notification status
+        setTutors(prevTutors => 
+          prevTutors.map(tutor => 
+            tutor.tutorId === tutorId 
+              ? { ...tutor, hasNewResponse: false }
+              : tutor
+          )
+        );
+        
+        // Update last seen time
+        const lastSeenKey = `student_last_seen_${tutorId}`;
+        localStorage.setItem(lastSeenKey, String(Date.now()));
       }
     } catch (error) {
       console.error(error);
@@ -88,15 +146,31 @@ const StudentChatting = () => {
             <div
               key={tutor.tutorId}
               onClick={() => fetchChatHistory(tutor.tutorId)}
-              className={`p-3 mb-3 rounded-lg cursor-pointer transition-transform transform hover:scale-[1.02] shadow-sm hover:shadow-md ${selectedTutor?.tutorId === tutor.tutorId
+              className={`p-3 mb-3 rounded-lg cursor-pointer transition-transform transform hover:scale-[1.02] shadow-sm hover:shadow-md relative ${
+                selectedTutor?.tutorId === tutor.tutorId
                   ? "bg-blue-200 shadow-md"
                   : "bg-white"
-                }`}
+              }`}
             >
-              <p className="font-semibold text-gray-800">{tutor.full_name}</p>
-              <p className="text-gray-500 text-sm truncate">
-                {tutor.email}
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-gray-800">{tutor.full_name}</p>
+                    {/* Red dot notification for new responses */}
+                    {tutor.hasNewResponse && (
+                      <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-sm truncate">
+                    {tutor.email}
+                  </p>
+                </div>
+                {tutor.hasNewResponse && (
+                  <span className="text-xs text-red-500 font-medium">
+                    New
+                  </span>
+                )}
+              </div>
             </div>
           ))
         ) : (

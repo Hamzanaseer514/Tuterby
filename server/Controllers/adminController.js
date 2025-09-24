@@ -15,6 +15,8 @@ const ParentProfile = require("../Models/ParentProfileSchema");
 
 const TutoringSession = require("../Models/tutoringSessionSchema");
 
+const TutorReview = require("../Models/tutorReviewSchema");
+
 const {
 
   EducationLevel,
@@ -2580,7 +2582,7 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
       if (!mongoose.Types.ObjectId.isValid(tutor_id)) {
         return res.status(400).json({ success: false, message: 'Invalid tutor_id' });
       }
-      query.tutor_id = mongoose.Types.ObjectId(tutor_id);
+      query.tutor_id = new mongoose.Types.ObjectId(tutor_id);
     }
 
     if (status) {
@@ -2887,6 +2889,149 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
   } catch (error) {
     console.error("Error fetching payments:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Get all tutor reviews for admin
+exports.getAllTutorReviews = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 20, tutor_id, search } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * lim;
+
+    let query = {};
+    
+    // Filter by tutor if specified
+    if (tutor_id) {
+      if (!mongoose.Types.ObjectId.isValid(tutor_id)) {
+        return res.status(400).json({ success: false, message: 'Invalid tutor_id' });
+      }
+      query.tutor_id = new mongoose.Types.ObjectId(tutor_id);
+    }
+
+    // Search by student name
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      
+      // Try multiple search strategies for better results
+      const searchStrategies = [
+        // Exact match (case insensitive)
+        { full_name: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+        // Word boundary match (matches whole words)
+        { full_name: { $regex: `\\b${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, $options: 'i' } },
+        // Starts with match
+        { full_name: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }
+      ];
+      
+      // Use $or to try all strategies
+      const matchedUsers = await User.find({ $or: searchStrategies }).select('_id').lean();
+      const userIds = matchedUsers.map(u => u._id);
+      
+      if (userIds.length > 0) {
+        const studentIds = await StudentProfile.find({ user_id: { $in: userIds } }).select('_id').lean();
+        const studentObjectIds = studentIds.map(s => s._id);
+        
+        if (studentObjectIds.length > 0) {
+          query.student_id = { $in: studentObjectIds };
+        } else {
+          // No matching students found, return empty result
+          return res.status(200).json({
+            success: true,
+            reviews: [],
+            pagination: {
+              current_page: pageNum,
+              total_pages: 0,
+              total_reviews: 0,
+              has_next: false,
+              has_prev: false
+            }
+          });
+        }
+      } else {
+        // No matching users found, return empty result
+        return res.status(200).json({
+          success: true,
+          reviews: [],
+          pagination: {
+            current_page: pageNum,
+            total_pages: 0,
+            total_reviews: 0,
+            has_next: false,
+            has_prev: false
+          }
+        });
+      }
+    }
+
+    // Fetch reviews with populated data
+    const reviewsPromise = TutorReview.find(query)
+      .populate({
+        path: 'tutor_id',
+        select: 'user_id average_rating',
+        populate: {
+          path: 'user_id',
+          select: 'full_name email photo_url'
+        }
+      })
+      .populate({
+        path: 'student_id',
+        select: 'user_id',
+        populate: {
+          path: 'user_id',
+          select: 'full_name email photo_url'
+        }
+      })
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(lim)
+      .lean();
+
+    const totalPromise = TutorReview.countDocuments(query);
+
+    const [reviews, total] = await Promise.all([reviewsPromise, totalPromise]);
+
+    // Format the response
+    const formattedReviews = reviews.map(review => ({
+      _id: review._id,
+      rating: review.rating,
+      review_text: review.review_text,
+      tutor: {
+        _id: review.tutor_id?._id,
+        name: review.tutor_id?.user_id?.full_name || 'Unknown',
+        email: review.tutor_id?.user_id?.email || '',
+        photo_url: review.tutor_id?.user_id?.photo_url || '',
+        average_rating: review.tutor_id?.average_rating || 0
+      },
+      student: {
+        _id: review.student_id?._id,
+        name: review.student_id?.user_id?.full_name || 'Anonymous',
+        email: review.student_id?.user_id?.email || '',
+        photo_url: review.student_id?.user_id?.photo_url || ''
+      },
+      created_at: review.created_at,
+      updated_at: review.updated_at
+    }));
+
+    res.status(200).json({
+      success: true,
+      reviews: formattedReviews,
+      pagination: {
+        current_page: pageNum,
+        total_pages: total ? Math.ceil(total / lim) : 0,
+        total_reviews: total,
+        has_next: skip + lim < total,
+        has_prev: pageNum > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tutor reviews:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tutor reviews',
+      error: error.message
+    });
   }
 });
 
