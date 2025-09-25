@@ -127,6 +127,12 @@ const StatusChip = styled(Chip)(({ theme, status }) => {
         case 'failed':
             color = '#f44336';
             break;
+        case 'expired':
+            color = '#f44336';
+            break;
+        case 'active':
+            color = '#2196f3';
+            break;
         default:
             color = theme.palette.grey[500];
     }
@@ -209,35 +215,35 @@ const TutorPayments = () => {
     }, []);
 
     // Apply filters
-   // Apply filters
-useEffect(() => {
-    let results = payments;
-  
-    // 🔍 Search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      results = results.filter(payment =>
-        payment.student_name?.toLowerCase().includes(term) ||
-        payment.tutor_name?.toLowerCase().includes(term) ||
-        payment.subject?.toLowerCase().includes(term) ||
-        payment.academic_level?.toLowerCase().includes(term) ||  // ✅ Added
-        payment.payment_id?.toLowerCase().includes(term)
-      );
-    }
-  
-    // Status filter
-    if (statusFilter !== 'all') {
-      results = results.filter(payment => payment.payment_status === statusFilter);
-    }
-  
-    // Type filter
-    if (typeFilter !== 'all') {
-      results = results.filter(payment => payment.payment_type === typeFilter);
-    }
-  
-    setFilteredPayments(results);
-  }, [searchTerm, statusFilter, typeFilter, payments]);
-  
+    // Apply filters
+    useEffect(() => {
+        let results = payments;
+
+        // 🔍 Search filter
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            results = results.filter(payment =>
+                payment.student_name?.toLowerCase().includes(term) ||
+                payment.tutor_name?.toLowerCase().includes(term) ||
+                payment.subject?.toLowerCase().includes(term) ||
+                payment.academic_level?.toLowerCase().includes(term) ||  // ✅ Added
+                payment.payment_id?.toLowerCase().includes(term)
+            );
+        }
+
+        // Status filter
+        if (statusFilter !== 'all') {
+            results = results.filter(payment => payment.payment_status === statusFilter || payment.validity_status === statusFilter);
+        }
+
+        // Type filter
+        if (typeFilter !== 'all') {
+            results = results.filter(payment => payment.payment_type === typeFilter);
+        }
+
+        setFilteredPayments(results);
+    }, [searchTerm, statusFilter, typeFilter, payments]);
+
 
     // Calculate stats
     const totalRevenue = filteredPayments
@@ -320,7 +326,7 @@ useEffect(() => {
                                 <Refresh />
                             </IconButton>
                         </Tooltip>
-                       
+
                     </Box>
                 </DashboardHeader>
 
@@ -415,10 +421,10 @@ useEffect(() => {
                                     </InputAdornment>
                                 ),
                             }}
-                            sx={{ minWidth: 250 }}
+                            sx={{ minWidth: 450 }}
                         />
 
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
                             <InputLabel>Status</InputLabel>
                             <Select
                                 value={statusFilter}
@@ -429,10 +435,12 @@ useEffect(() => {
                                 <MenuItem value="paid">Paid</MenuItem>
                                 <MenuItem value="pending">Pending</MenuItem>
                                 <MenuItem value="failed">Failed</MenuItem>
-                            </Select>
+                                <MenuItem value="expired">Expired</MenuItem>
+                                <MenuItem value="active">Active</MenuItem>
+                                </Select>
                         </FormControl>
 
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
                             <InputLabel>Payment Type</InputLabel>
                             <Select
                                 value={typeFilter}
@@ -474,9 +482,10 @@ useEffect(() => {
                                         <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Payment ID</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Student</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Tutor</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Subject & Level</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Amount</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Subject & Level</TableCell>
+                                        {/* <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Amount</TableCell> */}
+                                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Validity Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Payment Status</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', fontSize: '1rem' }}>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -507,9 +516,20 @@ useEffect(() => {
                               <Person fontSize="small" />
                             </Avatar> */}
                                                         <Box>
+                                                            <Box display="flex" alignItems="center" gap={1}>
                                                             <Typography variant="body2" fontWeight="medium">
                                                                 {payment.student_name || 'N/A'}
                                                             </Typography>
+                                                                {payment.is_renewal && (
+                                                                    <Chip
+                                                                        size="small"
+                                                                        label="Renewal"
+                                                                        color="warning"
+                                                                        variant="outlined"
+                                                                        sx={{ fontSize: '0.7rem', height: 20 }}
+                                                                    />
+                                                                )}
+                                                            </Box>
                                                             <Typography variant="caption" color="textSecondary">
                                                                 {payment.student_email || 'N/A'}
                                                             </Typography>
@@ -541,7 +561,7 @@ useEffect(() => {
                                                         </Typography>
                                                     </Box>
                                                 </TableCell>
-                                                <TableCell>
+                                                {/* <TableCell>
                                                     <Box>
                                                         <Typography variant="body2" fontWeight="bold" color="primary">
                                                             {formatCurrency(payment.final_amount)}
@@ -552,6 +572,13 @@ useEffect(() => {
                                                             </Typography>
                                                         )}
                                                     </Box>
+                                                </TableCell> */}
+                                                <TableCell>
+                                                    <StatusChip
+                                                        size="small"
+                                                        label={payment.validity_status}
+                                                        status={payment.validity_status}
+                                                    />
                                                 </TableCell>
                                                 <TableCell>
                                                     <StatusChip
@@ -560,7 +587,6 @@ useEffect(() => {
                                                         status={payment.payment_status}
                                                     />
                                                 </TableCell>
-                                               
                                                 <TableCell>
                                                     <Tooltip title="View Details">
                                                         <IconButton
@@ -625,14 +651,15 @@ useEffect(() => {
                                 {selectedPayment && (
                                     <Box>
                                         <Chip className='text-sm'
-                                            icon={selectedPayment.payment_status === 'paid' ?
+                                            icon={selectedPayment.validity_status === 'active' ?
                                                 <CheckCircleOutline /> :
-                                                selectedPayment.payment_status === 'pending' ?
-                                                    <AccessTime /> : <ErrorOutline />}
-                                            label={selectedPayment.payment_status.toUpperCase()}
+                                                selectedPayment.validity_status === 'expired' ?
+                                                    <AccessTime /> : selectedPayment.validity_status === 'expired' ?
+                                                        <ErrorOutline /> : <ErrorOutline />}
+                                            label={selectedPayment.validity_status.toUpperCase()}
                                             color={
-                                                selectedPayment.payment_status === 'paid' ? 'success' :
-                                                    selectedPayment.payment_status === 'pending' ? 'warning' : 'error'
+                                                selectedPayment.validity_status === 'active' ? 'success' :
+                                                    selectedPayment.validity_status === 'expired' ? 'error' : 'warning'
                                             }
                                             variant="filled"
                                             sx={{
@@ -673,10 +700,64 @@ useEffect(() => {
                     <DialogContent sx={{ p: 3, bgcolor: '#f9fafb' }}>
                         {selectedPayment && (
                             <Box>
-                                <Grid container spacing={3} className="mt-4">
+
+                                {/*renewed  Payment Information */}
+                                <Grid item xs={12} sm={12} className='mt-4'>
+                                    <Box
+                                        sx={{
+                                            p: 2.5,
+                                            width: '100%',        // ensure full width
+                                            backgroundColor: 'white',
+                                            borderRadius: 2,
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                            border: '1px solid',
+                                            borderColor: 'grey.100',
+                                        }}
+                                    >
+                                        <Box display="flex" alignItems="center" mb={2}>
+                                            <Payment sx={{ mr: 1, color: 'primary.main', fontSize: '1.5rem' }} />
+                                            <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                                                Renewal Payment Information
+                                            </Typography>
+
+                                        </Box>
+                                        <DetailRow icon={<Refresh />}>
+                                            <Typography variant="body2" color="text.secondary">Renewal Status:</Typography>
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                                {selectedPayment.is_renewal ? (
+                                                    <Chip
+                                                        size="small"
+                                                        label="Renewal Payment"
+                                                        color="warning"
+                                                        variant="outlined"
+                                                        sx={{ fontSize: '0.7rem', height: 20 }}
+                                                    />
+                                                ) : (
+                                                    <Chip
+                                                        size="small"
+                                                        label="Original Payment"
+                                                        color="primary"
+                                                        variant="outlined"
+                                                        sx={{ fontSize: '0.7rem', height: 20 }}
+                                                    />
+                                                )}
+                                            </Box>
+                                        </DetailRow>
+                                        {selectedPayment.original_payment_id && (
+                                            <DetailRow icon={<Create />}>
+                                                <Typography variant="body2" color="text.secondary">Original Payment ID:</Typography>
+                                                <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ fontFamily: 'monospace' }}>
+                                                    #{selectedPayment.original_payment_id}
+                                                </Typography>
+                                            </DetailRow>
+                                        )}
+                                    </Box>
+                                </Grid>
+
+                                <Grid spacing={3} className="mt-4">
 
                                     {/* Payment Information */}
-                                    <Grid item xs={12} sm={6}>
+                                    <Grid item xs={12} sm={6} >
                                         <Box sx={{
                                             p: 2.5,
                                             backgroundColor: 'white',
@@ -711,7 +792,7 @@ useEffect(() => {
                                                 <DetailRow icon={<Discount />}>
                                                     <Typography variant="body2" color="text.secondary">Discount:</Typography>
                                                     <Typography variant="body2" fontWeight="bold" color="success.main">
-                                                        -{selectedPayment.discount}%
+                                                        {selectedPayment.discount}%
                                                     </Typography>
                                                 </DetailRow>
                                             )}
@@ -733,11 +814,12 @@ useEffect(() => {
                                                     {selectedPayment.payment_method?.replace('_', ' ') || 'N/A'}
                                                 </Typography>
                                             </DetailRow>
+
                                         </Box>
                                     </Grid>
 
                                     {/* Session Details */}
-                                    <Grid item xs={12} sm={6}>
+                                    <Grid item xs={12} sm={6} className='mt-4'>
                                         <Box sx={{
                                             p: 2.5,
                                             backgroundColor: 'white',
@@ -789,10 +871,10 @@ useEffect(() => {
                                         </Box>
                                     </Grid>
 
-
+                                    <Grid className=' flex gap-6 justify-center items-center mt-4'>
 
                                     {/* Student Information with Avatar */}
-                                    <Grid item xs={12} sm={6}>
+                                    <Grid  item xs={12} sm={6}>
                                         <Box sx={{
                                             p: 2.5,
                                             backgroundColor: 'white',
@@ -843,7 +925,7 @@ useEffect(() => {
                                             background: 'linear-gradient(to bottom right, #f5fef5, white)'
                                         }}>
                                             <Box display="flex" alignItems="center" mb={2}>
-                                            <Avatar
+                                                <Avatar
                                                     src={`${BASE_URL}${selectedPayment.tphoto_url}`}
                                                     alt={selectedPayment.tutor_name}
                                                     sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
@@ -869,7 +951,7 @@ useEffect(() => {
                                             </DetailRow>
                                         </Box>
                                     </Grid>
-
+                                    </Grid>
 
                                 </Grid>
                             </Box>

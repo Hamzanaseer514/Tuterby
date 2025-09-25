@@ -245,9 +245,7 @@ const SessionDetailsModal = ({ session, isOpen, onClose, subjects, academicLevel
                           <h5 className="font-medium text-gray-900 dark:text-white">
                             {student.user_id?.full_name || 'Unknown Student'}
                           </h5>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {student.user_id?.email || 'No email'}
-                          </p>
+                         
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

@@ -342,8 +342,8 @@ const createSession = asyncHandler(async (req, res) => {
       academic_level: academic_level,
       payment_status: "paid",
       academic_level_paid: true,
-      is_active: true,
-    });
+      validity_status: "active", // Check for active validity status
+    }).sort({ createdAt: -1 }); // Get the most recent payment
 
     if (payment) {
       studentPaymentsArray.push({
@@ -497,20 +497,19 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     student_proposed_date,
     approve_proposed,
     reject_proposed,
-    // New: per-student response update
     student_response_status,
     student_response_note,
   } = req.body;
+
   try {
     const session = await TutoringSession.findById(session_id);
     if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: "Session not found",
-      });
+      return res.status(404).json({ success: false, message: "Session not found" });
     }
 
-    // Handle per-student response updates (confirm/decline) without altering date/time logic
+    /******************************************************************
+     * 1️⃣ Per-student confirm/decline/pending response
+     ******************************************************************/
     if (
       student_response_status &&
       ["confirmed", "declined", "pending"].includes(student_response_status)
@@ -521,35 +520,29 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
           message: "student_id is required for per-student response",
         });
       }
+
       let studentObjectId = new mongoose.Types.ObjectId(student_id);
-      // If this ObjectId does not match any session student, try to resolve by user_id -> StudentProfile
+
+      // Verify student is part of the session
       const isMember = (session.student_ids || []).some(
         (id) => id.toString() === studentObjectId.toString()
       );
       if (!isMember) {
-        const maybeProfile = await StudentProfile.findOne({
-          user_id: student_id,
-        }).select("_id");
-        if (maybeProfile) {
-          studentObjectId = new mongoose.Types.ObjectId(maybeProfile._id);
-        }
+        const maybeProfile = await StudentProfile.findOne({ user_id: student_id }).select("_id");
+        if (maybeProfile) studentObjectId = maybeProfile._id;
       }
-      const responseIndex = (session.student_responses || []).findIndex(
+      if (!(session.student_ids || []).some((id) => id.toString() === studentObjectId.toString())) {
+        return res.status(403).json({
+          success: false,
+          message: "Student not part of this session",
+        });
+      }
+
+      session.student_responses = session.student_responses || [];
+      const idx = session.student_responses.findIndex(
         (r) => r.student_id.toString() === studentObjectId.toString()
       );
-      if (responseIndex === -1) {
-        // Ensure the student is part of the session
-        const isInSession = (session.student_ids || []).some(
-          (id) => id.toString() === studentObjectId.toString()
-        );
-        if (!isInSession) {
-          return res.status(403).json({
-            success: false,
-            message: "Student not part of this session",
-          });
-        }
-        // Initialize if missing
-        session.student_responses = session.student_responses || [];
+      if (idx === -1) {
         session.student_responses.push({
           student_id: studentObjectId,
           status: student_response_status,
@@ -557,35 +550,50 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
           note: student_response_note || "",
         });
       } else {
-        session.student_responses[responseIndex].status =
-          student_response_status;
-        session.student_responses[responseIndex].responded_at = new Date();
+        session.student_responses[idx].status = student_response_status;
+        session.student_responses[idx].responded_at = new Date();
         if (student_response_note !== undefined)
-          session.student_responses[responseIndex].note = student_response_note;
+          session.student_responses[idx].note = student_response_note;
       }
 
-      // Do not auto-confirm here. Tutor will send meeting link to confirmed students, which will confirm the session overall.
+      // ✅ Recalculate overall session.status
+      const totalStudents = (session.student_ids || []).length;
+      const responses = session.student_responses || [];
+      const anyConfirmed = responses.some((r) => r.status === "confirmed");
+      const declinedCount = responses.filter((r) => r.status === "declined").length;
+
+      if (anyConfirmed) {
+        session.status = "confirmed";
+      } else if (declinedCount === totalStudents && totalStudents > 0) {
+        session.status = "cancelled";
+      } else {
+        session.status = "pending";
+      }
 
       const saved = await session.save();
       return res.status(200).json({
         success: true,
-        message: "Student response updated",
+        message: "Student response updated and session status recalculated",
         session: saved,
       });
     }
 
-    // Disallow changing date/time once session is confirmed
+    /******************************************************************
+     * 2️⃣ Normal updates (time/date, proposals, etc.)
+     ******************************************************************/
     if (session.status === "confirmed") {
       const isTryingToPropose = !!student_proposed_date || approve_proposed;
-      // Parse potential new date for comparison
-      let incomingDate = null;
-      if (typeof session_date === "string")
-        incomingDate = new Date(session_date + ":00Z");
-      else if (session_date) incomingDate = new Date(session_date);
+      const incomingDate =
+        typeof session_date === "string"
+          ? new Date(session_date + ":00Z")
+          : session_date
+          ? new Date(session_date)
+          : null;
       const isTryingToChangeDate =
         !!incomingDate &&
         session.session_date &&
         incomingDate.getTime() !== new Date(session.session_date).getTime();
+
       if (isTryingToPropose || isTryingToChangeDate) {
         return res.status(400).json({
           success: false,
@@ -593,49 +601,28 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         });
       }
     }
-    // Determine the intended operation
-    const isProposalOnly =
-      !!student_proposed_date && !approve_proposed && !reject_proposed;
 
-    // Parse incoming dates safely
-    const parseLocalToUTC = (val) => {
-      if (!val) return null;
-      if (typeof val === "string") return new Date(val + ":00Z");
-      return new Date(val);
-    };
-
+    const parseLocalToUTC = (val) => (val ? new Date(typeof val === "string" ? val + ":00Z" : val) : null);
     let sessionDateExactUTC = parseLocalToUTC(session_date);
     let proposedDateUTC = parseLocalToUTC(student_proposed_date);
 
-    // For approve flow, use stored proposed date if not provided in body
     if (approve_proposed && !proposedDateUTC && session.student_proposed_date) {
       proposedDateUTC = new Date(session.student_proposed_date);
     }
-
-    // If approving, target date becomes proposed
     if (approve_proposed && proposedDateUTC) {
       sessionDateExactUTC = proposedDateUTC;
     }
 
-    // Compute duration for conflict checks/earnings (fallback to existing)
     const effectiveDuration = Number.isFinite(parseFloat(duration_hours))
       ? parseFloat(duration_hours)
       : session.duration_hours;
-
-    // Calculate new session's end time
     const newSessionEndTime = sessionDateExactUTC
-      ? new Date(
-        sessionDateExactUTC.getTime() + effectiveDuration * 60 * 60 * 1000
-      )
+      ? new Date(sessionDateExactUTC.getTime() + effectiveDuration * 60 * 60 * 1000)
       : null;
 
-    // Check for conflicting in-progress sessions
+    // Conflict check
     if (
-      !isProposalOnly &&
-      (status === "in_progress" ||
-        status === "pending" ||
-        status === "confirmed" ||
-        approve_proposed)
+      (status === "in_progress" || status === "pending" || status === "confirmed" || approve_proposed)
     ) {
       const conflictingSession = await TutoringSession.findOne({
         tutor_id: session.tutor_id,
@@ -643,18 +630,10 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         _id: { $ne: session_id },
         $or: [
           {
-            // Case: Existing session starts before new session ends and ends after new session starts
-            session_date: newSessionEndTime
-              ? { $lte: newSessionEndTime }
-              : session.session_date,
+            session_date: newSessionEndTime ? { $lte: newSessionEndTime } : session.session_date,
             $expr: {
               $gt: [
-                {
-                  $add: [
-                    "$session_date",
-                    { $multiply: ["$duration_hours", 60 * 60 * 1000] },
-                  ],
-                },
+                { $add: ["$session_date", { $multiply: ["$duration_hours", 60 * 60 * 1000] }] },
                 sessionDateExactUTC || session.session_date,
               ],
             },
@@ -664,58 +643,35 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       if (conflictingSession) {
         return res.status(400).json({
           success: false,
-          message:
-            "Cannot start this session. You already have an active session in progress.",
+          message: "Cannot start this session. Another active session conflicts.",
         });
       }
     }
 
-    // Store old duration for tutor hours update
-    const oldDuration = session.duration_hours;
-
-    // Normalize academic_level: accept ObjectId string, populated object, or legacy name
+    // Normalize academic_level
     let normalizedAcademicLevel = session.academic_level;
-    if (
-      academic_level !== undefined &&
-      academic_level !== null &&
-      academic_level !== ""
-    ) {
+    if (academic_level) {
       if (typeof academic_level === "object" && academic_level._id) {
-        normalizedAcademicLevel = new mongoose.Types.ObjectId(
-          academic_level._id
-        );
-      } else if (typeof academic_level === "string") {
-        const isObjectId = /^[a-fA-F0-9]{24}$/.test(academic_level);
-        if (isObjectId) {
-          normalizedAcademicLevel = new mongoose.Types.ObjectId(academic_level);
-        } else {
-          const foundLevel = await EducationLevel.findOne({
-            level: academic_level,
-          });
-          if (foundLevel) {
-            normalizedAcademicLevel = foundLevel._id;
-          }
-        }
+        normalizedAcademicLevel = new mongoose.Types.ObjectId(academic_level._id);
+      } else if (/^[a-fA-F0-9]{24}$/.test(academic_level)) {
+        normalizedAcademicLevel = new mongoose.Types.ObjectId(academic_level);
+      } else {
+        const foundLevel = await EducationLevel.findOne({ level: academic_level });
+        if (foundLevel) normalizedAcademicLevel = foundLevel._id;
       }
     }
 
-    // Normalize hourly rate (could be number or [number])
-    const hourlyRateNumberRaw = Array.isArray(hourly_rate)
-      ? parseFloat(hourly_rate?.[0])
-      : parseFloat(hourly_rate);
-    const hourlyRateNumber = Number.isFinite(hourlyRateNumberRaw)
-      ? hourlyRateNumberRaw
+    const hourlyRateNumber = Number.isFinite(parseFloat(hourly_rate))
+      ? parseFloat(hourly_rate)
       : session.hourly_rate;
     const total_earnings =
-      (Number.isFinite(parseFloat(duration_hours))
-        ? parseFloat(duration_hours)
-        : session.duration_hours) * hourlyRateNumber;
+      (Number.isFinite(parseFloat(duration_hours)) ? parseFloat(duration_hours) : session.duration_hours) *
+      hourlyRateNumber;
 
     const updates = {
       student_id: student_id || session.student_id,
       subject: subject || session.subject,
       academic_level: normalizedAcademicLevel,
-      // session_date will be set only for approval or explicit update
       duration_hours: Number.isFinite(parseFloat(duration_hours))
         ? parseFloat(duration_hours)
         : session.duration_hours,
@@ -725,17 +681,13 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       notes: notes !== undefined ? notes : session.notes,
     };
 
-    // Handle student proposal only (no other fields required)
+    // proposal handling
+    const isProposalOnly = !!student_proposed_date && !approve_proposed && !reject_proposed;
     if (isProposalOnly) {
       updates.student_proposed_date = proposedDateUTC;
       updates.student_proposed_status = "pending";
       updates.student_proposed_decided_at = null;
-      if (status) updates.status = status;
-      const updatedOnlyProposal = await TutoringSession.findByIdAndUpdate(
-        session_id,
-        updates,
-        { new: true }
-      );
+      const updatedOnlyProposal = await TutoringSession.findByIdAndUpdate(session_id, updates, { new: true });
       return res.status(200).json({
         success: true,
         message: "Proposed time saved successfully",
@@ -743,31 +695,23 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       });
     }
 
-    // If approving proposed date
     if (approve_proposed && proposedDateUTC) {
       updates.session_date = proposedDateUTC;
       updates.student_proposed_status = "accepted";
       updates.student_proposed_decided_at = new Date();
       updates.student_proposed_date = null;
-      if (!status) {
-        updates.status = "confirmed";
-      }
+      if (!status) updates.status = "confirmed";
     } else if (reject_proposed) {
       updates.student_proposed_status = "rejected";
       updates.student_proposed_decided_at = new Date();
       updates.student_proposed_date = null;
     } else if (sessionDateExactUTC) {
-      // Normal update path sets the new date
       updates.session_date = sessionDateExactUTC;
     }
 
-    // Do not accept rating/feedback in this endpoint anymore; use student rating endpoint
-    const nextStatus = status || session.status;
     if (status === "completed") {
       updates.completed_at = new Date();
-
-      // ✅ Decrement StudentPayment sessions_remaining for each student in this session
-      if (session.student_payments && session.student_payments.length > 0) {
+      if (session.student_payments?.length) {
         for (const sp of session.student_payments) {
           await StudentPayment.findOneAndUpdate(
             { _id: sp.payment_id, sessions_remaining: { $gt: 0 } },
@@ -775,32 +719,18 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
           );
         }
       }
-
-      // // ✅ Increment tutor total_sessions count
-      // const tutorProfile = await TutorProfile.findOne({ _id: session.tutor_id });
-      // if (tutorProfile) {
-      //   tutorProfile.total_sessions = (tutorProfile.total_sessions || 0) + 1;
-      //   await tutorProfile.save();
-      // }
     }
 
-    // If tutor sets status back to pending, clear meeting link and student responses
-    if (status && status === "pending") {
+    if (status === "pending") {
       updates.meeting_link = "";
       updates.meeting_link_sent_at = null;
       updates.student_responses = [];
-      // also clear any pending proposal state
       updates.student_proposed_date = null;
       updates.student_proposed_status = undefined;
       updates.student_proposed_decided_at = undefined;
     }
 
-    const updatedSession = await TutoringSession.findByIdAndUpdate(
-      session_id,
-      updates,
-      { new: true }
-    );
-
+    const updatedSession = await TutoringSession.findByIdAndUpdate(session_id, updates, { new: true });
     res.status(200).json({
       success: true,
       message: "Session updated successfully",
@@ -808,13 +738,10 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating session:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating session",
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 });
+
 
 // Get tutor's sessions with filtering
 const getTutorSessions = asyncHandler(async (req, res) => {
@@ -1679,6 +1606,7 @@ const canCreateSessionForStudent = async (
   academicLevel
 ) => {
   try {
+    // Find the most recent valid payment (including renewals)
     const payment = await StudentPayment.findOne({
       student_id: studentId,
       tutor_id: tutorId,
@@ -1686,14 +1614,19 @@ const canCreateSessionForStudent = async (
       academic_level: academicLevel,
       payment_status: "paid",
       academic_level_paid: true,
-      is_active: true,
-    });
+      validity_status: "active", // Check for active validity status
+    }).sort({ createdAt: -1 }); // Get the most recent payment
 
     if (!payment) {
       return false;
     }
+
     // Check if payment is still valid (not expired and has sessions remaining)
-    return payment.isValid();
+    const now = new Date();
+    const isValidDate = payment.validity_end_date > now;
+    const hasSessionsRemaining = payment.sessions_remaining > 0;
+    
+    return isValidDate && hasSessionsRemaining;
   } catch (error) {
     console.error("Error checking payment status:", error);
     return false;
@@ -1728,7 +1661,8 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
         subject: subject,
         academic_level: academic_level,
         payment_status: "paid",
-      });
+        validity_status: "active",
+      }).sort({ createdAt: -1 }); // Get the most recent payment
 
       if (payment) {
         paymentDetails = {
@@ -1751,6 +1685,83 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
     });
   }
 });
+
+// Get detailed payment status for a student (for tutors to view)
+// const getStudentPaymentStatus = asyncHandler(async (req, res) => {
+//   const { studentId } = req.params;
+//   const tutorId = req.user._id; // From auth middleware
+
+//   if (!studentId) {
+//     return res.status(400).json({
+//       message: "Student ID is required",
+//     });
+//   }
+
+//   try {
+//     // Get student profile
+//     const studentProfile = await Student.findOne({ user_id: studentId });
+//     if (!studentProfile) {
+//       return res.status(404).json({
+//         message: "Student profile not found",
+//       });
+//     }
+
+//     // Get all payments for this student-tutor combination
+//     const payments = await StudentPayment.find({
+//       student_id: studentProfile._id,
+//       tutor_id: tutorId,
+//       is_active: true
+//     })
+//     .populate('subject', 'name')
+//     .populate('academic_level', 'level')
+//     .sort({ createdAt: -1 });
+
+//     // Process payment statuses
+//     const paymentStatuses = payments.map(payment => {
+//       const isValid = payment.isValid();
+//       const isExpired = payment.isExpired();
+//       const paymentStatus = payment.getPaymentStatus();
+
+//       return {
+//         _id: payment._id,
+//         subject: payment.subject?.name || 'Unknown',
+//         academic_level: payment.academic_level?.level || 'Unknown',
+//         payment_type: payment.payment_type,
+//         payment_status: payment.payment_status,
+//         validity_status: payment.validity_status,
+//         overall_status: paymentStatus,
+//         sessions_remaining: payment.sessions_remaining,
+//         validity_start_date: payment.validity_start_date,
+//         validity_end_date: payment.validity_end_date,
+//         payment_date: payment.payment_date,
+//         is_valid: isValid,
+//         is_expired: isExpired,
+//         base_amount: payment.base_amount,
+//         monthly_amount: payment.monthly_amount,
+//         total_sessions_per_month: payment.total_sessions_per_month
+//       };
+//     });
+
+//     // Check if student has any unpaid requests
+//     const hasUnpaidRequests = payments.some(payment => 
+//       payment.payment_status !== 'paid'
+//     );
+
+//     return res.status(200).json({
+//       student_id: studentId,
+//       student_name: studentProfile.user_id?.full_name || 'Unknown',
+//       payments: paymentStatuses,
+//       has_unpaid_requests: hasUnpaidRequests,
+//       total_payments: payments.length,
+//       active_payments: payments.filter(p => p.payment_status === 'paid' && !p.isExpired()).length
+//     });
+//   } catch (error) {
+//     console.error("Error getting student payment status:", error);
+//     return res.status(500).json({
+//       message: "Internal server error while getting payment status",
+//     });
+//   }
+// });
 
 const sendMessageResponse = asyncHandler(async (req, res) => {
   const { messageId, response } = req.body;
@@ -2281,6 +2292,7 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
       limit = 10,
       status,
       payment_type,
+      validity_status,
       start_date,
       end_date,
     } = req.query;
@@ -2303,6 +2315,10 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
 
     if (payment_type) {
       query.payment_type = payment_type;
+    }
+
+    if (validity_status) {
+      query.validity_status = validity_status;
     }
 
     if (start_date || end_date) {
@@ -2355,6 +2371,24 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
               $cond: [{ $eq: ["$payment_type", "hourly"] }, "$base_amount", 0],
             },
           },
+          activePayments: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$payment_status", "paid"] },
+                    { $eq: ["$validity_status", "active"] }
+                    // { $gt: ["$validity_end_date", new Date()] },
+                    // { $gt: ["$sessions_remaining", 0] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          },
+         
+          totalSessionsRemaining: { $sum: "$sessions_remaining" }
         },
       },
     ]);
@@ -2394,33 +2428,43 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
       averageEarnings: 0,
       monthlyEarnings: 0,
       hourlyEarnings: 0,
+      activePayments: 0,
+      expiredPayments: 0,
+      totalSessionsRemaining: 0,
     };
 
     res.status(200).json({
       success: true,
       data: {
-        payments: payments.map((payment) => ({
-          _id: payment._id,
-          student_name:
-            payment.student_id?.user_id?.full_name || "Unknown Student",
-          student_email: payment.student_id?.user_id?.email || "Unknown Email",
-          subject: payment.subject?.name || "Unknown Subject",
-          academic_level: payment.academic_level?.level || "Unknown Level",
-          payment_type: payment.payment_type,
-          base_amount: payment.base_amount,
-          discount_percentage: payment.discount_percentage,
-          monthly_amount: payment.monthly_amount,
-          total_sessions_per_month: payment.total_sessions_per_month,
-          payment_status: payment.payment_status,
-          payment_method: payment.payment_method,
-          payment_date: payment.payment_date,
-          request_date: payment.request_date,
-          currency: payment.currency,
-          sessions_remaining: payment.sessions_remaining,
-          validity_start_date: payment.validity_start_date,
-          validity_end_date: payment.validity_end_date,
-          is_active: payment.is_active,
-        })),
+        payments: payments.map((payment) => {
+         
+          return {
+            _id: payment._id,
+            student_name:
+              payment.student_id?.user_id?.full_name || "Unknown Student",
+            student_email: payment.student_id?.user_id?.email || "Unknown Email",
+            subject: payment.subject?.name || "Unknown Subject",
+            academic_level: payment.academic_level?.level || "Unknown Level",
+            payment_type: payment.payment_type,
+            base_amount: payment.base_amount,
+            discount_percentage: payment.discount_percentage,
+            monthly_amount: payment.monthly_amount,
+            total_sessions_per_month: payment.total_sessions_per_month,
+            payment_status: payment.payment_status,
+            validity_status: payment.validity_status,
+            payment_method: payment.payment_method,
+            payment_date: payment.payment_date,
+            request_date: payment.request_date,
+            currency: payment.currency,
+            sessions_remaining: payment.sessions_remaining,
+            validity_start_date: payment.validity_start_date,
+            validity_end_date: payment.validity_end_date,
+            
+            // Renewal tracking
+            is_renewal: payment.is_renewal || false,
+            original_payment_id: payment.original_payment_id || null
+          };
+        }),
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(totalPayments / parseInt(limit)),
@@ -2434,6 +2478,10 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
           averageEarnings: Math.round(stats.averageEarnings * 100) / 100,
           monthlyEarnings: stats.monthlyEarnings,
           hourlyEarnings: stats.hourlyEarnings,
+          activePayments: stats.activePayments,
+          expiredPayments: stats.expiredPayments,
+          totalSessionsRemaining: stats.totalSessionsRemaining,
+        
         },
         monthlyBreakdown: monthlyBreakdown.map((item) => ({
           month: item._id.month,
@@ -2488,6 +2536,7 @@ module.exports = {
   sendMeetingLink,
   canCreateSessionForStudent,
   checkPaymentStatus,
+  // getStudentPaymentStatus,
   getHiredSubjectsAndLevels,
   getTutorPaymentHistory,
 };

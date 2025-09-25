@@ -76,6 +76,13 @@ const studentPaymentSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'failed', 'cancelled'],
     default: 'pending'
   },
+  
+  // Payment Validity Status
+  validity_status: {
+    type: String,
+    enum: ['pending','active', 'expired'],
+    default: 'pending'
+  },
   payment_method: {
     type: String,
     enum: ['card', 'bank_transfer', 'paypal'],
@@ -115,6 +122,16 @@ const studentPaymentSchema = new mongoose.Schema({
   },
   gateway_response: {
     type: Object
+  },
+
+  // Renewal tracking fields
+  is_renewal: {
+    type: Boolean,
+    default: false
+  },
+  original_payment_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'StudentPayment'
   }
 
 }, { 
@@ -131,13 +148,42 @@ studentPaymentSchema.index({ payment_type: 1, payment_status: 1 });
 
 
 
-// Only keep the essential isValid method for session validation
+// Enhanced isValid method for session validation with validity status
 studentPaymentSchema.methods.isValid = function() {
   const now = new Date();
+  const isExpired = this.validity_end_date <= now.getTime();
+  
+  // Update validity_status if expired
+  if (isExpired && this.validity_status === 'active') {
+    this.validity_status = 'expired';
+    this.is_active = false;
+    this.save(); // Save the updated status
+  }
+  
   return this.is_active && 
          this.payment_status === 'paid' && 
-         this.validity_end_date > now.getTime() &&
+         this.validity_status === 'active' &&
+         !isExpired &&
          this.sessions_remaining > 0;
+};
+
+// Method to check if payment is expired
+studentPaymentSchema.methods.isExpired = function() {
+  const now = new Date();
+  return this.validity_end_date <= now.getTime();
+};
+
+// Method to get payment status with validity
+studentPaymentSchema.methods.getPaymentStatus = function() {
+  if (this.payment_status !== 'paid') {
+    return this.payment_status;
+  }
+  
+  if (this.isExpired()) {
+    return 'expired';
+  }
+  
+  return 'active';
 };
 
 module.exports = mongoose.model('StudentPayment', studentPaymentSchema);

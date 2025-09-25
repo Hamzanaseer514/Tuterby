@@ -142,6 +142,7 @@ exports.confirmPayment = async (req, res) => {
 
         const payment = await StudentPayment.findByIdAndUpdate(paymentId, {
             payment_status: "paid",
+            validity_status: "active",
             payment_date: new Date(),
             gateway_transaction_id: "manual_confirmation", // ya koi Stripe ID agar available
             academic_level_paid: true, // Now tutor can create sessions for this academic level

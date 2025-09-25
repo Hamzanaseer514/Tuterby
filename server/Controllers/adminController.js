@@ -2716,9 +2716,14 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
           validity_end_date: sp.payment_id?.validity_end_date || null,
           sessions_remaining: sp.payment_id?.sessions_remaining || null,
           payment_status: sp.payment_id?.payment_status || null,
+          validity_status: sp.payment_id?.getPaymentStatus ? sp.payment_id.getPaymentStatus() : (sp.payment_id?.validity_status || 'pending'),
           payment_method: sp.payment_id?.payment_method || null,
           payment_date: sp.payment_id?.payment_date || null,
-          currency: sp.payment_id?.currency || 'GBP'
+          currency: sp.payment_id?.currency || 'GBP',
+          
+          // Renewal tracking
+          is_renewal: sp.payment_id?.is_renewal || false,
+          original_payment_id: sp.payment_id?.original_payment_id || null
         })),
         meeting_link: session.meeting_link || '',
         notes: session.notes || '',
@@ -2878,12 +2883,17 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
       discount: p.discount_percentage,
       final_amount: p.monthly_amount || p.base_amount, // adjust depending on type
       payment_status: p.payment_status,
+      validity_status: p.validity_status,
       payment_method: p.payment_method,
       payment_date: p.payment_date,
       validity_start_date: p.validity_start_date,
       validity_end_date: p.validity_end_date,
       sessions_remaining: p.sessions_remaining,
       createdAt: p.createdAt,
+      
+      // Renewal tracking
+      is_renewal: p.is_renewal || false,
+      original_payment_id: p.original_payment_id || null
     }));
     res.status(200).json({ success: true, payments: formattedPayments });
   } catch (error) {

@@ -16,7 +16,8 @@ const { getStudentDashboard, updateStudentProfile,
   checkStudentPaymentStatus,
   rateTutor,
   getTutorReviews,
-  getStudentTutorReview } = require("../Controllers/StudentController")
+  getStudentTutorReview,
+  createRenewalPayment } = require("../Controllers/StudentController")
 const { getUserProfile, updateUserPhoto, refreshAccessToken, logoutUser } = require("../Controllers/UserController")
 
 const { protect } = require("../Middleware/authMiddleware")
@@ -81,6 +82,7 @@ router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
 // Payment routes
 router.get("/student/payments/:userId", protect, getStudentPayments);
 router.post("/student/payments/:paymentId/pay", protect, processStudentPayment);
+router.post("/student/payments/:expiredPaymentId/renew", protect, createRenewalPayment);
 router.get("/student/payment-status/:userId", protect, checkStudentPaymentStatus);
 
 // Tutor rating and review routes

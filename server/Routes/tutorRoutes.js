@@ -35,6 +35,7 @@ const {
   addTutorAcademicLevel,
   removeTutorAcademicLevel,
   sendMeetingLink,
+  // getStudentPaymentStatus,
   getHiredSubjectsAndLevels,
   getTutorPaymentHistory,
 } = require('../Controllers/tutorController');
@@ -115,5 +116,8 @@ router.get('/hired-subjects-and-levels/:studentId/:tutorId', getHiredSubjectsAnd
 
 // Payment history routes
 router.get('/payment-history/:user_id', protect, getTutorPaymentHistory);
+
+// Student payment status routes
+// router.get('/student-payment-status/:studentId', protect, getStudentPaymentStatus);
 
 module.exports = router;

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-import { ChevronLeft, ChevronRight, Calendar, Clock, Users, BookOpen, GraduationCap, DollarSign, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Clock, Users, BookOpen, GraduationCap, DollarSign, FileText, ShieldCheck, ShieldX, AlertTriangle, CreditCard } from "lucide-react";
 
 const TutorCreateSessionPage = () => {
     const navigate = useNavigate();
@@ -193,7 +193,6 @@ const TutorCreateSessionPage = () => {
         for (const userId of nextIds) {
             const paymentStatus = await checkStudentPaymentStatus(userId);
             const hiredData = await fetchHiredSubjectsAndLevels(userId);
-            console.log(`Hired data for student ${userId}:`, hiredData);
             if (paymentStatus) {
                 newPaymentStatuses[userId] = paymentStatus;
             }
@@ -494,6 +493,7 @@ const TutorCreateSessionPage = () => {
                                     return (
                                         <div key={student._id} className="border-l-4 border-blue-300 pl-2 py-2 md:grid md:grid-cols-12 md:gap-2 items-center">
                                             {/* Mobile view */}
+                                            {console.log(studentPaymentStatuses)}
                                             <div className="md:hidden space-y-2">
                                                 <div className="font-medium text-blue-800 text-sm">
                                                     {student.full_name || student?.user_id?.full_name}
@@ -521,29 +521,56 @@ const TutorCreateSessionPage = () => {
                                                         : 'No academic levels selected'
                                                     }
                                                 </div>
-                                                <div className="text-xs">
+                                                <div className="text-xs space-y-1">
                                                     {(() => {
                                                         const paymentStatus = studentPaymentStatuses[student._id];
-
                                                         if (!paymentStatus) {
                                                             return (
-                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                                                    ⏳ Checking...
-                                                                </span>
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 flex items-center gap-1">
+                                                                        <Clock className="h-3 w-3" />
+                                                                        Checking payment...
+                                                                    </span>
+                                                                </div>
                                                             );
                                                         }
 
                                                         if (paymentStatus.has_unpaid_requests) {
                                                             return (
-                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                                    ❌ Payment Required
-                                                                </span>
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
+                                                                        <AlertTriangle className="h-3 w-3" />
+                                                                        Payment Required
+                                                                    </span>
+                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
+                                                                        <ShieldX className="h-3 w-3" />
+                                                                        Validity: Expired
+                                                                    </span> */}
+                                                                </div>
                                                             );
                                                         } else {
+                                                            // Show detailed payment and validity status
+                                                            const activePayments = paymentStatus.payments?.filter(p => 
+                                                                p.payment_status === 'paid' && p.validity_status === 'active'
+                                                            ) || [];
+                                                            
                                                             return (
-                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                    ✅ Payment Complete
-                                                                </span>
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
+                                                                        <ShieldCheck className="h-3 w-3" />
+                                                                        Payment Complete
+                                                                    </span>
+                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
+                                                                        <ShieldCheck className="h-3 w-3" />
+                                                                        Validity: Active
+                                                                    </span> */}
+                                                                    {activePayments.length > 0 && (
+                                                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center gap-1">
+                                                                            <CreditCard className="h-3 w-3" />
+                                                                            {activePayments.reduce((sum, p) => sum + (p.sessions_remaining || 0), 0)} sessions left
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             );
                                                         }
                                                     })()}
@@ -578,31 +605,59 @@ const TutorCreateSessionPage = () => {
                                                 }
                                             </div>
                                             <div className="hidden md:col-span-2 md:block text-sm">
-                                                {(() => {
-                                                    const paymentStatus = studentPaymentStatuses[student._id];
+                                                <div className="space-y-1">
+                                                    {(() => {
+                                                        const paymentStatus = studentPaymentStatuses[student._id];
 
-                                                    if (!paymentStatus) {
-                                                        return (
-                                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                                                ⏳ Checking...
-                                                            </span>
-                                                        );
-                                                    }
+                                                        if (!paymentStatus) {
+                                                            return (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" />
+                                                                    Checking...
+                                                                </span>
+                                                            );
+                                                        }
 
-                                                    if (paymentStatus.has_unpaid_requests) {
-                                                        return (
-                                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                                ❌ Payment Required
-                                                            </span>
-                                                        );
-                                                    } else {
-                                                        return (
-                                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                ✅ Payment Complete
-                                                            </span>
-                                                        );
-                                                    }
-                                                })()}
+                                                        if (paymentStatus.has_unpaid_requests) {
+                                                            return (
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
+                                                                        <AlertTriangle className="h-3 w-3" />
+                                                                        Payment Required
+                                                                    </span>
+                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
+                                                                        <ShieldX className="h-3 w-3" />
+                                                                        Validity: Expired
+                                                                    </span> */}
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            // Show detailed payment and validity status
+                                                            const activePayments = paymentStatus.payments?.filter(p => 
+                                                                p.payment_status === 'paid' && p.validity_status === 'active'
+                                                            ) || [];
+                                                            
+                                                            return (
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
+                                                                        <ShieldCheck className="h-3 w-3" />
+                                                                        Payment Complete
+                                                                    </span>
+                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
+                                                                        <ShieldCheck className="h-3 w-3" />
+                                                                        Validity: Active
+                                                                    </span> */}
+                                                                    {activePayments.length > 0 && (
+                                                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center gap-1">
+                                                                            <CreditCard className="h-3 w-3" />
+                                                                            {activePayments.reduce((sum, p) => sum + (p.sessions_remaining || 0), 0)} sessions left
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        }
+                                                    })()}
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -753,7 +808,7 @@ const TutorCreateSessionPage = () => {
                                     </div>
 
                                     <div>
-                                        <Label className="flex items-center gap-1">
+                                        <Label className="flex items-center gap-1 mt-1 mb-1">
                                             <DollarSign className="h-4 w-4" />
                                             Hourly Rate (£)
                                         </Label>

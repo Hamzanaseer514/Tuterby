@@ -382,6 +382,7 @@ exports.getParentStudentsPayments = asyncHandler(async (req, res) => {
       validity_end_date: payment.validity_end_date,
       sessions_remaining: payment.sessions_remaining,
       payment_status: payment.payment_status,
+      validity_status: payment.validity_status,
       payment_method: payment.payment_method,
       payment_date: payment.payment_date,
       request_date: payment.request_date,
@@ -391,7 +392,11 @@ exports.getParentStudentsPayments = asyncHandler(async (req, res) => {
       currency: payment.currency,
       gateway_transaction_id: payment.gateway_transaction_id,
       createdAt: payment.createdAt,
-      updatedAt: payment.updatedAt
+      updatedAt: payment.updatedAt,
+      
+      // Renewal tracking
+      is_renewal: payment.is_renewal || false,
+      original_payment_id: payment.original_payment_id || null
     }));
 
     res.status(200).json({
@@ -469,6 +474,7 @@ exports.getParentStudentSessions = asyncHandler(async (req, res) => {
       student_id: { $in: studentIds },
       tutor_id: session.tutor_id._id,
       payment_status: 'paid',
+      validity_status: 'active',
       is_active: true
     });
 

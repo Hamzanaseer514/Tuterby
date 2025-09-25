@@ -34,9 +34,9 @@ export default function PaymentResult() {
   return (
     <div className="p-10 text-center">
       {success === "true" ? (
-        <h1 className="text-green-600 text-xl">✅ Payment Successful</h1>
+        <h1 className="text-green-600 text-xl mb-4">✅ Payment Successful</h1>
       ) : (
-        <h1 className="text-red-600 text-xl">❌ Payment Canceled</h1>
+        <h1 className="text-red-600 text-xl mb-4">❌ Payment Canceled</h1>
       )}
         <Link to={isParentPayment === "true" ? "/parent-dashboard" : "/student-dashboard"}>
           <Button>

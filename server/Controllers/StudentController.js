@@ -158,10 +158,13 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
             is_active: true
         });
 
+        // Check if payment is valid (not expired)
+        const isPaymentValid = payment ? payment.isValid() : false;
 
         return {
             ...session.toObject(),
-            payment_required: !payment, // agar payment nhi hai to true
+            payment_required: !payment || !isPaymentValid, // payment required if no payment or payment expired
+            payment_status: payment ? payment.getPaymentStatus() : 'none',
         };
     }));
 
@@ -509,7 +512,7 @@ exports.rateTutor = asyncHandler(async (req, res) => {
             });
         }
 
-        // Check if student has paid for this tutor
+        // Check if student has paid for this tutor with valid payment
         const payment = await StudentPayment.findOne({
             student_id: studentProfile._id,
             tutor_id: tutor_id,
@@ -521,6 +524,14 @@ exports.rateTutor = asyncHandler(async (req, res) => {
             return res.status(403).json({ 
                 success: false, 
                 message: 'You can only rate tutors after making payment' 
+            });
+        }
+
+        // Check if payment is still valid
+        if (!payment.isValid()) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Your payment has expired. Please make a new payment to rate tutors.' 
             });
         }
 
@@ -1457,6 +1468,18 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
             }
         ]);
 
+        // Get all renewal payments to check which payments have been renewed
+        const renewalPayments = await StudentPayment.find({
+            is_renewal: true,
+            original_payment_id: { $in: payments.map(p => p._id) }
+        });
+
+        // Create a map of original payment IDs that have renewals
+        const hasRenewalMap = {};
+        renewalPayments.forEach(renewal => {
+            hasRenewalMap[renewal.original_payment_id.toString()] = true;
+        });
+
         // Transform payments into frontend format
         const formattedPayments = payments.map(payment => {
             const tutorName = payment.tutor_id?.user_id?.full_name || 'Unknown Tutor';
@@ -1479,6 +1502,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
             const validityEndDate = new Date(payment.validity_end_date);
             const daysRemaining = Math.ceil((validityEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
             const isValid = payment.isValid ? payment.isValid() : false;
+            const paymentStatus = payment.getPaymentStatus ? payment.getPaymentStatus() : 'pending';
 
             return {
                 _id: payment._id,
@@ -1509,6 +1533,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
 
                 // Status and Dates
                 status: status,
+                validity_status: paymentStatus,
                 created_at: payment.request_date,
                 payment_date: payment.payment_date,
                 notes: payment.request_notes,
@@ -1516,7 +1541,12 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
                 academic_level_paid: payment.academic_level_paid,
 
                 // Additional Info
-                currency: payment.currency || 'GBP'
+                currency: payment.currency || 'GBP',
+                
+                // Renewal tracking
+                is_renewal: payment.is_renewal || false,
+                original_payment_id: payment.original_payment_id || null,
+                has_renewal: hasRenewalMap[payment._id.toString()] || false
             };
         });
 
@@ -1571,6 +1601,7 @@ exports.processStudentPayment = asyncHandler(async (req, res) => {
         payment.payment_status = 'paid';
         payment.payment_date = new Date();
         payment.academic_level_paid = true; // Now tutor can create sessions for this academic level
+        payment.validity_status = 'active'; // Set payment as active
 
         await payment.save();
 
@@ -1597,6 +1628,88 @@ exports.processStudentPayment = asyncHandler(async (req, res) => {
 
 // Note: Payment records are now automatically created in tutorController.js when tutor accepts hire request
 
+// Create new payment for expired payment renewal
+exports.createRenewalPayment = asyncHandler(async (req, res) => {
+    const { expiredPaymentId } = req.params;
+    const { validity_start_date, validity_end_date } = req.body;
+
+    try {
+        // Find the expired payment
+        const expiredPayment = await StudentPayment.findById(expiredPaymentId);
+        if (!expiredPayment) {
+            res.status(404);
+            throw new Error('Expired payment not found');
+        }
+
+        // Verify the user owns this payment
+        const studentProfile = await Student.findOne({ user_id: req.user._id });
+        if (!studentProfile) {
+            res.status(404);
+            throw new Error('Student profile not found');
+        }
+
+        if (expiredPayment.student_id.toString() !== studentProfile._id.toString()) {
+            res.status(403);
+            throw new Error('Unauthorized access to this payment');
+        }
+
+        // Check if payment is actually expired
+        if (expiredPayment.validity_status !== 'expired') {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment is not expired'
+            });
+        }
+        const subjectData = await Subject.findById(expiredPayment.subject);
+        const academicLevelData = await EducationLevel.findById(
+          expiredPayment.academic_level
+        );
+        // Create new payment record based on expired one
+        const newPayment = await StudentPayment.create({
+            student_id: expiredPayment.student_id,
+            tutor_id: expiredPayment.tutor_id,
+            subject: expiredPayment.subject,
+            academic_level: expiredPayment.academic_level,
+            payment_type: expiredPayment.payment_type,
+            base_amount: expiredPayment.base_amount,
+            discount_percentage: expiredPayment.discount_percentage,
+            monthly_amount: expiredPayment.monthly_amount,
+            total_sessions_per_month: expiredPayment.total_sessions_per_month,
+            validity_start_date: validity_start_date || new Date(),
+            validity_end_date: validity_end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            sessions_remaining: expiredPayment.total_sessions_per_month,
+            payment_status: 'pending',
+            validity_status: 'pending',
+            request_notes: `Renewal of payment for Monthly package for ${ subjectData?.name || "Subject"
+            } - ${academicLevelData?.level || "Level"
+            }. ${expiredPayment.total_sessions_per_month} sessions per month.`,
+            currency: expiredPayment.currency,
+            is_renewal: true,
+            original_payment_id: expiredPayment._id
+        });
+       
+        res.status(201).json({
+            success: true,
+            message: 'Renewal payment created successfully',
+            payment: {
+                _id: newPayment._id,
+                payment_status: newPayment.payment_status,
+                validity_status: newPayment.validity_status,
+                validity_start_date: newPayment.validity_start_date,
+                validity_end_date: newPayment.validity_end_date
+            }
+        });
+
+    } catch (error) {
+        console.error('Error creating renewal payment:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create renewal payment',
+            error: error.message
+        });
+    }
+});
+
 // Check payment status for all accepted hire requests
 exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
     const { userId } = req.params;
@@ -1621,7 +1734,8 @@ exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
                 tutor_id: hireRequest.tutor,
                 subject: hireRequest.subject,
                 academic_level: hireRequest.academic_level_id,
-                payment_status: 'paid'
+                payment_status: 'paid',
+                validity_status: 'active'
             });
 
             // Get tutor, subject, and academic level details
@@ -1644,7 +1758,8 @@ exports.checkStudentPaymentStatus = asyncHandler(async (req, res) => {
                     payment_type: payment.payment_type,
                     final_amount: payment.monthly_amount,
                     sessions_remaining: payment.total_sessions_per_month,
-                    validity_end_date: payment.validity_end_date
+                    validity_end_date: payment.validity_end_date,
+                    validity_status: payment.validity_status
                 } : null,
 
             });

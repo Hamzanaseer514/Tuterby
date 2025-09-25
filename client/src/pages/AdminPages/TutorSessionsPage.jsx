@@ -306,16 +306,17 @@ const TutorSessionsPage = () => {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers sx={{ p: { xs: 1, sm: 3 }, bgcolor: '#F9FAFB', overflow: 'auto' }}>
-          <Grid container spacing={2}>
-            {/* Session Info */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)",
-                  borderRadius: 2,
-                }}
-              >
+        <DialogContent
+          dividers
+          sx={{
+            p: 0,                        // no padding, full-bleed
+            bgcolor: '#F9FAFB',
+            overflow: 'auto'
+          }}
+        >        <Grid container justifyContent="center" className='mt-4'>
+            <Grid item xs={12} md={10} lg={8}>
+              <Card sx={{ width: '100%' }}>
+
                 <CardContent sx={{ p: 0 }}>
                   {/* Header */}
                   <Box display="flex" alignItems="center" p={2}>
@@ -451,152 +452,174 @@ const TutorSessionsPage = () => {
 
             {/* Tutor Info + Additional Info side by side */}
             {session.tutor && (
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  {/* Additional Info */}
-                  <Grid item xs={12} md={3}>
-                    <Card sx={{
-                      height: "100%",
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                      border: 'none',
-                      borderRadius: 2,
-                    }}>
-                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                        <Box display="flex" alignItems="center" mb={3}>
-                          <MoreHorizIcon color="primary" sx={{ mr: 1, fontSize: { xs: '18px', sm: '24px' } }} />
-                          <Typography variant="h6" fontWeight="600" color="primary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                            Additional Information
-                          </Typography>
-                        </Box>
+              <Grid
+                container
+                justifyContent="center"
+                spacing={4}          // <— space between the two cards
+                sx={{ mt: 2, mb: 2 }}
+              >
+                {/* Additional Info */}
+                <Grid item xs={12} md={5} lg={4}>
+                  <Card sx={{ width: '100%', height: '100%' }}>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Box display="flex" alignItems="center" mb={3}>
+                        <MoreHorizIcon color="primary" sx={{ mr: 1, fontSize: { xs: 18, sm: 24 } }} />
+                        <Typography
+                          variant="h6"
+                          fontWeight={600}
+                          color="primary"
+                          sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                        >
+                          Additional Information
+                        </Typography>
+                      </Box>
 
-                        {session.meeting_link && (
-                          <Box mb={3}>
-                            <Button
-                              variant="contained"
-                              size="medium"
-                              fullWidth
-                              startIcon={<VideoCallIcon />}
-                              onClick={() => window.open(session.meeting_link, "_blank")}
-                              sx={{ borderRadius: 2, py: 1 }}
-                            >
-                              Join Meeting
-                            </Button>
-                          </Box>
+                      {session.meeting_link && (
+                        <Box mb={3}>
+                          <Button
+                            variant="contained"
+                            size="medium"
+                            fullWidth
+                            startIcon={<VideoCallIcon />}
+                            onClick={() => window.open(session.meeting_link, "_blank")}
+                            sx={{ borderRadius: 2, py: 1 }}
+                          >
+                            Join Meeting
+                          </Button>
+                        </Box>
+                      )}
+
+                      <Box sx={{ mt: 2 }}>
+                        <InfoRow label="Created" value={formatDate(session.created_at)} />
+                        <Divider sx={{ my: 1.5 }} />
+                        <InfoRow label="Last Updated" value={formatDate(session.updated_at)} />
+
+                        {session.session_type && (
+                          <>
+                            <Divider sx={{ my: 1.5 }} />
+                            <InfoRow label="Session Type" value={session.session_type} />
+                          </>
                         )}
 
-                        <Box sx={{ mt: 2 }}>
-                          <InfoRow label="Created" value={formatDate(session.created_at)} />
-                          <Box sx={{ my: 1.5 }}>
-                            <Divider />
-                          </Box>
-                          <InfoRow label="Last Updated" value={formatDate(session.updated_at)} />
+                        {session.tags?.length > 0 && (
+                          <>
+                            <Divider sx={{ my: 1.5 }} />
+                            <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                              Tags:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {session.tags.map((tag, index) => (
+                                <Chip
+                                  key={index}
+                                  label={tag}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontSize: '0.75rem' }}
+                                />
+                              ))}
+                            </Box>
+                          </>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-                          {session.session_type && (
-                            <>
-                              <Box sx={{ my: 1.5 }}>
-                                <Divider />
-                              </Box>
-                              <InfoRow label="Session Type" value={session.session_type} />
-                            </>
-                          )}
-
-                          {session.tags && session.tags.length > 0 && (
-                            <>
-                              <Box sx={{ my: 1.5 }}>
-                                <Divider />
-                              </Box>
-                              <Box>
-                                <Typography variant="body2" fontWeight="500" sx={{ mb: 1 }}>
-                                  Tags:
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                  {session.tags.map((tag, index) => (
-                                    <Chip
-                                      key={index}
-                                      label={tag}
-                                      size="small"
-                                      variant="outlined"
-                                      sx={{ fontSize: '0.75rem' }}
-                                    />
-                                  ))}
-                                </Box>
-                              </Box>
-                            </>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  {/* Tutor Info */}
-                  <Grid item xs={12} md={9}>
-                    <Card sx={{
-                      height: "100%",
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                      border: 'none',
+                {/* Tutor Info */}
+                <Grid item xs={12} md={7} lg={6}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      boxShadow:
+                        '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
                       borderRadius: 2,
-                    }}>
-                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                        <Box display="flex" alignItems="center" mb={3}>
-                          <PersonIcon color="primary" sx={{ mr: 1, fontSize: { xs: '18px', sm: '24px' } }} />
-                          <Typography variant="h6" fontWeight="600" color="primary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                            Tutor Information
+                    }}
+                  >
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Box display="flex" alignItems="center" mb={3}>
+                        <PersonIcon color="primary" sx={{ mr: 1, fontSize: { xs: 18, sm: 24 } }} />
+                        <Typography
+                          variant="h6"
+                          fontWeight={600}
+                          color="primary"
+                          sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                        >
+                          Tutor Information
+                        </Typography>
+                      </Box>
+
+                      <Box
+                        display="flex"
+                        alignItems="flex-start"
+                        p={2}
+                        sx={{
+                          bgcolor: '#F1F5F9',
+                          borderRadius: 2,
+                          flexDirection: { xs: 'column', sm: 'row' },
+                        }}
+                      >
+                        <Avatar
+                          src={`${BASE_URL}${session.tutor.photo_url}`}
+                          alt={session.tutor.full_name}
+                          sx={{
+                            width: 60,
+                            height: 60,
+                            mr: { xs: 0, sm: 2 },
+                            mb: { xs: 2, sm: 0 },
+                          }}
+                        />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography fontWeight={600} variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                            {session.tutor.full_name}
+                          </Typography>
+
+                          {session.tutor.experience_years && (
+                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                              <SchoolIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                              Experience: {session.tutor.experience_years} years
+                            </Typography>
+                          )}
+
+                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                            <EmailIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                            {session.tutor.email}
+                          </Typography>
+
+                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                            <LocationOnIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                            {session.tutor.location}
                           </Typography>
                         </Box>
-
-                        <Box display="flex" alignItems="flex-start" p={2} sx={{ bgcolor: '#F1F5F9', borderRadius: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                          <Avatar
-                            src={`${BASE_URL}${session.tutor.photo_url}`}
-                            alt={session.tutor.full_name}
-                            sx={{ width: 60, height: 60, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
-                          />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography fontWeight="600" variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                              {session.tutor.full_name}
-                            </Typography>
-
-                            {session.tutor.experience_years && (
-                              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                                <SchoolIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                                Experience: {session.tutor.experience_years} years
-                              </Typography>
-                            )}
-                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                              <EmailIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                              {session.tutor.email}
-                            </Typography>
-                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                              <LocationOnIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                              {session.tutor.location}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Grid>
               </Grid>
             )}
 
+
             {/* Students with details */}
+            {/* --- Students with details --- */}
             {session.students?.length > 0 && (
-              <Grid item xs={12}>
-                <Card
-                  sx={{
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                    border: "none",
-                    borderRadius: 2,
-                  }}
-                >
+              <Grid item xs={12} md={10} lg={8}>
+                <Card sx={{ width: '100%' }}>
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                     <Box display="flex" alignItems="center" mb={2}>
-                      <PeopleIcon color="primary" sx={{ mr: 1, fontSize: { xs: '18px', sm: '24px' } }} />
-                      <Typography variant="h6" fontWeight="600" color="primary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      <PeopleIcon
+                        color="primary"
+                        sx={{ mr: 1, fontSize: { xs: '18px', sm: '24px' } }}
+                      />
+                      <Typography
+                        variant="h6"
+                        fontWeight="600"
+                        color="primary"
+                        sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                      >
                         Students ({session.students.length})
                       </Typography>
                     </Box>
 
-                    <Grid container spacing={2}>
+                    <Grid className='flex justify-center gap-4'>
                       {session.students.map((student, idx) => {
                         const studentRating = session.student_ratings?.find(
                           (sr) => sr.student_id?.toString() === student._id?.toString()
@@ -613,19 +636,29 @@ const TutorSessionsPage = () => {
                             <Card
                               sx={{
                                 p: 2,
-                                border: "1px solid #E2E8F0",
+                                border: '1px solid #E2E8F0',
                                 borderRadius: 2,
-                                background: "white",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                                "&:hover": { boxShadow: "0 4px 6px rgba(0,0,0,0.04)" },
+                                background: 'white',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                '&:hover': { boxShadow: '0 4px 6px rgba(0,0,0,0.04)' },
                               }}
                             >
                               {/* Student Header */}
-                              <Box display="flex" alignItems="flex-start" mb={2} sx={{ flexDirection: { xs: 'column', sm: 'row' } }}>
+                              <Box
+                                display="flex"
+                                alignItems="flex-start"
+                                mb={2}
+                                sx={{ flexDirection: { xs: 'column', sm: 'row' } }}
+                              >
                                 <Avatar
                                   src={`${BASE_URL}${student.photo_url}`}
                                   alt={student.full_name}
-                                  sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
+                                  sx={{
+                                    width: 50,
+                                    height: 50,
+                                    mr: { xs: 0, sm: 2 },
+                                    mb: { xs: 2, sm: 0 },
+                                  }}
                                 />
                                 <Box sx={{ flex: 1 }}>
                                   <Typography fontWeight="600" variant="subtitle1">
@@ -634,15 +667,17 @@ const TutorSessionsPage = () => {
                                   <Typography
                                     variant="body2"
                                     color="textSecondary"
-                                    sx={{ display: "flex", alignItems: "center", mt: 0.5 }}
+                                    sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}
                                   >
                                     <EmailIcon sx={{ fontSize: 16, mr: 0.5 }} />
                                     {student.email}
                                   </Typography>
                                   <Box display="flex" alignItems="center" mt={0.5}>
-                                    <PhoneIcon sx={{ fontSize: 14, mr: 0.5, color: "action.active" }} />
+                                    <PhoneIcon
+                                      sx={{ fontSize: 14, mr: 0.5, color: 'action.active' }}
+                                    />
                                     <Typography variant="caption">
-                                      {student.phone_number || "No phone"}
+                                      {student.phone_number || 'No phone'}
                                     </Typography>
                                   </Box>
                                 </Box>
@@ -651,7 +686,12 @@ const TutorSessionsPage = () => {
                               <Divider sx={{ my: 1.5 }} />
 
                               {/* Rating | Payment | Response */}
-                              <Box display="flex" gap={2} flexWrap="wrap" sx={{ flexDirection: { xs: 'column', sm: 'row' } }}>
+                              <Box
+                                display="flex"
+                                gap={2}
+                                flexWrap="wrap"
+                                sx={{ flexDirection: { xs: 'column', sm: 'row' } }}
+                              >
                                 {/* Rating */}
                                 <Box flex={1} minWidth={200}>
                                   <Typography variant="body2" fontWeight="600" gutterBottom>
@@ -669,11 +709,11 @@ const TutorSessionsPage = () => {
                                         <Typography
                                           variant="body2"
                                           sx={{
-                                            fontStyle: "italic",
+                                            fontStyle: 'italic',
                                             mt: 1,
-                                            color: "#64748B",
-                                            fontSize: "0.875rem",
-                                            wordBreak: 'break-word'
+                                            color: '#64748B',
+                                            fontSize: '0.875rem',
+                                            wordBreak: 'break-word',
                                           }}
                                         >
                                           "{studentRating.feedback}"
@@ -698,11 +738,11 @@ const TutorSessionsPage = () => {
                                         label={studentPayment.payment_status}
                                         size="small"
                                         color={
-                                          studentPayment.payment_status === "paid"
-                                            ? "success"
-                                            : studentPayment.payment_status === "pending"
-                                              ? "warning"
-                                              : "error"
+                                          studentPayment.payment_status === 'paid'
+                                            ? 'success'
+                                            : studentPayment.payment_status === 'pending'
+                                              ? 'warning'
+                                              : 'error'
                                         }
                                       />
                                       <Typography variant="body2" sx={{ mt: 1 }}>
@@ -713,10 +753,10 @@ const TutorSessionsPage = () => {
                                         color="textSecondary"
                                         display="block"
                                       >
-                                        {studentPayment.payment_method} •{" "}
+                                        {studentPayment.payment_method} •{' '}
                                         {studentPayment.payment_date
                                           ? formatDate(studentPayment.payment_date)
-                                          : "Not Paid"}
+                                          : 'Not Paid'}
                                       </Typography>
                                     </>
                                   ) : (
@@ -736,11 +776,11 @@ const TutorSessionsPage = () => {
                                       label={studentResponse.status.toUpperCase()}
                                       size="small"
                                       color={
-                                        studentResponse.status === "confirmed"
-                                          ? "success"
-                                          : studentResponse.status === "declined"
-                                            ? "error"
-                                            : "warning"
+                                        studentResponse.status === 'confirmed'
+                                          ? 'success'
+                                          : studentResponse.status === 'declined'
+                                            ? 'error'
+                                            : 'warning'
                                       }
                                     />
                                   ) : (
@@ -759,6 +799,8 @@ const TutorSessionsPage = () => {
                 </Card>
               </Grid>
             )}
+
+
           </Grid>
         </DialogContent>
       </Dialog>
@@ -1194,24 +1236,24 @@ const TutorSessionsPage = () => {
     <AdminLayout tabValue="tutor-sessions">
       <Box sx={{ p: isMobile ? 1 : 3 }}>
         {/* Header */}
-        <Box   sx={{
-                        background: "linear-gradient(90deg, #6a11cb 0%, #2575fc 100%)", // purple → blue
-                        // background: "gradient-text", // purple → blue
-                        color: "white", // make all text/icons readable
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        p: 3,
-                        borderRadius: 2,
-                        mb:4,
-        //             }}sx={{
-        //   mb: 4,
-        //   display: 'flex',
-        //   flexDirection: isMobile ? 'column' : 'row',
-        //   alignItems: isMobile ? 'flex-start' : 'center',
-        //   justifyContent: 'space-between',
-        //   gap: 2
-        // }}>
+        <Box sx={{
+          background: "linear-gradient(90deg, #6a11cb 0%, #2575fc 100%)", // purple → blue
+          // background: "gradient-text", // purple → blue
+          color: "white", // make all text/icons readable
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          p: 3,
+          borderRadius: 2,
+          mb: 4,
+          //             }}sx={{
+          //   mb: 4,
+          //   display: 'flex',
+          //   flexDirection: isMobile ? 'column' : 'row',
+          //   alignItems: isMobile ? 'flex-start' : 'center',
+          //   justifyContent: 'space-between',
+          //   gap: 2
+          // }}>
         }}>
           <Box>
             <Typography variant="h4" fontWeight="700" sx={{
@@ -1220,7 +1262,7 @@ const TutorSessionsPage = () => {
             }}>
               Session Management
             </Typography>
-            <Typography variant="body2"  sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               Monitor and manage all tutoring sessions
             </Typography>
           </Box>
@@ -1525,7 +1567,7 @@ const TutorSessionsPage = () => {
           </Box>
         )}
 
-        
+
         {/* Session Details Modal */}
         <SessionDetailsModal
           session={selectedSession}

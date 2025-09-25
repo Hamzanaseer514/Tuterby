@@ -90,7 +90,13 @@ const StudentPaymentPage = () => {
 
         // Apply status filter
         if (statusFilter !== 'all') {
-            filtered = filtered.filter(payment => payment.status === statusFilter);
+            if (statusFilter === 'expired') {
+                filtered = filtered.filter(payment => payment.status === 'completed' && payment.validity_status === 'expired');
+            } else if (statusFilter === 'completed') {
+                filtered = filtered.filter(payment => payment.status === 'completed' && payment.validity_status !== 'expired');
+            } else {
+                filtered = filtered.filter(payment => payment.status === statusFilter);
+            }
         }
 
         // Apply search filter
@@ -127,6 +133,25 @@ const StudentPaymentPage = () => {
         try {
             setLoading(true);
             const token = getAuthToken();
+
+            // If it's an expired payment, create renewal first
+            if (payment.status === 'completed' && payment.validity_status === 'expired') {
+                const renewalResponse = await fetchWithAuth(`${BASE_URL}/api/auth/student/payments/${payment._id}/renew`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        validity_start_date: new Date().toISOString(),
+                        validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+                    })
+                }, token, (newToken) => localStorage.setItem("authToken", newToken));
+
+                if (!renewalResponse.ok) throw new Error("Failed to create renewal payment");
+
+                const renewalData = await renewalResponse.json();
+                payment._id = renewalData.payment._id; // Use new payment ID
+            }
 
             const response = await fetchWithAuth(`${BASE_URL}/api/payment/create-checkout-session`, {
                 method: "POST",
@@ -173,11 +198,17 @@ const StudentPaymentPage = () => {
     
 
 
-    const getStatusBadge = (status) => {
+    const getStatusBadge = (status, validityStatus) => {
         const statusConfig = {
             'pending': { variant: 'secondary', text: 'Pending Payment', icon: Clock, color: 'text-amber-600 bg-amber-100' },
-            'completed': { variant: 'default', text: 'Academic Level Paid', icon: CheckCircle, color: 'text-green-600 bg-green-100' },
-            'cancelled': { variant: 'outline', text: 'Cancelled', icon: XCircle, color: 'text-gray-600 bg-gray-100' }
+            'completed': { 
+                variant: 'default', 
+                text: validityStatus === 'expired' ? 'Payment Expired' : 'Academic Level Paid', 
+                icon: validityStatus === 'expired' ? XCircle : CheckCircle, 
+                color: validityStatus === 'expired' ? 'text-red-600 bg-red-100' : 'text-green-600 bg-green-100' 
+            },
+            'cancelled': { variant: 'outline', text: 'Cancelled', icon: XCircle, color: 'text-gray-600 bg-gray-100' },
+            'failed': { variant: 'outline', text: 'Payment Failed', icon: XCircle, color: 'text-red-600 bg-red-100' }
         };
 
         const config = statusConfig[status] || { variant: 'outline', text: status, icon: Clock, color: 'text-gray-600 bg-gray-100' };
@@ -195,7 +226,8 @@ const StudentPaymentPage = () => {
         const counts = {
             all: payments.length,
             pending: payments.filter(p => p.status === 'pending').length,
-            completed: payments.filter(p => p.status === 'completed').length,
+            completed: payments.filter(p => p.status === 'completed' && p.validity_status !== 'expired').length,
+            expired: payments.filter(p => p.status === 'completed' && p.validity_status === 'expired').length,
             failed: payments.filter(p => p.status === 'failed').length,
             cancelled: payments.filter(p => p.status === 'cancelled').length
         };
@@ -238,7 +270,7 @@ const StudentPaymentPage = () => {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
                     <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
                         <CardContent className="p-4">
                             <div className="text-2xl font-bold text-blue-800">{statusCounts.all}</div>
@@ -254,7 +286,13 @@ const StudentPaymentPage = () => {
                     <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
                         <CardContent className="p-4">
                             <div className="text-2xl font-bold text-green-800">{statusCounts.completed}</div>
-                            <div className="text-sm text-green-600">Completed</div>
+                            <div className="text-sm text-green-600">Active</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
+                        <CardContent className="p-4">
+                            <div className="text-2xl font-bold text-red-800">{statusCounts.expired}</div>
+                            <div className="text-sm text-red-600">Expired</div>
                         </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200">
@@ -289,7 +327,8 @@ const StudentPaymentPage = () => {
                                 <SelectContent>
                                     <SelectItem value="all">All Status ({statusCounts.all})</SelectItem>
                                     <SelectItem value="pending">Pending ({statusCounts.pending})</SelectItem>
-                                    <SelectItem value="completed">Completed ({statusCounts.completed})</SelectItem>
+                                    <SelectItem value="completed">Active ({statusCounts.completed})</SelectItem>
+                                    <SelectItem value="expired">Expired ({statusCounts.expired})</SelectItem>
                                     <SelectItem value="failed">Failed ({statusCounts.failed})</SelectItem>
                                     <SelectItem value="cancelled">Cancelled ({statusCounts.cancelled})</SelectItem>
                                 </SelectContent>
@@ -363,15 +402,21 @@ const StudentPaymentPage = () => {
                                                             <h3 className="text-lg font-semibold text-gray-900">
                                                                 {payment.tutor_name || 'Unknown Tutor'}
                                                             </h3>
-                                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                                    <BookOpen className="w-3 h-3 mr-1" />
-                                                                    {payment.subject || 'Unknown Subject'}
-                                                                </Badge>
-                                                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                                                                    {payment.academic_level || 'Unknown Level'}
-                                                                </Badge>
-                                                            </div>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                    <BookOpen className="w-3 h-3 mr-1" />
+                                                    {payment.subject || 'Unknown Subject'}
+                                                </Badge>
+                                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                                    {payment.academic_level || 'Unknown Level'}
+                                                </Badge>
+                                                {payment.is_renewal && (
+                                                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                                        <RefreshCw className="w-3 h-3 mr-1" />
+                                                        Renewal
+                                                    </Badge>
+                                                )}
+                                            </div>
                                                         </div>
 
                                                         <div className="flex flex-col items-end gap-2">
@@ -390,7 +435,7 @@ const StudentPaymentPage = () => {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            {getStatusBadge(payment.status)}
+                                                            {getStatusBadge(payment.status, payment.validity_status)}
                                                         </div>
                                                     </div>
 
@@ -462,10 +507,28 @@ const StudentPaymentPage = () => {
                                                     </Button>
                                                 )}
 
-                                                {payment.status === 'completed' && payment.academic_level_paid && (
+                                                {payment.status === 'completed' && payment.validity_status === 'active' && payment.academic_level_paid && (
                                                     <Button variant="outline" disabled className="bg-green-50 text-green-700 border-green-200">
                                                         <CheckCircle className="w-4 h-4 mr-2" />
                                                         Academic Level Access Granted
+                                                    </Button>
+                                                )}
+
+                                                {payment.status === 'completed' && payment.validity_status === 'expired' && !payment.has_renewal && (
+                                                    <Button
+                                                        onClick={() => handlePayment(payment)}
+                                                        disabled={loading}
+                                                        className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700"
+                                                    >
+                                                        <CreditCard className="w-4 h-4" />
+                                                        Renew Payment
+                                                    </Button>
+                                                )}
+
+                                                {payment.status === 'completed' && payment.validity_status === 'expired' && payment.has_renewal && (
+                                                    <Button variant="outline" disabled className="bg-gray-50 text-gray-700 border-gray-200">
+                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                        Payment Renewed
                                                     </Button>
                                                 )}
 
@@ -480,8 +543,6 @@ const StudentPaymentPage = () => {
                                                         Retry Payment
                                                     </Button>
                                                 )}
-
-
 
                                                 {/* <Button variant="outline" size="sm">
                                                     <Download className="w-4 h-4 mr-2" />
