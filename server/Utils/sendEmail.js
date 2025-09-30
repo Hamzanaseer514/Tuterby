@@ -17,10 +17,15 @@ require("dotenv").config();
 //     html: htmlContent,
 //   });
 // };
+const nodemailer = require("nodemailer");
+require("dotenv").config();
+
 const sendEmail = async (to, subject, htmlContent) => {
   try {
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587, // TLS
+      secure: false, // true = port 465, false = port 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -35,10 +40,15 @@ const sendEmail = async (to, subject, htmlContent) => {
     });
 
     console.log("✅ Email sent:", info.messageId);
+    return info;
   } catch (err) {
     console.error("❌ Email send failed:", err.message);
+    throw err;
   }
 };
+
+module.exports = sendEmail;
+
 
 
 module.exports = sendEmail;
