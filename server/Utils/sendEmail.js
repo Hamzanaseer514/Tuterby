@@ -18,7 +18,6 @@
 //   });
 // }
 // module.exports = sendEmail;
-
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
@@ -94,7 +93,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     try {
       console.log(`🔄 Trying email configuration ${i + 1}/${emailConfigs.length}`);
       
-      const transporter = nodemailer.createTransporter(emailConfigs[i]);
+      const transporter = nodemailer.createTransport(emailConfigs[i]);
       
       // Verify connection before sending
       console.log(`🔍 Verifying connection for config ${i + 1}...`);
@@ -168,4 +167,3 @@ const sendEmail = async (to, subject, htmlContent) => {
 };
 
 module.exports = sendEmail;
-
