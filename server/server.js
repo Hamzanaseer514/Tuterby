@@ -10,7 +10,7 @@ app.post(
   express.raw({ type: "application/json" }),
   require("./Routes/stripeWebhook") // ✅ webhook ka route alag file me rakho
 );
-Middleware
+// Middleware
 app.use(
   cors({
     origin: (origin, callback) => {
