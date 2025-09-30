@@ -586,7 +586,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
 
   // === TUTOR OR PARENT LOGIN (OTP first, no refresh token yet) ===
   if (user.role === "tutor" || user.role === "parent") {
-    console.log("user is in condition);
+    console.log("user is in condition");
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[user._id] = {
       otp,
