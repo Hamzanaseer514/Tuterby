@@ -596,8 +596,11 @@ exports.loginUser = asyncHandler(async (req, res) => {
       lockUntil: null,
     };
 
+    console.log("opt sending")
+
     const htmlContent = generateOtpEmail(otp, user.username);
     await sendEmail(user.email, "Your TutorBy OTP Code", htmlContent);
+    console.log("hogae send")
 
     return res.status(200).json({
       isOtpTrue: true,
