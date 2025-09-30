@@ -10,23 +10,23 @@ app.post(
   express.raw({ type: "application/json" }),
   require("./Routes/stripeWebhook") // ✅ webhook ka route alag file me rakho
 );
-// Middleware
-// app.use(
-//   cors({
-//     origin: (origin, callback) => {
-//       callback(null, true); // allow any origin dynamically
-//     }, // tumhare React/Vite frontend ka port
-//     credentials: true, // agar cookies ya authentication bhejna ho
-//   })
-// );
+Middleware
 app.use(
   cors({
     origin: (origin, callback) => {
-      callback(null, origin || "*"); 
-    },
-    credentials: true, // 👈 cookies ke liye zaroori
+      callback(null, true); // allow any origin dynamically
+    }, // tumhare React/Vite frontend ka port
+    credentials: true, // agar cookies ya authentication bhejna ho
   })
 );
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       callback(null, origin || "*"); 
+//     },
+//     credentials: true, // 👈 cookies ke liye zaroori
+//   })
+// );
 
 app.use(express.json()); // For JSON requests
 app.use(express.urlencoded({ extended: true })); // For form data
