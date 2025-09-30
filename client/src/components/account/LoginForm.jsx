@@ -78,7 +78,7 @@ export default function LoginForm() {
         if(data.isOtpTrue) {
           setUserId(data.userId);
           setOtpPhase(true);
-          return; 
+        
         }
         else {
           login(data.user, data.accessToken, rememberMe);
