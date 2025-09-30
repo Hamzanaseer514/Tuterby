@@ -82,8 +82,6 @@ const TutorProfilePage = () => {
         url += `?isParentView=true&studentId=${studentId}`;
       }
 
-      console.log("Fetching tutor details from:", url);
-
       const response = await fetchWithAuth(url, {
         method: 'GET',
         headers: {
@@ -98,7 +96,6 @@ const TutorProfilePage = () => {
       }
 
       const data = await response.json();
-      console.log("tutor data", data);
       const normalizeList = (value) => {
         if (!value) return [];
         if (Array.isArray(value)) {
@@ -197,7 +194,6 @@ const TutorProfilePage = () => {
 
       if (isParentView && studentId) {
         // Parent view - fetch student profile using studentId
-        console.log("Parent view - fetching student profile for:", studentId);
         response = await fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${studentId}`, {
           method: 'GET',
           headers: {
@@ -206,7 +202,6 @@ const TutorProfilePage = () => {
         }, token, (newToken) => localStorage.setItem("authToken", newToken));
       } else if (user?._id) {
         // Student view - fetch current user's profile
-        console.log("Student view - fetching profile for current user:", user._id);
         response = await fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
           method: 'GET',  
           headers: {
@@ -214,7 +209,6 @@ const TutorProfilePage = () => {
           }
         }, token, (newToken) => localStorage.setItem("authToken", newToken));
       } else {
-        console.log("No user ID available");
         return;
       }
 
@@ -224,7 +218,6 @@ const TutorProfilePage = () => {
 
       const data = await response.json();
       setStudentProfile(data.student);
-      console.log("Student profile data:", data);
     } catch (e) {
       console.error("Error fetching student profile:", e);
       // Don't throw error, just log it

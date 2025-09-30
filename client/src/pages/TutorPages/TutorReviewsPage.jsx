@@ -104,10 +104,10 @@ const TutorReviewsPage = () => {
           <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 sm:mr-3 flex-shrink-0" />
           <div className="min-w-0 flex-1">
              <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">
-               {review.student_name || 'Anonymous Student'}
+               {review.reviewer?.name || review.student_name || 'Anonymous'}
              </h4>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              {new Date(review.created_at).toLocaleDateString('en-US', {
+              {review.reviewer?.type === 'parent' ? 'Parent' : 'Student'} • {new Date(review.created_at).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'

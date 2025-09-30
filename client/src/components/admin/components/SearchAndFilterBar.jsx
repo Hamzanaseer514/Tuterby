@@ -99,12 +99,12 @@ const SearchAndFilterBar = ({
 
         {/* ⚙️ Actions */}
         <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-          <IconButton onClick={handleFilterClick}>
+          {/* <IconButton onClick={handleFilterClick}>
             <FilterList />
-          </IconButton>
-          <IconButton onClick={handleSortClick}>
+          </IconButton> */}
+          {/* <IconButton onClick={handleSortClick}>
             <Sort />
-          </IconButton>
+          </IconButton> */}
           {onRefresh && (
             <IconButton onClick={onRefresh}>
               <Refresh />
@@ -114,7 +114,7 @@ const SearchAndFilterBar = ({
         </Box>
 
         {/* Filter Menu */}
-        <Menu
+        {/* <Menu
           anchorEl={filterAnchorEl}
           open={Boolean(filterAnchorEl)}
           onClose={handleFilterClose}
@@ -152,10 +152,10 @@ const SearchAndFilterBar = ({
               </Select>
             </FormControl>
           </MenuItem>
-        </Menu>
+        </Menu> */}
 
         {/* Sort Menu */}
-        <Menu
+        {/* <Menu
           anchorEl={sortAnchorEl}
           open={Boolean(sortAnchorEl)}
           onClose={handleSortClose}
@@ -177,7 +177,7 @@ const SearchAndFilterBar = ({
           >
             Sort by Rating
           </MenuItem>
-        </Menu>
+        </Menu> */}
       </Box>
     </Fade>
   );

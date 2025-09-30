@@ -55,7 +55,7 @@ const AdminDashboard = () => {
           return parsed;
         }
       } catch (error) {
-        console.error('Error parsing saved dashboard state:', error);
+        // console.error('Error parsing saved dashboard state:', error);
       }
     }
     
@@ -242,7 +242,7 @@ const AdminDashboard = () => {
         showNotification(`No ${userType} found in the database.`, 'info');
       }
     } catch (error) {
-      console.error('Failed to load users:', error);
+      // console.error('Failed to load users:', error);
       
       if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
         showNotification('Access denied. Please login with admin credentials.', 'error');
@@ -292,7 +292,7 @@ const AdminDashboard = () => {
   };
 
   const handleViewUser = async (user) => {
-    console.log("AdminDashboard - handleViewUser called with user:", user);
+    // console.log("AdminDashboard - handleViewUser called with user:", user);
   };
 
 
@@ -327,7 +327,6 @@ const AdminDashboard = () => {
   };
   const filteredUsers = dashboardState.users[uiState.tabValue || 'tutors']?.filter(user => {
     const search = uiState.searchTerm.toLowerCase();
-    console.log("user",user)
     const matchesSearch =
       (user.name && user.name.toLowerCase().includes(search)) ||
       (user.email && user.email.toLowerCase().includes(search)) ||

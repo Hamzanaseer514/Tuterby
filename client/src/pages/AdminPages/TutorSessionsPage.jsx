@@ -132,7 +132,6 @@ const TutorSessionsPage = () => {
       setError(null);
 
       const response = await getAllTutorSessions(filters);
-      console.log("API Response:", response);
 
       if (response.success) {
         setSessions(response.data);

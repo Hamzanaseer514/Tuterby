@@ -125,7 +125,6 @@ const TutorSelfProfilePage = () => {
                           body: formData,
                         }, token, (newToken) => localStorage.setItem("authToken", newToken));
                         const json = await res.json();
-                        console.log("Upload response:", json);
                         if (json?.success && json.photo_url) {
                           // Force refresh local profile image by updating user.photo_url in memory if needed
                           await loadProfile();

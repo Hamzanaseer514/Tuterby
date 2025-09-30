@@ -79,10 +79,6 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
     }
   }, [child]); // Removed fetchSubjectRelatedToAcademicLevels from dependencies
 
-  // Debug: Watch for changes in subjectRelatedToAcademicLevels
-  useEffect(() => {
-  }, [subjectRelatedToAcademicLevels]);
-
   // Auto-open in edit mode if initialEditMode is true
   useEffect(() => {
     if (child?.initialEditMode) {
@@ -125,14 +121,12 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
     }
   };
 
-
   const removeSubject = (subjectId) => {
     setFormData(prev => ({
       ...prev,
       preferred_subjects: prev.preferred_subjects.filter(id => id !== subjectId)
     }));
   };
-
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -141,11 +135,11 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
       setPhotoPreview(URL.createObjectURL(file));
     }
   };
+
   const getAcademicLevelName = (id) => {
     const academicLevel = academicLevels.find(level => level._id === id);
     return academicLevel;
   }
-
 
   const validateForm = () => {
     const newErrors = {};
@@ -251,7 +245,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
 
       window.dispatchEvent(new CustomEvent('parentDataUpdated'));
     } catch (error) {
-      console.error('Error updating child profile:', error);
+      // console.error('Error updating child profile:', error);
       toast.error(error.message || 'An error occurred while updating the profile');
     } finally {
       setLoading(false);
@@ -294,13 +288,13 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+      <DialogContent className="max-w-[95vw] sm:max-w-[700px] lg:max-w-[800px] max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <User className="h-4 w-4 sm:h-5 sm:w-5" />
             {isEditing ? 'Edit Child Profile' : 'Child Profile Details'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm sm:text-base">
             {isEditing
               ? 'Update your child\'s information and preferences'
               : 'View and manage your child\'s tutoring profile'
@@ -308,22 +302,22 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-4 sm:pb-6">
           {/* Profile Photo Section */}
           <div className="text-center">
             <div className="relative inline-block">
-              <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white text-xl sm:text-2xl font-bold">
                 {photoPreview ? (
                   <img
                     src={photoPreview}
                     alt="Preview"
-                    className="w-24 h-24 rounded-full object-cover"
+                    className="w-full h-full rounded-full object-cover"
                   />
                 ) : child.photo_url ? (
                   <img
                     src={`${BASE_URL}${child.photo_url}`}
                     alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover"
+                    className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
                   child.full_name?.charAt(0)?.toUpperCase() || 'C'
@@ -331,8 +325,8 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
               </div>
 
               {isEditing && (
-                <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-primary/80 transition-colors">
-                  <Camera className="h-4 w-4" />
+                <label className="absolute -bottom-1 -right-1 bg-primary text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-primary/80 transition-colors">
+                  <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
                   <input
                     type="file"
                     accept="image/*"
@@ -344,16 +338,16 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
             </div>
 
             {isEditing && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Click the camera icon to change photo
               </p>
             )}
           </div>
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name *</Label>
+          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="full_name" className="text-xs sm:text-sm">Full Name *</Label>
               {isEditing ? (
                 <Input
                   id="full_name"
@@ -361,20 +355,20 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   value={formData.full_name}
                   onChange={handleInputChange}
                   placeholder="Enter child's full name"
-                  className={errors.full_name ? 'border-red-500' : ''}
+                  className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.full_name ? 'border-red-500' : ''}`}
                 />
               ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.full_name}</span>
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[36px] sm:min-h-[40px] flex items-center">
+                  <span className="font-medium text-sm sm:text-base">{child.full_name}</span>
                 </div>
               )}
               {errors.full_name && (
-                <p className="text-sm text-red-500">{errors.full_name}</p>
+                <p className="text-xs text-red-500 mt-1">{errors.full_name}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="age">Age *</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="age" className="text-xs sm:text-sm">Age *</Label>
               {isEditing ? (
                 <Input
                   id="age"
@@ -385,20 +379,20 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   placeholder="Enter age"
                   min="0"
                   max="120"
-                  className={errors.age ? 'border-red-500' : ''}
+                  className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.age ? 'border-red-500' : ''}`}
                 />
               ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.age} years old</span>
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[36px] sm:min-h-[40px] flex items-center">
+                  <span className="font-medium text-sm sm:text-base">{child.age} years old</span>
                 </div>
               )}
               {errors.age && (
-                <p className="text-sm text-red-500">{errors.age}</p>
+                <p className="text-xs text-red-500 mt-1">{errors.age}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
+            <div className="space-y-1 sm:space-y-2 xs:col-span-2">
+              <Label htmlFor="email" className="text-xs sm:text-sm">Email Address *</Label>
               {isEditing ? (
                 <Input
                   id="email"
@@ -407,20 +401,20 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Enter email address"
-                  className={errors.email ? 'border-red-500' : ''}
+                  className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.email ? 'border-red-500' : ''}`}
                 />
               ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.email}</span>
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[36px] sm:min-h-[40px] flex items-center">
+                  <span className="font-medium text-sm sm:text-base">{child.email}</span>
                 </div>
               )}
               {errors.email && (
-                <p className="text-sm text-red-500">{errors.email}</p>
+                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone_number">Phone Number</Label>
+            <div className="space-y-1 sm:space-y-2 xs:col-span-2">
+              <Label htmlFor="phone_number" className="text-xs sm:text-sm">Phone Number</Label>
               {isEditing ? (
                 <Input
                   id="phone_number"
@@ -428,41 +422,42 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   value={formData.phone_number}
                   onChange={handleInputChange}
                   placeholder="Enter phone number"
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.phone_number || 'Not specified'}</span>
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[36px] sm:min-h-[40px] flex items-center">
+                  <span className="font-medium text-sm sm:text-base">{child.phone_number || 'Not specified'}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Academic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5" />
               Academic Information
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="academic_level">Academic Level *</Label>
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1 sm:space-y-2">
+                <Label htmlFor="academic_level" className="text-xs sm:text-sm">Academic Level *</Label>
                 {isEditing ? (
                   <Select value={formData.academic_level} onValueChange={(value) => handleSelectChange('academic_level', value)}>
-                    <SelectTrigger className={errors.academic_level ? 'border-red-500' : ''}>
+                    <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.academic_level ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select academic level" />
                     </SelectTrigger>
                     <SelectContent>
                       {academicLevels.map((level) => (
-                        <SelectItem key={level._id} value={level._id}>
+                        <SelectItem key={level._id} value={level._id} className="text-xs sm:text-sm">
                           {level.level}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <span className="font-medium">
+                  <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[36px] sm:min-h-[40px] flex items-center">
+                    <span className="font-medium text-sm sm:text-base">
                       {(() => {
                         // Handle both cases: when academic_level is an object or just an ID
                         if (child.academic_level && typeof child.academic_level === 'object' && child.academic_level._id) {
@@ -479,16 +474,16 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   </div>
                 )}
                 {errors.academic_level && (
-                  <p className="text-sm text-red-500">{errors.academic_level}</p>
+                  <p className="text-xs text-red-500 mt-1">{errors.academic_level}</p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Account Status</Label>
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="space-y-1 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">Account Status</Label>
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[36px] sm:min-h-[40px] flex items-center">
                   <Badge
                     variant={child.is_verified === 'active' ? 'default' : 'secondary'}
-                    className={child.is_verified === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                    className={`text-xs ${child.is_verified === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
                   >
                     {child.is_verified === 'active' ? 'Active' : 'Inactive'}
                   </Badge>
@@ -496,27 +491,27 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Preferred Subjects</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label className="text-xs sm:text-sm">Preferred Subjects</Label>
               {isEditing ? (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {/* Show current selected subjects with delete option */}
                   {formData.preferred_subjects && formData.preferred_subjects.length > 0 && (
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Currently Selected:</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-200 mb-1 sm:mb-2">Currently Selected:</p>
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {formData.preferred_subjects.map((subjectId) => {
                           const subject = subjects.find(s => s._id === subjectId);
                           return subject ? (
                             <Badge
                               key={subjectId}
                               variant="outline"
-                              className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700"
+                              className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700 text-xs px-1.5 py-0"
                             >
                               {subject.name}
                               <button
                                 onClick={() => removeSubject(subjectId)}
-                                className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                                className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
                               >
                                 ×
                               </button>
@@ -529,7 +524,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
 
                   {/* Subject selection dropdown - only shows subjects related to academic level */}
                   <div>
-                    <Label className="text-sm text-gray-600 dark:text-gray-400">
+                    <Label className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       Add subjects for {getAcademicLevelName(formData.academic_level)?.level || 'selected level'}:
                     </Label>
                     <Select
@@ -542,7 +537,7 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                         }
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                         <SelectValue placeholder="Select a subject to add" />
                       </SelectTrigger>
                       <SelectContent>
@@ -550,12 +545,12 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                           subjectRelatedToAcademicLevels
                             .filter(subject => !formData.preferred_subjects.includes(subject._id))
                             .map((subject) => (
-                              <SelectItem key={subject._id} value={subject._id}>
+                              <SelectItem key={subject._id} value={subject._id} className="text-xs sm:text-sm">
                                 {subject.name}
                               </SelectItem>
                             ))
                         ) : (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="" disabled className="text-xs sm:text-sm">
                             {formData.academic_level ? 'No subjects available for this level' : 'Please select academic level first'}
                           </SelectItem>
                         )}
@@ -564,285 +559,80 @@ const ChildDetailModal = ({ isOpen, onClose, child, onChildUpdated }) => {
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   {child.preferred_subjects && child.preferred_subjects.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1 sm:gap-2">
                       {child.preferred_subjects.map((subjectId) => {
                         const subject = subjects.find(s => s._id === subjectId);
                         return subject ? (
-                          <Badge key={subjectId} variant="outline">
+                          <Badge key={subjectId} variant="outline" className="text-xs px-1.5 py-0">
                             {subject.name}
                           </Badge>
                         ) : null;
                       })}
                     </div>
                   ) : (
-                    <span className="text-gray-500">No subjects selected</span>
+                    <span className="text-gray-500 text-sm">No subjects selected</span>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Learning Preferences */}
-          {/* <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Learning Preferences
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Preferred Learning Style</Label>
-                {isEditing ? (
-                  <Select
-                    value={formData.preferred_learning_style}
-                    onValueChange={(value) => handleSelectChange('preferred_learning_style', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select learning style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {learningStyles.map((style) => (
-                        <SelectItem key={style} value={style}>
-                          {style}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <span className="font-medium">{child.preferred_learning_style || 'Not specified'}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Availability</Label>
-                {isEditing ? (
-                  <Select
-                    value={formData.availability}
-                    onValueChange={(value) => handleMultiSelectChange('availability', value)}
-                    multiple
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select availability" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availabilityOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    {child.availability && child.availability.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {child.availability.map((option, index) => (
-                          <Badge key={index} variant="outline">
-                            {option}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">No availability set</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="learning_goals">Learning Goals</Label>
-              {isEditing ? (
-                <Textarea
-                  id="learning_goals"
-                  name="learning_goals"
-                  value={formData.learning_goals}
-                  onChange={handleInputChange}
-                  placeholder="Describe your child's learning goals and objectives"
-                  rows={3}
-                />
-              ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.learning_goals || 'No learning goals specified'}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="special_needs">Special Needs or Requirements</Label>
-              {isEditing ? (
-                <Textarea
-                  id="special_needs"
-                  name="special_needs"
-                  value={formData.special_needs}
-                  onChange={handleInputChange}
-                  placeholder="Any special learning needs or accommodations required"
-                  rows={3}
-                />
-              ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.special_needs || 'No special needs specified'}</span>
-                </div>
-              )}
-            </div>
-          </div> */}
-
-          {/* Additional Information */}
-          {/* <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Star className="h-5 w-5" />
-              Additional Information
-            </h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="bio">Bio/Description</Label>
-              {isEditing ? (
-                <Textarea
-                  id="bio"
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleInputChange}
-                  placeholder="Tell us about your child's interests and personality"
-                  rows={3}
-                />
-              ) : (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">{child.bio || 'No bio provided'}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                {isEditing ? (
-                  <Input
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder="Enter address"
-                  />
-                ) : (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <span className="font-medium">{child.address || 'Not specified'}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="emergency_contact">Emergency Contact</Label>
-                {isEditing ? (
-                  <Input
-                    id="emergency_contact"
-                    name="emergency_contact"
-                    value={formData.emergency_contact}
-                    onChange={handleInputChange}
-                    placeholder="Emergency contact number"
-                  />
-                ) : (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <span className="font-medium">{child.emergency_contact || 'Not specified'}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div> */}
-
-          {/* Account Information */}
-          {/* <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Account Information
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Member Since</Label>
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">
-                    {child.created_at
-                      ? new Date(child.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })
-                      : 'Not specified'
-                    }
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Last Updated</Label>
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="font-medium">
-                    {child.updated_at
-                      ? new Date(child.updated_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })
-                      : 'Not specified'
-                    }
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div> */}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-6 border-t">
-          {!isEditing ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleClose}
-              >
-                Close
-              </Button>
-              <Button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2"
-              >
-                <Edit3 className="h-4 w-4" />
-                Edit Profile
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-            </>
-          )}
+          {/* Action Buttons */}
+          <div className="flex flex-col xs:flex-row justify-end gap-2 sm:gap-3 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
+            {!isEditing ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="w-full xs:w-auto text-xs sm:text-sm h-9"
+                  size="sm"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  className="w-full xs:w-auto text-xs sm:text-sm h-9 flex items-center gap-2"
+                  size="sm"
+                >
+                  <Edit3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Edit Profile
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={loading}
+                  className="w-full xs:w-auto text-xs sm:text-sm h-9"
+                  size="sm"
+                >
+                  <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="w-full xs:w-auto text-xs sm:text-sm h-9 flex items-center gap-2"
+                  size="sm"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

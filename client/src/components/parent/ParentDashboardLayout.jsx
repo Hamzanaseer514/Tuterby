@@ -15,7 +15,8 @@ import {
   UserPlus,
   BarChart3,
   MessageSquare,
-  User
+  User,
+  Star
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -28,29 +29,88 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      /* Custom scrollbar styling */
-      .custom-scrollbar::-webkit-scrollbar {
+      /* Custom scrollbar styling for sidebar */
+      .sidebar-scrollbar::-webkit-scrollbar {
         width: 6px;
         height: 6px;
       }
       
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
+      .sidebar-scrollbar::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 3px;
       }
       
-      .custom-scrollbar::-webkit-scrollbar-thumb {
+      .sidebar-scrollbar::-webkit-scrollbar-thumb {
         background: #d1d5db;
         border-radius: 3px;
       }
       
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #9ca3af;
       }
       
+      /* Custom scrollbar styling for main content */
+      .content-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      .content-scrollbar::-webkit-scrollbar-track {
+        background: #f9fafb;
+        border-radius: 4px;
+      }
+      
+      .content-scrollbar::-webkit-scrollbar-thumb {
+        background: #e5e7eb;
+        border-radius: 4px;
+      }
+      
+      .content-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #d1d5db;
+      }
+      
       /* Firefox scrollbar */
-      .custom-scrollbar {
+      .sidebar-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: #d1d5db transparent;
+        scrollbar-color: #d1d5db #f3f4f6;
+      }
+      
+      .content-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #e5e7eb #f9fafb;
+      }
+
+      /* Dark mode scrollbars */
+      .dark .sidebar-scrollbar::-webkit-scrollbar-track {
+        background: #374151;
+      }
+      
+      .dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
+        background: #4b5563;
+      }
+      
+      .dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+      }
+      
+      .dark .content-scrollbar::-webkit-scrollbar-track {
+        background: #1f2937;
+      }
+      
+      .dark .content-scrollbar::-webkit-scrollbar-thumb {
+        background: #374151;
+      }
+      
+      .dark .content-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #4b5563;
+      }
+      
+      .dark .sidebar-scrollbar {
+        scrollbar-color: #4b5563 #374151;
+      }
+      
+      .dark .content-scrollbar {
+        scrollbar-color: #374151 #1f2937;
       }
     `;
     document.head.appendChild(style);
@@ -83,7 +143,8 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
     { id: 'sessions', label: 'Sessions', icon: Calendar, path: '/parent-dashboard/sessions' },
     { id: 'profile', label: 'My Profile', icon: User, path: '/parent-dashboard/profile' },
     { id: 'payments', label: 'Payments', icon: CreditCard, path: '/parent-dashboard/payments' },
-    { id: 'tutors', label: 'Tutors', icon: BarChart3, path: '/parent-dashboard/tutors' },
+    { id: 'tutors', label: 'Find Tutors', icon: BarChart3, path: '/parent-dashboard/tutors' },
+    { id: 'hired-tutors', label: 'Your Tutors', icon: Star, path: '/parent-dashboard/hired-tutors' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/parent-dashboard/settings' }
   ];
   
@@ -101,7 +162,7 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
           : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
         setProfileImageUrl(url);
       } catch (error) {
-        console.error('Error fetching profile image:', error);
+        // console.error('Error fetching profile image:', error);
         setProfileImageUrl('');
       }
     };
@@ -125,7 +186,7 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
       const data = await getParentDashboardStats(user._id);
       setStats(data);
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      // console.error('Error fetching dashboard stats:', error);
     }
   };
 
@@ -151,56 +212,49 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Mobile Header - Fixed at top */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-1.5 sm:p-2 h-8 sm:h-9 w-8 sm:w-9"
           >
-            {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {isSidebarOpen ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Menu className="h-4 w-4 sm:h-5 sm:w-5" />}
           </Button>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate mx-2">
             Parent Dashboard
           </h1>
-          <div className="relative">
-            <Button variant="ghost" size="sm" className="relative">
-              <Bell className="h-5 w-5" />
-              {unreadNotifications > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs"
-                >
-                  {unreadNotifications}
-                </Badge>
-              )}
-            </Button>
-          </div>
+         
         </div>
       </div>
 
       {/* Sidebar - Fixed position */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-40 w-64 xs:w-72 sm:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <div className="h-10 w-10 rounded-full flex items-center justify-center text-black">
-                {profileImageUrl ? (
-                  <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover rounded-full" />
-                ) : (
-                  user?.full_name?.charAt(0) || <User className="h-5 w-5" />
-                )}
-              </div>
+        <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+              {profileImageUrl ? (
+                <img 
+                  src={profileImageUrl} 
+                  alt="Profile" 
+                  className="h-full w-full object-cover rounded-full" 
+                />
+              ) : (
+                <div className="h-full w-full rounded-full flex items-center justify-center text-white bg-primary">
+                  {user?.full_name?.charAt(0) || <User className="h-4 w-4 sm:h-5 sm:w-5" />}
+                </div>
+              )}
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">
                 Parent Portal
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                 {user?.full_name}
               </p>
             </div>
@@ -208,15 +262,15 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden"
+            className="lg:hidden flex-shrink-0 p-1.5 sm:p-2 h-8 sm:h-9 w-8 sm:w-9"
             onClick={() => setIsSidebarOpen(false)}
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
 
         {/* Navigation - Scrollable if needed */}
-        <nav className="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-120px)] custom-scrollbar">
+        <nav className="p-2 sm:p-3 lg:p-4 space-y-1 overflow-y-auto h-[calc(100vh-120px)] sidebar-scrollbar">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -226,21 +280,29 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
                 key={item.id}
                 onClick={() => handleTabClick(item.id)}
                 className={cn(
-                  "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors duration-200",
+                  "w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 lg:px-4 py-2 sm:py-2.5 lg:py-3 rounded-lg text-left transition-colors duration-200 group",
                   isActive
                     ? "bg-primary text-white shadow-sm"
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
+                <Icon className="h-4 w-4 sm:h-4 sm:w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                <span className="font-medium text-sm sm:text-sm lg:text-base truncate flex-1">
+                  {item.label}
+                </span>
                 {item.id === 'children' && stats.totalChildren > 0 && (
-                  <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
+                  <Badge 
+                    variant={isActive ? "secondary" : "default"} 
+                    className="text-xs px-1.5 py-0 min-w-[20px] flex-shrink-0"
+                  >
                     {stats.totalChildren}
                   </Badge>
                 )}
                 {item.id === 'sessions' && (
-                  <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
+                  <Badge 
+                    variant={isActive ? "secondary" : "default"} 
+                    className="text-xs px-1.5 py-0 min-w-[20px] flex-shrink-0"
+                  >
                     {stats.activeChildren > 0 ? 'Active' : 'None'}
                   </Badge>
                 )}
@@ -251,13 +313,13 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
       </div>
 
       {/* Main Content Area - Scrollable */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top spacing for mobile header */}
-        <div className="lg:hidden h-20"></div>
+        <div className="lg:hidden h-12 sm:h-14 lg:h-16"></div>
         
         {/* Scrollable Content Container */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="p-6">
+        <div className="flex-1 overflow-y-auto content-scrollbar h-[calc(100vh-60px)] lg:h-[calc(100vh-0px)]">
+          <div className="p-3 sm:p-4 lg:p-6 min-h-full">
             {children}
           </div>
         </div>
@@ -274,4 +336,4 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
   );
 };
 
-export default ParentDashboardLayout; 
+export default ParentDashboardLayout;

@@ -72,7 +72,6 @@ const StudentPaymentPage = () => {
 
             const data = await response.json();
             setPayments(data.payments || []);
-            console.log("data", data);
         } catch (error) {
             console.error('Error fetching payments:', error);
             // toast({
@@ -129,7 +128,6 @@ const StudentPaymentPage = () => {
     };
 
     const handlePayment = async (payment) => {
-        console.log("payment", payment);
         try {
             setLoading(true);
             const token = getAuthToken();
@@ -179,7 +177,6 @@ const StudentPaymentPage = () => {
             // ✅ parse backend response
             const data = await response.json();
     
-            console.log("Stripe checkout url:", data.url);
     
             // 🚀 instant redirect to Stripe Checkout
             window.location.href = data.url;

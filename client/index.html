@@ -40,5 +40,25 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Error handling for external scripts/extensions -->
+    <script>
+      // Prevent external script errors from affecting the application
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('Cannot find menu item with id')) {
+          console.warn('External script error suppressed:', e.message);
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      // Handle unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(e) {
+        if (e.reason && e.reason.message && e.reason.message.includes('Cannot find menu item with id')) {
+          console.warn('External script promise rejection suppressed:', e.reason.message);
+          e.preventDefault();
+        }
+      });
+    </script>
   </body>
 </html>

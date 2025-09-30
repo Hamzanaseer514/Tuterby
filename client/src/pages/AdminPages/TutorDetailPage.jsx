@@ -211,7 +211,6 @@ const getAcademicLevel = (level) => {Experience
               },
             ],
       }));
-      console.log("Interview toggle updated:", newValue);
       toast.success("Interview toggle updated successfully!");
     } catch (error) {
       console.error("Failed to update interview toggle:", error);
@@ -333,7 +332,6 @@ const getAcademicLevel = (level) => {Experience
 
   const handleApproveTutor = async () => {
     const res = await approveTutorProfile(user.id, profileStatusReason);
-    console.log("res", res);
     if (res.status === 400) {
       toast.error(res.data.message);
     } else if (res.status === 200) {
@@ -350,7 +348,6 @@ const getAcademicLevel = (level) => {Experience
 
   const handlePartialApproveTutor = async () => {
     const res = await partialApproveTutor(user.id, profileStatusReason);
-    console.log("ap", res)
     if (res.status === 400) {
       toast.error(res.data.message);
     } else if (res.status === 200) {
@@ -458,6 +455,13 @@ const getAcademicLevel = (level) => {Experience
       default:
         return "default";
     }
+  };
+
+  // Ensure relative file URLs like "/uploads/..." are converted to absolute
+  const resolveUrl = (url) => {
+    if (!url) return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${BASE_URL}${url}`;
   };
 
   const getTabIcon = (currentTab) => {
@@ -620,7 +624,6 @@ const getAcademicLevel = (level) => {Experience
                         </Table>
                       </TableContainer>
                     </Box>
-{console.log(localUser)}
                     <Box sx={{ mt: 4 }}>
                       <Typography variant="h6" gutterBottom>
                         Education Information
@@ -1049,9 +1052,11 @@ const getAcademicLevel = (level) => {Experience
                   {selectedDocument.url && selectedDocument.url !== "#" ? (
                     <div className="w-full">
                       {selectedDocument.type?.toLowerCase().includes("image") || selectedDocument.url?.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i) ? (
-                        <img src={selectedDocument.url} alt={selectedDocument.type} className="max-w-full h-auto max-h-[60vh] object-contain border rounded-lg shadow-lg" style={{ maxWidth: "100%", height: "auto", maxHeight: "60vh" }} />
+                        <img src={resolveUrl(selectedDocument.url)} alt={selectedDocument.type} className="max-w-full h-auto max-h-[60vh] object-contain border rounded-lg shadow-lg" style={{ maxWidth: "100%", height: "auto", maxHeight: "60vh" }} />
                       ) : (
-                        <iframe src={selectedDocument.url} title={selectedDocument.type} className="w-full h-[60vh] border rounded-lg shadow-lg" style={{ width: "100%", height: "60vh" }} />
+                        <object data={resolveUrl(selectedDocument.url)} type="application/pdf" className="w-full h-[60vh] border rounded-lg shadow-lg" style={{ width: "100%", height: "60vh" }}>
+                          <iframe src={resolveUrl(selectedDocument.url)} title={selectedDocument.type} className="w-full h-[60vh] border rounded-lg shadow-lg" style={{ width: "100%", height: "60vh" }} />
+                        </object>
                       )}
                     </div>
                   ) : (
@@ -1064,7 +1069,7 @@ const getAcademicLevel = (level) => {Experience
                 </div>
                 <div className="flex justify-end space-x-2 pt-4 border-t">
                   {selectedDocument.url && selectedDocument.url !== "#" && (
-                    <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(selectedDocument.url, "_blank")}>
+                    <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(resolveUrl(selectedDocument.url), "_blank")}>
                       Download
                     </Button>
                   )}

@@ -293,7 +293,6 @@ const AdminDashboardPage = () => {
   const inactiveTutors = dashboardState.stats.inactive?.tutors || 0;
   const inactiveStudents = dashboardState.stats.inactive?.students || 0;
   const inactiveParents = dashboardState.stats.inactive?.parents || 0;
-console.log("dashboardState.stats",dashboardState)
   const statCards = [
     {
       title: 'Total Tutors',

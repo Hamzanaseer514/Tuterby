@@ -23,9 +23,6 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
-   
-   
-
     const validateForm = () => {
         const newErrors = {};
 
@@ -125,7 +122,7 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
             // This will update the sidebar stats and other components
             window.dispatchEvent(new CustomEvent('parentDataUpdated'));
         } catch (error) {
-            console.error('Error adding child:', error);
+            // console.error('Error adding child:', error);
             toast.error(error.message || 'An error occurred while adding your child');
         } finally {
             setLoading(false);
@@ -151,36 +148,36 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <UserPlus className="h-5 w-5" />
+            <DialogContent className="max-w-[95vw] sm:max-w-[500px] mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+                    <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                        <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
                         Add Your Child
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-sm sm:text-base">
                         Create a tutoring account for your child. Children under 12 can be added by parents.
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="full_name">Full Name *</Label>
+                <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-1 sm:space-y-2">
+                            <Label htmlFor="full_name" className="text-xs sm:text-sm">Full Name *</Label>
                             <Input
                                 id="full_name"
                                 name="full_name"
                                 value={formData.full_name}
                                 onChange={handleInputChange}
                                 placeholder="Enter child's full name"
-                                className={errors.full_name ? 'border-red-500' : ''}
+                                className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.full_name ? 'border-red-500' : ''}`}
                             />
                             {errors.full_name && (
-                                <p className="text-sm text-red-500">{errors.full_name}</p>
+                                <p className="text-xs text-red-500 mt-1">{errors.full_name}</p>
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="age">Age *</Label>
+                        <div className="space-y-1 sm:space-y-2">
+                            <Label htmlFor="age" className="text-xs sm:text-sm">Age *</Label>
                             <Input
                                 id="age"
                                 name="age"
@@ -190,16 +187,16 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
                                 placeholder="Enter age"
                                 min="0"
                                 max="11"
-                                className={errors.age ? 'border-red-500' : ''}
+                                className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.age ? 'border-red-500' : ''}`}
                             />
                             {errors.age && (
-                                <p className="text-sm text-red-500">{errors.age}</p>
+                                <p className="text-xs text-red-500 mt-1">{errors.age}</p>
                             )}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                        <Label htmlFor="email" className="text-xs sm:text-sm">Email Address *</Label>
                         <Input
                             id="email"
                             name="email"
@@ -207,35 +204,35 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
                             value={formData.email}
                             onChange={handleInputChange}
                             placeholder="Enter child's email address"
-                            className={errors.email ? 'border-red-500' : ''}
+                            className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.email ? 'border-red-500' : ''}`}
                         />
                         {errors.email && (
-                            <p className="text-sm text-red-500">{errors.email}</p>
+                            <p className="text-xs text-red-500 mt-1">{errors.email}</p>
                         )}
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="academic_level">Academic Level *</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                        <Label htmlFor="academic_level" className="text-xs sm:text-sm">Academic Level *</Label>
                         <Select value={formData.academic_level} onValueChange={handleSelectChange}>
-                            <SelectTrigger className={errors.academic_level ? 'border-red-500' : ''}>
+                            <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.academic_level ? 'border-red-500' : ''}`}>
                                 <SelectValue placeholder="Select academic level" />
                             </SelectTrigger>
                             <SelectContent>
                                 {academicLevels.map((level) => (
-                                    <SelectItem key={level._id} value={level._id}>
+                                    <SelectItem key={level._id} value={level._id} className="text-xs sm:text-sm">
                                         {level.level}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                         {errors.academic_level && (
-                            <p className="text-sm text-red-500">{errors.academic_level}</p>
+                            <p className="text-xs text-red-500 mt-1">{errors.academic_level}</p>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password *</Label>
+                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-1 sm:space-y-2">
+                            <Label htmlFor="password" className="text-xs sm:text-sm">Password *</Label>
                             <Input
                                 id="password"
                                 name="password"
@@ -243,15 +240,15 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 placeholder="Create a password"
-                                className={errors.password ? 'border-red-500' : ''}
+                                className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.password ? 'border-red-500' : ''}`}
                             />
                             {errors.password && (
-                                <p className="text-sm text-red-500">{errors.password}</p>
+                                <p className="text-xs text-red-500 mt-1">{errors.password}</p>
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                        <div className="space-y-1 sm:space-y-2">
+                            <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirm Password *</Label>
                             <Input
                                 id="confirmPassword"
                                 name="confirmPassword"
@@ -259,42 +256,45 @@ const AddChildModal = ({ isOpen, onClose, onChildAdded, parentUserId }) => {
                                 value={formData.confirmPassword}
                                 onChange={handleInputChange}
                                 placeholder="Confirm password"
-                                className={errors.confirmPassword ? 'border-red-500' : ''}
+                                className={`h-9 sm:h-10 text-xs sm:text-sm ${errors.confirmPassword ? 'border-red-500' : ''}`}
                             />
                             {errors.confirmPassword && (
-                                <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+                                <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
                             )}
                         </div>
                     </div>
 
-                    <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-2 sm:p-3 rounded-lg">
+                        <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
                             <strong>Note:</strong> Your child will have their own login credentials and can access the student dashboard independently.
                         </p>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4">
+                    <div className="flex flex-col xs:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={handleClose}
                             disabled={loading}
+                            className="w-full xs:w-auto text-xs sm:text-sm h-9"
+                            size="sm"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="flex items-center gap-2"
+                            className="w-full xs:w-auto text-xs sm:text-sm h-9 flex items-center gap-2"
+                            size="sm"
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                                     Adding...
                                 </>
                             ) : (
                                 <>
-                                    <UserPlus className="h-4 w-4" />
+                                    <UserPlus className="h-3 w-3 sm:h-4 sm:w-4" />
                                     Add Child
                                 </>
                             )}

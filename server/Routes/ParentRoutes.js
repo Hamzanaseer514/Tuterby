@@ -10,7 +10,10 @@ const {
   getParentStudentsPayments,
   getParentStudentSessions,
   deleteChildFromParent,
-  searchTutors
+  searchTutors,
+  getParentHiredTutors,
+  submitParentReview,
+  getParentReviews
 } = require("../Controllers/ParentController");
 
 // Parent dashboard routes
@@ -23,5 +26,8 @@ router.get("/payments/:user_id", protect, getParentStudentsPayments);
 router.get("/sessions/:user_id", protect, getParentStudentSessions);
 router.delete("/child/:childId", protect, deleteChildFromParent);
 router.get("/tutors/search", protect, searchTutors);
+router.get("/hired-tutors/:user_id", protect, getParentHiredTutors);
+router.post("/review/:user_id", protect, submitParentReview);
+router.get("/reviews/:user_id", protect, getParentReviews);
 
 module.exports = router;

@@ -516,8 +516,10 @@ exports.rateTutor = asyncHandler(async (req, res) => {
         const payment = await StudentPayment.findOne({
             student_id: studentProfile._id,
             tutor_id: tutor_id,
-            payment_status: 'paid',
-            is_active: true
+            payment_status: "paid",
+            academic_level_paid: true,
+            validity_status: "active", // Check for active validity status
+
         });
 
         if (!payment) {
@@ -546,6 +548,7 @@ exports.rateTutor = asyncHandler(async (req, res) => {
             // Update existing review
             existingReview.rating = Number(rating);
             existingReview.review_text = review_text || '';
+            existingReview.review_type = 'student'; // Ensure review_type is set
             existingReview.updated_at = new Date();
             await existingReview.save();
             review = existingReview;
@@ -555,7 +558,8 @@ exports.rateTutor = asyncHandler(async (req, res) => {
                 student_id: studentProfile._id,
                 tutor_id: tutor_id,
                 rating: Number(rating),
-                review_text: review_text || ''
+                review_text: review_text || '',
+                review_type: 'student'
             });
         }
 
@@ -563,7 +567,8 @@ exports.rateTutor = asyncHandler(async (req, res) => {
         const reviews = await TutorReview.find({ tutor_id: tutor_id });
         const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
         const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
-
+        console.log('averageRating', averageRating);
+        console.log('reviews', totalRating);
         await TutorProfile.findByIdAndUpdate(
             tutor_id,
             { average_rating: Math.round(averageRating * 10) / 10 },
@@ -609,21 +614,57 @@ exports.getTutorReviews = asyncHandler(async (req, res) => {
                     select: 'full_name photo_url'
                 }
             })
+            .populate({
+                path: 'parent_id',
+                select: 'user_id',
+                populate: {
+                    path: 'user_id',
+                    select: 'full_name photo_url'
+                }
+            })
             .sort({ created_at: -1 })
             .skip(skip)
             .limit(parseInt(limit));
 
         const total = await TutorReview.countDocuments({ tutor_id: tutorId });
 
-        const formattedReviews = reviews.map(review => ({
-            _id: review._id,
-            rating: review.rating,
-            review_text: review.review_text,
-            student_name: review.student_id?.user_id?.full_name || 'Anonymous',
-            student_photo: review.student_id?.user_id?.photo_url || '',
-            created_at: review.created_at,
-            updated_at: review.updated_at
-        }));
+        const formattedReviews = reviews.map(review => {
+            const isStudentReview = review.student_id && review.review_type === 'student';
+            const isParentReview = review.parent_id && review.review_type === 'parent';
+            
+            return {
+                _id: review._id,
+                rating: review.rating,
+                review_text: review.review_text,
+                review_type: review.review_type || 'student', // Default to student for backward compatibility
+                reviewer: {
+                    type: isStudentReview ? 'student' : isParentReview ? 'parent' : 'unknown',
+                    name: isStudentReview 
+                        ? (review.student_id?.user_id?.full_name || 'Anonymous Student')
+                        : isParentReview 
+                        ? (review.parent_id?.user_id?.full_name || 'Anonymous Parent')
+                        : 'Anonymous',
+                    photo_url: isStudentReview 
+                        ? (review.student_id?.user_id?.photo_url || '')
+                        : isParentReview 
+                        ? (review.parent_id?.user_id?.photo_url || '')
+                        : ''
+                },
+                // Keep backward compatibility
+                student_name: isStudentReview 
+                    ? (review.student_id?.user_id?.full_name || 'Anonymous')
+                    : isParentReview 
+                    ? (review.parent_id?.user_id?.full_name || 'Anonymous')
+                    : 'Anonymous',
+                student_photo: isStudentReview 
+                    ? (review.student_id?.user_id?.photo_url || '')
+                    : isParentReview 
+                    ? (review.parent_id?.user_id?.photo_url || '')
+                    : '',
+                created_at: review.created_at,
+                updated_at: review.updated_at
+            };
+        });
 
         res.status(200).json({
             success: true,

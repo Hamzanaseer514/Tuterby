@@ -159,45 +159,51 @@ const TutorsPage = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 lg:px-6 py-4">
             {/* Page Header */}
-            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 rounded-lg">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-lg">
+                <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                             Find Tutors
                         </h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
                             Discover qualified tutors for your children
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full xs:w-auto">
                         <Button
                             variant="outline"
                             onClick={() => setShowFilters(!showFilters)}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 w-full xs:w-auto text-xs sm:text-sm"
+                            size="sm"
                         >
-                            <Filter className="h-4 w-4" />
-                            Filters
+                            <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>Filters</span>
                         </Button>
                     </div>
                 </div>
             </div>
 
             {/* Search Bar */}
-            <Card>
-                <CardContent className="p-6">
-                    <div className="flex gap-4">
+            <Card className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3 sm:h-4 sm:w-4" />
                             <Input
                                 placeholder="Search tutors by name, subjects, or location..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
+                                className="pl-9 sm:pl-10 text-xs sm:text-sm h-9 sm:h-10"
                             />
                         </div>
-                        <Button onClick={loadTutors} disabled={loading}>
+                        <Button 
+                            onClick={loadTutors} 
+                            disabled={loading} 
+                            className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10"
+                            size="sm"
+                        >
                             Search
                         </Button>
                     </div>
@@ -206,22 +212,27 @@ const TutorsPage = () => {
 
             {/* Filters */}
             {showFilters && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                        <CardTitle className="flex items-center justify-between text-sm sm:text-base lg:text-lg">
                             <span>Filters</span>
-                            <Button variant="ghost" size="sm" onClick={clearFilters}>
-                                <X className="h-4 w-4 mr-1" />
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={clearFilters} 
+                                className="text-xs sm:text-sm h-8"
+                            >
+                                <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                 Clear All
                             </Button>
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <CardContent className="pt-0 px-4 sm:px-6 pb-4 sm:pb-6">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                             <div>
-                                <label className="text-sm font-medium mb-2 block">Subject</label>
+                                <label className="text-xs sm:text-sm font-medium mb-2 block">Subject</label>
                                 <Select value={filters.subject} onValueChange={(value) => handleFilterChange('subject', value)}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-xs sm:text-sm h-9">
                                         <SelectValue placeholder="Select subject" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -236,9 +247,9 @@ const TutorsPage = () => {
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium mb-2 block">Academic Level</label>
+                                <label className="text-xs sm:text-sm font-medium mb-2 block">Academic Level</label>
                                 <Select value={filters.academic_level} onValueChange={(value) => handleFilterChange('academic_level', value)}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-xs sm:text-sm h-9">
                                         <SelectValue placeholder="Select level" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -253,18 +264,19 @@ const TutorsPage = () => {
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium mb-2 block">Location</label>
+                                <label className="text-xs sm:text-sm font-medium mb-2 block">Location</label>
                                 <Input
                                     placeholder="Enter location"
                                     value={filters.location}
                                     onChange={(e) => handleFilterChange('location', e.target.value)}
+                                    className="text-xs sm:text-sm h-9"
                                 />
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium mb-2 block">Minimum Rating</label>
+                                <label className="text-xs sm:text-sm font-medium mb-2 block">Minimum Rating</label>
                                 <Select value={filters.min_rating} onValueChange={(value) => handleFilterChange('min_rating', value)}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-xs sm:text-sm h-9">
                                         <SelectValue placeholder="Any rating" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -277,14 +289,15 @@ const TutorsPage = () => {
                             </div>
                         </div>
 
-                        <div className="mt-4">
+                        <div className="mt-3 sm:mt-4">
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="preferred_subjects"
                                     checked={filters.preferred_subjects_only}
                                     onCheckedChange={(checked) => handleFilterChange('preferred_subjects_only', checked)}
+                                    className="h-4 w-4"
                                 />
-                                <label htmlFor="preferred_subjects" className="text-sm">
+                                <label htmlFor="preferred_subjects" className="text-xs sm:text-sm leading-tight">
                                     Show only tutors who teach my children's preferred subjects
                                 </label>
                             </div>
@@ -294,29 +307,34 @@ const TutorsPage = () => {
             )}
 
             {/* Tutors Grid */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white">
                         Available Tutors ({filteredTutors.length})
                     </h2>
                 </div>
 
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                         {[...Array(6)].map((_, i) => (
                             <Card key={i} className="animate-pulse">
-                                <CardContent className="p-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                                            <div className="space-y-2">
-                                                <div className="h-4 bg-gray-200 rounded w-24"></div>
-                                                <div className="h-3 bg-gray-200 rounded w-32"></div>
+                                <CardContent className="p-4 sm:p-6">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gray-200 rounded-full flex-shrink-0"></div>
+                                            <div className="space-y-1 flex-1">
+                                                <div className="h-3 sm:h-4 bg-gray-200 rounded w-20 sm:w-24 lg:w-32"></div>
+                                                <div className="h-2 sm:h-3 bg-gray-200 rounded w-16 sm:w-20 lg:w-24"></div>
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <div className="h-3 bg-gray-200 rounded"></div>
-                                            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-full"></div>
+                                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-3/4"></div>
+                                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-1/2"></div>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <div className="h-6 bg-gray-200 rounded w-16"></div>
+                                            <div className="h-6 bg-gray-200 rounded w-20"></div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -324,33 +342,38 @@ const TutorsPage = () => {
                         ))}
                     </div>
                 ) : filteredTutors.length === 0 ? (
-                    <Card>
-                        <CardContent className="p-12 text-center">
-                            <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-6 sm:p-8 lg:p-12 text-center">
+                            <Users className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                            <h3 className="text-base sm:text-lg lg:text-xl font-medium text-gray-900 dark:text-white mb-2">
                                 No tutors found
                             </h3>
-                            <p className="text-gray-500 dark:text-gray-400 mb-4">
+                            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
                                 Try adjusting your search terms or filters to find more tutors
                             </p>
-                            <Button onClick={clearFilters} variant="outline">
+                            <Button 
+                                onClick={clearFilters} 
+                                variant="outline" 
+                                size="sm"
+                                className="w-full sm:w-auto text-xs sm:text-sm"
+                            >
                                 Clear Filters
                             </Button>
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                         {filteredTutors.map((tutor) => (
                             <Card 
                                 key={tutor._id} 
-                                className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"
+                                className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 flex flex-col h-full"
                                 onClick={() => handleTutorClick(tutor)}
                             >
-                                <CardContent className="p-6">
+                                <CardContent className="p-4 sm:p-6 flex flex-col flex-1">
                                     {/* Tutor Header */}
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
                                                 {tutor.user_id?.photo_url ? (
                                                     <img 
                                                         src={`${BASE_URL}${tutor.user_id.photo_url}`}
@@ -358,64 +381,62 @@ const TutorsPage = () => {
                                                         className="h-full w-full object-cover rounded-full" 
                                                     />
                                                 ) : (
-                                                    <User className="h-6 w-6 text-white" />
+                                                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                                                 )}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <h4 className="font-semibold text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors truncate">
+                                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base lg:text-lg group-hover:text-primary transition-colors truncate">
                                                     {tutor.user_id?.full_name}
                                                 </h4>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
                                                     {tutor.qualifications}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 fill-current" />
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                                                 {tutor.average_rating?.toFixed(1) || 'N/A'}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Tutor Details */}
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                            <MapPin className="h-4 w-4" />
-                                            <span>{tutor.location || 'Location not specified'}</span>
+                                    <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 flex-1">
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                            <span className="truncate">{tutor.location || 'Location not specified'}</span>
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                            <GraduationCap className="h-4 w-4" />
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                            <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                                             <span>{tutor.experience_years || 0} years experience</span>
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                            <BookOpen className="h-4 w-4" />
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                                             <span>{tutor.total_sessions || 0} sessions completed</span>
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                            <Users className="h-4 w-4" />
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                            <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                                             <span>{tutor.total_students_taught || 0} students taught</span>
                                         </div>
                                     </div>
 
                                     {/* Subjects */}
-                                    <div className="mb-4">
-                                        <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                                    <div className="mb-3 sm:mb-4">
+                                        <h5 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">
                                             Subjects
                                         </h5>
                                         <div className="flex flex-wrap gap-1">
                                             {parseSubjects(tutor.subjects).slice(0, 3).map((subject, index) => (
-                                                <Badge key={index} variant="secondary" className="text-xs">
-                                                    {/* {typeof subject === 'string' ? subject : subject.name} */}
-                                                    {console.log("sub", subject)}
-                                                                                                        {getSubjectName(subject._id)}
+                                                <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0">
+                                                    {getSubjectName(subject._id)}
                                                 </Badge>
                                             ))}
                                             {parseSubjects(tutor.subjects).length > 3 && (
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-xs px-1.5 py-0">
                                                     +{parseSubjects(tutor.subjects).length - 3} more
                                                 </Badge>
                                             )}
@@ -423,19 +444,19 @@ const TutorsPage = () => {
                                     </div>
 
                                     {/* Academic Levels */}
-                                    <div className="mb-6">
-                                        <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                                    <div className="mb-4 sm:mb-6">
+                                        <h5 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">
                                             Academic Levels
                                         </h5>
                                         <div className="flex flex-wrap gap-1">
                                             {tutor.academic_levels_taught?.slice(0, 2).map((level, index) => (
-                                                <Badge key={index} variant="outline" className="text-xs">
+                                                <Badge key={index} variant="outline" className="text-xs px-1.5 py-0">
                                                     {getAcademicLevelName(level.educationLevel)}
                                                     {level.hourlyRate && ` - £${level.hourlyRate}/hr`}
                                                 </Badge>
                                             ))}
                                             {tutor.academic_levels_taught?.length > 2 && (
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-xs px-1.5 py-0">
                                                     +{tutor.academic_levels_taught.length - 2} more
                                                 </Badge>
                                             )}
@@ -443,38 +464,26 @@ const TutorsPage = () => {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1 sm:gap-2 mt-auto">
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
+                                            className="flex-1 text-xs h-8 group-hover:border-primary group-hover:text-primary transition-colors"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleTutorClick(tutor);
                                             }}
                                         >
-                                            <Eye className="h-4 w-4 mr-1" />
-                                            View Profile
+                                            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                            View
                                         </Button>
-                                        {/* <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 group-hover:border-primary group-hover:text-primary transition-colors"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // TODO: Implement contact functionality
-                                            }}
-                                        >
-                                            <MessageCircle className="h-4 w-4 mr-1" />
-                                            Contact
-                                        </Button> */}
                                     </div>
 
                                     {/* Verification Badges */}
                                     {tutor.is_verified && (
-                                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2 text-xs text-green-600">
-                                                <CheckCircle className="h-3 w-3" />
+                                        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-1 sm:gap-2 text-xs text-green-600">
+                                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                                                 <span>Verified Tutor</span>
                                             </div>
                                         </div>
@@ -487,16 +496,17 @@ const TutorsPage = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-8">
+                    <div className="flex items-center justify-center gap-2 mt-6 sm:mt-8">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
+                            className="text-xs sm:text-sm h-8 sm:h-9"
                         >
                             Previous
                         </Button>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-2 sm:px-4">
                             Page {currentPage} of {totalPages}
                         </span>
                         <Button
@@ -504,6 +514,7 @@ const TutorsPage = () => {
                             size="sm"
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
+                            className="text-xs sm:text-sm h-8 sm:h-9"
                         >
                             Next
                         </Button>

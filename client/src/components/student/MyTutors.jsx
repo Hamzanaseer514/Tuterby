@@ -103,7 +103,7 @@ const MyTutors = () => {
         setTutorPaymentStatus(paymentStatusMap);
       }
     } catch (error) {
-      console.error('Error checking payment status:', error);
+      // console.error('Error checking payment status:', error);
     }
   };
 
@@ -318,11 +318,7 @@ const MyTutors = () => {
                       <span className="font-medium">{formatDate(hiredTutor.hired_at)}</span>
                     </div>
                     
-                    {hiredTutor.bio && (
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {hiredTutor.bio}
-                      </p>
-                    )}
+                  
                   </div>
 
                   {/* Action Buttons */}

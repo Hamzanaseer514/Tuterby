@@ -103,7 +103,6 @@ export const ParentProvider = ({ children }) => {
     try {
       const formData = new FormData();
       formData.append('photo', photoFile);
-      console.log("Uploading photo for user:", userId, photoFile, formData);
       const response = await fetchWithAuth(`${BASE_URL}/api/auth/user-profile/${userId}/photo`, {
         method: 'POST',
         // headers: {
@@ -373,6 +372,90 @@ export const ParentProvider = ({ children }) => {
     }
   }, [getAuthToken]);
 
+  const getParentHiredTutors = useCallback(async (userId) => {
+    try {
+      setLoading(true);
+
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/hired-tutors/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch hired tutors');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching hired tutors:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthToken]);
+
+  const submitParentReview = useCallback(async (userId, reviewData) => {
+    try {
+      setLoading(true);
+
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/review/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reviewData)
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit review');
+      }
+
+      const data = await response.json();
+      toast.success('Review submitted successfully');
+      return data;
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error(error.message || 'Failed to submit review');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthToken]);
+
+  const getParentReviews = useCallback(async (userId) => {
+    try {
+      setLoading(true);
+
+      const response = await fetchWithAuth(`${BASE_URL}/api/parent/reviews/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch reviews');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthToken]);
+
   const value = {
     loading,
     setLoading,
@@ -388,7 +471,10 @@ export const ParentProvider = ({ children }) => {
     createParentPaymentSession,
     getStudentSessions,
     deleteChildFromParent,
-    getTutorsForParent
+    getTutorsForParent,
+    getParentHiredTutors,
+    submitParentReview,
+    getParentReviews
   };
 
   return (

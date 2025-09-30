@@ -91,7 +91,7 @@ const StudentHelpRequests = () => {
           const parsed = JSON.parse(field[0]);
           return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
-          console.warn(`Failed to parse array field: ${field[0]}`, error);
+          // console.warn(`Failed to parse array field: ${field[0]}`, error);
           return [];
         }
       }
@@ -108,7 +108,7 @@ const StudentHelpRequests = () => {
         const parsed = JSON.parse(field);
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
-        console.warn(`Failed to parse string field: ${field}`, error);
+        // console.warn(`Failed to parse string field: ${field}`, error);
         return [];
       }
     }
@@ -154,7 +154,7 @@ const StudentHelpRequests = () => {
       );
       setHiredTutors(cleanTutorData(acceptedTutors));
     } catch (err) {
-      console.error('Error fetching hired tutors:', err);
+      // console.error('Error fetching hired tutors:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -180,7 +180,7 @@ const StudentHelpRequests = () => {
       setTotalPages(data.pagination?.total_pages || 1);
       setTutorToUserMap(data.tutorToUserMap || {});
     } catch (err) {
-      console.error('Error fetching help requests:', err);
+      // console.error('Error fetching help requests:', err);
       // toast({
       //   title: "Error",
       //   description: "Failed to fetch help requests",
@@ -216,7 +216,7 @@ const StudentHelpRequests = () => {
         variant: "default"
       });
     } catch (err) {
-      console.error('Error sending help request:', err);
+      // console.error('Error sending help request:', err);
       toast({
         title: "Error",
         description: 'Failed to send help request: ' + err.message,
@@ -318,7 +318,7 @@ const StudentHelpRequests = () => {
       fetchHelpRequests();
       
     } catch (error) {
-      console.error('Error submitting help request:', error);
+      // console.error('Error submitting help request:', error);
       toast({
         title: "Error",
         description: error.message || 'Failed to submit help request',

@@ -67,12 +67,16 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
         return <Pending color="action" fontSize="small" />;
     }
   };
-  const { subjects } = useSubject();
+  const { subjects, academicLevels } = useSubject();
 
   const getSubjectName = (id) => {
  
     const subject = subjects.find(s => s._id === id);
     return subject ? subject: '';
+  }
+  const getAcademicLevel = (level) => {
+    const matchedLevel = academicLevels.find(l => l._id === level.toString());
+    return matchedLevel ? matchedLevel : '';
   }
   return (
     <Slide direction="up" in timeout={300 + index * 50}>
@@ -230,9 +234,9 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             </TableCell>
             <TableCell>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Star color="warning" fontSize="small" />
+                {/* <AcademicCap color="warning" fontSize="small" /> */}
                 <Typography variant="body2" fontWeight="medium">
-                  {user.rating ? `${user.rating}/5` : 'N/A'}
+                  {user.academic_level ? `${getAcademicLevel(user.academic_level).level}` : 'N/A'}
                 </Typography>
               </Box>
             </TableCell>
@@ -428,7 +432,7 @@ const UserTable = ({
     if (tabValue === 'tutors') {
       return [...baseHeaders, 'Subjects', 'Status', 'Documents', 'Actions'];
     } else if (tabValue === 'students') {
-      return [...baseHeaders, 'Subjects', 'Sessions', 'Rating', 'Actions'];
+      return [...baseHeaders, 'Subjects', 'Sessions', 'Academic Level', 'Actions'];
     } else if (tabValue === 'parents') {
       return [...baseHeaders, 'Children', 'Actions'];
     }

@@ -50,7 +50,7 @@ const apiCall = async (endpoint, options = {}) => {
 const getDocumentUrl = (fileUrl) => {
   if (!fileUrl || fileUrl === '#') return '#';
   
-  // If it's already a full URL, return as is
+  // If it's already a full URL (from backend), return as is
   if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
     return fileUrl;
   }
@@ -133,7 +133,6 @@ export const getAllUsers = async (filters = {}) => {
 export const getTutorDetails = async (userId) => { 
   try {
     const details = await apiCall(`/tutors/${userId}`);
-    console.log("Tutor Details:", details);
 
     // Fix document URLs
     if (Array.isArray(details.documents)) {

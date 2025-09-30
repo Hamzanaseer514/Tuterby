@@ -7,6 +7,7 @@ import ParentProfilePage from '../../components/parent/pages/ParentProfilePage';
 import ParentPaymentPage from '../../components/parent/pages/ParentPaymentPage';
 import TutorsPage from '../../components/parent/pages/TutorsPage';
 import TutorProfilePage from '../../components/parent/pages/TutorProfilePage';
+import HiredTutorsPage from '../../components/parent/pages/HiredTutorsPage';
 import { useLocation, Routes, Route } from 'react-router-dom';
 import ChildViewPage from '../../components/parent/pages/ChildViewPage';
 
@@ -21,6 +22,7 @@ const ParentDashboardPage = () => {
     if (path.includes('/profile')) return 'profile';
     if (path.includes('/payments')) return 'payments';
     if (path.includes('/tutors')) return 'tutors';
+    if (path.includes('/hired-tutors')) return 'hired-tutors';
     if (path.includes('/progress')) return 'progress';
     if (path.includes('/settings')) return 'settings';
     return 'overview';
@@ -39,6 +41,7 @@ const ParentDashboardPage = () => {
         <Route path="/profile" element={<ParentProfilePage />} />
         <Route path="/payments" element={<ParentPaymentPage />} />
         <Route path="/tutors" element={<TutorsPage />} />
+        <Route path="/hired-tutors" element={<HiredTutorsPage />} />
         <Route path="/tutors/profile" element={<TutorProfilePage />} />
         <Route path="/settings" element={
           <div className="text-center py-12">

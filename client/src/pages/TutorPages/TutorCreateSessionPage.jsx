@@ -493,7 +493,6 @@ const TutorCreateSessionPage = () => {
                                     return (
                                         <div key={student._id} className="border-l-4 border-blue-300 pl-2 py-2 md:grid md:grid-cols-12 md:gap-2 items-center">
                                             {/* Mobile view */}
-                                            {console.log(studentPaymentStatuses)}
                                             <div className="md:hidden space-y-2">
                                                 <div className="font-medium text-blue-800 text-sm">
                                                     {student.full_name || student?.user_id?.full_name}

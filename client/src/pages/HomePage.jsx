@@ -15,6 +15,7 @@ const LazyHowItWorksSection = lazy(() => import('@/components/home/HowItWorksSec
 const LazyHomePricingHighlight = lazy(() => import('@/components/home/HomePricingHighlight'));
 const LazySubjectsOverviewSection = lazy(() => import('@/components/home/SubjectsOverviewSection'));
 const LazyTestimonialsSection = lazy(() => import('@/components/home/TestimonialsSection'));
+const LazyTutorReviewsSection = lazy(() => import('@/components/home/TutorReviewsSection'));
 const LazyHomeBlogPreview = lazy(() => import('@/components/home/HomeBlogPreview'));
 const LazyFaqSection = lazy(() => import('@/components/blog/FaqSection'));
 const LazyServedCitiesSection = lazy(() => import('@/components/home/ServedCitiesSection'));
@@ -88,7 +89,8 @@ const HomePage = () => {
         <LazyHowItWorksSection />
         <LazyHomePricingHighlight />
         <LazySubjectsOverviewSection />
-        <LazyTestimonialsSection />
+        {/* <LazyTestimonialsSection /> */}
+        <LazyTutorReviewsSection />
         <LazyHomeBlogPreview />
         <LazyFaqSection title="Common Queries about TutorNearby" faqs={homePageFaqs} />
         <LazyServedCitiesSection />

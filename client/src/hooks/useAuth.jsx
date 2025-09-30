@@ -74,7 +74,6 @@ export const AuthProvider = ({ children }) => {
       },
       credentials: "include",
     });
-    console.log("Initial response status:", response);
     if (response.status === 401) {
       if (!isRefreshing) {
         isRefreshing = true;

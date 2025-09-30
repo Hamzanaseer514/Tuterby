@@ -1115,7 +1115,7 @@ exports.getAllUsers = async (req, res) => {
               profileStatusReason: tutorProfile.profile_status_reason || "",
               documents: documents.map((doc) => ({
                 type: doc.document_type,
-                url: doc.file_url || "#",
+                url: doc.file_url ? `${req.protocol}://${req.get('host')}${doc.file_url}` : "#",
                 verified: doc.verification_status,
                 uploadDate: doc.uploaded_at || doc.createdAt,
                 notes: doc.notes || "",
@@ -1374,7 +1374,7 @@ exports.getTutorDetails = async (req, res) => {
     
       documents: documents.map((doc) => ({
         type: doc.document_type,
-        url: doc.file_url,
+        url: doc.file_url ? `${req.protocol}://${req.get('host')}${doc.file_url}` : "#",
         verified: doc.verification_status === "Approved",
         uploadDate: doc.uploaded_at,
         notes: doc.notes,
@@ -2992,6 +2992,14 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
           select: 'full_name email photo_url'
         }
       })
+      .populate({
+        path: 'parent_id',
+        select: 'user_id',
+        populate: {
+          path: 'user_id',
+          select: 'full_name email photo_url'
+        }
+      })
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(lim)
@@ -3002,26 +3010,56 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
     const [reviews, total] = await Promise.all([reviewsPromise, totalPromise]);
 
     // Format the response
-    const formattedReviews = reviews.map(review => ({
-      _id: review._id,
-      rating: review.rating,
-      review_text: review.review_text,
-      tutor: {
-        _id: review.tutor_id?._id,
-        name: review.tutor_id?.user_id?.full_name || 'Unknown',
-        email: review.tutor_id?.user_id?.email || '',
-        photo_url: review.tutor_id?.user_id?.photo_url || '',
-        average_rating: review.tutor_id?.average_rating || 0
-      },
-      student: {
-        _id: review.student_id?._id,
-        name: review.student_id?.user_id?.full_name || 'Anonymous',
-        email: review.student_id?.user_id?.email || '',
-        photo_url: review.student_id?.user_id?.photo_url || ''
-      },
-      created_at: review.created_at,
-      updated_at: review.updated_at
-    }));
+    const formattedReviews = reviews.map(review => {
+      const isStudentReview = review.student_id && review.review_type === 'student';
+      const isParentReview = review.parent_id && review.review_type === 'parent';
+      
+      return {
+        _id: review._id,
+        rating: review.rating,
+        review_text: review.review_text,
+        review_type: review.review_type || 'student', // Default to student for backward compatibility
+        tutor: {
+          _id: review.tutor_id?._id,
+          name: review.tutor_id?.user_id?.full_name || 'Unknown',
+          email: review.tutor_id?.user_id?.email || '',
+          photo_url: review.tutor_id?.user_id?.photo_url || '',
+          average_rating: review.tutor_id?.average_rating || 0
+        },
+        reviewer: {
+          type: isStudentReview ? 'student' : isParentReview ? 'parent' : 'unknown',
+          name: isStudentReview 
+            ? (review.student_id?.user_id?.full_name || 'Anonymous Student')
+            : isParentReview 
+            ? (review.parent_id?.user_id?.full_name || 'Anonymous Parent')
+            : 'Anonymous',
+          email: isStudentReview 
+            ? (review.student_id?.user_id?.email || '')
+            : isParentReview 
+            ? (review.parent_id?.user_id?.email || '')
+            : '',
+          photo_url: isStudentReview 
+            ? (review.student_id?.user_id?.photo_url || '')
+            : isParentReview 
+            ? (review.parent_id?.user_id?.photo_url || '')
+            : '',
+          id: isStudentReview 
+            ? review.student_id?._id 
+            : isParentReview 
+            ? review.parent_id?._id 
+            : null
+        },
+        // Keep backward compatibility
+        student: {
+          _id: review.student_id?._id,
+          name: review.student_id?.user_id?.full_name || 'Anonymous',
+          email: review.student_id?.user_id?.email || '',
+          photo_url: review.student_id?.user_id?.photo_url || ''
+        },
+        created_at: review.created_at,
+        updated_at: review.updated_at
+      };
+    });
 
     res.status(200).json({
       success: true,

@@ -2079,11 +2079,11 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
           totalSessionsPerMonth;
         tutorProfile.academic_levels_taught[levelIndex].discount = discount;
 
-        // Calculate monthly rate
+        // Calculate monthly rate with proper rounding to avoid floating-point precision issues
         const gross = hourlyRate * totalSessionsPerMonth;
         const discountAmount = (gross * discount) / 100;
-        tutorProfile.academic_levels_taught[levelIndex].monthlyRate =
-          gross - discountAmount;
+        tutorProfile.academic_levels_taught[levelIndex].monthlyRate = 
+          Math.round((gross - discountAmount) * 100) / 100; // Round to 2 decimal places
       } else {
         res.status(404);
         return res.json({
@@ -2157,9 +2157,10 @@ const addTutorAcademicLevel = asyncHandler(async (req, res) => {
 
     // ⚡ Removed min/max session bounds check
 
+    // Calculate monthly rate with proper rounding to avoid floating-point precision issues
     const gross = newHourly * newTotalSessions;
     const discountAmount = (gross * newDiscount) / 100;
-    const monthlyRate = gross - discountAmount;
+    const monthlyRate = Math.round((gross - discountAmount) * 100) / 100; // Round to 2 decimal places
 
     tutorProfile.academic_levels_taught.push({
       educationLevel: educationLevel._id,
@@ -2540,3 +2541,4 @@ module.exports = {
   getHiredSubjectsAndLevels,
   getTutorPaymentHistory,
 };
+

@@ -177,11 +177,10 @@ const TutorReviewsPage = () => {
     <div key={review._id} className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-start space-x-4">
         <div className="flex-shrink-0">
-          {review.student.photo_url ? (
+          {review.reviewer?.photo_url ? (
             <img
-            //   src={review.student.photo_url}
-              src={`${BASE_URL}${review.student.photo_url}`}
-              alt={review.student.name}
+              src={`${BASE_URL}${review.reviewer.photo_url}`}
+              alt={review.reviewer.name}
               className="h-12 w-12 rounded-full object-cover"
             />
           ) : (
@@ -195,9 +194,11 @@ const TutorReviewsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">
-                {review.student.name}
+                {review.reviewer?.name || review.student?.name || 'Anonymous'}
               </h4>
-              <p className="text-xs text-gray-500">{review.student.email}</p>
+              <p className="text-xs text-gray-500">
+                {review.reviewer?.type === 'parent' ? 'Parent' : 'Student'} • {review.reviewer?.email || review.student?.email || ''}
+              </p>
             </div>
             <div className="flex items-center space-x-2">
               {renderStars(review.rating)}

@@ -7,6 +7,7 @@ const TutoringSession = require("../Models/tutoringSessionSchema");
 const StudentPayment = require("../Models/studentPaymentSchema");
 const TutorProfile = require("../Models/tutorProfileSchema");
 const TutorInquiry = require("../Models/tutorInquirySchema");
+const TutorReview = require("../Models/tutorReviewSchema");
 
 const {
 
@@ -670,7 +671,7 @@ exports.searchTutors = asyncHandler(async (req, res) => {
       }
     }
 
-    // Ensure subject_id filter isn’t lost
+    // Ensure subject_id filter isn't lost
     if (subject_id && !searchQuery.subjects) {
       searchQuery.subjects = { $in: [subject_id] };
     }
@@ -858,6 +859,221 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     throw new Error("Failed to search tutors: " + error.message);
   }
 });
+
+// Get tutors hired by parent's children
+exports.getParentHiredTutors = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    // Get parent profile
+    const parentProfile = await ParentProfile.findOne({ user_id })
+      .populate({
+        path: 'students',
+        populate: {
+          path: 'hired_tutors.tutor',
+          populate: {
+            path: 'user_id',
+            select: 'full_name email photo_url'
+          }
+        }
+      });
+
+    if (!parentProfile) {
+      res.status(404);
+      throw new Error("Parent profile not found");
+    }
+
+    // Collect all unique tutors hired by children
+    const hiredTutorsMap = new Map();
+    
+    parentProfile.students.forEach(student => {
+      if (student.hired_tutors && student.hired_tutors.length > 0) {
+        student.hired_tutors.forEach(hiredTutor => {
+          if (hiredTutor.tutor && hiredTutor.status === 'accepted') {
+            const tutorId = hiredTutor.tutor._id.toString();
+            
+            if (!hiredTutorsMap.has(tutorId)) {
+              hiredTutorsMap.set(tutorId, {
+                tutor: hiredTutor.tutor,
+                hired_by_students: [],
+                subjects: new Set(),
+                academic_levels: new Set()
+              });
+            }
+            
+            const tutorData = hiredTutorsMap.get(tutorId);
+            tutorData.hired_by_students.push({
+              student_id: student._id,
+              student_name: student.user_id?.full_name || 'Unknown',
+              subject: hiredTutor.subject,
+              academic_level: hiredTutor.academic_level_id,
+              hired_at: hiredTutor.hired_at,
+              status: hiredTutor.status
+            });
+            
+            if (hiredTutor.subject) {
+              tutorData.subjects.add(hiredTutor.subject);
+            }
+            if (hiredTutor.academic_level_id) {
+              tutorData.academic_levels.add(hiredTutor.academic_level_id);
+            }
+          }
+        });
+      }
+    });
+
+    // Convert map to array and populate additional data
+    const hiredTutors = Array.from(hiredTutorsMap.values()).map(tutorData => {
+      const tutor = tutorData.tutor;
+      
+      return {
+        _id: tutor._id,
+        user_id: tutor.user_id,
+        full_name: tutor.user_id?.full_name,
+        email: tutor.user_id?.email,
+        photo_url: tutor.user_id?.photo_url,
+        location: tutor.location,
+        bio: tutor.bio,
+        qualifications: tutor.qualifications,
+        experience_years: tutor.experience_years,
+        average_rating: tutor.average_rating,
+        total_sessions: tutor.total_sessions || 0,
+        subjects: Array.from(tutorData.subjects),
+        academic_levels: Array.from(tutorData.academic_levels),
+        hired_by_students: tutorData.hired_by_students,
+        total_children_hired: tutorData.hired_by_students.length
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      tutors: hiredTutors,
+      total: hiredTutors.length
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to fetch hired tutors: " + error.message);
+  }
+});
+
+// Submit parent review for tutor
+exports.submitParentReview = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  const { tutor_id, rating, review_text } = req.body;
+
+  if (!tutor_id || !rating || rating < 1 || rating > 5) {
+    res.status(400);
+    throw new Error("Invalid review data");
+  }
+
+  try {
+    // Get parent profile
+    const parentProfile = await ParentProfile.findOne({ user_id });
+    if (!parentProfile) {
+      res.status(404);
+      throw new Error("Parent profile not found");
+    }
+
+    // Check if parent has already reviewed this tutor
+    const existingReview = await TutorReview.findOne({
+      parent_id: parentProfile._id,
+      tutor_id: tutor_id
+    });
+
+    if (existingReview) {
+      res.status(400);
+      throw new Error("You have already reviewed this tutor");
+    }
+
+    // Verify that parent's children have hired this tutor
+    const hasHiredTutor = await Student.findOne({
+      parent_id: parentProfile._id,
+      'hired_tutors.tutor': tutor_id,
+      'hired_tutors.status': 'accepted'
+    });
+
+    if (!hasHiredTutor) {
+      res.status(403);
+      throw new Error("You can only review tutors hired by your children");
+    }
+
+    // Create new review
+    const review = await TutorReview.create({
+      parent_id: parentProfile._id,
+      tutor_id: tutor_id,
+      rating: rating,
+      review_text: review_text || '',
+      review_type: 'parent'
+    });
+
+    // Update tutor's average rating
+    await updateTutorAverageRating(tutor_id);
+
+    res.status(201).json({
+      success: true,
+      message: "Review submitted successfully",
+      review: review
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to submit review: " + error.message);
+  }
+});
+
+// Get parent's reviews
+exports.getParentReviews = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    // Get parent profile
+    const parentProfile = await ParentProfile.findOne({ user_id });
+    if (!parentProfile) {
+      res.status(404);
+      throw new Error("Parent profile not found");
+    }
+
+    // Get parent's reviews
+    const reviews = await TutorReview.find({ parent_id: parentProfile._id })
+      .populate({
+        path: 'tutor_id',
+        populate: {
+          path: 'user_id',
+          select: 'full_name email photo_url'
+        }
+      })
+      .sort({ created_at: -1 });
+
+    res.status(200).json({
+      success: true,
+      reviews: reviews
+    });
+
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to fetch reviews: " + error.message);
+  }
+});
+
+// Helper function to update tutor average rating
+const updateTutorAverageRating = async (tutorId) => {
+  try {
+    const reviews = await TutorReview.find({ tutor_id: tutorId });
+    
+    if (reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = totalRating / reviews.length;
+      console.log('averageRating', averageRating);
+      console.log('reviews', totalRating);
+      await TutorProfile.findByIdAndUpdate(tutorId, {
+        average_rating: Math.round(averageRating * 10) / 10 // Round to 1 decimal place
+      });
+    }
+  } catch (error) {
+    console.error("Error updating tutor average rating:", error);
+  }
+};
 
 
 

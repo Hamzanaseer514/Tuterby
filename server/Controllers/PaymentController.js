@@ -25,15 +25,23 @@ exports.createCheckoutSession = async (req, res) => {
         isParentPayment, // ✅ New: Flag for parent payments
         studentName, // ✅ New: Child's name for parent payments
       } = req.body;
+
+      // ✅ Validate and sanitize amount to prevent floating-point precision issues
+      const sanitizedAmount = Math.round(parseFloat(amount) * 100) / 100; // Round to 2 decimal places
+      const amountInCents = Math.round(sanitizedAmount * 100); // Convert to cents and round to integer
+      
+      if (amountInCents <= 0) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
   
       // Build product description based on payment type
       let description;
       if (isParentPayment) {
         // Parent payment description
-        description = `👨‍👩‍👧‍👦 Parent Payment for ${studentName} | 📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${amount}`;
+        description = `👨‍👩‍👧‍👦 Parent Payment for ${studentName} | 📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${sanitizedAmount}`;
       } else {
         // Student payment description (existing)
-        description = `📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${amount}`;
+        description = `📚 ${subject} Tutoring Package | 👨‍🏫 Tutor: ${tutorName} | 🎯 Level: ${academicLevel} | 💰 Rate: £${base_amount}/hr | 📅 ${total_sessions_per_month} sessions/month | 🎁 ${discount_percentage > 0 ? discount_percentage + "% off" : "No discount"} | 💳 Total: £${sanitizedAmount}`;
       }
   
       const session = await stripe.checkout.sessions.create({
@@ -47,11 +55,11 @@ exports.createCheckoutSession = async (req, res) => {
               currency: "gbp",
               product_data: {
                 name: isParentPayment 
-                  ? `👨‍👩‍👧‍👦 ${studentName} - ${subject} Tutoring | ${academicLevel} | ${tutorName} | £${amount}`
-                  : `🎓 ${subject} Tutoring - ${academicLevel} Level | ${tutorName} | £${amount}`,
+                  ? `👨‍👩‍👧‍👦 ${studentName} - ${subject} Tutoring | ${academicLevel} | ${tutorName} | £${sanitizedAmount}`
+                  : `🎓 ${subject} Tutoring - ${academicLevel} Level | ${tutorName} | £${sanitizedAmount}`,
                 description: description.trim(), // ✅ nicely formatted
               },
-              unit_amount: amount * 100, // ✅ final discounted charge
+              unit_amount: amountInCents, // ✅ final discounted charge (properly rounded integer)
             },
             quantity: 1,
           },
@@ -67,7 +75,7 @@ exports.createCheckoutSession = async (req, res) => {
           total_sessions_per_month,
           base_amount,
           discount_percentage,
-          final_amount: amount,
+          final_amount: sanitizedAmount,
           isParentPayment: isParentPayment ? "true" : "false", // ✅ Store parent payment flag
           studentName: studentName || "", // ✅ Store child's name
         },
@@ -109,7 +117,7 @@ exports.createCheckoutSession = async (req, res) => {
             total_sessions_per_month,
             base_amount,
             discount_percentage,
-            final_amount: amount,
+            final_amount: sanitizedAmount,
             isParentPayment: isParentPayment ? "true" : "false", // ✅ Store in payment intent
             studentName: studentName || "", // ✅ Store child's name
           },

@@ -120,7 +120,7 @@ const TutorSearch = () => {
           const parsed = JSON.parse(field[0]);
           return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
-          console.warn(`Failed to parse array field: ${field[0]}`, error);
+          // console.warn(`Failed to parse array field: ${field[0]}`, error);
           return [];
         }
       }
@@ -135,7 +135,7 @@ const TutorSearch = () => {
         const parsed = JSON.parse(field);
         return Array.isArray(parsed) ? [...new Set(parsed)] : [];
       } catch (error) {
-        console.warn(`Failed to parse string field: ${field}`, error);
+        // console.warn(`Failed to parse string field: ${field}`, error);
         return [];
       }
     }
@@ -175,7 +175,7 @@ const TutorSearch = () => {
       const data = await response.json();
       setStudentProfile(data.student);
     } catch (error) {
-      console.error('Error fetching student profile:', error);
+      // console.error('Error fetching student profile:', error);
       // Don't show error toast for profile fetch, just log it
     }
   }
@@ -215,7 +215,7 @@ const TutorSearch = () => {
       setTotalPages(data.pagination?.total_pages || 1);
       setCurrentPage(1);
     } catch (error) {
-      console.error('Load all tutors error:', error);
+      // console.error('Load all tutors error:', error);
       setError(error.message || 'Failed to load tutors');
       // toast({
       //   title: "Error",
@@ -284,7 +284,7 @@ const TutorSearch = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Search API error:', errorData);
+        // console.error('Search API error:', errorData);
 
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
@@ -296,7 +296,7 @@ const TutorSearch = () => {
       setTutors(cleanedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
     } catch (error) {
-      console.error('Search error:', error);
+      // console.error('Search error:', error);
       setError(error.message || 'Failed to search tutors');
       toast({
         title: "Error",

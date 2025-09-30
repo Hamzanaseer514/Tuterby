@@ -366,7 +366,7 @@ const StudentDetailPage = () => {
                               ))}
                             </Stack>
                           ) : (
-                            "No subjects assigned"
+                            "No subjects"
                           )}
                         </TableCell>
                         <TableCell>{userSessionsCompleted}</TableCell>

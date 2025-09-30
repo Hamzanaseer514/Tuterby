@@ -80,7 +80,7 @@ const StudentSessions = () => {
         setPaymentStatus(data);
       }
     } catch (error) {
-      console.error('Error checking payment status:', error);
+      // console.error('Error checking payment status:', error);
     } finally {
       setLoadingPaymentStatus(false);
     }

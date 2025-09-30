@@ -59,7 +59,7 @@ const StudentChatting = () => {
                 };
               }
             } catch (error) {
-              console.error(`Error fetching chat for tutor ${tutor.tutorId}:`, error);
+              // console.error(`Error fetching chat for tutor ${tutor.tutorId}:`, error);
             }
             
             return {
@@ -73,7 +73,7 @@ const StudentChatting = () => {
         setTutors(tutorsWithStatus);
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   };
 
@@ -106,7 +106,7 @@ const StudentChatting = () => {
         localStorage.setItem(lastSeenKey, String(Date.now()));
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   };
 
@@ -132,7 +132,7 @@ const StudentChatting = () => {
         setMessageText("");
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   };
 
