@@ -50,6 +50,9 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/parent", parentRoutes);
 app.use("/api/public", publicRoutes);
 
+console.log("i am goinf to print something");
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+
 
 
 // Error handler (should be AFTER routes)
