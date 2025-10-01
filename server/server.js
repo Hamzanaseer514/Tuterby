@@ -19,7 +19,7 @@ app.use(
     credentials: true, // agar cookies ya authentication bhejna ho
   })
 );
-app.use(
+// app.use(
 //   cors({
 //     origin: process.env.FRONTEND_URL, // tumhare React/Vite frontend ka port
 //     credentials: true, // agar cookies ya authentication bhejna ho
