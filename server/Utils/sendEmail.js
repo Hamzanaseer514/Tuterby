@@ -23,6 +23,7 @@
 // module.exports = sendEmail;
 
 // emailService.js
+// emailService.js
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
@@ -49,8 +50,8 @@ const sendEmail = async (to, subject, htmlContent) => {
   try {
     const info = await transporter.sendMail({
       from: `"Tutorby" <${process.env.EMAIL_USER}>`,
-      to, "hamzanaseer496@gmail.com"
-      subject, "testing"
+      to,            // Recipient email
+      subject,       // Email subject
       html: htmlContent, // Email body in HTML
     });
 
@@ -63,4 +64,3 @@ const sendEmail = async (to, subject, htmlContent) => {
 };
 
 module.exports = sendEmail;
-
