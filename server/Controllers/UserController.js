@@ -748,6 +748,114 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 
 
 
+// Send email verification for students
+exports.sendEmailVerification = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    res.status(400);
+    throw new Error("User ID is required");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (user.role !== "student") {
+    res.status(403);
+    throw new Error("This endpoint is only for students");
+  }
+
+  if (user.isEmailVerified) {
+    res.status(400);
+    throw new Error("Email is already verified");
+  }
+
+  // Generate OTP for email verification
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[user._id] = {
+    otp,
+    expiresAt: Date.now() + 60000, // 1 minute
+    attempts: 1,
+    maxAttempts: 5,
+    lockUntil: null,
+    purpose: "emailVerification"
+  };
+
+  const htmlContent = generateOtpEmail(otp, user.full_name);
+  await sendEmail(user.email, "Verify Your Email - TutorBy", htmlContent);
+
+  res.status(200).json({
+    message: "Verification email sent successfully",
+    email: user.email,
+  });
+});
+
+// Verify email with OTP
+exports.verifyEmail = asyncHandler(async (req, res) => {
+  const { userId, otp } = req.body;
+
+  if (!userId || !otp) {
+    res.status(400);
+    throw new Error("User ID and OTP are required");
+  }
+
+  const entry = otpStore[userId];
+
+  if (!entry) {
+    return res.status(400).json({ message: "No verification request found" });
+  }
+
+  if (entry.purpose !== "emailVerification") {
+    return res.status(400).json({ message: "Invalid verification request" });
+  }
+
+  if (entry.lockUntil && Date.now() < entry.lockUntil) {
+    return res
+      .status(429)
+      .json({ message: "Too many attempts. Try after 30 minutes." });
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    return res.status(400).json({ message: "Verification code expired. Please request a new one." });
+  }
+
+  if (otp !== entry.otp) {
+    entry.attempts++;
+    if (entry.attempts >= entry.maxAttempts) {
+      entry.lockUntil = Date.now() + 30 * 60 * 1000; // 30 minutes lock
+      return res
+        .status(429)
+        .json({ message: "Too many wrong attempts. Try after 30 minutes." });
+    }
+    return res.status(401).json({ message: "Incorrect verification code" });
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  // Mark email as verified
+  user.isEmailVerified = true;
+  await user.save();
+
+  // Clean up OTP store
+  delete otpStore[userId];
+
+  res.status(200).json({
+    message: "Email verified successfully",
+    user: {
+      _id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+    },
+  });
+});
+
 exports.resendOtp = asyncHandler(async (req, res) => {
   const { userId } = req.body;
   const entry = otpStore[userId];
