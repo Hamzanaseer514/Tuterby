@@ -42,6 +42,10 @@ const paymentRoutes = require("./Routes/PaymentRoute");
 const parentRoutes = require("./Routes/ParentRoutes");
 const publicRoutes = require("./Routes/publicRoutes");
 
+app.get("/", (req, res) => {
+  res.send("Hello from Express on Vercel 🚀");
+});
+
 // Mount Routes
 app.use("/api/auth", UserRoute);
 app.use("/api/tutor", tutorRoutes);
