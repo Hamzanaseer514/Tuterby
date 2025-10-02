@@ -10,7 +10,8 @@ import {
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../components/admin/components/AdminLayout";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useSubject } from "../../hooks/useSubject";
 import {
   User,
@@ -1080,6 +1081,18 @@ const getAcademicLevel = (level) => {Experience
           </div>
         )}
       </Box>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </AdminLayout>
   );
 };
