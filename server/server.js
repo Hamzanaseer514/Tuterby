@@ -21,10 +21,8 @@ app.use(
 );
 // app.use(
 //   cors({
-//     origin: (origin, callback) => {
-//       callback(null, origin || "*"); 
-//     },
-//     credentials: true, // 👈 cookies ke liye zaroori
+//     origin: process.env.FRONTEND_URL, // tumhare React/Vite frontend ka port
+//     credentials: true, // agar cookies ya authentication bhejna ho
 //   })
 // );
 
@@ -51,6 +49,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/parent", parentRoutes);
 app.use("/api/public", publicRoutes);
+
+console.log("i am goinf to print something");
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
 
 
 
