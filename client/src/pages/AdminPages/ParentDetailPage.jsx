@@ -53,7 +53,7 @@ const ParentDetailPage = () => {
     severity: "success",
   });
   const [userStatus, setUserStatus] = useState("active"); // example toggle state
-
+  const [isUpdating, setIsUpdating] = useState(false);
   useEffect(() => {
     if (!user) setLoading(false);
   }, [user]);
@@ -103,8 +103,29 @@ const ParentDetailPage = () => {
   const userChildren = user?.children || [];
   const userSessionsBooked = user?.sessionsBooked || 0;
 
-  const handleToggleActive = () => {
-    setUserStatus((prev) => (prev === "active" ? "inactive" : "active"));
+
+  const handleToggleActive = async () => {
+    try {
+      setIsUpdating(true);
+      const next = userStatus === "active" ? "inactive" : "active";
+      setUser((prev) => ({ ...prev, status: next }));
+      const { updateUserStatus } = await import("../../services/adminService");
+      await updateUserStatus(user.id || user.user_id || user._id, next);
+      setSnackbar({
+        open: true,
+        message: `User ${next === "active" ? "activated" : "deactivated"}.`,
+        severity: "success"
+      });
+    } catch (e) {
+      setUser((prev) => ({ ...prev, status: userStatus }));
+      setSnackbar({
+        open: true,
+        message: "Failed to update status.",
+        severity: "error"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -186,6 +207,7 @@ const ParentDetailPage = () => {
                   variant={userStatus === "active" ? "outlined" : "contained"}
                   color={userStatus === "active" ? "error" : "success"}
                   onClick={handleToggleActive}
+                  disabled={isUpdating}
                   startIcon={
                     userStatus === "active" ? <Cancel /> : <CheckCircle />
                   }

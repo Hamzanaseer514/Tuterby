@@ -9,7 +9,12 @@ const parentProfileSchema = new mongoose.Schema({
   students: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "StudentProfile" // only ObjectId references
-  }]
+  }],
+  profile_status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active',
+  },
 }, {
   timestamps: true
 });

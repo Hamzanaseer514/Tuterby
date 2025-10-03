@@ -424,9 +424,9 @@ const UnifiedAdminDashboard = () => {
   const tutorsTotal = dashboardState.stats.tutors?.total || 0;
   const studentsActive = dashboardState.stats.students?.total || 0;
   const parentsActive = dashboardState.stats.parents?.total || 0;
-  const inactiveTutors = dashboardState.stats.inactive?.tutors || 0;
-  const inactiveStudents = dashboardState.stats.inactive?.students || 0;
-  const inactiveParents = dashboardState.stats.inactive?.parents || 0;
+  const inactiveTutors = dashboardState.stats.tutors?.inactive || 0;
+  const inactiveStudents = dashboardState.stats.students?.inactive || 0;
+  const inactiveParents = dashboardState.stats.parents?.inactive || 0;
   
   const statCards = useMemo(() => {
     const tutorsVerified = dashboardState.stats.tutors?.verified || 0;
@@ -438,7 +438,7 @@ const UnifiedAdminDashboard = () => {
     const sessionsPending = dashboardState.stats.sessions?.pending || 0;
     const revenueTotal = dashboardState.stats.revenue?.total || 0;
     const revenueLastMonth = dashboardState.stats.revenue?.lastMonth || 0;
-
+    console.log('dashboardState.stats', dashboardState.stats);
     return [
       {
         title: 'Total Tutors',

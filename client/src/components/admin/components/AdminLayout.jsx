@@ -48,9 +48,9 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
         tutorsTotal: stats?.tutors?.total || 0,
         studentsTotal: stats?.students?.total || 0,
         parentsTotal: stats?.parents?.total || 0,
-        tutorsInactive: stats?.inactive?.tutors || 0,
-        studentsInactive: stats?.inactive?.students || 0,
-        parentsInactive: stats?.inactive?.parents || 0
+        tutorsInactive: stats?.tutors?.inactive || 0,
+        studentsInactive: stats?.students?.inactive || 0,
+        parentsInactive: stats?.parents?.inactive || 0
       }));
     } catch {
       // ignore

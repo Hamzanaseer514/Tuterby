@@ -68,6 +68,7 @@ const getDocumentUrl = (fileUrl) => {
 // Dashboard Statistics - Always fetch fresh data
 export const getDashboardStats = async () => {
   const data = await apiCall('/dashboard/stats');
+  console.log('data', data);
   return data;
 };
 

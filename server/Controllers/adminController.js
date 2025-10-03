@@ -1495,7 +1495,18 @@ exports.updateUserStatus = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
 
     }
+    const studentProfile = await StudentProfile.findOne({ user_id: user_id });
+    const parentProfile = await ParentProfile.findOne({ user_id: user_id });
 
+    
+    if (studentProfile) {
+      studentProfile.profile_status = status;
+      await studentProfile.save();
+    }
+    if (parentProfile) {
+      parentProfile.profile_status = status;
+      await parentProfile.save();
+    }
 
 
     user.is_verified = status;
@@ -1591,6 +1602,8 @@ exports.updateApplicationNotes = async (req, res) => {
 // Get dashboard statistics - OPTIMIZED VERSION
 
 exports.getDashboardStats = async (req, res) => {
+
+  console.log('getDashboardStats');
   try {
     const [
       tutors,
@@ -1642,16 +1655,55 @@ exports.getDashboardStats = async (req, res) => {
       acc[s._id] = s.count;
       return acc;
     }, {});
+    // Get student and parent status counts
+    const [studentStatusCounts, parentStatusCounts] = await Promise.all([
+      StudentProfile.aggregate([
+        {
+          $group: {
+            _id: "$profile_status",
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+      ParentProfile.aggregate([
+        {
+          $group: {
+            _id: "$profile_status",
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
 
+    const studentStats = studentStatusCounts.reduce((acc, s) => {
+      acc[s._id] = s.count;
+      return acc;
+    }, {});
+    const parentStats = parentStatusCounts.reduce((acc, p) => {
+      acc[p._id] = p.count;
+      return acc;
+    }, {});
+    console.log('tutorStats', tutorStats);
+    console.log('studentStats', studentStats);
+    console.log('parentStats', parentStats);
+    console.log('sessionStats', sessionStats);
+    console.log('revenueAgg', revenueAgg);
+    console.log('lastMonthRevenueAgg', lastMonthRevenueAgg);
+   
     const stats = {
       tutors: {
-        total: (tutorStats.pending || 0) + (tutorStats.approved || 0) + (tutorStats.unverified || 0),
-        pending: tutorStats.pending || 0,
-        verified: tutorStats.approved || 0,
+        total: Object.values(tutorStats).reduce((sum, count) => sum + count, 0),
         inactive: tutorStats.unverified || 0,
+        verified: tutorStats.approved || 0,
       },
-      students: { total: students },
-      parents: { total: parents },
+      students: { 
+        total: Object.values(studentStats).reduce((sum, count) => sum + count, 0),
+        inactive: studentStats.inactive || 0 
+      },
+      parents: { 
+        total: Object.values(parentStats).reduce((sum, count) => sum + count, 0),
+        inactive: parentStats.inactive || 0 
+      },
       sessions: {
         total: (sessionStats.completed || 0) + (sessionStats.pending || 0),
         completed: sessionStats.completed || 0,
@@ -1662,7 +1714,7 @@ exports.getDashboardStats = async (req, res) => {
         lastMonth: lastMonthRevenueAgg[0]?.total || 0,
       },
     };
-
+   
     res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({ message: "Failed to get dashboard statistics", error: err.message });

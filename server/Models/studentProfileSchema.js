@@ -80,7 +80,12 @@ const studentProfileSchema = new mongoose.Schema(
           default: Date.now,
         }
       }
-    ]
+    ],
+    profile_status: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'active',
+    },
   },
   {
     timestamps: true,
