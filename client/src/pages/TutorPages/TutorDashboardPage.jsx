@@ -12,7 +12,8 @@ import TutorSelfProfilePage from './TutorSelfProfilePage';
 import TutorInterviewSlotsPage from './TutorInterviewSlotsPage';
 import TutorPaymentHistory from '../../components/tutor/TutorPaymentHistory';
 import TutorReviewsPageForTutor from './TutorReviewsPage';
-import { BASE_URL } from '@/config';
+import TutorDocumentReuploadPage from './TutorDocumentReuploadPage';
+import { BASE_URL } from '../../config';
 import {
   LayoutDashboard,
   Calendar,
@@ -29,7 +30,8 @@ import {
   Briefcase,
   HelpCircle,
   DollarSign,
-  Star
+  Star,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
@@ -48,6 +50,7 @@ const TutorDashboardPage = () => {
     account: true
   });
   const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0 });
+  const [hasRejectedDocuments, setHasRejectedDocuments] = useState(false);
   const navigate = useNavigate();
   const { user, loading, logout, isTutor, getUserProfile, fetchWithAuth } = useAuth();
 
@@ -88,8 +91,29 @@ const TutorDashboardPage = () => {
       }
 
       setTutorId(tutorId);
+      
+      // Check for rejected documents if partially approved
+      if (user?.is_verified === 'partial_active') {
+        checkRejectedDocuments();
+      }
     }
   }, [user, loading, navigate, isTutor]);
+
+  const checkRejectedDocuments = async () => {
+    try {
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/rejected-documents/${user._id}`);
+      const data = await response.json();
+      if (response.ok) {
+        const hasRejectedOrPending = data.documents.some(doc => 
+          doc.status === 'rejected' || doc.status === 'pending' || doc.status === 'missing'
+        );
+        setHasRejectedDocuments(hasRejectedOrPending);
+        console.log('Has Rejected/Pending/Missing Documents:', hasRejectedOrPending);
+      }
+    } catch (error) {
+      console.error('Error checking rejected documents:', error);
+    }
+  };
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -253,7 +277,13 @@ const TutorDashboardPage = () => {
           name: 'Student Reviews',
           icon: Star,
           component: <TutorReviewsPageForTutor />
-        }
+        },
+        ...(user?.is_verified === 'partial_active' && hasRejectedDocuments ? [{
+          id: 'document-reupload',
+          name: 'Document Re-upload',
+          icon: Upload,
+          component: <TutorDocumentReuploadPage />
+        }] : [])
       ]
     },
     {

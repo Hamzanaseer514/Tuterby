@@ -38,6 +38,8 @@ const {
   // getStudentPaymentStatus,
   getHiredSubjectsAndLevels,
   getTutorPaymentHistory,
+  getRejectedDocuments,
+  reuploadDocument,
 } = require('../Controllers/tutorController');
 const {protect} = require('../Middleware/authMiddleware');
 
@@ -65,6 +67,8 @@ router.get('/verified', getVerifiedTutors);
 
 // Document upload route
 router.post('/upload-document', upload.single('document'), uploadDocument);
+router.get('/rejected-documents/:user_id', protect, getRejectedDocuments);
+router.post('/reupload-document/:user_id', protect, upload.single('document'), reuploadDocument);
 
 // Dashboard routes
 router.get('/dashboard/:user_id', protect, getTutorDashboard);

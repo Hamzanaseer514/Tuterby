@@ -43,6 +43,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   CheckCircle,
@@ -66,6 +70,7 @@ import {
 } from "@mui/icons-material";
 import {
   verifyDocument,
+  rejectGroupedDocuments,
   getTutorDetails,
   getAvailableInterviewSlots,
   setAvailableInterviewSlots,
@@ -107,6 +112,7 @@ const TutorDetailPage = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [rejectModal, setRejectModal] = useState({ open: false, groupType: "", reason: "" });
 const { subjects, academicLevels } = useSubject();
 
 const getSubjectName = (id) => {
@@ -443,6 +449,36 @@ const getAcademicLevel = (level) => {
       console.error("Bulk verification failed:", err);
       setSnackbar({ open: true, message: "Failed to verify documents. Please try again.", severity: "error" });
     }
+  };
+
+  const handleRejectGroupedDocuments = (groupType) => {
+    setRejectModal({ open: true, groupType, reason: "" });
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectModal.reason || rejectModal.reason.trim() === "") {
+      setSnackbar({ open: true, message: "Reason is required for rejection.", severity: "warning" });
+      return;
+    }
+
+    try {
+      await rejectGroupedDocuments(user.id, rejectModal.groupType, rejectModal.reason.trim());
+      try {
+        const fresh = await getTutorDetails(user.id);
+        setLocalUser(fresh);
+        setSnackbar({ open: true, message: `${rejectModal.groupType} documents rejected successfully.`, severity: "success" });
+        setRejectModal({ open: false, groupType: "", reason: "" });
+      } catch (e) {
+        console.error("Post-reject refresh failed:", e);
+      }
+    } catch (err) {
+      console.error("Bulk rejection failed:", err);
+      setSnackbar({ open: true, message: "Failed to reject documents. Please try again.", severity: "error" });
+    }
+  };
+
+  const handleRejectCancel = () => {
+    setRejectModal({ open: false, groupType: "", reason: "" });
   };
 
   const getStatusColor = (status) => {
@@ -782,9 +818,14 @@ const getAcademicLevel = (level) => {
                               <Typography variant="subtitle1" fontWeight="medium">
                                 Background Check (ID Proof + Address Proof)
                               </Typography>
-                              <Button size="small" variant="contained" color="success" disabled={!anyPendingOrRejected(backgroundDocs)} onClick={() => handleVerifyDocuments(backgroundDocs.map((d) => d.type))}>
-                                Verify Background
-                              </Button>
+                              <Box sx={{ display: "flex", gap: 1 }}>
+                                <Button size="small" variant="contained" color="success" disabled={!anyPendingOrRejected(backgroundDocs)} onClick={() => handleVerifyDocuments(backgroundDocs.map((d) => d.type))}>
+                                  Verify Background
+                                </Button>
+                                <Button size="small" variant="contained" color="error" disabled={!anyPendingOrRejected(backgroundDocs)} onClick={() => handleRejectGroupedDocuments("background")}>
+                                  Reject Background
+                                </Button>
+                              </Box>
                             </Box>
                             {renderDocList(backgroundDocs)}
                           </Card>
@@ -796,9 +837,14 @@ const getAcademicLevel = (level) => {
                               <Typography variant="subtitle1" fontWeight="medium">
                                 Qualifications (Degree + Certificate)
                               </Typography>
-                              <Button size="small" variant="contained" color="success" disabled={!anyPendingOrRejected(qualificationDocs)} onClick={() => handleVerifyDocuments(qualificationDocs.map((d) => d.type))}>
-                                Verify Qualifications
-                              </Button>
+                              <Box sx={{ display: "flex", gap: 1 }}>
+                                <Button size="small" variant="contained" color="success" disabled={!anyPendingOrRejected(qualificationDocs)} onClick={() => handleVerifyDocuments(qualificationDocs.map((d) => d.type))}>
+                                  Verify Qualifications
+                                </Button>
+                                <Button size="small" variant="contained" color="error" disabled={!anyPendingOrRejected(qualificationDocs)} onClick={() => handleRejectGroupedDocuments("qualifications")}>
+                                  Reject Qualifications
+                                </Button>
+                              </Box>
                             </Box>
                             {renderDocList(qualificationDocs)}
                           </Card>
@@ -808,9 +854,14 @@ const getAcademicLevel = (level) => {
                           <Card sx={{ p: 2, mb: 2 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <Typography variant="subtitle1" fontWeight="medium">References</Typography>
-                              <Button size="small" variant="contained" color="success" disabled={!anyPendingOrRejected(referenceDocs)} onClick={() => handleVerifyDocuments(referenceDocs.map((d) => d.type))}>
-                                Verify References
-                              </Button>
+                              <Box sx={{ display: "flex", gap: 1 }}>
+                                <Button size="small" variant="contained" color="success" disabled={!anyPendingOrRejected(referenceDocs)} onClick={() => handleVerifyDocuments(referenceDocs.map((d) => d.type))}>
+                                  Verify References
+                                </Button>
+                                <Button size="small" variant="contained" color="error" disabled={!anyPendingOrRejected(referenceDocs)} onClick={() => handleRejectGroupedDocuments("references")}>
+                                  Reject References
+                                </Button>
+                              </Box>
                             </Box>
                             {renderDocList(referenceDocs)}
                           </Card>
@@ -1039,6 +1090,36 @@ const getAcademicLevel = (level) => {
 
 
         <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} message={snackbar.message} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
+
+        {/* Reject Documents Modal */}
+        <Dialog open={rejectModal.open} onClose={handleRejectCancel} maxWidth="sm" fullWidth>
+          <DialogTitle>Reject Documents</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Please provide a reason for rejecting the {rejectModal.groupType} documents:
+            </Typography>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Rejection Reason"
+              fullWidth
+              multiline
+              rows={4}
+              variant="outlined"
+              value={rejectModal.reason}
+              onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))}
+              placeholder="Enter the reason for rejection..."
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleRejectCancel} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleRejectConfirm} color="error" variant="contained">
+              Reject Documents
+            </Button>
+          </DialogActions>
+        </Dialog>
         {showDocumentModal && selectedDocument && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
