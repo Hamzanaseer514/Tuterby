@@ -42,6 +42,7 @@ import { Link } from "react-router-dom";
 import { useSubject } from "../../hooks/useSubject";
 import GoogleOAuth from "./GoogleOAuth";
 
+
 const Register = () => {
   const [activeTab, setActiveTab] = useState("student");
   const [tutorStep, setTutorStep] = useState(1); // 1: Basic Info, 2: Documents, 3: Final Registration

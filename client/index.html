@@ -27,7 +27,7 @@
     <meta name="twitter:title" content="TutorNearby - Expert Tutoring Services UK" />
     <meta name="twitter:description" content="Personalized online and in-person tutoring for GCSE, A-Levels, and University students. Find your ideal tutor with TutorNearby." />
     <meta name="twitter:image" content="https://www.tutornearby.co.uk/assets/og-images/homepage-og-image.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
@@ -40,25 +40,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- Error handling for external scripts/extensions -->
-    <script>
-      // Prevent external script errors from affecting the application
-      window.addEventListener('error', function(e) {
-        if (e.message && e.message.includes('Cannot find menu item with id')) {
-          console.warn('External script error suppressed:', e.message);
-          e.preventDefault();
-          return false;
-        }
-      });
-      
-      // Handle unhandled promise rejections
-      window.addEventListener('unhandledrejection', function(e) {
-        if (e.reason && e.reason.message && e.reason.message.includes('Cannot find menu item with id')) {
-          console.warn('External script promise rejection suppressed:', e.reason.message);
-          e.preventDefault();
-        }
-      });
-    </script>
   </body>
 </html>

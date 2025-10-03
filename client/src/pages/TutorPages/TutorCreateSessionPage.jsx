@@ -53,6 +53,7 @@ const TutorCreateSessionPage = () => {
     const [hiredSubjectsAndLevels, setHiredSubjectsAndLevels] = useState({ hired_subjects: [], hired_academic_levels: [] });
     const [loadingHiredData, setLoadingHiredData] = useState(false);
     const [activeTab, setActiveTab] = useState("details"); // "details" or "schedule"
+    const [isCreatingSession, setIsCreatingSession] = useState(false);
 
     const getSubjectById = useCallback((id) => {
         if (!id) return undefined;
@@ -382,6 +383,8 @@ const TutorCreateSessionPage = () => {
                 toast.error('Please select a date and time');
                 return;
             }
+            
+            setIsCreatingSession(true);
             const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions`, {
                 method: 'POST',
                 headers: {
@@ -411,6 +414,8 @@ const TutorCreateSessionPage = () => {
             navigate('/tutor-dashboard');
         } catch (err) {
             toast.error(err.message || 'Failed to create session');
+        } finally {
+            setIsCreatingSession(false);
         }
     };
 
@@ -848,11 +853,12 @@ const TutorCreateSessionPage = () => {
                                     !sessionForm.subject ||
                                     !sessionForm.academic_level ||
                                     loadingHiredData ||
+                                    isCreatingSession ||
                                     (hiredSubjectsAndLevels?.hired_subjects || []).length === 0 ||
                                     (hiredSubjectsAndLevels?.hired_academic_levels || []).length === 0
                                 }
                             >
-                                Create Session
+                                {isCreatingSession ? "Creating..." : "Create Session"}
                             </Button>
                         </div>
                     </div>

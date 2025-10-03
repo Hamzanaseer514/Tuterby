@@ -16,19 +16,12 @@ export default function PaymentResult() {
   const token = getAuthToken();
   
   useEffect(() => {
-    if (success === "true" && paymentId) {   // 👈 condition add karo
-      fetch(`${BASE_URL}/api/payment/confirm/${paymentId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => console.log("Payment confirmed:", data))
-        .catch((err) => console.error(err));
+    // Payment confirmation is now handled by Stripe webhooks
+    // No manual confirmation needed - webhook will update database automatically
+    if (success === "true" && paymentId) {
+      console.log("✅ Payment successful - webhook will handle confirmation");
     }
-  }, [paymentId, success, token, isParentPayment]);
+  }, [paymentId, success, isParentPayment]);
   
 
   return (

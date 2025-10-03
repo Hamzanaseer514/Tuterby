@@ -110,6 +110,8 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                 width: 60,
                 height: 60,
                 border: `3px solid ${theme.palette.primary.light}`,
+                // border: '3px solid #7C3AED',
+
                 boxShadow: theme.shadows[2],
                 flexShrink: 0
               }}
@@ -150,7 +152,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     value={tutor.average_rating || 0}
                     readOnly
                     size="small"
-                    sx={{ color: theme.palette.warning.main }}
+                    sx={{ color: '#7C3AED' }}
                   />
                   <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5, fontSize: '0.8rem' }}>
                     {tutor.average_rating || 0}
@@ -362,27 +364,29 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
               fontSize: '0.9rem',
               minWidth: 0,
               ...(user && user.role === 'student' ? {
-                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                boxShadow: theme.shadows[3],
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
                 '&:hover': {
-                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
                   transform: 'translateY(-2px)',
-                  boxShadow: theme.shadows[6]
+                  boxShadow: '0 8px 20px rgba(139, 92, 246, 0.4)'
                 }
               } : {
-                borderColor: theme.palette.grey[400],
-                color: theme.palette.grey[600],
+                borderColor: '#8B5CF6',
+                color: '#8B5CF6',
                 '&:hover': {
-                  borderColor: theme.palette.grey[600],
-                  backgroundColor: theme.palette.grey[50]
+                  borderColor: '#7C3AED',
+                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                  color: '#7C3AED'
                 }
               })
             }}
           >
             {loading ? 'Processing...' :
-              !user ? 'Hire This Tutor' :
+              !user ? 'Request This Tutor' :
                 user.role !== 'student' ? 'Students Only' :
-                  'Hire This Tutor'
+                  'Request This Tutor'
             }
           </Button>
         </Box>
@@ -579,7 +583,7 @@ const Tutors = () => {
         <Box sx={{
           display: 'flex',
           flexWrap: 'wrap',
-          gap: 3,
+          gap: 5,
           justifyContent: 'center',
           alignItems: 'stretch'
         }}>
@@ -637,7 +641,15 @@ const Tutors = () => {
       )}
 
       {/* Filter Section */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+      <Paper 
+  sx={{ 
+    p: {xs: 1, sm: 2, md: 3}, 
+    mb: 4, 
+    mx: { xs: 1, md:2, lg: 8 },  // 👈 responsive margin
+    borderRadius: 3 
+  }}
+>
+
         <Accordion sx={{ boxShadow: 'none' }}>
           <AccordionSummary
             expandIcon={<TrendingUp />}
@@ -648,18 +660,30 @@ const Tutors = () => {
               }
             }}
           >
-            <Typography variant="h6" fontWeight="600">
-              🔍 Filter & Search Tutors
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {filteredTutors.length} of {tutors.length} tutors found
-            </Typography>
+    <Typography 
+  variant="h6" 
+  fontWeight="600"
+  sx={{ 
+    fontSize: { xs: "0.6rem", sm: "0.9rem", md: "1.3rem" } 
+  }}
+>
+  🔍 Filter & Search Tutors
+</Typography>
+
+<Typography 
+  variant="body2" 
+  color="textSecondary"
+  sx={{ display: { xs: "none", md: "block", lg: "block" } }} 
+>
+  {filteredTutors.length} of {tutors.length} tutors found
+</Typography>
+
           </AccordionSummary>
           <AccordionDetails>
             <Box sx={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 3
+              gap: { xs: 1, sm: 2, md: 3 }
             }}>
               {/* Name Search */}
               <TextField

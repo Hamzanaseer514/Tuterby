@@ -70,9 +70,9 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
   const { subjects, academicLevels } = useSubject();
 
   const getSubjectName = (id) => {
- 
+
     const subject = subjects.find(s => s._id === id);
-    return subject ? subject: '';
+    return subject ? subject : '';
   }
   const getAcademicLevel = (level) => {
     const matchedLevel = academicLevels.find(l => l._id === level.toString());
@@ -97,21 +97,22 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               badgeContent={getStatusIcon(user.status)}
             >
-              
+
 
               <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                      {user?.photo_url ? (
-                        <img
-                          src={`${BASE_URL}${user.photo_url}`}
-                          alt="Profile"
-                          className="h-full w-full object-cover rounded-full"
-                        />
-                      ) : (
-                        <User className="h-10 w-10 text-white" />
-                      )}
-                    </div>
+                {user?.photo_url ? (
+                  <img
+                    src={`${BASE_URL}${user.photo_url}`}
+                    alt="Profile"
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                ) : (
+                  <User className="h-10 w-10 text-white" />
+                )}
+                {console.log("BASE_URL", `${BASE_URL}${user.photo_url}`)}
+              </div>
             </Badge>
-            <Box style={{marginLeft:"10px"}}>
+            <Box style={{ marginLeft: "10px" }}>
               <Typography fontWeight="medium" variant="body1">
                 {user.name}
               </Typography>
@@ -119,9 +120,9 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                 {user.email}
               </Typography>
               {tabValue === 'tutors' && (
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                {user.location || 'Location not specified'}
-              </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  {user.location || 'Location not specified'}
+                </Typography>
               )}
             </Box>
           </Box>
@@ -176,7 +177,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" fontWeight="medium">
 
-                  {user.documents?.filter(d => d.verified ==="Approved").length || 0}/{user.documents?.length || 0}
+                  {user.documents?.filter(d => d.verified === "Approved").length || 0}/{user.documents?.length || 0}
                 </Typography>
                 {user.documents?.every(d => d.verified === "Approved") ? (
                   <CheckCircle color="success" fontSize="small" />
@@ -248,44 +249,44 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {user.children?.length > 0 ? (
-                user.children.slice(0, 3).map(child => (
-                  <Chip
-                    key={child._id}
-                    label={`${child.user_id?.full_name || "Unknown"}`}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      fontSize: '0.7rem',
-                      borderColor: 'info.main',
-                      color: 'info.main'
-                    }}
-                  />
-                ))
-                
+                  user.children.slice(0, 3).map(child => (
+                    <Chip
+                      key={child._id}
+                      label={`${child.user_id?.full_name || "Unknown"}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: '0.7rem',
+                        borderColor: 'info.main',
+                        color: 'info.main'
+                      }}
+                    />
+                  ))
+
                 ) : (
                   <Typography variant="body2" color="text.secondary">
                     No children
                   </Typography>
                 )}
                 {user.children?.length > 3 && (
-                <Tooltip
-                title={user.children
-                  .slice(3)
-                  .map(child => `${child.user_id?.full_name || "Unknown"} (${child.user_id?.email || "No email"})`)
-                  .join(', ')
-                }
-              >
-                <Chip
-                  label={`+${user.children.length - 3}`}
-                  size="small"
-                  sx={{ fontSize: '0.7rem' }}
-                />
-              </Tooltip>
-              
+                  <Tooltip
+                    title={user.children
+                      .slice(3)
+                      .map(child => `${child.user_id?.full_name || "Unknown"} (${child.user_id?.email || "No email"})`)
+                      .join(', ')
+                    }
+                  >
+                    <Chip
+                      label={`+${user.children.length - 3}`}
+                      size="small"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </Tooltip>
+
                 )}
               </Box>
             </TableCell>
-          
+
           </>
         )}
 
@@ -360,7 +361,7 @@ const UserTable = ({
   onFilterChange,
   onViewModeChange,
   viewMode = 'table',
-  searchTerm = '',  onImport,
+  searchTerm = '', onImport,
   onRefresh
 }) => {
   const navigate = useNavigate();

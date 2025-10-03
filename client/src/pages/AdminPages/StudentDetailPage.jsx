@@ -310,7 +310,7 @@ const StudentDetailPage = () => {
                   <TableRow>
                     <TableCell>{userEmail}</TableCell>
                     <TableCell>{userPhone}</TableCell>
-                    <TableCell>{userParent.name}</TableCell>
+                    <TableCell>{userParent.name || "No Parent Linked"}</TableCell>
                     <TableCell>{formatDate(userJoinDate)}</TableCell>
                     <TableCell>{formatDate(userLastActive)}</TableCell>
                     <TableCell>

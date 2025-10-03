@@ -10,6 +10,7 @@ const StudentPayment = require("../Models/studentPaymentSchema");
 // @access  Private
 
 exports.createCheckoutSession = async (req, res) => {
+  console.log("req.body", req.body);
     try {
       const {
         amount, // ✅ final discounted amount (98)
@@ -25,6 +26,21 @@ exports.createCheckoutSession = async (req, res) => {
         isParentPayment, // ✅ New: Flag for parent payments
         studentName, // ✅ New: Child's name for parent payments
       } = req.body;
+
+      // Validate required fields
+      if (!paymentId || !amount || !studentEmail) {
+        return res.status(400).json({ 
+          error: "Missing required fields: paymentId, amount, or studentEmail" 
+        });
+      }
+
+      // Validate payment doesn't already exist or is already paid
+      const existingPayment = await StudentPayment.findById(paymentId);
+      if (existingPayment && existingPayment.payment_status === 'paid') {
+        return res.status(400).json({ 
+          error: "Payment already processed" 
+        });
+      }
 
       // ✅ Validate and sanitize amount to prevent floating-point precision issues
       const sanitizedAmount = Math.round(parseFloat(amount) * 100) / 100; // Round to 2 decimal places
@@ -131,10 +147,30 @@ exports.createCheckoutSession = async (req, res) => {
         // phone_number_collection: { enabled: true },
       });
   
-      res.json({ url: session.url });
+      res.json({ 
+        success: true,
+        url: session.url,
+        sessionId: session.id 
+      });
     } catch (err) {
-      console.error("❌ Error creating checkout session:", err);
-      res.status(500).json({ error: "Internal Server Error" });
+      console.error("❌ Error creating checkout session:", {
+        error: err.message,
+        paymentId: req.body.paymentId,
+        amount: req.body.amount
+      });
+      
+      // Return appropriate error based on error type
+      if (err.type === 'StripeInvalidRequestError') {
+        return res.status(400).json({ 
+          error: "Invalid payment request",
+          details: err.message 
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Internal Server Error",
+        message: "Failed to create checkout session"
+      });
     }
   };
   

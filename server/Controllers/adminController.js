@@ -1008,7 +1008,7 @@ exports.rejectTutorProfile = async (req, res) => {
 // Get all users (tutors, students, parents) with detailed information
 
 exports.getAllUsers = async (req, res) => {
-
+console.log("getAllUsers", req.query);
   try {
 
     const { userType, status, search } = req.query;
@@ -1108,7 +1108,7 @@ exports.getAllUsers = async (req, res) => {
               profileStatusReason: tutorProfile.profile_status_reason || "",
               documents: documents.map((doc) => ({
                 type: doc.document_type,
-                url: doc.file_url ? `${req.protocol}://${req.get('host')}${doc.file_url}` : "#",
+                url: doc.file_url ? doc.file_url : "#",
                 verified: doc.verification_status,
                 uploadDate: doc.uploaded_at || doc.createdAt,
                 notes: doc.notes || "",
@@ -1367,7 +1367,7 @@ exports.getTutorDetails = async (req, res) => {
     
       documents: documents.map((doc) => ({
         type: doc.document_type,
-        url: doc.file_url ? `${req.protocol}://${req.get('host')}${doc.file_url}` : "#",
+        url: doc.file_url ? doc.file_url : "#",
         verified: doc.verification_status === "Approved",
         uploadDate: doc.uploaded_at,
         notes: doc.notes,

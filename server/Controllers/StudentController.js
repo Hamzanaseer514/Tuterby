@@ -155,6 +155,8 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
             student_id: studentProfile._id,
             tutor_id: session.tutor_id._id,
             payment_status: 'paid',
+            academic_level_paid: true,
+            validity_status: 'active',
             is_active: true
         });
 

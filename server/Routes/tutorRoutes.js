@@ -50,10 +50,12 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const documentType = req.body.document_type?.replace(/\s+/g, '_') || 'unknownType';
-    const timestamp = Date.now();
     const ext = path.extname(file.originalname);
+    console.log("file", ext);
     const base = path.basename(file.originalname, ext);
-    const newFileName = `${documentType}_${timestamp}_${base}${ext}`;
+    console.log("base", base);
+    const newFileName = `${base}${ext}`;
+    console.log("newFileName", newFileName);
     cb(null, newFileName);
   }
 });
