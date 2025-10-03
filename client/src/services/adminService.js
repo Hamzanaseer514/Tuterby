@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabaseClient';
 import { BASE_URL } from '@/config';
 
 const API_BASE_URL = `${BASE_URL}/api/admin`;
-
 // Helper function to get auth token - use the same method as useAuth hook 
 export const getAuthToken = () => {
   // Check sessionStorage first, then localStorage (same as useAuth hook)
@@ -14,7 +13,6 @@ export const getAuthToken = () => {
 const apiCall = async (endpoint, options = {}) => {
   try {
     const token = getAuthToken();
-    
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -79,9 +77,7 @@ export const getAllUsers = async (filters = {}) => {
     });
 
     const endpoint = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    
     const users = await apiCall(endpoint);
-    
     // Process users data
     const processedUsers = users.map(user => {
       // Fix document URLs
@@ -162,7 +158,7 @@ export const getTutorDetails = async (userId) => {
     } else {
       details.preferredSlots = [];
     }
-
+    console.log("details", details);
     return details;
   } catch (error) {
     console.error("Error fetching tutor details:", error);

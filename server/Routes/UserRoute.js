@@ -26,13 +26,16 @@ const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    console.log("file", file);
     cb(null, 'uploads/documents/');
   },
   filename: (req, file, cb) => {
-    const timestamp = Date.now();
     const ext = path.extname(file.originalname);
+    console.log("ext", ext);
     const base = path.basename(file.originalname, ext);
-    const newName = `${timestamp}_${base}${ext}`;
+    console.log("base", base);
+    const newName = `${base}${ext}`;
+    console.log("newName", newName);
     cb(null, newName);
   }
 });

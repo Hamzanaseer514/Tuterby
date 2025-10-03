@@ -341,9 +341,13 @@ exports.registerTutor = asyncHandler(async (req, res) => {
 
         const oldPath = uploadedFile.path;
         const ext = path.extname(uploadedFile.filename);
+        console.log("ext", ext);
         const base = path.basename(uploadedFile.filename, ext);
-        const newFilename = `${documentType.replace(/\s+/g, "_")}_${base}${ext}`;
+        console.log("base", base);
+        const newFilename = `${base}${ext}`;
+        console.log("newFilename", newFilename);
         const newPath = `uploads/documents/${newFilename}`;
+
         fs.renameSync(oldPath, newPath);
 
         const relativePath = `/uploads/documents/${newFilename}`;

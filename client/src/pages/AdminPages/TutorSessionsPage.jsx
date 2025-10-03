@@ -38,12 +38,6 @@ import {
   LinearProgress,
   Menu,
   TablePagination,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  AppBar,
-  Toolbar,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoIcon from '@mui/icons-material/Info';
@@ -58,7 +52,6 @@ import SchoolIcon from '@mui/icons-material/School';
 import MenuIcon from '@mui/icons-material/Menu';
 import {
   Search,
-  FilterList,
   Visibility,
   Star,
   Schedule,
@@ -121,8 +114,6 @@ const TutorSessionsPage = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  const [filterMenuAnchor, setFilterMenuAnchor] = useState(null);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [tablePage, setTablePage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -169,7 +160,7 @@ const TutorSessionsPage = () => {
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
-    const statusMap = { 0: '', 1: 'pending', 2: 'confirmed', 3: 'completed', 4: 'cancelled' };
+    const statusMap = { 0: '', 1: 'pending', 2: 'confirmed', 3: 'completed', 4: 'cancelled', 5: 'in_progress' };
     handleFilterChange('status', statusMap[newValue]);
   };
 
@@ -839,95 +830,6 @@ const TutorSessionsPage = () => {
     </Box>
   );
 
-  // Mobile Filter Drawer
-  const MobileFilterDrawer = () => (
-    <Drawer
-      anchor="right"
-      open={mobileFilterOpen}
-      onClose={() => setMobileFilterOpen(false)}
-      PaperProps={{
-        sx: { width: '85%', maxWidth: 400 }
-      }}
-    >
-      <AppBar position="static" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Filters
-          </Typography>
-          <IconButton
-            edge="end"
-            color="inherit"
-            onClick={() => setMobileFilterOpen(false)}
-            aria-label="close"
-          >
-            <CloseIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <Box sx={{ p: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>Date Range</Typography>
-        <Grid container spacing={1} sx={{ mb: 2 }}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="Start Date"
-              value={filters.start_date}
-              onChange={(e) => handleFilterChange('start_date', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="End Date"
-              value={filters.end_date}
-              onChange={(e) => handleFilterChange('end_date', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-        </Grid>
-
-        <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-          <InputLabel>Tutor</InputLabel>
-          <Select
-            value={filters.tutor_id}
-            onChange={(e) => handleFilterChange('tutor_id', e.target.value)}
-            label="Tutor"
-          >
-            <MenuItem value="">All Tutors</MenuItem>
-            <MenuItem value="1">John Doe</MenuItem>
-            <MenuItem value="2">Jane Smith</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={() => setMobileFilterOpen(false)}
-          sx={{ mt: 2 }}
-        >
-          Apply Filters
-        </Button>
-
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={() => {
-            setFilters({ page: 1, limit: 20, search: '', status: '', tutor_id: '', start_date: '', end_date: '' });
-            setMobileFilterOpen(false);
-          }}
-          sx={{ mt: 1 }}
-        >
-          Clear All
-        </Button>
-      </Box>
-    </Drawer>
-  );
 
   // Responsive table component
   const ResponsiveSessionTable = () => {
@@ -1441,88 +1343,26 @@ const TutorSessionsPage = () => {
                 InputProps={{
                   startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
                 }}
-                sx={{ width: isMobile ? '100%' : 300 }}
+                sx={{ width: isMobile ? '100%' : 600 }}
               />
 
-              {isMobile ? (
-                <>
-                  <Button
-                    variant="outlined"
-                    startIcon={<FilterList />}
-                    onClick={() => setMobileFilterOpen(true)}
-                    sx={{ borderRadius: '8px', textTransform: 'none', width: '100%' }}
-                  >
-                    Filters
-                  </Button>
-                  <MobileFilterDrawer />
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outlined"
-                    startIcon={<FilterList />}
-                    onClick={(e) => setFilterMenuAnchor(e.currentTarget)}
-                    sx={{ borderRadius: '8px', textTransform: 'none' }}
-                  >
-                    Filters
-                  </Button>
-
-                  <Menu
-                    anchorEl={filterMenuAnchor}
-                    open={Boolean(filterMenuAnchor)}
-                    onClose={() => setFilterMenuAnchor(null)}
-                  >
-                    <Box sx={{ p: 2, width: 300 }}>
-                      <Typography variant="subtitle2" gutterBottom>Date Range</Typography>
-                      <Grid container spacing={1} sx={{ mb: 2 }}>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type="date"
-                            label="Start Date"
-                            value={filters.start_date}
-                            onChange={(e) => handleFilterChange('start_date', e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            type="date"
-                            label="End Date"
-                            value={filters.end_date}
-                            onChange={(e) => handleFilterChange('end_date', e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                          />
-                        </Grid>
-                      </Grid>
-
-                      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                        <InputLabel>Tutor</InputLabel>
-                        <Select
-                          value={filters.tutor_id}
-                          onChange={(e) => handleFilterChange('tutor_id', e.target.value)}
-                          label="Tutor"
-                        >
-                          <MenuItem value="">All Tutors</MenuItem>
-                          <MenuItem value="1">John Doe</MenuItem>
-                          <MenuItem value="2">Jane Smith</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <Button
-                        fullWidth
-                        onClick={() => setFilterMenuAnchor(null)}
-                        variant="contained"
-                      >
-                        Apply Filters
-                      </Button>
-                    </Box>
-                  </Menu>
-                </>
-              )}
+              <TextField
+                size="small"
+                type="date"
+                label="Date"
+                value={filters.start_date}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setFilters(prev => ({
+                    ...prev,
+                    start_date: v,
+                    end_date: v,
+                    page: 1
+                  }));
+                }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: isMobile ? '100%' : 250 }}
+              />
 
               <Box sx={{
                 display: 'flex',

@@ -131,7 +131,7 @@ const StudentPaymentPage = () => {
         try {
             setLoading(true);
             const token = getAuthToken();
-
+            console.log("payment", payment);
             // If it's an expired payment, create renewal first
             if (payment.status === 'completed' && payment.validity_status === 'expired') {
                 const renewalResponse = await fetchWithAuth(`${BASE_URL}/api/auth/student/payments/${payment._id}/renew`, {
@@ -171,7 +171,7 @@ const StudentPaymentPage = () => {
                 })
             }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
             );
-    
+            console.log("response", response)
             if (!response.ok) throw new Error("Failed to create checkout session");
     
             // ✅ parse backend response
@@ -298,6 +298,13 @@ const StudentPaymentPage = () => {
                             <div className="text-sm text-gray-600">Cancelled</div>
                         </CardContent>
                     </Card>
+                    <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200">
+                        <CardContent className="p-4">
+                            <div className="text-2xl font-bold text-gray-800">{statusCounts.failed}</div>
+                            <div className="text-sm text-gray-600">Failed</div>
+                        </CardContent>
+                    </Card>
+                   
                 </div>
 
                 {/* Filters and Search */}
@@ -376,7 +383,6 @@ const StudentPaymentPage = () => {
                                 <CardContent className="p-0">
                                     <div className="p-6 cursor-pointer" onClick={() => toggleExpandPayment(payment._id)}>
                                         <div className="flex items-start justify-between">
-                                            {console.log("payment", payment)}
                                             <div className="flex items-start gap-4 flex-1">
                                                 <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                                                 {payment.tutor_photo_url ? (

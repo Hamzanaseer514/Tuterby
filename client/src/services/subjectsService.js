@@ -2,7 +2,6 @@
 import { BASE_URL } from '@/config';
 
 const API_BASE_URL = `${BASE_URL}/api/public`;
-
 // Helper function to make API calls
 const apiCall = async (endpoint, options = {}) => {
   try {

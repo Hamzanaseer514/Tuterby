@@ -2261,7 +2261,7 @@ const getHiredSubjectsAndLevels = asyncHandler(async (req, res) => {
         subject: hireRequest.subject,
         academic_level: hireRequest.academic_level_id,
         // payment_status: 'paid',
-        is_active: true
+        // is_active: true
       });
       // Only include if payment is completed and still valid
       if (payment) {

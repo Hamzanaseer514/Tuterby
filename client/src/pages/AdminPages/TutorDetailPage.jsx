@@ -112,7 +112,7 @@ const getSubjectName = (id) => {
   const subject = subjects.find((s) => s._id === id);
   return subject ? subject : "";
 };
-const getAcademicLevel = (level) => {Experience
+const getAcademicLevel = (level) => {
   const matchedLevel = academicLevels.find(l => l._id === level);
   if(matchedLevel){
     return matchedLevel;
@@ -753,7 +753,12 @@ const getAcademicLevel = (level) => {Experience
                               }
                             />
                             <Box sx={{ display: "flex", gap: 1 }}>
-                              <IconButton size="small" onClick={() => handleViewDocument(doc)} disabled={doc.url === "#"} title={doc.url === "#" ? "Document not available" : "View document"}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleViewDocument({ ...doc, url: doc.url || doc.file_url })}
+                                disabled={!((doc && (doc.url || doc.file_url)))}
+                                title={!((doc && (doc.url || doc.file_url))) ? "Document not available" : "View document"}
+                              >
                                 <CloudDownload />
                               </IconButton>
                             </Box>
@@ -1049,30 +1054,44 @@ const getAcademicLevel = (level) => {Experience
                   {selectedDocument.notes && (<Typography variant="body2" color="text.secondary"><strong>Notes:</strong> {selectedDocument.notes}</Typography>)}
                 </Card>
                 <div className="flex justify-center">
-                  {selectedDocument.url && selectedDocument.url !== "#" ? (
-                    <div className="w-full">
-                      {selectedDocument.type?.toLowerCase().includes("image") || selectedDocument.url?.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i) ? (
-                        <img src={resolveUrl(selectedDocument.url)} alt={selectedDocument.type} className="max-w-full h-auto max-h-[60vh] object-contain border rounded-lg shadow-lg" style={{ maxWidth: "100%", height: "auto", maxHeight: "60vh" }} />
-                      ) : (
-                        <object data={resolveUrl(selectedDocument.url)} type="application/pdf" className="w-full h-[60vh] border rounded-lg shadow-lg" style={{ width: "100%", height: "60vh" }}>
-                          <iframe src={resolveUrl(selectedDocument.url)} title={selectedDocument.type} className="w-full h-[60vh] border rounded-lg shadow-lg" style={{ width: "100%", height: "60vh" }} />
-                        </object>
-                      )}
-                    </div>
-                  ) : (
+                  {(() => {
+                    const rawUrl = selectedDocument.url || selectedDocument.file_url;
+                    const resolved = rawUrl ? resolveUrl(rawUrl) : null;
+                    const isImage = resolved ? /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(resolved) || (selectedDocument.type || "").toLowerCase().includes("image") : false;
+                    const isPdf = resolved ? /\.pdf$/i.test(resolved) : false;
+                    return resolved ? (
+                      <div className="w-full">
+                        {isImage ? (
+                          <img src={resolved} alt={selectedDocument.type} className="max-w-full h-auto max-h-[60vh] object-contain border rounded-lg shadow-lg" style={{ maxWidth: "100%", height: "auto", maxHeight: "60vh" }} />
+                        ) : isPdf ? (
+                          <div className="w-full flex items-center justify-center">
+                            <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(resolved, "_blank")}>
+                              Open PDF
+                            </Button>
+                          </div>
+                        ) : (
+                          <a href={resolved} target="_blank" rel="noopener">Open Document</a>
+                        )}
+                      </div>
+                    ) : (
                     <Card sx={{ p: 4, textAlign: "center", backgroundColor: "#f8f9fa" }}>
                       <CloudDownload sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
                       <Typography variant="h6" color="text.secondary">Document Not Available</Typography>
                       <Typography variant="body2" color="text.secondary">The document file could not be loaded or is not accessible.</Typography>
                     </Card>
-                  )}
+                    );
+                  })()}
                 </div>
                 <div className="flex justify-end space-x-2 pt-4 border-t">
-                  {selectedDocument.url && selectedDocument.url !== "#" && (
-                    <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(resolveUrl(selectedDocument.url), "_blank")}>
+                  {(() => {
+                    const rawUrl = selectedDocument.url || selectedDocument.file_url;
+                    console.log("rawUrl", rawUrl);
+                    return rawUrl ? (
+                      <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(resolveUrl(rawUrl), "_blank")}>
                       Download
-                    </Button>
-                  )}
+                      </Button>
+                    ) : null;
+                  })()}
                   <Button variant="outlined" onClick={handleCloseDocumentModal}>Close</Button>
                 </div>
               </div>
