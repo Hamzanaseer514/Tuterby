@@ -86,4 +86,14 @@ const tutorProfileSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Indexes for better query performance
+tutorProfileSchema.index({ user_id: 1 });
+tutorProfileSchema.index({ subjects: 1 });
+tutorProfileSchema.index({ academic_levels_taught: 1 });
+tutorProfileSchema.index({ average_rating: -1 });
+tutorProfileSchema.index({ profile_status: 1 }); // Critical for dashboard stats
+tutorProfileSchema.index({ is_verified: 1 });
+tutorProfileSchema.index({ created_at: -1 });
+tutorProfileSchema.index({ updated_at: -1 });
+
 module.exports = mongoose.model('TutorProfile', tutorProfileSchema);

@@ -216,6 +216,10 @@ const Register = () => {
       setError("Passwords do not match");
       return false;
     }
+    if (formData.age < 18 || formData.age > 100) {
+      setError("You must be between 18 and 100 years old");
+      return false;
+    }
     if (formData.subjects_taught.length === 0) {
       setError("Please select at least one subject you will teach");
       return false;

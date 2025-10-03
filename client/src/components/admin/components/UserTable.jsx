@@ -14,7 +14,6 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Skeleton,
   Slide,
   Paper,
   Menu,
@@ -330,19 +329,6 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
   );
 };
 
-const TableSkeleton = ({ rows = 5, columns = 6 }) => (
-  <>
-    {Array.from({ length: rows }).map((_, index) => (
-      <TableRow key={index}>
-        {Array.from({ length: columns }).map((_, colIndex) => (
-          <TableCell key={colIndex}>
-            <Skeleton variant="text" width="100%" height={40} />
-          </TableCell>
-        ))}
-      </TableRow>
-    ))}
-  </>
-);
 
 const UserTable = ({
   users,
@@ -479,9 +465,7 @@ const UserTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading ? (
-              <TableSkeleton rows={rowsPerPage} columns={getTableHeaders().length} />
-            ) : users.length > 0 ? (
+            {users.length > 0 ? (
               users
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((user, index) => (

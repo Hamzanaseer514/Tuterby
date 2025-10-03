@@ -120,7 +120,7 @@ const ParentDetailPage = () => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Typography variant="h4">{userName}</Typography>
@@ -200,9 +200,7 @@ const ParentDetailPage = () => {
                 >
                   {userStatus === "active" ? "Deactivate" : "Activate"}
                 </Button>
-                <IconButton>
-                  <MoreVert />
-                </IconButton>
+              
               </Stack>
             </Box>
 
@@ -328,7 +326,7 @@ const ParentDetailPage = () => {
           }}
         >
           <Button
-            onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })}
+            onClick={() => navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } })}
             variant="outlined"
             sx={{
               minHeight: 48,

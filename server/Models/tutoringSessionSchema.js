@@ -123,6 +123,9 @@ tutoringSessionSchema.index({ tutor_id: 1, status: 1 });
 // ✅ Supporting indexes
 tutoringSessionSchema.index({ session_date: 1 });
 tutoringSessionSchema.index({ student_ids: 1 });
+tutoringSessionSchema.index({ status: 1 }); // Critical for dashboard stats
+tutoringSessionSchema.index({ created_at: -1 }); // For date filtering
+tutoringSessionSchema.index({ completed_at: -1 }); // For revenue calculations
 // Helpful for response lookups per student
 tutoringSessionSchema.index({ 'student_responses.student_id': 1 });
 // Helpful for rating lookups per student

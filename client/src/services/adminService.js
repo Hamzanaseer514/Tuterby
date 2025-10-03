@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabaseClient';
 import { BASE_URL } from '@/config';
 
 const API_BASE_URL = `${BASE_URL}/api/admin`;
+
+// Cache removed - Admin dashboard needs real-time data, not cached data
+
 // Helper function to get auth token - use the same method as useAuth hook 
 export const getAuthToken = () => {
   // Check sessionStorage first, then localStorage (same as useAuth hook)
@@ -62,64 +65,40 @@ const getDocumentUrl = (fileUrl) => {
   return `${BASE_URL}/uploads/${fileUrl}`;
 };
 
-// Dashboard Statistics
+// Dashboard Statistics - Always fetch fresh data
 export const getDashboardStats = async () => {
-  return apiCall('/dashboard/stats');
+  const data = await apiCall('/dashboard/stats');
+  return data;
 };
 
-// User Management - Enhanced with better error handling and logging
+// User Management - Enhanced with pagination and better error handling
 export const getAllUsers = async (filters = {}) => {
-  
   try {
+    // Set default limit to 50 for better performance
+    const defaultFilters = { limit: 50, ...filters };
+    
     const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
+    Object.entries(defaultFilters).forEach(([key, value]) => {
       if (value) queryParams.append(key, value);
     });
 
     const endpoint = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const users = await apiCall(endpoint);
-    // Process users data
-    const processedUsers = users.map(user => {
-      // Fix document URLs
-      if (user.documents && Array.isArray(user.documents)) {
-        user.documents = user.documents.map(doc => ({
-          ...doc,
-          url: getDocumentUrl(doc.url)
-        }));
-      }
-      
-      // Parse subjects if they are JSON strings or arrays containing JSON strings
-      if (user.subjects) {
-        if (Array.isArray(user.subjects)) {
-          user.subjects = user.subjects.map(subject => {
-            if (typeof subject === 'string' && subject.startsWith('[') && subject.endsWith(']')) {
-              try {
-                return JSON.parse(subject);
-              } catch (error) {
-                console.error('Error parsing subject:', subject, error);
-                return subject;
-              }
-            }
-            return subject;
-          }).flat();
-        } else if (typeof user.subjects === 'string') {
-          try {
-            user.subjects = JSON.parse(user.subjects);
-          } catch (error) {
-            console.error('Error parsing subjects for user:', user.name, error);
-            user.subjects = [];
-          }
-        }
-      }
-      
-      // Ensure subjects is always an array
-      if (!Array.isArray(user.subjects)) {
-        user.subjects = [];
-      }
-      return user;
-    });
+    const response = await apiCall(endpoint);
     
-    return processedUsers || [];
+    // Handle both old format (array) and new format (object with pagination)
+    let result;
+    if (Array.isArray(response)) {
+      // Legacy format - return as is
+      result = response;
+    } else if (response.users && response.pagination) {
+      // New format with pagination
+      result = response;
+    } else {
+      // Fallback
+      result = response;
+    }
+    
+    return result;
   } catch (error) {
     console.error('Error fetching users from API:', error);
     throw error;
@@ -320,17 +299,21 @@ export const updateUserStatus = async (userId, status) => {
   });
 };
 
-// Tutor Sessions Management
+// Tutor Sessions Management - Always fetch fresh data
 export const getAllTutorSessions = async (filters = {}) => {
   try {
+    // Set default limit to 50 for better performance
+    const defaultFilters = { limit: 50, ...filters };
+    
     const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
+    Object.entries(defaultFilters).forEach(([key, value]) => {
       if (value) queryParams.append(key, value);
     });
 
     const endpoint = `/tutor-sessions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
     const response = await apiCall(endpoint);
+    
     return response;
   } catch (error) {
     console.error('Error fetching tutor sessions:', error);
@@ -338,22 +321,50 @@ export const getAllTutorSessions = async (filters = {}) => {
   }
 };
 
-// Tutor Reviews Management
+// Tutor Payments Management - Always fetch fresh data
+export const getAllTutorPayments = async (filters = {}) => {
+  try {
+    // Set default limit to 50 for better performance
+    const defaultFilters = { limit: 50, ...filters };
+    
+    const queryParams = new URLSearchParams();
+    Object.entries(defaultFilters).forEach(([key, value]) => {
+      if (value) queryParams.append(key, value);
+    });
+
+    const endpoint = `/tutor-payments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(endpoint);
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching tutor payments:', error);
+    throw error;
+  }
+};
+
+// Tutor Reviews Management - Always fetch fresh data
 export const getAllTutorReviews = async (filters = {}) => {
   try {
+    // Set default limit to 50 for better performance
+    const defaultFilters = { limit: 50, ...filters };
+    
     const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
+    Object.entries(defaultFilters).forEach(([key, value]) => {
       if (value) queryParams.append(key, value);
     });
 
     const endpoint = `/tutor-reviews${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
     const response = await apiCall(endpoint);
+    
     return response;
   } catch (error) {
     console.error('Error fetching tutor reviews:', error);
     throw error;
   }
 };
+
+// Removed cache management functions - Admin dashboard needs real-time data
 
 

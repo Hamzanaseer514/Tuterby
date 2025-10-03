@@ -40,7 +40,7 @@ const statusColors = {
 
 
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ tabValue = 'tutors' }) => {
   const location = useLocation();
   const navigate = useNavigate();
   // State management with localStorage persistence
@@ -50,8 +50,8 @@ const AdminDashboard = () => {
     if (savedState) {
       try {
         const parsed = JSON.parse(savedState);
-        // Check if data is not too old (less than 5 minutes)
-        if (parsed.lastUpdated && (Date.now() - new Date(parsed.lastUpdated).getTime()) < 5 * 60 * 1000) {
+        // Check if data is not too old (less than 10 minutes)
+        if (parsed.lastUpdated && (Date.now() - new Date(parsed.lastUpdated).getTime()) < 10 * 60 * 1000) {
           return parsed;
         }
       } catch (error) {
@@ -73,7 +73,7 @@ const AdminDashboard = () => {
     page: 0,
     rowsPerPage: 10,
     searchTerm: '',
-    tabValue: 'tutors',
+    tabValue: tabValue,
     anchorEl: null,
     selectedActionUser: null,
     openDialog: false,
@@ -122,53 +122,36 @@ const AdminDashboard = () => {
     });
   };
 
-  // Initialize tab from query param or navigation state
+  // Update tab when prop changes or URL changes
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tab = params.get('tab');
-    const valid = ['tutors', 'students', 'parents'];
+    const urlTab = params.get('tab');
+    const validTabs = ['tutors', 'students', 'parents'];
     
-    // Check if coming back from detail page with preserved data
-    const preserveData = location.state?.preserveData;
-    const navTabValue = location.state?.tabValue;
+    // Use URL tab if it's valid, otherwise use prop
+    const targetTab = urlTab && validTabs.includes(urlTab) ? urlTab : tabValue;
     
-    if (preserveData && navTabValue && valid.includes(navTabValue)) {
-      // Coming back from detail page - switch tab and ensure data exists
-      setUiState(prev => ({ ...prev, tabValue: navTabValue }));
-      
-      // Check if data exists for this tab, if not load it
-      if (!dashboardState.users[navTabValue] || dashboardState.users[navTabValue].length === 0) {
-        loadUsers(navTabValue);
-      }
-      return;
-    }
-    
-    if (tab && valid.includes(tab)) {
-      setUiState(prev => ({ ...prev, tabValue: tab }));
-      // Only load if data doesn't exist for this tab
-      if (!dashboardState.users[tab] || dashboardState.users[tab].length === 0) {
-        loadUsers(tab);
+    if (targetTab !== uiState.tabValue) {
+      setUiState(prev => ({ ...prev, tabValue: targetTab }));
+      // Load data for the new tab if it doesn't exist
+      if (!dashboardState.users[targetTab] || dashboardState.users[targetTab].length === 0) {
+        loadUsers(targetTab);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search, location.state]);
+  }, [tabValue, uiState.tabValue, dashboardState.users, location.search]);
 
   // Load initial data only once
   useEffect(() => {
-    // Don't load if coming back from detail page with preserved data
-    const preserveData = location.state?.preserveData;
-    if (preserveData) {
-      return;
-    }
-    
     // Only load if no data exists
     if (!dashboardState.stats || Object.keys(dashboardState.stats).length === 0) {
       loadDashboardData();
     }
-  }, [location.state]); // Add location.state as dependency
+    loadUsers(tabValue);
+  }, []);
 
   const loadDashboardData = async () => {
-    updateDashboardState({ loading: true, error: null });
+    // Don't show loading state - load silently in background
+    updateDashboardState({ error: null });
     
     try {
       const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
@@ -181,10 +164,18 @@ const AdminDashboard = () => {
         return;
       }
 
-      const [statsData, usersData] = await Promise.all([
+      // Load stats and users in parallel with pagination
+      const [statsData, usersResponse] = await Promise.all([
         getDashboardStats(),
-        getAllUsers({ userType: uiState.tabValue || 'tutors' })
+        getAllUsers({ 
+          userType: uiState.tabValue || 'tutors',
+          page: 1,
+          limit: 50 // Load more users for better performance
+        })
       ]);
+
+      // Handle both old and new response formats
+      const usersData = Array.isArray(usersResponse) ? usersResponse : usersResponse.users || [];
 
       setDashboardState(prev => ({
         ...prev,
@@ -194,9 +185,9 @@ const AdminDashboard = () => {
         lastUpdated: new Date()
       }));
 
-      showNotification('Data loaded successfully');
+      // Don't show success notification for background loading
     } catch (error) {
-      // console.error('Failed to load dashboard data:', error);
+      console.error('Failed to load dashboard data:', error);
       
       if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
         showNotification('Access denied. Please login with admin credentials.', 'error');
@@ -204,19 +195,11 @@ const AdminDashboard = () => {
           window.location.href = '/login';
         }, 2000);
       } else {
-        showNotification('Failed to load real data.', 'warning');
-        // Load mock data as fallback
-        const [statsData, usersData] = await Promise.all([
-          getDashboardStats(),
-          getAllUsers({ userType: uiState.tabValue || 'tutors' })
-        ]);
-        setDashboardState(prev => ({
-          ...prev,
-          stats: statsData,
-          users: { ...prev.users, [uiState.tabValue || 'tutors']: usersData },
+        // Don't show error notification for background loading
+        updateDashboardState({
           loading: false,
-          lastUpdated: new Date()
-        }));
+          error: error.message
+        });
       }
     }
   };
@@ -227,10 +210,18 @@ const AdminDashboard = () => {
       return;
     }
 
-    updateDashboardState({ loading: true });
+    // Don't show loading state - load silently in background
     
     try {
-      const usersData = await getAllUsers({ userType });
+      const usersResponse = await getAllUsers({ 
+        userType,
+        page: 1,
+        limit: 50 // Load more users for better performance
+      });
+      
+      // Handle both old and new response formats
+      const usersData = Array.isArray(usersResponse) ? usersResponse : usersResponse.users || [];
+      
       setDashboardState(prev => ({
         ...prev,
         users: { ...prev.users, [userType]: usersData },
@@ -238,11 +229,9 @@ const AdminDashboard = () => {
         lastUpdated: new Date()
       }));
 
-      if (usersData.length === 0) {
-        showNotification(`No ${userType} found in the database.`, 'info');
-      }
+      // Don't show notification for background loading
     } catch (error) {
-      // console.error('Failed to load users:', error);
+      console.error('Failed to load users:', error);
       
       if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
         showNotification('Access denied. Please login with admin credentials.', 'error');
@@ -250,7 +239,7 @@ const AdminDashboard = () => {
           window.location.href = '/login';
         }, 2000);
       } else {
-        // showNotification(`Failed to load ${userType}: ${error.message}`, 'error');
+        // Don't show error notification for background loading
         updateDashboardState({
           users: { ...dashboardState.users, [userType]: [] },
           loading: false
@@ -340,15 +329,15 @@ const AdminDashboard = () => {
   
 
   return (
-    <AdminLayout 
-      tabValue={uiState.tabValue}
-      userCounts={{
-        tutors: (dashboardState.users.tutors || []).length,
-        students: (dashboardState.users.students || []).length,
-        parents: (dashboardState.users.parents || []).length
-      }}
-      onTabChange={handleTabChange}
-    >
+    // <AdminLayout
+    //   tabValue={uiState.tabValue}
+    //   userCounts={{
+    //     tutors: (dashboardState.users.tutors || []).length,
+    //     students: (dashboardState.users.students || []).length,
+    //     parents: (dashboardState.users.parents || []).length
+    //   }}
+    //   onTabChange={handleTabChange}
+    // >
       <Box sx={{ p: 3 }}>
         <Fade in timeout={800}>
           <Box>
@@ -448,7 +437,6 @@ const AdminDashboard = () => {
                 onMenuClick={handleMenuClick}
                 onChangePage={handleChangePage}
                 onChangeRowsPerPage={handleChangeRowsPerPage}
-                loading={dashboardState.loading}
                 onRequestReload={handleRequestReload}
                 showNotification={showNotification}
               />
@@ -471,7 +459,7 @@ const AdminDashboard = () => {
           </Box>
         </Fade>
       </Box>
-    </AdminLayout>
+    // </AdminLayout>
   );
 };
 

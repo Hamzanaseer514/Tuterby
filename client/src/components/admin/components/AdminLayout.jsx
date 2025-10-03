@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Bars3Icon as MenuIcon,
   AcademicCapIcon,
@@ -28,7 +27,6 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
     parentsInactive: 0,
     chat: userCounts.chat || 0 
   });
-  const navigate = useNavigate();
 
   // Keep counts in sync with props (e.g., when pages pass in fresh totals)
   useEffect(() => {
@@ -80,33 +78,18 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
   }, []);
 
   const handleTabChange = (newTabValue) => {
-  // Update the active tab state
-  if (onTabChange) {
-    onTabChange({}, newTabValue);
-  }
-  
-  // Navigation logic
-  if (newTabValue === 'dashboard') {
-    navigate('/admin');
-  } else if (newTabValue === 'tutors' || newTabValue === 'students' || newTabValue === 'parents') {
-    navigate('/admin/users');
-  } else if (newTabValue === 'chat') {
-    navigate('/admin/chats');
-  } else if (newTabValue === 'tutor-sessions') {
-    navigate('/admin/tutor-sessions');
-  }else if (newTabValue === 'tutor-payments') {
-    navigate('/admin/tutor-payments');
-  } else if (newTabValue === 'tutor-reviews') {
-    navigate('/admin/tutor-reviews');
-  }
-  
-  setMobileOpen(false);
-};
+    // Update the active tab state
+    if (onTabChange) {
+      onTabChange(newTabValue);
+    }
+    
+    setMobileOpen(false);
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem('authToken');
     localStorage.removeItem('authToken');
-    navigate('/login');
+    window.location.href = '/login';
   };
 
   const navItems = [
@@ -275,7 +258,7 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
 
       <div className="border-t px-2 py-4">
         <button 
-          onClick={() => navigate('/admin/settings')}
+          onClick={() => handleTabChange('settings')}
           className={`flex items-center w-full px-3 py-2.5 text-sm rounded-lg transition-colors ${
             tabValue === 'settings'
               ? 'bg-blue-50 text-blue-600 font-medium'
@@ -332,7 +315,7 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           </div>
           <div className="border-t px-2 py-4">
             <button 
-              onClick={() => navigate('/admin/settings')}
+              onClick={() => handleTabChange('settings')}
               className="flex items-center w-full px-3 py-2.5 text-sm text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <Cog6ToothIcon className="h-5 w-5 mr-3 text-gray-500" />

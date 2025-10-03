@@ -222,6 +222,11 @@ exports.registerTutor = asyncHandler(async (req, res) => {
     throw new Error("Email already exists");
   }
 
+  if (age > 100) {
+    res.status(400);
+    throw new Error("Age must be less than 100");
+  }
+
   // ========================
   // 3️⃣ Password strength check
   // ========================

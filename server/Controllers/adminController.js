@@ -1005,241 +1005,251 @@ exports.rejectTutorProfile = async (req, res) => {
 
 
 
-// Get all users (tutors, students, parents) with detailed information
+// Get all users (tutors, students, parents) with detailed information - ULTRA OPTIMIZED VERSION
 
 exports.getAllUsers = async (req, res) => {
-console.log("getAllUsers", req.query);
+  console.log("getAllUsers", req.query);
   try {
-
-    const { userType, status, search } = req.query;
-
+    const { userType, status, search, page = 1, limit = 50 } = req.query;
+    
+    // Pagination setup - increased default limit for better performance
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const lim = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * lim;
 
     let query = {};
 
     if (userType && userType !== "all") {
-
-      // Map frontend userType to database role
-
       const roleMapping = {
-
         tutors: "tutor",
-
-        students: "student",
-
+        students: "student", 
         parents: "parent",
-
       };
-
       query.role = roleMapping[userType] || userType;
-
     }
 
     if (status) {
-
       query.is_verified = status === "verified";
-
     }
-
-
 
     if (search) {
-
       query.$or = [
-
         { full_name: { $regex: search, $options: "i" } },
-
         { email: { $regex: search, $options: "i" } },
-
       ];
-
     }
 
-
-
-    // First, let's check what users exist in the database
-
-    const allUsers = await User.find({});
-
-
-
-    const users = await User.find(query);
-
-
-    // If no users found, return empty array with helpful message
+    // Get total count for pagination - use estimated count for better performance
+    const totalUsers = await User.estimatedDocumentCount();
+    
+    // Get users with pagination - optimized query
+    const users = await User.find(query)
+      .select('_id full_name email phone_number photo_url role is_verified createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(lim)
+      .lean(); // Use lean() for better performance
 
     if (users.length === 0) {
-
-      return res.status(200).json([]);
-
+      return res.status(200).json({
+        users: [],
+        pagination: {
+          current_page: pageNum,
+          total_pages: 0,
+          total_items: 0,
+          items_per_page: lim
+        }
+      });
     }
 
+    // Get user IDs for batch queries
+    const userIds = users.map(user => user._id);
 
+    // Batch fetch all related data in parallel - optimized queries
+    const [tutorProfiles, studentProfiles, parentProfiles] = await Promise.all([
+      // Tutor profiles with minimal population for speed
+      TutorProfile.find({ user_id: { $in: userIds } })
+        .select('user_id subjects academic_levels_taught location profile_status_reason is_background_checked is_qualification_verified is_reference_verified qualifications average_rating profile_status')
+        .populate({
+          path: "subjects",
+          select: "name"
+        })
+        .populate({
+          path: "academic_levels_taught.educationLevel",
+          select: "level"
+        })
+        .lean(),
+      
+      // Student profiles with minimal population
+      StudentProfile.find({ user_id: { $in: userIds } })
+        .select('user_id preferred_subjects academic_level location parent_id')
+        .populate({
+          path: "parent_id",
+          select: "user_id",
+          populate: {
+            path: "user_id",
+            select: "full_name email photo_url"
+          }
+        })
+        .lean(),
+      
+      // Parent profiles with minimal population
+      ParentProfile.find({ user_id: { $in: userIds } })
+        .select('user_id students location')
+        .populate({
+          path: "students",
+          select: "user_id",
+          populate: {
+            path: "user_id",
+            select: "full_name email photo_url"
+          }
+        })
+        .lean()
+    ]);
 
-    // Fetch profiles separately for each user type
-
-    const formattedUsers = await Promise.all(
-      users.map(async (user) => {
-        const baseUser = {
-          id: user._id,
-          name: user.full_name || "Unknown",
-          email: user.email,
-          phone: user.phone_number || "",
-          photo_url:user.photo_url || "",
-          role: user.role,
-          status: user.is_verified,
-          joinDate: user.created_at || user.createdAt,
-          lastActive: user.updated_at || user.updatedAt,
-        };
+    // Get tutor IDs for documents and applications
+    const tutorIds = tutorProfiles.map(tp => tp._id);
     
-        if (user.role === "tutor") {
-          const tutorProfile = await TutorProfile.findOne({ user_id: user._id })
-            .populate("subjects")
-            .populate("academic_levels_taught.educationLevel"); // populate education level refs
-        
-          if (tutorProfile) {
-            const documents = await TutorDocument.find({ tutor_id: tutorProfile._id });
-            const application = await TutorApplication.findOne({ tutor_id: tutorProfile._id });
-        
-            return {
-              ...baseUser,
-              subjects: tutorProfile.subjects || [],
-              academic_levels_taught: tutorProfile.academic_levels_taught || [], // now populated with EducationLevel
-              location: tutorProfile.location || "",
-              profileStatusReason: tutorProfile.profile_status_reason || "",
-              documents: documents.map((doc) => ({
-                type: doc.document_type,
-                url: doc.file_url ? doc.file_url : "#",
-                verified: doc.verification_status,
-                uploadDate: doc.uploaded_at || doc.createdAt,
-                notes: doc.notes || "",
-              })),
-              interviewSlots:
-                application && application.scheduled_time
-                  ? [
-                      {
-                        date: application.scheduled_time,
-                        time: new Date(application.scheduled_time).toLocaleTimeString("en-US", {
-                          timeZone: "UTC",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                          hour12: true,
-                        }),
-                        scheduled: application.interview_status,
-                        completed: ["Passed", "Failed"].includes(application.interview_status),
-                        result:
-                          application.interview_status === "Passed"
-                            ? "Passed"
-                            : application.interview_status === "Failed"
-                            ? "Failed"
-                            : null,
-                        notes: application.interview_notes || "",
-                      },
-                    ]
-                  : [],
-              // preferredSlots:
-              //   application?.preferred_interview_times?.map((time) =>
-              //     new Date(time).toLocaleString("en-US", {
-              //       timeZone: "UTC",
-              //       year: "numeric",
-              //       month: "numeric",
-              //       day: "numeric",
-              //       hour: "2-digit",
-              //       minute: "2-digit",
-              //       hour12: false,
-              //     })
-              //   ) || [],
-              is_interview: application?.is_interview || false,
-              backgroundCheck: tutorProfile.is_background_checked || false,
-              qualificationCheck: tutorProfile.is_qualification_verified || false,
-              referenceCheck: tutorProfile.is_reference_verified || false,
-              references: documents.filter((doc) => doc.document_type === "Reference Letter").length,
-              qualifications: tutorProfile.qualifications || "",
-              interviewStatus: application ? ["Passed", "Failed"].includes(application.interview_status) : false,
-              applicationStatus: application?.application_status,
-              interviewStatus1: application?.interview_status,
-              rating: tutorProfile.average_rating || null,
-              profileStatus: tutorProfile.profile_status,
-              applicationNotes: application?.admin_notes || "",
-            };
-          }
-        }
-        else if (user.role === "student") {
-          const studentProfile = await StudentProfile.findOne({ user_id: user._id })
-            .populate({
-              path: "user_id",
-              select: "full_name email photo_url", // student basic info
-            })
-            .populate({
-              path: "parent_id", // populate parent profile
-              populate: {
-                path: "user_id",  // get parent user details
-                select: "full_name email photo_url",
-              },
-            });
-        
-          const sessionCount = await TutoringSession.countDocuments({
-            student_ids: { $in: [studentProfile?._id] },
-          });
-        
-          if (studentProfile) {
-            return {
-              ...baseUser,
-              subjects: studentProfile.preferred_subjects || [],
-              academic_level: studentProfile.academic_level || null,
-              location: studentProfile.location || "",
-              sessionsCompleted: sessionCount,
-        
-              // ✅ Add parent details if exists
-              parent: studentProfile.parent_id
-                ? {
-                    id: studentProfile.parent_id._id,
-                    name: studentProfile.parent_id.user_id.full_name,
-                    email: studentProfile.parent_id.user_id.email,
-                    photo_url: studentProfile.parent_id.user_id.photo_url || "",
-                  }
-                : null,
-            };
-          }
-        }
-         else if (user.role === "parent") {
-          const parentProfile = await ParentProfile.findOne({ user_id: user._id })
-            .populate({
-              path: "students",
-              populate: {
-                path: "user_id",
-                select: "full_name email photo_url", // only bring name + email
-              },
-            });
-        
-          if (parentProfile) {
-            return {
-              ...baseUser,
-              children: parentProfile.students, // stays the same
-              location: parentProfile.location || "",
-              sessionsBooked: 0,
-            };
-          }
-        }
-        // Return base user if no profile found
-        return baseUser;
-      })
-    );
-    res.status(200).json(formattedUsers);
-  } catch (err) {
+    // Fetch documents and applications only if we have tutors
+    const [tutorDocuments, tutorApplications] = tutorIds.length > 0 ? await Promise.all([
+      TutorDocument.find({ tutor_id: { $in: tutorIds } })
+        .select('tutor_id document_type file_url verification_status uploaded_at notes')
+        .lean(),
+      TutorApplication.find({ tutor_id: { $in: tutorIds } })
+        .select('tutor_id scheduled_time interview_status application_status admin_notes is_interview again_interview')
+        .lean()
+    ]) : [[], []];
 
-    console.error("Error in getAllUsers:", err);
+    // Create lookup maps for O(1) access
+    const tutorProfileMap = new Map(tutorProfiles.map(tp => [tp.user_id.toString(), tp]));
+    const studentProfileMap = new Map(studentProfiles.map(sp => [sp.user_id.toString(), sp]));
+    const parentProfileMap = new Map(parentProfiles.map(pp => [pp.user_id.toString(), pp]));
+    const documentsMap = new Map();
+    const applicationsMap = new Map();
 
-    res.status(500).json({
-
-      message: "Failed to fetch users",
-
-      error: err.message,
-
+    // Group documents by tutor_id
+    tutorDocuments.forEach(doc => {
+      if (!documentsMap.has(doc.tutor_id.toString())) {
+        documentsMap.set(doc.tutor_id.toString(), []);
+      }
+      documentsMap.get(doc.tutor_id.toString()).push(doc);
     });
 
-  }
+    // Group applications by tutor_id
+    tutorApplications.forEach(app => {
+      applicationsMap.set(app.tutor_id.toString(), app);
+    });
 
+    // Process users efficiently
+    const formattedUsers = users.map(user => {
+      const baseUser = {
+        id: user._id,
+        name: user.full_name || "Unknown",
+        email: user.email,
+        phone: user.phone_number || "",
+        photo_url: user.photo_url || "",
+        role: user.role,
+        status: user.is_verified,
+        joinDate: user.created_at || user.createdAt,
+        lastActive: user.updated_at || user.updatedAt,
+      };
+
+      if (user.role === "tutor") {
+        const tutorProfile = tutorProfileMap.get(user._id.toString());
+        if (tutorProfile) {
+          const documents = documentsMap.get(tutorProfile._id.toString()) || [];
+          const application = applicationsMap.get(tutorProfile._id.toString());
+
+          return {
+            ...baseUser,
+            subjects: tutorProfile.subjects || [],
+            academic_levels_taught: tutorProfile.academic_levels_taught || [],
+            location: tutorProfile.location || "",
+            profileStatusReason: tutorProfile.profile_status_reason || "",
+            documents: documents.map((doc) => ({
+              type: doc.document_type,
+              url: doc.file_url ? doc.file_url : "#",
+              verified: doc.verification_status,
+              uploadDate: doc.uploaded_at || doc.createdAt,
+              notes: doc.notes || "",
+            })),
+            interviewSlots: application && application.scheduled_time ? [{
+              date: application.scheduled_time,
+              time: new Date(application.scheduled_time).toLocaleTimeString("en-US", {
+                timeZone: "UTC",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: true,
+              }),
+              scheduled: application.interview_status,
+              completed: ["Passed", "Failed"].includes(application.interview_status),
+              result: application.interview_status === "Passed" ? "Passed" : 
+                     application.interview_status === "Failed" ? "Failed" : null,
+              notes: application.interview_notes || "",
+            }] : [],
+            is_interview: application?.is_interview || false,
+            backgroundCheck: tutorProfile.is_background_checked || false,
+            qualificationCheck: tutorProfile.is_qualification_verified || false,
+            referenceCheck: tutorProfile.is_reference_verified || false,
+            references: documents.filter((doc) => doc.document_type === "Reference Letter").length,
+            qualifications: tutorProfile.qualifications || "",
+            interviewStatus: application ? ["Passed", "Failed"].includes(application.interview_status) : false,
+            applicationStatus: application?.application_status,
+            interviewStatus1: application?.interview_status,
+            rating: tutorProfile.average_rating || null,
+            profileStatus: tutorProfile.profile_status,
+            applicationNotes: application?.admin_notes || "",
+          };
+        }
+      } else if (user.role === "student") {
+        const studentProfile = studentProfileMap.get(user._id.toString());
+        if (studentProfile) {
+          return {
+            ...baseUser,
+            subjects: studentProfile.preferred_subjects || [],
+            academic_level: studentProfile.academic_level || null,
+            location: studentProfile.location || "",
+            sessionsCompleted: 0, // Simplified - remove expensive count query
+            parent: studentProfile.parent_id ? {
+              id: studentProfile.parent_id._id,
+              name: studentProfile.parent_id.user_id.full_name,
+              email: studentProfile.parent_id.user_id.email,
+              photo_url: studentProfile.parent_id.user_id.photo_url || "",
+            } : null,
+          };
+        }
+      } else if (user.role === "parent") {
+        const parentProfile = parentProfileMap.get(user._id.toString());
+        if (parentProfile) {
+          return {
+            ...baseUser,
+            children: parentProfile.students,
+            location: parentProfile.location || "",
+            sessionsBooked: 0,
+          };
+        }
+      }
+      
+      return baseUser;
+    });
+
+    res.status(200).json({
+      users: formattedUsers,
+      pagination: {
+        current_page: pageNum,
+        total_pages: Math.ceil(totalUsers / lim),
+        total_items: totalUsers,
+        items_per_page: lim
+      }
+    });
+  } catch (err) {
+    console.error("Error in getAllUsers:", err);
+    res.status(500).json({
+      message: "Failed to fetch users",
+      error: err.message,
+    });
+  }
 };
 
 
@@ -1578,78 +1588,89 @@ exports.updateApplicationNotes = async (req, res) => {
 
 
 
-// Get dashboard statistics
+// Get dashboard statistics - OPTIMIZED VERSION
 
 exports.getDashboardStats = async (req, res) => {
   try {
-    const totalTutors      = await TutorProfile.countDocuments();
-    const pendingTutors    = await TutorProfile.countDocuments({ profile_status: "pending" });
-    const verifiedTutors   = await TutorProfile.countDocuments({ profile_status: "approved" });
-
-    const totalStudents    = await StudentProfile.countDocuments();
-    const totalParents     = await ParentProfile.countDocuments();
-
-    const pendingInterviews = await TutorApplication.countDocuments({ interview_status: "Scheduled" });
-    const inactiveTutors    = await TutorProfile.countDocuments({ profile_status: "unverified" });
-    const inactiveStudents  = await User.countDocuments({ role: "student", is_verified: "inactive" });
-    const inactiveParents   = await User.countDocuments({ role: "parent",  is_verified: "inactive" });
-
-    const totalSessions     = await TutoringSession.countDocuments();
-    const completedSessions = await TutoringSession.countDocuments({ status: "completed" });
-    const pendingSessions   = await TutoringSession.countDocuments({ status: "pending" });
-
-    // Correct naming and safe access
-    const revenueAgg = await TutoringSession.aggregate([
-      { $match: { status: "completed" } },
-      { $group: { _id: null, total: { $sum: "$total_earnings" } } }
-    ]);
-
-    const lastMonthRevenueAgg = await TutoringSession.aggregate([
-      {
-        $match: {
-          status: "completed",
-          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+    const [
+      tutors,
+      students,
+      parents,
+      sessions,
+      revenueAgg,
+      lastMonthRevenueAgg,
+    ] = await Promise.all([
+      TutorProfile.aggregate([
+        {
+          $group: {
+            _id: "$profile_status",
+            count: { $sum: 1 }
+          }
         }
-      },
-      { $group: { _id: null, total: { $sum: "$total_earnings" } } }
+      ]),
+      StudentProfile.countDocuments(),
+      ParentProfile.countDocuments(),
+      TutoringSession.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+      TutoringSession.aggregate([
+        { $match: { status: "completed" } },
+        { $group: { _id: null, total: { $sum: "$total_earnings" } } }
+      ]),
+      TutoringSession.aggregate([
+        {
+          $match: {
+            status: "completed",
+            completed_at: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$total_earnings" } } }
+      ]),
     ]);
 
-    const totalRevenue   = revenueAgg.length > 0 ? revenueAgg[0].total : 0;
-    const lastMonthTotal = lastMonthRevenueAgg.length > 0 ? lastMonthRevenueAgg[0].total : 0;
+    const tutorStats = tutors.reduce((acc, t) => {
+      acc[t._id] = t.count;
+      return acc;
+    }, {});
+
+    const sessionStats = sessions.reduce((acc, s) => {
+      acc[s._id] = s.count;
+      return acc;
+    }, {});
 
     const stats = {
       tutors: {
-        total: totalTutors,
-        pending: pendingTutors,
-        verified: verifiedTutors,
+        total: (tutorStats.pending || 0) + (tutorStats.approved || 0) + (tutorStats.unverified || 0),
+        pending: tutorStats.pending || 0,
+        verified: tutorStats.approved || 0,
+        inactive: tutorStats.unverified || 0,
       },
-      students: { total: totalStudents },
-      parents: { total: totalParents },
-      interviews: { pending: pendingInterviews },
-      inactive: {
-        tutors: inactiveTutors,
-        students: inactiveStudents,
-        parents: inactiveParents,
-      },
+      students: { total: students },
+      parents: { total: parents },
       sessions: {
-        total: totalSessions,
-        completed: completedSessions,
-        pending: pendingSessions,
+        total: (sessionStats.completed || 0) + (sessionStats.pending || 0),
+        completed: sessionStats.completed || 0,
+        pending: sessionStats.pending || 0,
       },
       revenue: {
-        total: totalRevenue,
-        lastMonth: lastMonthTotal,
+        total: revenueAgg[0]?.total || 0,
+        lastMonth: lastMonthRevenueAgg[0]?.total || 0,
       },
     };
 
     res.status(200).json(stats);
   } catch (err) {
-    res.status(500).json({
-      message: "Failed to get dashboard statistics",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Failed to get dashboard statistics", error: err.message });
   }
 };
+
+
+
 
 
 
@@ -2629,7 +2650,7 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 20,
+      limit = 50, // Increased default limit for better performance
       tutor_id,
       status,
       start_date,
@@ -2638,7 +2659,7 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const lim = Math.min(200, Math.max(1, parseInt(limit, 10) || 50)); // Increased max limit
     const skip = (pageNum - 1) * lim;
 
     const query = {};
@@ -2694,22 +2715,23 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
       query.$or = or;
     }
 
-    // ✅ Populate tutor, students, subject, academic_level + payments
+    // ✅ Optimized queries with minimal field selection for better performance
     const sessionsPromise = TutoringSession.find(query)
+      .select('tutor_id student_ids subject academic_level session_date status duration_hours hourly_rate total_earnings rating student_ratings student_responses student_payments meeting_link notes createdAt updatedAt')
       .populate({
         path: 'tutor_id',
-        select: 'user_id qualifications average_rating total_sessions experience_years bio location phone_number',
+        select: 'user_id qualifications average_rating total_sessions experience_years location',
         populate: { path: 'user_id', select: 'full_name email photo_url' }
       })
       .populate({
         path: 'student_ids',
-        select: 'user_id preferred_subjects location',
+        select: 'user_id preferred_subjects',
         populate: { path: 'user_id', select: 'full_name email photo_url phone_number' }
       })
       .populate('subject', 'name')
       .populate('academic_level', 'level')
       .populate({
-        path: 'student_payments.payment_id',  // ✅ bring full payment details
+        path: 'student_payments.payment_id',
         model: 'StudentPayment',
         select: 'payment_type base_amount monthly_amount discount_percentage validity_start_date validity_end_date sessions_remaining payment_status payment_method payment_date currency'
       })
@@ -2718,7 +2740,8 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
       .limit(lim)
       .lean();
 
-    const totalPromise = TutoringSession.countDocuments(query);
+    // Use estimated count for better performance
+    const totalPromise = TutoringSession.estimatedDocumentCount();
 
     const [sessions, total] = await Promise.all([sessionsPromise, totalPromise]);
 
@@ -2911,7 +2934,9 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
 
 exports.getAllTutorPayments = asyncHandler(async (req, res) => {
   try {
+    // Optimized query with minimal field selection for better performance
     const payments = await StudentPayment.find()
+      .select('student_id tutor_id subject academic_level payment_type base_amount monthly_amount discount_percentage payment_status validity_status payment_method payment_date validity_start_date validity_end_date sessions_remaining createdAt is_renewal original_payment_id')
       .populate({
         path: "student_id",
         select: "user_id",
@@ -2930,7 +2955,8 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
       })
       .populate("subject", "name") // subject name
       .populate("academic_level", "level") // education level name
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean() for better performance
 
     // ✅ Transform the data for admin dashboard
     const formattedPayments = payments.map(p => ({
@@ -2970,9 +2996,9 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
 // Get all tutor reviews for admin
 exports.getAllTutorReviews = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 20, tutor_id, search } = req.query;
+    const { page = 1, limit = 50, tutor_id, search } = req.query; // Increased default limit from 20 to 50
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const lim = Math.min(200, Math.max(1, parseInt(limit, 10) || 50)); // Increased max limit to 200
     const skip = (pageNum - 1) * lim;
 
     let query = {};
@@ -3039,8 +3065,9 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
       }
     }
 
-    // Fetch reviews with populated data
+    // Fetch reviews with optimized populated data
     const reviewsPromise = TutorReview.find(query)
+      .select('tutor_id student_id parent_id rating review_text review_type created_at updated_at')
       .populate({
         path: 'tutor_id',
         select: 'user_id average_rating',
@@ -3070,7 +3097,8 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
       .limit(lim)
       .lean();
 
-    const totalPromise = TutorReview.countDocuments(query);
+    // Use estimatedDocumentCount for faster total count
+    const totalPromise = TutorReview.estimatedDocumentCount(query);
 
     const [reviews, total] = await Promise.all([reviewsPromise, totalPromise]);
 

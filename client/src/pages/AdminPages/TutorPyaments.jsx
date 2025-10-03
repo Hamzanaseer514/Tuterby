@@ -40,7 +40,6 @@ import {
     Grid,
     Card,
     CardContent,
-    CircularProgress,
     Alert,
     Snackbar,
     Dialog,
@@ -69,7 +68,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { BASE_URL } from "../../config";
-import { getAuthToken } from '../../services/adminService';
+import { getAuthToken, getAllTutorPayments } from '../../services/adminService';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 
 // Styled components
@@ -171,7 +170,7 @@ const TutorPayments = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // Start with false for instant loading
     const [error, setError] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -179,34 +178,23 @@ const TutorPayments = () => {
 
     // Fetch payments data from API
     const fetchPayments = async () => {
-        setIsLoading(true);
+        // Don't show loading state - load silently in background
         setError(null);
         try {
-            const token = getAuthToken();
-            const response = await fetch(`${BASE_URL}/api/admin/tutor-payments`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            const response = await getAllTutorPayments();
 
-            const data = await response.json();
-            if (data.success) {
-                setPayments(data.payments);
-                setFilteredPayments(data.payments);
+            if (response.success) {
+                setPayments(response.payments);
+                setFilteredPayments(response.payments);
             } else {
-                throw new Error(data.message || 'Failed to fetch payments');
+                throw new Error(response.message || 'Failed to fetch payments');
             }
         } catch (err) {
             console.error('Error fetching payments:', err);
             setError(err.message);
             setSnackbar({ open: true, message: `Error: ${err.message}`, severity: 'error' });
-        } finally {
-            setIsLoading(false);
         }
+        // Don't set loading to false - keep it false for instant loading
     };
 
     useEffect(() => {
@@ -286,7 +274,7 @@ const TutorPayments = () => {
     };
 
     return (
-        <AdminLayout tabValue="payments">
+        // <AdminLayout tabValue="payments">
             <Box p={3}>
                 <Snackbar
                     open={snackbar.open}
@@ -454,26 +442,8 @@ const TutorPayments = () => {
                     </Box>
                 </Paper>
 
-                {/* Loading state */}
-                {isLoading && (
-                    <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                        <CircularProgress size={60} />
-                    </Box>
-                )}
-
-                {/* Error state
-                {error && !isLoading && (
-                    <Alert severity="error" sx={{ mb: 3 }}>
-                        Error loading payments: {error}.
-                        <Box component="span" sx={{ ml: 1, cursor: 'pointer', textDecoration: 'underline' }} onClick={fetchPayments}>
-                            Try again
-                        </Box>
-                    </Alert>
-                )} */}
-
                 {/* Payments Table */}
-                {!isLoading && (
-                    <PaymentTableContainer>
+                <PaymentTableContainer>
                         <TableContainer sx={{ maxHeight: 600 }}>
                             <Table stickyHeader>
                                 <TableHead>
@@ -604,7 +574,6 @@ const TutorPayments = () => {
                             </Table>
                         </TableContainer>
                     </PaymentTableContainer>
-                )}
 
                 {/* Payment Detail Modal */}
                 <Dialog
@@ -978,7 +947,7 @@ const TutorPayments = () => {
                 </Dialog>
 
             </Box>
-        </AdminLayout>
+        //  </AdminLayout> 
     );
 };
 

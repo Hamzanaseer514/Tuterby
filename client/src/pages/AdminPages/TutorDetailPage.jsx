@@ -552,7 +552,7 @@ const getAcademicLevel = (level) => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
+            <IconButton onClick={() => navigate("/admin/users?tab=tutors", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center" }}>

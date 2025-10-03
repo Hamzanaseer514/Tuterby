@@ -41,10 +41,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
+
   is_verified: {
     type: String,
     enum: ['active', 'inactive', 'partial_active'],

@@ -27,8 +27,8 @@ const Register = lazy(() => import("./components/account/register"));
 const AdminDashboard = lazy(() =>
   import("./components/admin/components/AdminDashboard")
 );
-const AdminDashboardPage = lazy(() =>
-  import("./pages/AdminPages/AdminDashboardPage")
+const UnifiedAdminDashboard = lazy(() =>
+  import("./pages/AdminPages/UnifiedAdminDashboard")
 );
 const AdminUserDetailRouter = lazy(() =>
   import("./pages/AdminPages/AdminUserDetailRouter")
@@ -118,28 +118,28 @@ function App() {
               />
               <Route path="/register" element={<Register />} />
               <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboardPage />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/user-detail/:tabValue" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <AdminUserDetailRouter />
               </ProtectedRoute>} />
               <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <AdminSettings />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/chats" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <Chats />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/tutor-sessions" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <TutorSessionsPage />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/tutor-payments" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <TutorPayments />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/tutor-reviews" element={<ProtectedRoute allowedRoles={["admin"]}>
-                <TutorReviewsPage />
+                <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>

@@ -17,7 +17,7 @@ import { BASE_URL } from "../../config";
 
 const TutorReviewsPage = () => {
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false for instant loading
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTutor, setSelectedTutor] = useState(null);
@@ -27,12 +27,12 @@ const TutorReviewsPage = () => {
   const [showTutorList, setShowTutorList] = useState(true);
   const [tutorsWithReviews, setTutorsWithReviews] = useState([]);
 
-  const reviewsPerPage = 10;
+  const reviewsPerPage = 50; // Increased from 10 for better performance
 
   // Fetch all reviews and group by tutor
   const fetchReviews = async (page = 1, search = '', tutorId = '') => {
     try {
-      setLoading(true);
+      // Don't show loading state - load silently in background
       const filters = {
         page,
         limit: reviewsPerPage,
@@ -78,9 +78,8 @@ const TutorReviewsPage = () => {
     } catch (err) {
       setError('Failed to fetch reviews');
       console.error('Error fetching reviews:', err);
-    } finally {
-      setLoading(false);
     }
+    // Don't set loading to false - keep it false for instant loading
   };
 
   useEffect(() => {
@@ -256,16 +255,6 @@ const TutorReviewsPage = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <AdminLayout tabValue="tutor-reviews">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
   if (error) {
     return (
       <AdminLayout tabValue="tutor-reviews">
@@ -277,7 +266,7 @@ const TutorReviewsPage = () => {
   }
 
   return (
-    <AdminLayout tabValue="tutor-reviews">
+    // <AdminLayout tabValue="tutor-reviews">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -402,7 +391,7 @@ const TutorReviewsPage = () => {
           </div>
         )}
       </div>
-    </AdminLayout>
+    // </AdminLayout>
   );
 };
 

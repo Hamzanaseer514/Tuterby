@@ -5,7 +5,6 @@ import {
   Grid,
   Card,
   CardContent,
-  Skeleton,
   Button,
   useTheme,
   useMediaQuery,
@@ -85,11 +84,11 @@ const TutorSessionsPage = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false for instant loading
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 20,
+    limit: 50, // Increased default limit for better performance
     search: '',
     status: '',
     tutor_id: '',
@@ -100,7 +99,7 @@ const TutorSessionsPage = () => {
     current_page: 1,
     total_pages: 1,
     total_items: 0,
-    items_per_page: 20
+    items_per_page: 50 // Increased default for better performance
   });
   const [stats, setStats] = useState({
     total_sessions: 0,
@@ -119,7 +118,7 @@ const TutorSessionsPage = () => {
 
   const loadSessions = async () => {
     try {
-      setLoading(true);
+      // Don't show loading state - load silently in background
       setError(null);
 
       const response = await getAllTutorSessions(filters);
@@ -134,9 +133,8 @@ const TutorSessionsPage = () => {
     } catch (error) {
       console.error('Error loading sessions:', error);
       setError(error.message || 'Failed to load sessions');
-    } finally {
-      setLoading(false);
     }
+    // Don't set loading to false - keep it false for instant loading
   };
 
   useEffect(() => {
@@ -836,21 +834,7 @@ const TutorSessionsPage = () => {
     if (isMobile) {
       return (
         <Box>
-          {loading ? (
-            // Mobile loading skeleton
-            [...Array(5)].map((_, index) => (
-              <Card key={index} sx={{ mb: 2, p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box sx={{ flex: 1 }}>
-                    <Skeleton variant="text" width="60%" />
-                    <Skeleton variant="text" width="40%" />
-                    <Skeleton variant="text" width="50%" />
-                  </Box>
-                  <Skeleton variant="circular" width={40} height={40} />
-                </Box>
-              </Card>
-            ))
-          ) : sessions.length === 0 ? (
+          {sessions.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <BookOnline sx={{ fontSize: 60, color: 'grey.300', mb: 1 }} />
               <Typography variant="h6" color="text.secondary">
@@ -976,28 +960,7 @@ const TutorSessionsPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading ? (
-              // Desktop loading skeleton
-              [...Array(5)].map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell><Skeleton variant="text" /></TableCell>
-
-                  {/* Cells visible only on md and up */}
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><Skeleton variant="text" /></TableCell>
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><Skeleton variant="text" /></TableCell>
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><Skeleton variant="text" /></TableCell>
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><Skeleton variant="text" /></TableCell>
-
-                  <TableCell><Skeleton variant="text" /></TableCell>
-
-                  {/* Cells visible only on sm and up */}
-                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}><Skeleton variant="text" /></TableCell>
-                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}><Skeleton variant="text" /></TableCell>
-
-                  <TableCell><Skeleton variant="circular" width={40} height={40} /></TableCell>
-                </TableRow>
-              ))
-            ) : sessions.length === 0 ? (
+            {sessions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                   <Box sx={{ textAlign: 'center' }}>
@@ -1134,7 +1097,7 @@ const TutorSessionsPage = () => {
   };
 
   return (
-    <AdminLayout tabValue="tutor-sessions">
+    // <AdminLayout tabValue="tutor-sessions">
       <Box sx={{ p: isMobile ? 1 : 3 }}>
         {/* Header */}
         <Box sx={{
@@ -1417,7 +1380,7 @@ const TutorSessionsPage = () => {
           }}
         />
       </Box>
-    </AdminLayout>
+    // </AdminLayout>
   );
 };
 
