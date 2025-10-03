@@ -2,7 +2,8 @@ const express = require("express")
 const router = express.Router()
 const { registerUser, registerTutor, registerParent, loginUser, verifyOtp, resendOtp,
   addAdmin, forgotPassword, resetPassword,
-  registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth } = require("../Controllers/UserController")
+  registerStudentWithGoogle, loginWithGoogle, testGoogleOAuth,
+  sendEmailVerification, verifyEmail } = require("../Controllers/UserController")
 const { getStudentDashboard, updateStudentProfile,
   getStudentSessions, searchTutors, getTutorDetails,
   requestAdditionalHelp, getStudentHelpRequests, hireTutor,
@@ -57,6 +58,8 @@ router.post("/logout", logoutUser);
 
 router.post("/verify-otp", verifyOtp)
 router.post("/resend-otp", resendOtp)
+router.post("/send-email-verification", sendEmailVerification)
+router.post("/verify-email", verifyEmail)
 router.post("/add-admin", addAdmin)
 router.post("/forget-password", forgotPassword)
 router.put("/reset-password", resetPassword)

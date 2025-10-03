@@ -4,8 +4,11 @@ import { BASE_URL } from '@/config';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { useSubject } from '../../hooks/useSubject';
+import { useToast } from '../../components/ui/use-toast';
+import { AlertCircle, CheckCircle, Mail, Send } from 'lucide-react';
 
 function buildImageUrl(raw) {
   if (!raw) return '';
@@ -32,8 +35,14 @@ function toArray(value) {
 
 const StudentSelfProfilePage = () => {
   const { user, getAuthToken, fetchWithAuth } = useAuth();
+  const { toast } = useToast();
   const token = getAuthToken();
   const [loading, setLoading] = useState(true);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationOtp, setVerificationOtp] = useState('');
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
+  const [emailVerificationStatus, setEmailVerificationStatus] = useState(null);
 
   // ✅ safe defaults
   const [baseUser, setBaseUser] = useState({
@@ -41,7 +50,8 @@ const StudentSelfProfilePage = () => {
     email: '',
     photo_url: '',
     phone_number: '',
-    age: null
+    age: null,
+    isEmailVerified: false
   });
 
   const [profile, setProfile] = useState({
@@ -89,13 +99,19 @@ const StudentSelfProfilePage = () => {
       const userJson = await userRes.json();
       const profileJson = await profileRes.json();
 
+      const isEmailVerified = userJson?.isEmailVerified || false;
+      
       setBaseUser({
         full_name: userJson?.full_name || '',
         email: userJson?.email || '',
         photo_url: userJson?.photo_url || '',
         phone_number: userJson?.phone_number || '',
-        age: userJson?.age || null
+        age: userJson?.age || null,
+        isEmailVerified: isEmailVerified
       });
+
+      // Set email verification status immediately to prevent flash
+      setEmailVerificationStatus(isEmailVerified);
 
       setProfile({
         academic_level: profileJson?.student?.academic_level || '',
@@ -111,6 +127,95 @@ const StudentSelfProfilePage = () => {
   const matchAcademicLevel = (level) => {
     const matchedLevel = (academicLevels || []).find(l => l._id === level);
     return matchedLevel ? matchedLevel.level : '';
+  };
+
+  const handleSendVerification = async () => {
+    try {
+      setSendingVerification(true);
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/send-email-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user._id }),
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Verification Email Sent",
+          description: `A verification code has been sent to ${baseUser.email}`,
+        });
+        setShowVerificationForm(true);
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to send verification email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send verification email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!verificationOtp.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter the verification code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/verify-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userId: user._id, 
+          otp: verificationOtp 
+        }),
+      }, token, (newToken) => localStorage.setItem("authToken", newToken));
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Email Verified",
+          description: "Your email has been successfully verified!",
+        });
+        setBaseUser(prev => ({ ...prev, isEmailVerified: true }));
+        setEmailVerificationStatus(true);
+        setShowVerificationForm(false);
+        setVerificationOtp('');
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to verify email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify email",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const preferredSubjects = toArray(profile.preferred_subjects);
@@ -166,7 +271,25 @@ const StudentSelfProfilePage = () => {
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">{baseUser.full_name || 'Student'}</h1>
-              <p className="text-sm text-gray-600">{baseUser.email || '—'}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-gray-600">{baseUser.email || '—'}</p>
+                {emailVerificationStatus === null ? (
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                    <span className="text-xs">Loading...</span>
+                  </div>
+                ) : emailVerificationStatus ? (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-xs">Verified</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-red-600">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-xs">Unverified</span>
+                  </div>
+                )}
+              </div>
               {baseUser.age && (
                 <p className="text-sm text-gray-600 mt-1">Age: {baseUser.age}</p>
               )}
@@ -174,6 +297,70 @@ const StudentSelfProfilePage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email Verification Section */}
+      {emailVerificationStatus === false && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <Mail className="w-5 h-5" />
+              Email Verification Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-orange-700">
+              Your email address is not verified. Please verify your email to access all features and ensure account security.
+            </p>
+            
+            {!showVerificationForm ? (
+              <Button 
+                onClick={handleSendVerification}
+                disabled={sendingVerification}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {sendingVerification ? 'Sending...' : 'Send Verification Email'}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="verification-otp">Enter Verification Code</Label>
+                  <Input
+                    id="verification-otp"
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={verificationOtp}
+                    onChange={(e) => setVerificationOtp(e.target.value)}
+                    maxLength={6}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-orange-600 mt-1">
+                    Check your email for the verification code
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleVerifyEmail}
+                    disabled={verifying || !verificationOtp.trim()}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    {verifying ? 'Verifying...' : 'Verify Email'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setShowVerificationForm(false);
+                      setVerificationOtp('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* About + Preferred Subjects */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

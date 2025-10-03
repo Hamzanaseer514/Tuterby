@@ -1,6 +1,8 @@
 const express = require("express");
 const app = express();
 require("dotenv").config();
+const router = express.Router();
+
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -76,6 +78,13 @@ app.use(
     credentials: true, // agar cookies ya authentication bhejna ho
   })
 );
+// app.use(
+//   cors({
+//     origin: process.env.FRONTEND_URL, // tumhare React/Vite frontend ka port
+//     credentials: true, // agar cookies ya authentication bhejna ho
+//   })
+// );
+
 app.use(express.json()); // For JSON requests
 app.use(express.urlencoded({ extended: true })); // For form data
 app.use(cookieParser());
@@ -91,7 +100,6 @@ const adminRoutes = require("./Routes/adminRoutes");
 const paymentRoutes = require("./Routes/PaymentRoute");
 const parentRoutes = require("./Routes/ParentRoutes");
 const publicRoutes = require("./Routes/publicRoutes");
-const router = express.Router();
 
 // Mount Routes
 app.use("/api/auth", UserRoute);
@@ -100,6 +108,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/parent", parentRoutes);
 app.use("/api/public", publicRoutes);
+
 
 router.get('/', (req, res) => {
   res.send("Hi, TutorNearby");

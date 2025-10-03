@@ -32,6 +32,11 @@ const Rules = require("../Models/Rules");
 const mongoose = require("mongoose");
 
 const sendEmail = require("../Utils/sendEmail");
+const { 
+  generateTutorApprovalEmail, 
+  generateTutorRejectionEmail, 
+  generateTutorPartialApprovalEmail 
+} = require("../Utils/tutorEmailTemplates");
 
 const generateOtpEmail = require("../Utils/otpTempelate");
 
@@ -750,14 +755,11 @@ exports.approveTutorProfile = async (req, res) => {
 
 
 
+    const emailContent = generateTutorApprovalEmail(user.full_name, reason);
     await sendEmail(
-
       user.email,
-
-      "Tutor Approved",
-
-      "Congratulations! Your tutor profile has been approved. You can now start tutoring on the platform."
-
+      "🎉 Tutor Application Approved - TutorBy",
+      emailContent
     );
 
     return res
@@ -850,17 +852,11 @@ exports.partialApproveTutor = async (req, res) => {
 
 
 
+    const emailContent = generateTutorPartialApprovalEmail(user.full_name, reason);
     await sendEmail(
-
       user.email,
-
-      "Tutor Partially Approved",
-
-      "Congratulations! Your tutor profile has been partially approved with the following reason: " +
-
-      reason +
-
-      ". You can now start tutoring on the platform."
+      "🎯 Tutor Application Partially Approved - TutorBy",
+      emailContent
 
     );
 
@@ -976,14 +972,11 @@ exports.rejectTutorProfile = async (req, res) => {
 
     );
 
+    const emailContent = generateTutorRejectionEmail(user.full_name, reason);
     await sendEmail(
-
       user.email,
-
-      "Tutor Rejected",
-
-      "Sorry! Your tutor profile has been rejected. Please contact the admin for more information."
-
+      "❌ Tutor Application Rejected - TutorBy",
+      emailContent
     );
 
 
@@ -1977,9 +1970,21 @@ exports.manageEducationLevel = asyncHandler(async (req, res) => {
 
   if (hourlyRate !== undefined) existingLevel.hourlyRate = hourlyRate;
 
-  if (totalSessionsPerMonth !== undefined)
-
+  if (totalSessionsPerMonth !== undefined) {
+    // Get current min and max session values (either from request or existing values)
+    const currentMinSession = minSession !== undefined ? minSession : existingLevel.minSession;
+    const currentMaxSession = maxSession !== undefined ? maxSession : existingLevel.maxSession;
+    
+    // Validate that totalSessionsPerMonth is within min and max range
+    if (currentMinSession !== undefined && currentMaxSession !== undefined) {
+      if (totalSessionsPerMonth < currentMinSession || totalSessionsPerMonth > currentMaxSession) {
+        res.status(400);
+        throw new Error(`Total sessions per month (${totalSessionsPerMonth}) must be between minimum (${currentMinSession}) and maximum (${currentMaxSession}) sessions`);
+      }
+    }
+    
     existingLevel.totalSessionsPerMonth = totalSessionsPerMonth;
+  }
 
   if (discount !== undefined) existingLevel.discount = discount;
 

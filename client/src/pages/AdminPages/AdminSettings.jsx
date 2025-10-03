@@ -73,6 +73,11 @@ const AdminSettings = () => {
   const [showTypeDeleteModal, setShowTypeDeleteModal] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState(null);
 
+  // Column sorting states
+  const [levelSortConfig, setLevelSortConfig] = useState({ key: null, direction: 'asc' });
+  const [subjectSortConfig, setSubjectSortConfig] = useState({ key: null, direction: 'asc' });
+  const [typeSortConfig, setTypeSortConfig] = useState({ key: null, direction: 'asc' });
+
   // Fetch initial data
   useEffect(() => {
     fetchOtpStatus();
@@ -81,31 +86,132 @@ const AdminSettings = () => {
     fetchSubjectTypes(); // Add this line
   }, []);
 
+  // Sort function
+  const sortData = (data, sortConfig) => {
+    if (!sortConfig.key) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle nested properties
+      if (sortConfig.key === 'level') {
+        aValue = a.level;
+        bValue = b.level;
+      } else if (sortConfig.key === 'monthlyRate') {
+        aValue = a.monthlyRate || 0;
+        bValue = b.monthlyRate || 0;
+      } else if (sortConfig.key === 'minSession') {
+        aValue = a.minSession || 0;
+        bValue = b.minSession || 0;
+      } else if (sortConfig.key === 'maxSession') {
+        aValue = a.maxSession || 0;
+        bValue = b.maxSession || 0;
+      }
+
+      // Handle string comparison (case-insensitive)
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      // Handle number comparison
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      }
+
+      // Handle string comparison
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
   // Filter education levels based on search term
   useEffect(() => {
+    let filtered = educationLevels;
+
+    // Apply search term filter
     if (searchTerm) {
-      const filtered = educationLevels.filter((level) =>
+      filtered = filtered.filter((level) =>
         level.level.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredLevels(filtered);
-    } else {
-      setFilteredLevels(educationLevels);
     }
-  }, [searchTerm, educationLevels]);
+
+    // Apply sorting
+    filtered = sortData(filtered, levelSortConfig);
+
+    setFilteredLevels(filtered);
+  }, [searchTerm, educationLevels, levelSortConfig]);
+
+  // Sort subjects function
+  const sortSubjects = (data, sortConfig) => {
+    if (!sortConfig.key) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue, bValue;
+
+      if (sortConfig.key === 'name') {
+        aValue = a.name;
+        bValue = b.name;
+      } else if (sortConfig.key === 'level') {
+        aValue = educationLevels.find(
+          (l) => l._id === (a.level_id?._id || a.level)
+        )?.level || "N/A";
+        bValue = educationLevels.find(
+          (l) => l._id === (b.level_id?._id || b.level)
+        )?.level || "N/A";
+      } else if (sortConfig.key === 'type') {
+        aValue = subjectTypes.find(
+          (type) => type._id === a.subject_type?._id
+        )?.name || "N/A";
+        bValue = subjectTypes.find(
+          (type) => type._id === b.subject_type?._id
+        )?.name || "N/A";
+      }
+
+      // Handle string comparison (case-insensitive)
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
 
   // Filter subjects based on search term
   useEffect(() => {
+    let filtered = Array.isArray(subjects) ? subjects : [];
+
+    // Apply search term filter
     if (subjectSearchTerm) {
-      const filtered = Array.isArray(subjects)
-        ? subjects.filter((subject) =>
-            subject.name.toLowerCase().includes(subjectSearchTerm.toLowerCase())
-          )
-        : [];
-      setFilteredSubjects(filtered);
-    } else {
-      setFilteredSubjects(Array.isArray(subjects) ? subjects : []);
+      filtered = filtered.filter((subject) =>
+        subject.name.toLowerCase().includes(subjectSearchTerm.toLowerCase())
+      );
     }
-  }, [subjectSearchTerm, subjects]);
+
+    // Apply sorting
+    filtered = sortSubjects(filtered, subjectSortConfig);
+
+    setFilteredSubjects(filtered);
+  }, [subjectSearchTerm, subjects, subjectSortConfig, educationLevels, subjectTypes]);
 
   // Calculate monthly rate when hourly rate or sessions change
   useEffect(() => {
@@ -642,15 +748,52 @@ const AdminSettings = () => {
 
   // Filter subject types based on search term
   useEffect(() => {
+    let filtered = subjectTypes;
+
+    // Apply search term filter
     if (typeSearchTerm) {
-      const filtered = subjectTypes.filter((type) =>
+      filtered = filtered.filter((type) =>
         type.name.toLowerCase().includes(typeSearchTerm.toLowerCase())
       );
-      setFilteredTypes(filtered);
-    } else {
-      setFilteredTypes(subjectTypes);
     }
-  }, [typeSearchTerm, subjectTypes]);
+
+    // Apply sorting
+    filtered = sortData(filtered, typeSortConfig);
+
+    setFilteredTypes(filtered);
+  }, [typeSearchTerm, subjectTypes, typeSortConfig]);
+
+  // Sort handlers
+  const handleLevelSort = (key) => {
+    setLevelSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const handleSubjectSort = (key) => {
+    setSubjectSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const handleTypeSort = (key) => {
+    setTypeSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Sort arrow component
+  const SortArrow = ({ sortConfig, columnKey }) => {
+    if (sortConfig.key !== columnKey) {
+      return <span className="text-gray-400">↕</span>;
+    }
+    return sortConfig.direction === 'asc' ? 
+      <span className="text-blue-600">↑</span> : 
+      <span className="text-blue-600">↓</span>;
+  };
 
   return (
     <AdminLayout tabValue="settings">
@@ -1049,27 +1192,43 @@ const AdminSettings = () => {
                       <tr>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleLevelSort('level')}
                         >
-                          Education Level
+                          <div className="flex items-center justify-between">
+                            Education Level
+                            <SortArrow sortConfig={levelSortConfig} columnKey="level" />
+                          </div>
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleLevelSort('monthlyRate')}
                         >
-                          Monthly Rate
+                          <div className="flex items-center justify-between">
+                            Monthly Rate
+                            <SortArrow sortConfig={levelSortConfig} columnKey="monthlyRate" />
+                          </div>
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleLevelSort('minSession')}
                         >
-                          Minimum Sessions
+                          <div className="flex items-center justify-between">
+                            Minimum Sessions
+                            <SortArrow sortConfig={levelSortConfig} columnKey="minSession" />
+                          </div>
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleLevelSort('maxSession')}
                         >
-                          Maximum Sessions
+                          <div className="flex items-center justify-between">
+                            Maximum Sessions
+                            <SortArrow sortConfig={levelSortConfig} columnKey="maxSession" />
+                          </div>
                         </th>
                         <th
                           scope="col"
@@ -1245,18 +1404,32 @@ const AdminSettings = () => {
                       <tr>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSubjectSort('name')}
                         >
-                          Subject Name
+                          <div className="flex items-center justify-between">
+                            Subject Name
+                            <SortArrow sortConfig={subjectSortConfig} columnKey="name" />
+                          </div>
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSubjectSort('level')}
                         >
-                          Education Level
+                          <div className="flex items-center justify-between">
+                            Education Level
+                            <SortArrow sortConfig={subjectSortConfig} columnKey="level" />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
+                        <th 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSubjectSort('type')}
+                        >
+                          <div className="flex items-center justify-between">
+                            Type
+                            <SortArrow sortConfig={subjectSortConfig} columnKey="type" />
+                          </div>
                         </th>
                         <th
                           scope="col"
@@ -1387,8 +1560,14 @@ const AdminSettings = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Subject Type
+                        <th 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleTypeSort('name')}
+                        >
+                          <div className="flex items-center justify-between">
+                            Subject Type
+                            <SortArrow sortConfig={typeSortConfig} columnKey="name" />
+                          </div>
                         </th>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Actions

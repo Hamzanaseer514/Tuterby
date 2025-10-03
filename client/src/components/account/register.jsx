@@ -41,7 +41,6 @@ import { BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
 import { useSubject } from "../../hooks/useSubject";
 import GoogleOAuth from "./GoogleOAuth";
-import { resolveUrl } from "../../utils/urlHelper";
 
 
 const Register = () => {
