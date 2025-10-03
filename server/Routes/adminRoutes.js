@@ -10,6 +10,7 @@ const {
   rejectTutorProfile,
   partialApproveTutor,
   verifyDocument,
+  rejectGroupedDocuments,
   // New comprehensive admin functions
   getAllUsers,
   getTutorDetails,
@@ -77,6 +78,7 @@ router.post("/tutors/approve", approveTutorProfile);
 router.post("/tutors/reject", rejectTutorProfile);
 router.post("/tutors/partial-approve", partialApproveTutor);
 router.post("/tutors/verify/document", verifyDocument);
+router.post("/tutors/reject/grouped-documents", rejectGroupedDocuments);
 
 // New comprehensive admin routes
 router.get("/users", getAllUsers);

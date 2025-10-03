@@ -280,6 +280,18 @@ export const verifyDocument = async (user_id, documentType) => {
   });
 };
 
+// Reject Grouped Documents (Background Check, Qualifications, References)
+export const rejectGroupedDocuments = async (user_id, group_type, reason) => {
+  return apiCall('/tutors/reject/grouped-documents', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      user_id: user_id,  
+      group_type: group_type,
+      reason: reason
+    }),
+  });
+};
+
 // export const verifyReferenceChecks = async (tutorId) => {
 //   return apiCall('/tutors/verify/references', {
 //     method: 'POST',

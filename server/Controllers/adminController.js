@@ -1708,6 +1708,66 @@ exports.verifyDocument = async (req, res) => {
 
 };
 
+// Reject grouped documents (Background Check, Qualifications, References)
+exports.rejectGroupedDocuments = async (req, res) => {
+  const { user_id, group_type, reason } = req.body;
+  console.log(req.body)
+
+  try {
+    const tutor = await TutorProfile.findOne({ user_id: user_id });
+    if (!tutor) {
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
+
+    let documentTypes = [];
+    let profileField = "";
+
+    // Determine which documents to reject based on group type
+    if (group_type === "background") {
+      documentTypes = ["ID Proof", "Address Proof"];
+      profileField = "is_background_checked";
+    } else if (group_type === "qualifications") {
+      documentTypes = ["Degree", "Certificate"];
+      profileField = "is_qualification_verified";
+    } else if (group_type === "references") {
+      documentTypes = ["Reference Letter"];
+      profileField = "is_reference_verified";
+    } else {
+      return res.status(400).json({ message: "Invalid group type" });
+    }
+
+    // Reject all documents in the group
+    await TutorDocument.updateMany(
+      {
+        tutor_id: tutor._id,
+        document_type: { $in: documentTypes }
+      },
+      {
+        $set: {
+          verification_status: "Rejected",
+          notes: reason || "Documents rejected by admin"
+        }
+      }
+    );
+
+    // Update profile field to false
+    tutor[profileField] = false;
+    await tutor.save();
+
+    res.status(200).json({ 
+      message: `${group_type} documents rejected successfully`,
+      rejectedDocuments: documentTypes
+    });
+
+  } catch (error) {
+    console.error("Error rejecting grouped documents:", error);
+    res.status(500).json({
+      message: "Failed to reject documents",
+      error: error.message
+    });
+  }
+};
+
 
 
 // RULE AND OTP ARE ADDED........................................................

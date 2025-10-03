@@ -36,6 +36,145 @@ const uploadDocument = asyncHandler(async (req, res) => {
   });
 });
 
+// Get rejected documents for re-upload
+const getRejectedDocuments = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    // Find tutor profile
+    const tutorProfile = await TutorProfile.findOne({ user_id });
+    if (!tutorProfile) {
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
+
+    // Check if user is partially active (equivalent to partially approved)
+    const user = await User.findById(tutorProfile.user_id);
+    if (user.is_verified !== "partial_active") {
+      return res.status(400).json({ 
+        message: "Only partially approved tutors can re-upload documents" 
+      });
+    }
+
+    // Get all documents to check status
+    const allDocuments = await TutorDocument.find({
+      tutor_id: tutorProfile._id
+    }).sort({ uploaded_at: -1 });
+
+    // Get all document types to show which ones are missing
+    const allDocumentTypes = ['ID Proof', 'Address Proof', 'Degree', 'Certificate', 'Reference Letter'];
+    
+    const documentStatus = allDocumentTypes.map(type => {
+      const existingDoc = allDocuments.find(doc => doc.document_type === type);
+      let status = 'missing';
+      
+      if (existingDoc) {
+        if (existingDoc.verification_status === 'Rejected') {
+          status = 'rejected';
+        } else if (existingDoc.verification_status === 'Pending') {
+          status = 'pending';
+        } else if (existingDoc.verification_status === 'Approved') {
+          status = 'approved';
+        }
+      }
+      
+      return {
+        document_type: type,
+        status: status,
+        document: existingDoc ? {
+          _id: existingDoc._id,
+          file_url: existingDoc.file_url,
+          uploaded_at: existingDoc.uploaded_at,
+          notes: existingDoc.notes || '',
+          verification_status: existingDoc.verification_status
+        } : null
+      };
+    });
+
+    res.status(200).json({
+      message: "Documents retrieved successfully",
+      documents: documentStatus,
+      profile_status_reason: tutorProfile.profile_status_reason
+    });
+
+  } catch (error) {
+    console.error("Error getting documents:", error);
+    res.status(500).json({
+      message: "Failed to get documents",
+      error: error.message
+    });
+  }
+});
+
+// Re-upload document (replace existing)
+const reuploadDocument = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  const { document_type } = req.body;
+
+  if (!req.file) {
+    res.status(400);
+    throw new Error("File is required");
+  }
+
+  try {
+    // Find tutor profile
+    const tutorProfile = await TutorProfile.findOne({ user_id });
+    if (!tutorProfile) {
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
+
+    // Check if user is partially active (equivalent to partially approved)
+    const user = await User.findById(tutorProfile.user_id);
+    if (user.is_verified !== "partial_active") {
+      return res.status(400).json({ 
+        message: "Only partially approved tutors can re-upload documents" 
+      });
+    }
+
+    const relativePath = `/uploads/documents/${req.file.filename}`;
+
+    // Always find existing document by document_type and tutor_id (replace approach)
+    const existingDoc = await TutorDocument.findOne({
+      tutor_id: tutorProfile._id,
+      document_type: document_type
+    });
+
+    if (existingDoc) {
+      // Update existing document (replace)
+      existingDoc.file_url = relativePath;
+      existingDoc.uploaded_at = new Date();
+      existingDoc.verification_status = "Pending";
+      existingDoc.notes = ""; // Clear any previous notes
+      await existingDoc.save();
+
+      res.status(200).json({
+        message: "Document re-uploaded successfully",
+        document: existingDoc
+      });
+    } else {
+      // Create new document if none exists
+      const newDoc = await TutorDocument.create({
+        tutor_id: tutorProfile._id,
+        document_type: document_type,
+        file_url: relativePath,
+        uploaded_at: new Date(),
+        verification_status: "Pending",
+      });
+
+      res.status(201).json({
+        message: "Document uploaded successfully",
+        document: newDoc
+      });
+    }
+
+  } catch (error) {
+    console.error("Error re-uploading document:", error);
+    res.status(500).json({
+      message: "Failed to re-upload document",
+      error: error.message
+    });
+  }
+});
+
 // Get tutor dashboard overview
 const getTutorDashboard = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
@@ -2540,5 +2679,7 @@ module.exports = {
   // getStudentPaymentStatus,
   getHiredSubjectsAndLevels,
   getTutorPaymentHistory,
+  getRejectedDocuments,
+  reuploadDocument,
 };
 
