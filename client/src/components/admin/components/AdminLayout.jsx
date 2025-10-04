@@ -146,6 +146,12 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           icon: <AcademicCapIcon className="h-5 w-5" />, 
           label: 'Tutor Sessions', 
           count: null 
+        },
+        { 
+          id: 'hire-requests', 
+          icon: <UserGroupIcon className="h-5 w-5" />, 
+          label: 'Hire Requests', 
+          count: null 
         }
       ]
     },

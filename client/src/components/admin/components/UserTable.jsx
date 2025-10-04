@@ -22,7 +22,8 @@ import {
   Button,
   TextField,
   InputAdornment,
-  Badge
+  Badge,
+  CircularProgress
 } from '@mui/material';
 import {
   Visibility,
@@ -466,7 +467,18 @@ const UserTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.length > 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body1" color="text.secondary">
+                      Loading {tabValue}...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : users.length > 0 ? (
               users
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((user, index) => (

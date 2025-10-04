@@ -48,6 +48,7 @@ import {
     DialogActions,
     Button,
     Divider,
+    CircularProgress,
     Avatar,
     useTheme
 } from '@mui/material';
@@ -170,7 +171,7 @@ const TutorPayments = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
-    const [isLoading, setIsLoading] = useState(false); // Start with false for instant loading
+    const [isLoading, setIsLoading] = useState(true); // Start with true to show loading
     const [error, setError] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -178,7 +179,7 @@ const TutorPayments = () => {
 
     // Fetch payments data from API
     const fetchPayments = async () => {
-        // Don't show loading state - load silently in background
+        setIsLoading(true);
         setError(null);
         try {
             const response = await getAllTutorPayments();
@@ -193,8 +194,9 @@ const TutorPayments = () => {
             console.error('Error fetching payments:', err);
             setError(err.message);
             setSnackbar({ open: true, message: `Error: ${err.message}`, severity: 'error' });
+        } finally {
+            setIsLoading(false);
         }
-        // Don't set loading to false - keep it false for instant loading
     };
 
     useEffect(() => {
@@ -459,7 +461,18 @@ const TutorPayments = () => {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {filteredPayments.length === 0 ? (
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} align="center">
+                                                <Box py={6} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                                    <CircularProgress size={40} />
+                                                    <Typography variant="body1" color="text.secondary">
+                                                        Loading payments...
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : filteredPayments.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={8} align="center">
                                                 <Box py={3}>

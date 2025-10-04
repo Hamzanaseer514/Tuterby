@@ -70,6 +70,24 @@ const StudentDetailPage = () => {
   const { tabValue } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const handleTabChange = (newTabValue) => {
+    if (newTabValue === 'dashboard') {
+      navigate('/admin');
+    } else if (['tutors', 'students', 'parents'].includes(newTabValue)) {
+      navigate(`/admin/users?tab=${newTabValue}`);
+    } else if (newTabValue === 'chat') {
+      navigate('/admin/chats');
+    } else if (newTabValue === 'tutor-sessions') {
+      navigate('/admin/tutor-sessions');
+    } else if (newTabValue === 'tutor-payments') {
+      navigate('/admin/tutor-payments');
+    } else if (newTabValue === 'tutor-reviews') {
+      navigate('/admin/tutor-reviews');
+    } else if (newTabValue === 'settings') {
+      navigate('/admin/settings');
+    }
+  };
   const [user, setUser] = useState(location.state?.user || null);
   const [loading, setLoading] = useState(!location.state?.user);
   const [snackbar, setSnackbar] = useState({
@@ -188,7 +206,7 @@ const StudentDetailPage = () => {
 
 
   return (
-    <AdminLayout tabValue={tabValue}>
+    <AdminLayout tabValue={tabValue} onTabChange={handleTabChange}>
       <Box sx={{ p: 3 }}>
         {/* Header */}
         <Box

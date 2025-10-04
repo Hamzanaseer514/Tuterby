@@ -3219,3 +3219,200 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
   }
 });
 
+// Get all hire requests with student-tutor matching and status
+exports.getAllHireRequests = asyncHandler(async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 50, 
+      status = '', 
+      search = '',
+      tutor_id = '',
+      student_id = ''
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const lim = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * lim;
+
+    // Build aggregation pipeline for efficient querying
+    const pipeline = [
+      // Match students with hire requests
+      {
+        $match: {
+          'hired_tutors.0': { $exists: true } // Students with at least one hire request
+        }
+      },
+      // Unwind hired_tutors to get individual requests
+      {
+        $unwind: '$hired_tutors'
+      },
+      // Add filters
+      ...(status ? [{ $match: { 'hired_tutors.status': status } }] : []),
+      ...(tutor_id ? [{ $match: { 'hired_tutors.tutor': new mongoose.Types.ObjectId(tutor_id) } }] : []),
+      ...(student_id ? [{ $match: { 'user_id': new mongoose.Types.ObjectId(student_id) } }] : []),
+      // Lookup student user info
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user_id',
+          foreignField: '_id',
+          as: 'student_user',
+          pipeline: [
+            { $project: { full_name: 1, email: 1, phone_number: 1, photo_url: 1 } }
+          ]
+        }
+      },
+      // Lookup tutor profile and user info
+      {
+        $lookup: {
+          from: 'tutorprofiles',
+          localField: 'hired_tutors.tutor',
+          foreignField: '_id',
+          as: 'tutor_profile',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'user_id',
+                foreignField: '_id',
+                as: 'tutor_user',
+                pipeline: [
+                  { $project: { full_name: 1, email: 1, phone_number: 1, photo_url: 1 } }
+                ]
+              }
+            },
+            { $project: { user_id: 1, tutor_user: 1, subjects: 1, academic_levels_taught: 1 } }
+          ]
+        }
+      },
+      // Lookup subject info
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'hired_tutors.subject',
+          foreignField: '_id',
+          as: 'subject_info',
+          pipeline: [
+            { $project: { name: 1 } }
+          ]
+        }
+      },
+      // Lookup academic level info
+      {
+        $lookup: {
+          from: 'educationlevels',
+          localField: 'hired_tutors.academic_level_id',
+          foreignField: '_id',
+          as: 'academic_level_info',
+          pipeline: [
+            { $project: { level: 1 } }
+          ]
+        }
+      },
+      // Project final structure
+      {
+        $project: {
+          _id: 1,
+          student: {
+            id: '$user_id',
+            name: { $arrayElemAt: ['$student_user.full_name', 0] },
+            email: { $arrayElemAt: ['$student_user.email', 0] },
+            phone: { $arrayElemAt: ['$student_user.phone_number', 0] },
+            photo_url: { $arrayElemAt: ['$student_user.photo_url', 0] }
+          },
+          tutor: {
+            id: '$hired_tutors.tutor',
+            name: { $arrayElemAt: ['$tutor_profile.tutor_user.full_name', 0] },
+            email: { $arrayElemAt: ['$tutor_profile.tutor_user.email', 0] },
+            phone: { $arrayElemAt: ['$tutor_profile.tutor_user.phone_number', 0] },
+            photo_url: { $arrayElemAt: ['$tutor_profile.tutor_user.photo_url', 0] }
+          },
+          subject: {
+            id: '$hired_tutors.subject',
+            name: { $arrayElemAt: ['$subject_info.name', 0] }
+          },
+          academic_level: {
+            id: '$hired_tutors.academic_level_id',
+            level: { $arrayElemAt: ['$academic_level_info.level', 0] }
+          },
+          status: '$hired_tutors.status',
+          hired_at: '$hired_tutors.hired_at',
+          created_at: '$createdAt',
+          updated_at: '$updatedAt'
+        }
+      },
+      // Add search filter if provided
+      ...(search ? [{
+        $match: {
+          $or: [
+            { 'student.name': { $regex: search, $options: 'i' } },
+            { 'student.email': { $regex: search, $options: 'i' } },
+            { 'tutor.name': { $regex: search, $options: 'i' } },
+            { 'tutor.email': { $regex: search, $options: 'i' } },
+            { 'subject.name': { $regex: search, $options: 'i' } },
+            { 'academic_level.level': { $regex: search, $options: 'i' } }
+          ]
+        }
+      }] : []),
+      // Sort by most recent first
+      { $sort: { hired_at: -1 } }
+    ];
+
+    // Get total count for pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await StudentProfile.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination
+    pipeline.push(
+      { $skip: skip },
+      { $limit: lim }
+    );
+
+    // Execute aggregation
+    const hireRequests = await StudentProfile.aggregate(pipeline);
+
+    // Calculate stats
+    const statsPipeline = [
+      { $match: { 'hired_tutors.0': { $exists: true } } },
+      { $unwind: '$hired_tutors' },
+      {
+        $group: {
+          _id: '$hired_tutors.status',
+          count: { $sum: 1 }
+        }
+      }
+    ];
+    const statsResult = await StudentProfile.aggregate(statsPipeline);
+    const stats = {
+      total: total,
+      pending: statsResult.find(s => s._id === 'pending')?.count || 0,
+      accepted: statsResult.find(s => s._id === 'accepted')?.count || 0,
+      rejected: statsResult.find(s => s._id === 'rejected')?.count || 0
+    };
+
+    res.status(200).json({
+      success: true,
+      hireRequests: hireRequests,
+      pagination: {
+        current_page: pageNum,
+        total_pages: Math.ceil(total / lim),
+        total_items: total,
+        items_per_page: lim,
+        has_next: skip + lim < total,
+        has_prev: pageNum > 1
+      },
+      stats: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching hire requests:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch hire requests',
+      error: error.message
+    });
+  }
+});
+

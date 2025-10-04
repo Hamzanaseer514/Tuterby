@@ -172,10 +172,8 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
       tabValue: newValue,
       page: 0
     });
-    // Only load if data doesn't exist for this tab
-    if (!dashboardState.users[newValue] || dashboardState.users[newValue].length === 0) {
-      loadUsers(newValue || 'tutors');
-    }
+    // Always load data for the new tab to show loading state
+    loadUsers(newValue || 'tutors');
   };
 
   const handleMenuClick = (event, user) => {
@@ -322,6 +320,7 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 onChangeRowsPerPage={handleChangeRowsPerPage}
                 onRequestReload={handleRequestReload}
                 showNotification={showNotification}
+                loading={dashboardState.tabLoading[uiState.tabValue]}
               />
             </Paper>
 

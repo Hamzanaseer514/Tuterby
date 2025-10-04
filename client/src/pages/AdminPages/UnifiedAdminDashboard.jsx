@@ -47,6 +47,7 @@ const AdminDashboard = React.lazy(() => import('../../components/admin/component
 const TutorSessionsPage = React.lazy(() => import('./TutorSessionsPage'));
 const TutorPayments = React.lazy(() => import('./TutorPyaments'));
 const TutorReviewsPage = React.lazy(() => import('./TutorReviewsPage'));
+const HireRequestsPage = React.lazy(() => import('./HireRequestsPage'));
 const Chats = React.lazy(() => import('../../components/admin/components/Chats'));
 const AdminSettings = React.lazy(() => import('./AdminSettings'));
 
@@ -308,6 +309,7 @@ const UnifiedAdminDashboard = () => {
     if (pathname === '/admin/tutor-sessions') return 'tutor-sessions';
     if (pathname === '/admin/tutor-payments') return 'tutor-payments';
     if (pathname === '/admin/tutor-reviews') return 'tutor-reviews';
+    if (pathname === '/admin/hire-requests') return 'hire-requests';
     if (pathname === '/admin/settings') return 'settings';
     return 'dashboard';
   };
@@ -550,6 +552,7 @@ const UnifiedAdminDashboard = () => {
       'tutor-sessions': '/admin/tutor-sessions',
       'tutor-payments': '/admin/tutor-payments',
       'tutor-reviews': '/admin/tutor-reviews',
+      'hire-requests': '/admin/hire-requests',
       'settings': '/admin/settings'
     };
     
@@ -674,6 +677,16 @@ const UnifiedAdminDashboard = () => {
             </Box>
           }>
             <TutorReviewsPage />
+          </Suspense>
+        );
+      case 'hire-requests':
+        return (
+          <Suspense fallback={
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+              <CircularProgress />
+            </Box>
+          }>
+            <HireRequestsPage />
           </Suspense>
         );
       case 'chat':

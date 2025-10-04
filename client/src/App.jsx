@@ -141,6 +141,9 @@ function App() {
               <Route path="/admin/tutor-reviews" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <UnifiedAdminDashboard />
               </ProtectedRoute>} />
+              <Route path="/admin/hire-requests" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <UnifiedAdminDashboard />
+              </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>
                 <TutorDashboardPage />

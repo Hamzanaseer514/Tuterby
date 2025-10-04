@@ -32,6 +32,7 @@ export const AdminDashboardProvider = ({ children }) => {
       users: { tutors: [], students: [], parents: [] },
       stats: {},
       loading: false,
+      tabLoading: { tutors: false, students: false, parents: false },
       error: null,
       lastUpdated: null
     };
@@ -48,11 +49,33 @@ export const AdminDashboardProvider = ({ children }) => {
     setDashboardState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const loadUsers = useCallback(async (userType, forceReload = false) => {
+  const loadUsers = useCallback(async (userType, forceReload = false, showLoading = true) => {
     // Don't reload if data already exists and not forced
     if (!forceReload && dashboardState.users[userType] && dashboardState.users[userType].length > 0) {
+      // Still show loading briefly for better UX
+      if (showLoading) {
+        setDashboardState(prev => ({
+          ...prev,
+          tabLoading: { ...prev.tabLoading, [userType]: true }
+        }));
+        
+        // Simulate a brief loading time (not too fast as requested)
+        setTimeout(() => {
+          setDashboardState(prev => ({
+            ...prev,
+            tabLoading: { ...prev.tabLoading, [userType]: false }
+          }));
+        }, 800); // 800ms loading time
+      }
       return;
     }
+
+    // Set tab-specific loading to true when starting to load
+    setDashboardState(prev => ({
+      ...prev,
+      tabLoading: { ...prev.tabLoading, [userType]: true },
+      error: null
+    }));
 
     try {
       const usersResponse = await getAllUsers({ 
@@ -67,7 +90,7 @@ export const AdminDashboardProvider = ({ children }) => {
       setDashboardState(prev => ({
         ...prev,
         users: { ...prev.users, [userType]: usersData },
-        loading: false,
+        tabLoading: { ...prev.tabLoading, [userType]: false },
         lastUpdated: new Date()
       }));
     } catch (error) {
@@ -75,7 +98,8 @@ export const AdminDashboardProvider = ({ children }) => {
       setDashboardState(prev => ({
         ...prev,
         users: { ...prev.users, [userType]: [] },
-        loading: false
+        tabLoading: { ...prev.tabLoading, [userType]: false },
+        error: error.message
       }));
     }
   }, [dashboardState.users]);

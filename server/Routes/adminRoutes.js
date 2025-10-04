@@ -38,7 +38,8 @@ const {
   fetchSubjectRelatedToAcademicLevels,
     getAllTutorSessions,
   getAllTutorPayments,
-  getAllTutorReviews
+  getAllTutorReviews,
+  getAllHireRequests
 } = require("../Controllers/adminController");
 
 
@@ -90,6 +91,7 @@ router.get("/dashboard/stats", getDashboardStats);
 router.get("/tutor-sessions", getAllTutorSessions);
 router.get("/tutor-payments", getAllTutorPayments);
 router.get("/tutor-reviews", getAllTutorReviews);
+router.get("/hire-requests", getAllHireRequests);
 // User management
 router.put("/users/:user_id/status", require("../Controllers/adminController").updateUserStatus);
 

@@ -37,6 +37,7 @@ import {
   LinearProgress,
   Menu,
   TablePagination,
+  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoIcon from '@mui/icons-material/Info';
@@ -84,7 +85,7 @@ const TutorSessionsPage = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(false); // Start with false for instant loading
+  const [loading, setLoading] = useState(true); // Start with true to show loading
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     page: 1,
@@ -118,7 +119,7 @@ const TutorSessionsPage = () => {
 
   const loadSessions = async () => {
     try {
-      // Don't show loading state - load silently in background
+      setLoading(true);
       setError(null);
 
       const response = await getAllTutorSessions(filters);
@@ -133,8 +134,9 @@ const TutorSessionsPage = () => {
     } catch (error) {
       console.error('Error loading sessions:', error);
       setError(error.message || 'Failed to load sessions');
+    } finally {
+      setLoading(false);
     }
-    // Don't set loading to false - keep it false for instant loading
   };
 
   useEffect(() => {
@@ -960,7 +962,18 @@ const TutorSessionsPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {sessions.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body1" color="text.secondary">
+                      Loading sessions...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : sessions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                   <Box sx={{ textAlign: 'center' }}>

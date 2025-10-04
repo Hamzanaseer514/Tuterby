@@ -17,7 +17,7 @@ import { BASE_URL } from "../../config";
 
 const TutorReviewsPage = () => {
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(false); // Start with false for instant loading
+  const [loading, setLoading] = useState(true); // Start with true to show loading
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTutor, setSelectedTutor] = useState(null);
@@ -32,7 +32,7 @@ const TutorReviewsPage = () => {
   // Fetch all reviews and group by tutor
   const fetchReviews = async (page = 1, search = '', tutorId = '') => {
     try {
-      // Don't show loading state - load silently in background
+      setLoading(true);
       const filters = {
         page,
         limit: reviewsPerPage,
@@ -78,8 +78,9 @@ const TutorReviewsPage = () => {
     } catch (err) {
       setError('Failed to fetch reviews');
       console.error('Error fetching reviews:', err);
+    } finally {
+      setLoading(false);
     }
-    // Don't set loading to false - keep it false for instant loading
   };
 
   useEffect(() => {
@@ -319,7 +320,14 @@ const TutorReviewsPage = () => {
               </h2>
             </div>
             
-            {tutorsWithReviews.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-600">Loading tutors...</p>
+                </div>
+              </div>
+            ) : tutorsWithReviews.length === 0 ? (
               <div className="text-center py-12">
                 <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -374,7 +382,14 @@ const TutorReviewsPage = () => {
               </h2>
             </div>
             
-            {reviews.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-600">Loading reviews...</p>
+                </div>
+              </div>
+            ) : reviews.length === 0 ? (
               <div className="text-center py-12">
                 <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Found</h3>
