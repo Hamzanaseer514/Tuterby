@@ -145,13 +145,13 @@ const TutorCreateSessionPage = () => {
         fetchAvailabilitySettings();
     }, [user, fetchTutorSubjects, fetchAvailableStudents, fetchAvailabilitySettings]);
 
-    // Check payment status for selected students
+    // Check payment status for selected students - tutor specific
     const checkStudentPaymentStatus = async (userId) => {
-        if (!userId) return null;
+        if (!userId || !user?._id) return null;
 
         try {
             setLoadingPaymentStatus(true);
-            const response = await fetchWithAuth(`${BASE_URL}/api/auth/student/payment-status/${userId}`, {
+            const response = await fetchWithAuth(`${BASE_URL}/api/tutor/student-payment-status/${userId}/${user._id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -251,7 +251,9 @@ const TutorCreateSessionPage = () => {
         };
 
         setHiredSubjectsAndLevels(combinedData);
+        console.log("newPaymentStatuses", newPaymentStatuses);
         setStudentPaymentStatuses(newPaymentStatuses);
+        console.log("studentPaymentStatuses", studentPaymentStatuses);
         setLoadingHiredData(false);
     };
 
@@ -546,17 +548,11 @@ const TutorCreateSessionPage = () => {
                                                                         <AlertTriangle className="h-3 w-3" />
                                                                         Payment Required
                                                                     </span>
-                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
-                                                                        <ShieldX className="h-3 w-3" />
-                                                                        Validity: Expired
-                                                                    </span> */}
                                                                 </div>
                                                             );
-                                                        } else {
+                                                        } else if (paymentStatus.active_payments_count > 0) {
                                                             // Show detailed payment and validity status
-                                                            const activePayments = paymentStatus.payments?.filter(p => 
-                                                                p.payment_status === 'paid' && p.validity_status === 'active'
-                                                            ) || [];
+                                                            const activePayments = paymentStatus.active_payments || [];
                                                             
                                                             return (
                                                                 <div className="space-y-1">
@@ -564,17 +560,20 @@ const TutorCreateSessionPage = () => {
                                                                         <ShieldCheck className="h-3 w-3" />
                                                                         Payment Complete
                                                                     </span>
-                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
-                                                                        <ShieldCheck className="h-3 w-3" />
-                                                                        Validity: Active
-                                                                    </span> */}
-                                                                    {activePayments.length > 0 && (
+                                                                    {/* {activePayments.length > 0 && (
                                                                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center gap-1">
                                                                             <CreditCard className="h-3 w-3" />
                                                                             {activePayments.reduce((sum, p) => sum + (p.sessions_remaining || 0), 0)} sessions left
                                                                         </span>
-                                                                    )}
+                                                                    )} */}
                                                                 </div>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" />
+                                                                    No Active Payments
+                                                                </span>
                                                             );
                                                         }
                                                     })()}
@@ -629,17 +628,11 @@ const TutorCreateSessionPage = () => {
                                                                         <AlertTriangle className="h-3 w-3" />
                                                                         Payment Required
                                                                     </span>
-                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
-                                                                        <ShieldX className="h-3 w-3" />
-                                                                        Validity: Expired
-                                                                    </span> */}
                                                                 </div>
                                                             );
-                                                        } else {
+                                                        } else if (paymentStatus.active_payments_count > 0) {
                                                             // Show detailed payment and validity status
-                                                            const activePayments = paymentStatus.payments?.filter(p => 
-                                                                p.payment_status === 'paid' && p.validity_status === 'active'
-                                                            ) || [];
+                                                            const activePayments = paymentStatus.active_payments || [];
                                                             
                                                             return (
                                                                 <div className="space-y-1">
@@ -647,17 +640,20 @@ const TutorCreateSessionPage = () => {
                                                                         <ShieldCheck className="h-3 w-3" />
                                                                         Payment Complete
                                                                     </span>
-                                                                    {/* <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
-                                                                        <ShieldCheck className="h-3 w-3" />
-                                                                        Validity: Active
-                                                                    </span> */}
-                                                                    {activePayments.length > 0 && (
+                                                                    {/* {activePayments.length > 0 && (
                                                                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center gap-1">
                                                                             <CreditCard className="h-3 w-3" />
                                                                             {activePayments.reduce((sum, p) => sum + (p.sessions_remaining || 0), 0)} sessions left
                                                                         </span>
-                                                                    )}
+                                                                    )} */}
                                                                 </div>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" />
+                                                                    No Active Payments
+                                                                </span>
                                                             );
                                                         }
                                                     })()}

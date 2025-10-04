@@ -45,6 +45,7 @@ import { BASE_URL } from "../../config";
 import {
   User,
 } from 'lucide-react';
+import { useAdminDashboard } from "../../contexts/AdminDashboardContext";
 
 const StatusBadge = styled(Badge)(({ theme }) => ({
   "& .MuiBadge-badge": {
@@ -78,6 +79,7 @@ const StudentDetailPage = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const { subjects, academicLevels } = useSubject();
+  const { updateUserInList, refreshUserData } = useAdminDashboard();
 
   const getSubjectName = (id) => {
     const subject = subjects.find((s) => s._id === id);
@@ -118,7 +120,10 @@ const StudentDetailPage = () => {
         <Typography variant="h5" color="textSecondary" gutterBottom>
           User not found
         </Typography>
-        <Button variant="contained" onClick={() => navigate("/admin/users?tab=students", { state: { preserveData: true, tabValue } })} sx={{ mt: 2 }}>
+        <Button variant="contained" onClick={() => {
+          refreshUserData('students');
+          navigate("/admin/users?tab=students", { state: { preserveData: true, tabValue } });
+        }} sx={{ mt: 2 }}>
           Go Back
         </Button>
       </Box>
@@ -142,7 +147,12 @@ const StudentDetailPage = () => {
     try {
       setIsUpdating(true);
       const next = userStatus === "active" ? "inactive" : "active";
-      setUser((prev) => ({ ...prev, status: next }));
+      const updatedUser = { ...user, status: next };
+      setUser(updatedUser);
+      
+      // Update the user in the admin dashboard context
+      updateUserInList('students', updatedUser);
+      
       const { updateUserStatus } = await import("../../services/adminService");
       await updateUserStatus(user.id || user.user_id || user._id, next);
       setSnackbar({
@@ -194,7 +204,10 @@ const StudentDetailPage = () => {
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Tooltip title="Go back">
               <IconButton
-                onClick={() => navigate("/admin/users?tab=students", { state: { preserveData: true, tabValue } })}
+                onClick={() => {
+                  refreshUserData('students');
+                  navigate("/admin/users?tab=students", { state: { preserveData: true, tabValue } });
+                }}
                 sx={{
                   mr: 2,
                   backgroundColor: "action.hover",
@@ -210,7 +223,10 @@ const StudentDetailPage = () => {
           </Box>
           <Button
             variant="outlined"
-            onClick={() => navigate("/admin/users?tab=students", { state: { preserveData: true, tabValue } })}
+            onClick={() => {
+              refreshUserData('students');
+              navigate("/admin/users?tab=students", { state: { preserveData: true, tabValue } });
+            }}
             sx={{ textTransform: "none", borderRadius: 2, px: 3, py: 1 }}
           >
             Back to Users

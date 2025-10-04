@@ -39,6 +39,7 @@ import {
   MoreVert,
 } from "@mui/icons-material";
 import { useSubject } from '../../hooks/useSubject';
+import { useAdminDashboard } from "../../contexts/AdminDashboardContext";
 
 const ParentDetailPage = () => {
   const { tabValue } = useParams();
@@ -52,10 +53,19 @@ const ParentDetailPage = () => {
     message: "",
     severity: "success",
   });
-  const [userStatus, setUserStatus] = useState("active"); // example toggle state
+  const [userStatus, setUserStatus] = useState(user?.status || "inactive");
   const [isUpdating, setIsUpdating] = useState(false);
+  const { updateUserInList, refreshUserData } = useAdminDashboard();
+  
+  // Force refresh parent data when component mounts to get latest data
+  useEffect(() => {
+    refreshUserData('parents');
+  }, [refreshUserData]);
   useEffect(() => {
     if (!user) setLoading(false);
+    else {
+      setUserStatus(user.status || "inactive");
+    }
   }, [user]);
 
   if (loading) {
@@ -65,6 +75,7 @@ const ParentDetailPage = () => {
       </Box>
     );
   }
+  {console.log("user:", user)}
 
   const getSubjectName = (subjectId) => {
     const subject = subjects.find(s => s._id === subjectId);
@@ -101,6 +112,9 @@ const ParentDetailPage = () => {
   const userJoinDate = user?.joinDate || "Unknown";
   const userLastActive = user?.lastActive || "Unknown";
   const userChildren = user?.children || [];
+  console.log("userChildren:", userChildren);
+  console.log("First child:", userChildren[0]);
+  console.log("Second child:", userChildren[1]);
   const userSessionsBooked = user?.sessionsBooked || 0;
 
 
@@ -108,7 +122,12 @@ const ParentDetailPage = () => {
     try {
       setIsUpdating(true);
       const next = userStatus === "active" ? "inactive" : "active";
-      setUser((prev) => ({ ...prev, status: next }));
+      const updatedUser = { ...user, status: next };
+      setUser(updatedUser);
+      
+      // Update the user in the admin dashboard context
+      updateUserInList('parents', updatedUser);
+      
       const { updateUserStatus } = await import("../../services/adminService");
       await updateUserStatus(user.id || user.user_id || user._id, next);
       setSnackbar({
@@ -141,7 +160,10 @@ const ParentDetailPage = () => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
+            <IconButton onClick={() => {
+              refreshUserData('parents');
+              navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } });
+            }} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Typography variant="h4">{userName}</Typography>
@@ -200,17 +222,16 @@ const ParentDetailPage = () => {
                   {userName}
                 </Typography>
               </Box>
-
+{console.log("userStatus:", userStatus)}
               {/* Action Buttons */}
-              <Stack direction="row" spacing={1}>
+             {/* Action Button (Top Right Corner) */}
+             <Stack direction="row" spacing={1}>
                 <Button
                   variant={userStatus === "active" ? "outlined" : "contained"}
                   color={userStatus === "active" ? "error" : "success"}
                   onClick={handleToggleActive}
                   disabled={isUpdating}
-                  startIcon={
-                    userStatus === "active" ? <Cancel /> : <CheckCircle />
-                  }
+                  startIcon={userStatus === "active" ? <Cancel /> : <CheckCircle />}
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,
@@ -222,7 +243,7 @@ const ParentDetailPage = () => {
                 >
                   {userStatus === "active" ? "Deactivate" : "Activate"}
                 </Button>
-              
+               
               </Stack>
             </Box>
 
@@ -305,13 +326,13 @@ const ParentDetailPage = () => {
             <TableCell>{idx + 1}</TableCell>
             <TableCell>{child.user_id.full_name || "N/A"}</TableCell>
             <TableCell>{child.user_id.email || "N/A"}</TableCell>
-            <TableCell>{getAcademicLevel(child.academic_level).level || "N/A"}</TableCell>
+            <TableCell>{getAcademicLevel(child.academic_level)?.level || "N/A"}</TableCell>
             <TableCell>
         {child.preferred_subjects && child.preferred_subjects.length > 0 ? (
           child.preferred_subjects.map((subId, i) => (
             <Chip
               key={i}
-              label={getSubjectName(subId).name}
+              label={getSubjectName(subId)?.name || "N/A"}
               size="small"
               sx={{ mr: 0.5 }}
             />
@@ -348,7 +369,10 @@ const ParentDetailPage = () => {
           }}
         >
           <Button
-            onClick={() => navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } })}
+            onClick={() => {
+              refreshUserData('parents');
+              navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } });
+            }}
             variant="outlined"
             sx={{
               minHeight: 48,

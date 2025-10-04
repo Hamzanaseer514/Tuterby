@@ -16,11 +16,8 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from './AdminLayout';
 
-// Import admin service
-import {
-  getDashboardStats,
-  getAllUsers,
-} from '../../../services/adminService';
+// Import context
+import { useAdminDashboard } from '../../../contexts/AdminDashboardContext';
 
 // Import custom components
 import UserTable from './UserTable';
@@ -43,31 +40,15 @@ const statusColors = {
 const AdminDashboard = ({ tabValue = 'tutors' }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  // State management with localStorage persistence
-  const [dashboardState, setDashboardState] = useState(() => {
-    // Try to load from localStorage first
-    const savedState = localStorage.getItem('adminDashboardState');
-    if (savedState) {
-      try {
-        const parsed = JSON.parse(savedState);
-        // Check if data is not too old (less than 10 minutes)
-        if (parsed.lastUpdated && (Date.now() - new Date(parsed.lastUpdated).getTime()) < 10 * 60 * 1000) {
-          return parsed;
-        }
-      } catch (error) {
-        // console.error('Error parsing saved dashboard state:', error);
-      }
-    }
-    
-    // Default state if no saved data or data is too old
-    return {
-      users: { tutors: [], students: [], parents: [] },
-      stats: {},
-      loading: false,
-      error: null,
-      lastUpdated: null
-    };
-  });
+  
+  // Use context for state management
+  const { 
+    dashboardState, 
+    loadUsers, 
+    loadDashboardData, 
+    refreshUserData,
+    clearCache 
+  } = useAdminDashboard();
 
   const [uiState, setUiState] = useState({
     page: 0,
@@ -97,10 +78,6 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
   });
 
   // Custom hooks for better state management
-  const updateDashboardState = (updates) => {
-    setDashboardState(prev => ({ ...prev, ...updates }));
-  };
-
   const updateUiState = (updates) => {
     setUiState(prev => ({ ...prev, ...updates }));
   };
@@ -108,13 +85,6 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
   const updateFormState = (updates) => {
     setFormState(prev => ({ ...prev, ...updates }));
   };
-
-  // Save state to localStorage whenever dashboardState changes
-  useEffect(() => {
-    if (dashboardState.lastUpdated) {
-      localStorage.setItem('adminDashboardState', JSON.stringify(dashboardState));
-    }
-  }, [dashboardState]);
 
   const showNotification = (message, severity = 'success') => {
     updateUiState({
@@ -138,7 +108,7 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
         loadUsers(targetTab);
       }
     }
-  }, [tabValue, uiState.tabValue, dashboardState.users, location.search]);
+  }, [tabValue, uiState.tabValue, dashboardState.users, location.search, loadUsers]);
 
   // Load initial data only once
   useEffect(() => {
@@ -147,111 +117,23 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
       loadDashboardData();
     }
     loadUsers(tabValue);
+  }, [loadDashboardData, loadUsers, tabValue, dashboardState.stats]);
+
+  // Check for auth token and handle authentication
+  useEffect(() => {
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    if (!token) {
+      showNotification('Please login to access admin dashboard', 'error');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+    }
   }, []);
 
-  const loadDashboardData = async () => {
-    // Don't show loading state - load silently in background
-    updateDashboardState({ error: null });
-    
-    try {
-      const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-      
-      if (!token) {
-        showNotification('Please login to access admin dashboard', 'error');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-        return;
-      }
-
-      // Load stats and users in parallel with pagination
-      const [statsData, usersResponse] = await Promise.all([
-        getDashboardStats(),
-        getAllUsers({ 
-          userType: uiState.tabValue || 'tutors',
-          page: 1,
-          limit: 50 // Load more users for better performance
-        })
-      ]);
-
-      // Handle both old and new response formats
-      const usersData = Array.isArray(usersResponse) ? usersResponse : usersResponse.users || [];
-
-      setDashboardState(prev => ({
-        ...prev,
-        stats: statsData,
-        users: { ...prev.users, [uiState.tabValue || 'tutors']: usersData },
-        loading: false,
-        lastUpdated: new Date()
-      }));
-
-      // Don't show success notification for background loading
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      
-      if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
-        showNotification('Access denied. Please login with admin credentials.', 'error');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      } else {
-        // Don't show error notification for background loading
-        updateDashboardState({
-          loading: false,
-          error: error.message
-        });
-      }
-    }
-  };
-
-  const loadUsers = async (userType, forceReload = false) => {
-    // Don't reload if data already exists and not forced
-    if (!forceReload && dashboardState.users[userType] && dashboardState.users[userType].length > 0) {
-      return;
-    }
-
-    // Don't show loading state - load silently in background
-    
-    try {
-      const usersResponse = await getAllUsers({ 
-        userType,
-        page: 1,
-        limit: 50 // Load more users for better performance
-      });
-      
-      // Handle both old and new response formats
-      const usersData = Array.isArray(usersResponse) ? usersResponse : usersResponse.users || [];
-      
-      setDashboardState(prev => ({
-        ...prev,
-        users: { ...prev.users, [userType]: usersData },
-        loading: false,
-        lastUpdated: new Date()
-      }));
-
-      // Don't show notification for background loading
-    } catch (error) {
-      console.error('Failed to load users:', error);
-      
-      if (error.message.includes('Unauthorized') || error.message.includes('Access denied')) {
-        showNotification('Access denied. Please login with admin credentials.', 'error');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      } else {
-        // Don't show error notification for background loading
-        updateDashboardState({
-          users: { ...dashboardState.users, [userType]: [] },
-          loading: false
-        });
-      }
-    }
-  };
-
   const handleRequestReload = () => {
-    // Clear localStorage cache when manually refreshing
-    localStorage.removeItem('adminDashboardState');
-    loadUsers(uiState.tabValue, true); // Force reload
+    // Clear cache and force reload
+    clearCache();
+    refreshUserData(uiState.tabValue);
   };
 
   // Event handlers
@@ -426,6 +308,7 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 onRefresh={loadDashboardData}
               />
 
+{console.log("filteredUsers", filteredUsers)}
               {/* User Table */}
               <UserTable
                 users={filteredUsers}

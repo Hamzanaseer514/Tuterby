@@ -40,6 +40,7 @@ import {
 } from 'recharts';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 import { getDashboardStats } from '../../services/adminService';
+import { AdminDashboardProvider } from '../../contexts/AdminDashboardContext';
 
 // Lazy load components for better performance
 const AdminDashboard = React.lazy(() => import('../../components/admin/components/AdminDashboard'));
@@ -635,13 +636,15 @@ const UnifiedAdminDashboard = () => {
       case 'students':
       case 'parents':
         return (
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-              <CircularProgress />
-            </Box>
-          }>
-            <AdminDashboard tabValue={activeTab} />
-          </Suspense>
+          <AdminDashboardProvider>
+            <Suspense fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+                <CircularProgress />
+              </Box>
+            }>
+              <AdminDashboard tabValue={activeTab} />
+            </Suspense>
+          </AdminDashboardProvider>
         );
       case 'tutor-sessions':
         return (

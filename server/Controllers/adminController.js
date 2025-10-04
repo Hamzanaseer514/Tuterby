@@ -340,7 +340,6 @@ exports.setAvailableInterviewSlots = async (req, res) => {
 
       try {
         await sendEmail(tutorUser.email, emailSubject, emailContent);
-        console.log(`Interview scheduling email sent to ${tutorUser.email}`);
       } catch (emailError) {
         console.error('Error sending interview email:', emailError);
         // Don't fail the entire request if email fails
@@ -528,7 +527,6 @@ exports.completeInterview = async (req, res) => {
 
       try {
         await sendEmail(tutorUser.email, emailSubject, emailContent);
-        console.log(`Interview result email sent to ${tutorUser.email} - Result: ${result}`);
       } catch (emailError) {
         console.error('Error sending interview result email:', emailError);
         // Don't fail the entire request if email fails
@@ -1008,7 +1006,6 @@ exports.rejectTutorProfile = async (req, res) => {
 // Get all users (tutors, students, parents) with detailed information - ULTRA OPTIMIZED VERSION
 
 exports.getAllUsers = async (req, res) => {
-  console.log("getAllUsers", req.query);
   try {
     const { userType, status, search, page = 1, limit = 50 } = req.query;
     
@@ -1098,7 +1095,7 @@ exports.getAllUsers = async (req, res) => {
         .select('user_id students location')
         .populate({
           path: "students",
-          select: "user_id",
+          select: "user_id academic_level preferred_subjects",
           populate: {
             path: "user_id",
             select: "full_name email photo_url"
@@ -1222,6 +1219,7 @@ exports.getAllUsers = async (req, res) => {
       } else if (user.role === "parent") {
         const parentProfile = parentProfileMap.get(user._id.toString());
         if (parentProfile) {
+          console.log("parentProfile", parentProfile);
           return {
             ...baseUser,
             children: parentProfile.students,
@@ -1230,7 +1228,7 @@ exports.getAllUsers = async (req, res) => {
           };
         }
       }
-      
+      console.log("baseUser", baseUser);
       return baseUser;
     });
 
@@ -1603,7 +1601,6 @@ exports.updateApplicationNotes = async (req, res) => {
 
 exports.getDashboardStats = async (req, res) => {
 
-  console.log('getDashboardStats');
   try {
     const [
       tutors,
@@ -1683,12 +1680,7 @@ exports.getDashboardStats = async (req, res) => {
       acc[p._id] = p.count;
       return acc;
     }, {});
-    console.log('tutorStats', tutorStats);
-    console.log('studentStats', studentStats);
-    console.log('parentStats', parentStats);
-    console.log('sessionStats', sessionStats);
-    console.log('revenueAgg', revenueAgg);
-    console.log('lastMonthRevenueAgg', lastMonthRevenueAgg);
+
    
     const stats = {
       tutors: {
@@ -1784,7 +1776,6 @@ exports.verifyDocument = async (req, res) => {
 // Reject grouped documents (Background Check, Qualifications, References)
 exports.rejectGroupedDocuments = async (req, res) => {
   const { user_id, group_type, reason } = req.body;
-  console.log(req.body)
 
   try {
     const tutor = await TutorProfile.findOne({ user_id: user_id });

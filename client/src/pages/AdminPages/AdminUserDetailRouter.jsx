@@ -3,19 +3,36 @@ import { useParams } from "react-router-dom";
 import TutorDetailPage from "./TutorDetailPage";
 import StudentDetailPage from "./StudentDetailPage";
 import ParentDetailPage from "./ParentDetailPage";
+import { AdminDashboardProvider } from "../../contexts/AdminDashboardContext";
 
 const AdminUserDetailRouter = () => {
   const { tabValue } = useParams();
 
   switch (tabValue) {
     case "tutors":
-      return <TutorDetailPage />;
+      return (
+        <AdminDashboardProvider>
+          <TutorDetailPage />
+        </AdminDashboardProvider>
+      );
     case "students":
-      return <StudentDetailPage />;
+      return (
+        <AdminDashboardProvider>
+          <StudentDetailPage />
+        </AdminDashboardProvider>
+      );
     case "parents":
-      return <ParentDetailPage />;
+      return (
+        <AdminDashboardProvider>
+          <ParentDetailPage />
+        </AdminDashboardProvider>
+      );
     default:
-      return <TutorDetailPage />;
+      return (
+        <AdminDashboardProvider>
+          <TutorDetailPage />
+        </AdminDashboardProvider>
+      );
   }
 };
 

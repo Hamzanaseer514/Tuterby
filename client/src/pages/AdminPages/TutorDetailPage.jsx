@@ -13,6 +13,7 @@ import AdminLayout from "../../components/admin/components/AdminLayout";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useSubject } from "../../hooks/useSubject";
+import { useAdminDashboard } from "../../contexts/AdminDashboardContext";
 import {
   User,
 } from 'lucide-react';
@@ -85,6 +86,7 @@ const TutorDetailPage = () => {
   const { tabValue } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { updateUserInList, refreshUserData } = useAdminDashboard();
 
   const [user, setUser] = useState(location.state?.user || null);
   const [loading, setLoading] = useState(!location.state?.user);
@@ -343,11 +345,15 @@ const getAcademicLevel = (level) => {
       toast.error(res.data.message);
     } else if (res.status === 200) {
       toast.success("Tutor profile approved successfully And Email Sent to Tutor");
-      setLocalUser((prev) => ({
-        ...prev,
+      const updatedUser = {
+        ...localUser,
         status: "verified",
-        documents: prev?.documents || [],
-      }));
+        documents: localUser?.documents || [],
+      };
+      setLocalUser(updatedUser);
+      
+      // Update the user in the admin dashboard context
+      updateUserInList('tutors', updatedUser);
     } else {
       toast.error("Tutor profile not approved");
     }
@@ -359,11 +365,15 @@ const getAcademicLevel = (level) => {
       toast.error(res.data.message);
     } else if (res.status === 200) {
       toast.success("Tutor profile partially approved successfully And Email Sent to Tutor");
-      setLocalUser((prev) => ({
-        ...prev,
+      const updatedUser = {
+        ...localUser,
         status: "partial_approved",
-        documents: prev?.documents || [],
-      }));
+        documents: localUser?.documents || [],
+      };
+      setLocalUser(updatedUser);
+      
+      // Update the user in the admin dashboard context
+      updateUserInList('tutors', updatedUser);
     } else {
       toast.error(res.data.message);
     }
@@ -375,14 +385,18 @@ const getAcademicLevel = (level) => {
       toast.error(res.data.message);
     } else if (res.status === 200) {
       toast.success("Tutor profile rejected successfully And Email Sent to Tutor");
-      setLocalUser((prev) => ({
-        ...prev,
+      const updatedUser = {
+        ...localUser,
         status: "rejected",
-        documents: (prev?.documents || []).map((doc) => ({
+        documents: (localUser?.documents || []).map((doc) => ({
           ...doc,
           verified: "Pending",
         })),
-      }));
+      };
+      setLocalUser(updatedUser);
+      
+      // Update the user in the admin dashboard context
+      updateUserInList('tutors', updatedUser);
     } else {
       toast.error(res.data.message);
     }
@@ -552,7 +566,10 @@ const getAcademicLevel = (level) => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton onClick={() => navigate("/admin/users?tab=tutors", { state: { preserveData: true, tabValue } })} sx={{ mr: 1 }}>
+            <IconButton onClick={() => {
+              refreshUserData('tutors');
+              navigate("/admin/users?tab=tutors", { state: { preserveData: true, tabValue } });
+            }} sx={{ mr: 1 }}>
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -1081,7 +1098,10 @@ const getAcademicLevel = (level) => {
                   </Button>
                 )}
               </>
-              <Button onClick={() => navigate("/admin/users", { state: { preserveData: true, tabValue } })} variant="outlined" sx={{ minHeight: 48, minWidth: 120, px: 3, py: 1.5, fontSize: "0.875rem", fontWeight: 500, cursor: "pointer", userSelect: "none" }}>
+              <Button onClick={() => {
+                refreshUserData('tutors');
+                navigate("/admin/users", { state: { preserveData: true, tabValue } });
+              }} variant="outlined" sx={{ minHeight: 48, minWidth: 120, px: 3, py: 1.5, fontSize: "0.875rem", fontWeight: 500, cursor: "pointer", userSelect: "none" }}>
                 Back
               </Button>
             </Box>

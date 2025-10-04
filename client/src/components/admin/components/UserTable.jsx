@@ -247,6 +247,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {console.log(user.children)}
                 {user.children?.length > 0 ? (
                   user.children.slice(0, 3).map(child => (
                     <Chip
