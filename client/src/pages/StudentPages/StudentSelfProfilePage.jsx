@@ -62,7 +62,11 @@ const StudentSelfProfilePage = () => {
   });
 
   const [uploading, setUploading] = useState(false);
-  const avatarUrl = useMemo(() => buildImageUrl(baseUser?.photo_url), [baseUser]);
+  const [previewImage, setPreviewImage] = useState(null); // For immediate preview
+  const avatarUrl = useMemo(() => {
+    // Use preview image if available, otherwise use baseUser photo_url
+    return previewImage || buildImageUrl(baseUser?.photo_url);
+  }, [baseUser, previewImage]);
   const { academicLevels, subjects } = useSubject();
 
   const getSubjectById = useCallback((id) => {
@@ -245,6 +249,14 @@ const StudentSelfProfilePage = () => {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    
+                    // Show immediate preview
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      setPreviewImage(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                    
                     try {
                       setUploading(true);
                       const formData = new FormData();
@@ -257,8 +269,22 @@ const StudentSelfProfilePage = () => {
                       );
                       const json = await res.json();
                       if (json?.success && json.photo_url) {
-                        await loadProfile();
+                        // Update baseUser state with new photo_url without full reload
+                        setBaseUser(prev => ({
+                          ...prev,
+                          photo_url: json.photo_url
+                        }));
+                        // Clear preview since we now have the real URL
+                        setPreviewImage(null);
+                        
+                        // Trigger photo update event for sidebar
+                        window.dispatchEvent(new CustomEvent('photoUpdated'));
+                        localStorage.setItem('lastPhotoUpdate', Date.now().toString());
                       }
+                    } catch (error) {
+                      // If upload fails, clear preview
+                      setPreviewImage(null);
+                      console.error('Upload failed:', error);
                     } finally {
                       setUploading(false);
                     }

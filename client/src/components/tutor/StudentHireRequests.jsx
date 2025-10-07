@@ -49,7 +49,7 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
           <div className="flex items-center gap-3">
             {user.photo_url ? (
               <img
-                src={`${BASE_URL}${user.photo_url}`}
+                src={`${user.photo_url}`}
                 alt={user.full_name || "Student"}
                 className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
               />

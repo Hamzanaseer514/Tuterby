@@ -283,15 +283,21 @@ const StudentDetailPage = () => {
                     </Tooltip>
                   }
                 >
-                                   <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                                   <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                       {user.photo_url ? (
                         <img
-                          src={`${BASE_URL}${user.photo_url}`}
+                          src={user.photo_url}
                           alt="Profile"
-                          className="h-full w-full object-cover rounded-full"
+                          className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                          loading="lazy"
                         />
                       ) : (
-                        <User className="h-12 w-12 text-white" />
+                        <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                      )}
+                      {!user.photo_url && (
+                        <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                          <User className="h-12 w-12" />
+                        </div>
                       )}
                     </div>
                 </StatusBadge>

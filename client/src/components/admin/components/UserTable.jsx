@@ -101,16 +101,18 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
 
               <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                 {user?.photo_url ? (
+                  
                   <img
-                    src={`${BASE_URL}${user.photo_url}`}
+                    src={`${user.photo_url}`}
                     alt="Profile"
                     className="h-full w-full object-cover rounded-full"
                   />
                 ) : (
                   <User className="h-10 w-10 text-white" />
                 )}
-                {console.log("BASE_URL", `${BASE_URL}${user.photo_url}`)}
+                {console.log("BASE_URL", `${user.photo_url}`)}
               </div>
+              
             </Badge>
             <Box style={{ marginLeft: "10px" }}>
               <Typography fontWeight="medium" variant="body1">
@@ -467,18 +469,7 @@ const UserTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                    <CircularProgress size={40} />
-                    <Typography variant="body1" color="text.secondary">
-                      Loading {tabValue}...
-                    </Typography>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ) : users.length > 0 ? (
+            {users && users.length > 0 ? (
               users
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((user, index) => (
@@ -492,19 +483,35 @@ const UserTable = ({
                     index={index}
                   />
                 ))
+            ) : localSearchTerm ? (
+              <TableRow>
+                <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      No results found for "{localSearchTerm}"
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleClearSearch}
+                      sx={{ mt: 1 }}
+                    >
+                      Clear search
+                    </Button>
+                  </Box>
+                </TableCell>
+              </TableRow>
             ) : (
               <TableRow>
-                <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    No {tabValue} found matching your criteria
-                  </Typography>
-                  <Button
-                    variant="text"
-                    onClick={handleClearSearch}
-                    sx={{ mt: 1 }}
-                  >
-                    Clear search
-                  </Button>
+                <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      No {tabValue} found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      There are currently no {tabValue} registered in the system.
+                    </Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
             )}
@@ -516,7 +523,7 @@ const UserTable = ({
       <TablePagination
         rowsPerPageOptions={[5, 10, 25, 50]}
         component="div"
-        count={users.length}
+        count={users ? users.length : 0}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={onChangePage}

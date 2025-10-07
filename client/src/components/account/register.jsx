@@ -335,6 +335,20 @@ const Register = () => {
         addToast("Error", "Please upload an image file");
         return;
       }
+      
+      // Store the file in documents state for parent registration
+      if (activeTab === "parent") {
+        setDocuments((prev) => {
+          const filteredDocs = prev.filter((doc) => doc.type !== "photo");
+          const newDoc = {
+            type: "photo",
+            file: file.name,
+            content: file, // Store the actual File object
+          };
+          return [...filteredDocs, newDoc];
+        });
+      }
+      
       setFormData((prev) => ({ ...prev, photo_url: file.name }));
       setIsPhotoDialogOpen(false);
       addToast("Success", "Profile photo uploaded successfully");
@@ -342,6 +356,11 @@ const Register = () => {
   };
 
   const removePhoto = () => {
+    // Remove from documents state if it's a parent
+    if (activeTab === "parent") {
+      setDocuments((prev) => prev.filter((doc) => doc.type !== "photo"));
+    }
+    
     setFormData((prev) => ({ ...prev, photo_url: "" }));
     addToast("Success", "Profile photo removed");
   };
@@ -697,24 +716,38 @@ const Register = () => {
         };
       } else if (activeTab === "parent") {
         endpoint = `${BASE_URL}/api/auth/register-parent`;
-        payload = {
-          full_name: formData.full_name,
-          email: formData.email,
-          password: formData.password,
-          age: parseInt(formData.age) || undefined,
-          phone_number: formData.phone_number,
-          role: "parent",
-          photo_url: formData.photo_url,
-        };
+        
+        // For parent registration, use FormData to send file
+        const formDataToSend = new FormData();
+        formDataToSend.append("full_name", formData.full_name);
+        formDataToSend.append("email", formData.email);
+        formDataToSend.append("password", formData.password);
+        formDataToSend.append("age", formData.age.toString());
+        formDataToSend.append("phone_number", formData.phone_number);
+        formDataToSend.append("role", "parent");
+        
+        // If photo is uploaded, append the file
+        if (formData.photo_url) {
+          // Find the uploaded file from the documents state or create a file from the filename
+          const photoFile = documents.find(doc => doc.type === "photo")?.content;
+          if (photoFile) {
+            formDataToSend.append("photo", photoFile);
+          } else {
+            // If no file found, send the filename as photo_url
+            formDataToSend.append("photo_url", formData.photo_url);
+          }
+        }
+        
+        payload = formDataToSend;
       }
 
       if (endpoint && payload) {
         const response = await fetch(endpoint, {
           method: "POST",
-          headers: {
+          headers: activeTab === "parent" ? {} : {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: activeTab === "parent" ? payload : JSON.stringify(payload),
         });
 
         const data = await response.json();

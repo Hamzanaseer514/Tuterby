@@ -373,15 +373,21 @@ const TutorsPage = () => {
                                     {/* Tutor Header */}
                                     <div className="flex items-start justify-between mb-3 sm:mb-4">
                                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
+                                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                                                 {tutor.user_id?.photo_url ? (
                                                     <img 
-                                                        src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                                                        src={tutor.user_id.photo_url}
                                                         alt="Profile" 
-                                                        className="h-full w-full object-cover rounded-full" 
+                                                        className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100" 
+                                                        loading="lazy"
                                                     />
                                                 ) : (
-                                                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                                                    <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                                                )}
+                                                {!tutor.user_id?.photo_url && (
+                                                    <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                                                        <User className="h-5 w-5 sm:h-6 sm:w-6" />
+                                                    </div>
                                                 )}
                                             </div>
                                             <div className="min-w-0 flex-1">

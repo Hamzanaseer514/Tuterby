@@ -157,10 +157,15 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
           setProfileImageUrl('');
           return;
         }
-        const url = photo_url.startsWith('http')
-          ? photo_url
-          : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
-        setProfileImageUrl(url);
+        // Preload image then swap to avoid flicker
+        const img = new Image();
+        img.src = photo_url;
+        img.onload = () => {
+          setProfileImageUrl(photo_url);
+        };
+        img.onerror = () => {
+          setProfileImageUrl('');
+        };
       } catch (error) {
         // console.error('Error fetching profile image:', error);
         setProfileImageUrl('');
@@ -236,20 +241,24 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
       )}>
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-              {profileImageUrl ? (
-                <img 
-                  src={profileImageUrl} 
-                  alt="Profile" 
-                  className="h-full w-full object-cover rounded-full" 
-                />
-              ) : (
-                <div className="h-full w-full rounded-full flex items-center justify-center text-white bg-primary">
-                  {user?.full_name?.charAt(0) || <User className="h-4 w-4 sm:h-5 sm:w-5" />}
-                </div>
-              )}
-            </div>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt="Profile"
+                className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                loading="lazy"
+              />
+            ) : (
+              <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+            )}
+            {!profileImageUrl && (
+              <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                {user?.full_name?.charAt(0) || <User className="h-4 w-4 sm:h-5 sm:w-5" />}
+              </div>
+            )}
+          </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">
                 Parent Portal

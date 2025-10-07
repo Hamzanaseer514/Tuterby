@@ -37,6 +37,7 @@ const {
   generateTutorRejectionEmail, 
   generateTutorPartialApprovalEmail 
 } = require("../Utils/tutorEmailTemplates");
+const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 
 const generateOtpEmail = require("../Utils/otpTempelate");
 
@@ -1138,13 +1139,13 @@ exports.getAllUsers = async (req, res) => {
     });
 
     // Process users efficiently
-    const formattedUsers = users.map(user => {
+    const formattedUsers = await Promise.all(users.map(async user => {
       const baseUser = {
         id: user._id,
         name: user.full_name || "Unknown",
         email: user.email,
         phone: user.phone_number || "",
-        photo_url: user.photo_url || "",
+        photo_url: user.photo_url ? await s3KeyToUrl(user.photo_url) : user.photo_url || "",
         role: user.role,
         status: user.is_verified,
         joinDate: user.created_at || user.createdAt,
@@ -1163,13 +1164,13 @@ exports.getAllUsers = async (req, res) => {
             academic_levels_taught: tutorProfile.academic_levels_taught || [],
             location: tutorProfile.location || "",
             profileStatusReason: tutorProfile.profile_status_reason || "",
-            documents: documents.map((doc) => ({
+            documents: await Promise.all(documents.map(async (doc) => ({
               type: doc.document_type,
-              url: doc.file_url ? doc.file_url : "#",
+              url: doc.file_url ? await s3KeyToUrl(doc.file_url) : "#",
               verified: doc.verification_status,
               uploadDate: doc.uploaded_at || doc.createdAt,
               notes: doc.notes || "",
-            })),
+            }))),
             interviewSlots: application && application.scheduled_time ? [{
               date: application.scheduled_time,
               time: new Date(application.scheduled_time).toLocaleTimeString("en-US", {
@@ -1212,7 +1213,7 @@ exports.getAllUsers = async (req, res) => {
               id: studentProfile.parent_id._id,
               name: studentProfile.parent_id.user_id.full_name,
               email: studentProfile.parent_id.user_id.email,
-              photo_url: studentProfile.parent_id.user_id.photo_url || "",
+              photo_url: studentProfile.parent_id.user_id.photo_url ? await s3KeyToUrl(studentProfile.parent_id.user_id.photo_url) : studentProfile.parent_id.user_id.photo_url || "",
             } : null,
           };
         }
@@ -1230,7 +1231,7 @@ exports.getAllUsers = async (req, res) => {
       }
       console.log("baseUser", baseUser);
       return baseUser;
-    });
+    }));
 
     res.status(200).json({
       users: formattedUsers,
@@ -1363,7 +1364,7 @@ exports.getTutorDetails = async (req, res) => {
       name: tutor.user_id.full_name,
       email: tutor.user_id.email,
       phone: tutor.user_id.phone_number || "",
-      photo_url: tutor.user_id.photo_url || "",
+      photo_url: tutor.user_id.photo_url ? await s3KeyToUrl(tutor.user_id.photo_url) : tutor.user_id.photo_url || "",
       location: tutor.location,
       subjects: parsedSubjects,
       status: tutor.profile_status,
@@ -1373,13 +1374,13 @@ exports.getTutorDetails = async (req, res) => {
       // 🔹 Academic Levels
       academic_levels_taught: tutor.academic_levels_taught || [],
     
-      documents: documents.map((doc) => ({
+      documents: await Promise.all(documents.map(async (doc) => ({
         type: doc.document_type,
-        url: doc.file_url ? doc.file_url : "#",
+        url: doc.file_url ? await s3KeyToUrl(doc.file_url) : "#",
         verified: doc.verification_status === "Approved",
         uploadDate: doc.uploaded_at,
         notes: doc.notes,
-      })),
+      }))),
     
       interviewSlots:
         application && application.scheduled_time
@@ -2789,12 +2790,12 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
     const [sessions, total] = await Promise.all([sessionsPromise, totalPromise]);
 
     // ✅ Format response
-    const formattedSessions = sessions.map(session => {
+    const formattedSessions = await Promise.all(sessions.map(async session => {
       const tutorDetails = session.tutor_id?.user_id ? {
         _id: session.tutor_id._id,
         full_name: session.tutor_id.user_id.full_name,
         email: session.tutor_id.user_id.email,
-        photo_url: session.tutor_id.user_id.photo_url,
+        photo_url: session.tutor_id.user_id.photo_url ? await s3KeyToUrl(session.tutor_id.user_id.photo_url) : session.tutor_id.user_id.photo_url,
         qualifications: session.tutor_id.qualifications || [],
         average_rating: session.tutor_id.average_rating || 0,
         total_sessions: session.tutor_id.total_sessions || 0,
@@ -2802,14 +2803,14 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
         location: session.tutor_id.location || ''
       } : null;
 
-      const studentDetails = (session.student_ids || []).map(student => ({
+      const studentDetails = await Promise.all((session.student_ids || []).map(async student => ({
         _id: student._id,
         full_name: student.user_id?.full_name || 'Unknown',
         email: student.user_id?.email || 'Unknown',
-        photo_url: student.user_id?.photo_url || null,
+        photo_url: student.user_id?.photo_url ? await s3KeyToUrl(student.user_id.photo_url) : student.user_id?.photo_url || null,
         preferred_subjects: student.preferred_subjects || [],
         phone_number: student.user_id?.phone_number || ''
-      }));
+      })));
 
       const sessionDate = session.session_date ? new Date(session.session_date) : null;
 
@@ -2861,7 +2862,7 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
         created_at: session.createdAt,
         updated_at: session.updatedAt
       };
-    });
+    }));
 
     // ✅ Stats aggregation
     const statsAgg = await TutoringSession.aggregate([
@@ -2934,14 +2935,14 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
 
   // Format the response data
 
-  const formattedMessages = messages.map((msg) => ({
+  const formattedMessages = await Promise.all(messages.map(async (msg) => ({
     _id: msg._id,
     student: msg.studentId
       ? {
           id: msg.studentId._id,
           full_name: msg.studentId.full_name,
           email: msg.studentId.email,
-          photo_url: msg.studentId.photo_url,
+          photo_url: msg.studentId.photo_url ? await s3KeyToUrl(msg.studentId.photo_url) : msg.studentId.photo_url,
         }
       : null, // or {} if you prefer empty object
     tutor: msg.tutorId
@@ -2949,7 +2950,7 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
           id: msg.tutorId._id,
           full_name: msg.tutorId.full_name,
           email: msg.tutorId.email,
-          photo_url: msg.tutorId.photo_url,
+          photo_url: msg.tutorId.photo_url ? await s3KeyToUrl(msg.tutorId.photo_url) : msg.tutorId.photo_url,
         }
       : null,
     message: msg.message,
@@ -2957,7 +2958,7 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
     status: msg.status,
     createdAt: msg.createdAt,
     updatedAt: msg.updatedAt,
-  }));
+  })));
   
 
 
@@ -3002,14 +3003,14 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
       .lean(); // Use lean() for better performance
 
     // ✅ Transform the data for admin dashboard
-    const formattedPayments = payments.map(p => ({
+    const formattedPayments = await Promise.all(payments.map(async p => ({
       payment_id: p._id,
       student_name: p.student_id?.user_id?.full_name || "Unknown",
       student_email: p.student_id?.user_id?.email || "",
       tutor_name: p.tutor_id?.user_id?.full_name || "Unknown",
-      stphoto_url:p.student_id?.user_id?.photo_url,
+      stphoto_url: p.student_id?.user_id?.photo_url ? await s3KeyToUrl(p.student_id.user_id.photo_url) : p.student_id?.user_id?.photo_url,
       tutor_email: p.tutor_id?.user_id?.email || "",
-      tphoto_url:  p.tutor_id?.user_id?.photo_url,
+      tphoto_url: p.tutor_id?.user_id?.photo_url ? await s3KeyToUrl(p.tutor_id.user_id.photo_url) : p.tutor_id?.user_id?.photo_url,
       subject: p.subject?.name || "N/A",
       academic_level: p.academic_level?.level || "N/A",
       payment_type: p.payment_type,
@@ -3028,7 +3029,7 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
       // Renewal tracking
       is_renewal: p.is_renewal || false,
       original_payment_id: p.original_payment_id || null
-    }));
+    })));
     res.status(200).json({ success: true, payments: formattedPayments });
   } catch (error) {
     console.error("Error fetching payments:", error);
@@ -3146,7 +3147,7 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
     const [reviews, total] = await Promise.all([reviewsPromise, totalPromise]);
 
     // Format the response
-    const formattedReviews = reviews.map(review => {
+    const formattedReviews = await Promise.all(reviews.map(async review => {
       const isStudentReview = review.student_id && review.review_type === 'student';
       const isParentReview = review.parent_id && review.review_type === 'parent';
       
@@ -3159,7 +3160,7 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
           _id: review.tutor_id?._id,
           name: review.tutor_id?.user_id?.full_name || 'Unknown',
           email: review.tutor_id?.user_id?.email || '',
-          photo_url: review.tutor_id?.user_id?.photo_url || '',
+          photo_url: review.tutor_id?.user_id?.photo_url ? await s3KeyToUrl(review.tutor_id.user_id.photo_url) : review.tutor_id?.user_id?.photo_url || '',
           average_rating: review.tutor_id?.average_rating || 0
         },
         reviewer: {
@@ -3175,9 +3176,9 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
             ? (review.parent_id?.user_id?.email || '')
             : '',
           photo_url: isStudentReview 
-            ? (review.student_id?.user_id?.photo_url || '')
+            ? (review.student_id?.user_id?.photo_url ? await s3KeyToUrl(review.student_id.user_id.photo_url) : review.student_id?.user_id?.photo_url || '')
             : isParentReview 
-            ? (review.parent_id?.user_id?.photo_url || '')
+            ? (review.parent_id?.user_id?.photo_url ? await s3KeyToUrl(review.parent_id.user_id.photo_url) : review.parent_id?.user_id?.photo_url || '')
             : '',
           id: isStudentReview 
             ? review.student_id?._id 
@@ -3190,12 +3191,12 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
           _id: review.student_id?._id,
           name: review.student_id?.user_id?.full_name || 'Anonymous',
           email: review.student_id?.user_id?.email || '',
-          photo_url: review.student_id?.user_id?.photo_url || ''
+          photo_url: review.student_id?.user_id?.photo_url ? await s3KeyToUrl(review.student_id.user_id.photo_url) : review.student_id?.user_id?.photo_url || ''
         },
         created_at: review.created_at,
         updated_at: review.updated_at
       };
-    });
+    }));
 
     res.status(200).json({
       success: true,

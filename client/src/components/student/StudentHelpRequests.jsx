@@ -608,7 +608,7 @@ const StudentHelpRequests = () => {
                       <div className="flex items-center space-x-4">
                       {tutor.user_id?.photo_url ? (
                           <img
-                            src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                            src={`${tutor.user_id.photo_url}`}
                             alt="Profile"
                             className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
                           />

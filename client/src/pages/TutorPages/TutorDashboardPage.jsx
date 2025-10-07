@@ -67,10 +67,8 @@ const TutorDashboardPage = () => {
           setProfileImageUrl('');
           return;
         }
-        const url = photo_url.startsWith('http')
-          ? photo_url
-          : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
-        setProfileImageUrl(url);
+        // Backend already sends complete S3 URL, no need to construct
+        setProfileImageUrl(photo_url);
       } catch (error) {
         console.error('Error fetching profile image:', error);
         setProfileImageUrl('');
@@ -81,6 +79,50 @@ const TutorDashboardPage = () => {
       fetchProfileImage();
     }
   }, [user]);
+
+  // Listen for photo updates from localStorage or custom events
+  useEffect(() => {
+    const handlePhotoUpdate = async () => {
+      if (user?._id) {
+        try {
+          const raw = await getUserProfile(user._id);
+          const photo_url = raw.photo_url;
+          if (!photo_url) {
+            setProfileImageUrl('');
+            return;
+          }
+          // Backend already sends complete S3 URL, no need to construct
+          setProfileImageUrl(photo_url);
+        } catch (error) {
+          console.error('Error fetching profile image:', error);
+          setProfileImageUrl('');
+        }
+      }
+    };
+
+    // Listen for custom event when photo is updated
+    window.addEventListener('photoUpdated', handlePhotoUpdate);
+    
+    // Also check localStorage for photo updates
+    const checkPhotoUpdate = () => {
+      const lastPhotoUpdate = localStorage.getItem('lastPhotoUpdate');
+      if (lastPhotoUpdate) {
+        const updateTime = parseInt(lastPhotoUpdate);
+        const now = Date.now();
+        // If photo was updated in the last 5 seconds, refresh
+        if (now - updateTime < 5000) {
+          handlePhotoUpdate();
+        }
+      }
+    };
+
+    const interval = setInterval(checkPhotoUpdate, 1000);
+
+    return () => {
+      window.removeEventListener('photoUpdated', handlePhotoUpdate);
+      clearInterval(interval);
+    };
+  }, [user, getUserProfile]);
 
   useEffect(() => {
     if (!loading) {

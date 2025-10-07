@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
 import { useToast } from '../../components/ui/use-toast';
+import { Link } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -218,7 +219,7 @@ const MyTutors = () => {
               <div className="text-gray-400 mb-4">
               {user.photo_url ? (
               <img
-                src={`${BASE_URL}${user.photo_url}`}
+                src={`${user.photo_url}`}
                 alt={user.full_name || "Student"}
                 className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
               />
@@ -233,10 +234,12 @@ const MyTutors = () => {
               <p className="text-gray-600 mb-4">
                 You haven't sent any tutor requests yet. Start by searching for tutors in your area.
               </p>
-              <Button onClick={() => window.history.back()}>
+              <Link to="/student/tutor-search">
+              <Button>
                 <BookOpen className="w-4 h-4 mr-2" />
                 Find Tutors
               </Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (
@@ -249,7 +252,7 @@ const MyTutors = () => {
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                       {hiredTutor.user_id?.photo_url ? (
                           <img
-                            src={`${BASE_URL}${hiredTutor.user_id.photo_url}`}
+                            src={`${hiredTutor.user_id.photo_url}`}
                             alt="Profile"
                             className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
                           />
