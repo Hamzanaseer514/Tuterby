@@ -1172,6 +1172,43 @@ exports.hireTutor = asyncHandler(async (req, res) => {
         return res.status(404).json({ message: "Tutor profile not found" });
     }
 
+    // Validate academic level and tutor configuration for that level
+    if (!academic_level_id) {
+        return res.status(400).json({ message: "academic_level_id is required" });
+    }
+
+    const levelEntry = (tutor.academic_levels_taught || []).find(
+        (lvl) => lvl?.educationLevel?.toString() === academic_level_id.toString()
+    );
+
+    if (!levelEntry) {
+        return res.status(400).json({
+            message: "Selected academic level is not offered by this tutor",
+        });
+    }
+
+    const invalidFields = [];
+    if (!levelEntry.hourlyRate || Number(levelEntry.hourlyRate) <= 0) invalidFields.push("hourlyRate");
+    if (!levelEntry.totalSessionsPerMonth || Number(levelEntry.totalSessionsPerMonth) <= 0) invalidFields.push("totalSessionsPerMonth");
+    if (!levelEntry.monthlyRate || Number(levelEntry.monthlyRate) <= 0) invalidFields.push("monthlyRate");
+    if (levelEntry.discount === undefined || levelEntry.discount === null || Number(levelEntry.discount) <= 0) invalidFields.push("discount");
+
+    if (invalidFields.length > 0) {
+        return res.status(400).json({
+            message: `Tutor configuration for this academic level is incomplete or zero for: ${invalidFields.join(", ")}`,
+        });
+    }
+
+    // Optional: ensure tutor teaches the requested subject
+    if (subject) {
+        const teachesSubject = (tutor.subjects || []).some(
+            (subId) => subId?.toString() === subject?.toString()
+        );
+        if (!teachesSubject) {
+            return res.status(400).json({ message: "Tutor does not teach the requested subject" });
+        }
+    }
+
     // Check if tutor is already hired and what the status is
     const existingHireIndex = student.hired_tutors.findIndex(
         (h) => {

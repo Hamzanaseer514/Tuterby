@@ -428,6 +428,7 @@ const createSession = asyncHandler(async (req, res) => {
     tutor_id: tutor._id,
     status: "completed",
   });
+
   const allowed_session = tutor.academic_levels_taught.find(
     (level) => level.educationLevel.toString() === academic_level.toString()
   );

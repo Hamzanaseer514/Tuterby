@@ -306,7 +306,6 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 onRefresh={loadDashboardData}
               />
 
-{console.log("filteredUsers", filteredUsers)}
               {/* User Table */}
               <UserTable
                 users={filteredUsers}

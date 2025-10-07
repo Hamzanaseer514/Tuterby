@@ -28,6 +28,7 @@ import StudentTutorSearchPage from './StudentTutorSearchPage';
 import { BASE_URL } from '@/config';
 import StudentSelfProfilePage from './StudentSelfProfilePage';
 import StudentPaymentPage from './StudentPaymentPage';
+import StudentAssignments from '../../components/student/StudentAssignments';
 
 const lastSeenKey = (id) => `student_last_seen_${id}`;
 
@@ -247,6 +248,13 @@ const StudentDashboardPage = () => {
       name: 'My Sessions',
       icon: Calendar,
       component: <StudentSessions />,
+      section: 'learning'
+    },
+    {
+      id: 'assignments',
+      name: 'Assignments',
+      icon: FileText,
+      component: <StudentAssignments />,
       section: 'learning'
     },
 

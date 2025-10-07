@@ -13,6 +13,8 @@ import TutorInterviewSlotsPage from './TutorInterviewSlotsPage';
 import TutorPaymentHistory from '../../components/tutor/TutorPaymentHistory';
 import TutorReviewsPageForTutor from './TutorReviewsPage';
 import TutorDocumentReuploadPage from './TutorDocumentReuploadPage';
+import TutorAssignments from '../../components/tutor/TutorAssignments';
+import TutorSubmissions from '../../components/tutor/TutorSubmissions';
 import { BASE_URL } from '../../config';
 import {
   LayoutDashboard,
@@ -31,7 +33,9 @@ import {
   HelpCircle,
   DollarSign,
   Star,
-  Upload
+  Upload,
+  FileText,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
@@ -277,6 +281,18 @@ const TutorDashboardPage = () => {
           name: 'Student Reviews',
           icon: Star,
           component: <TutorReviewsPageForTutor />
+        },
+        {
+          id: 'assignments',
+          name: 'Assignments',
+          icon: FileText,
+          component: <TutorAssignments />
+        },
+        {
+          id: 'submissions',
+          name: 'Submissions',
+          icon: CheckCircle,
+          component: <TutorSubmissions />
         },
         ...(user?.is_verified === 'partial_active' && hasRejectedDocuments ? [{
           id: 'document-reupload',
