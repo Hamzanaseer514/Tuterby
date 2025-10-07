@@ -8,6 +8,8 @@ const ParentProfile = require("../Models/ParentProfileSchema");
 const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
+const uploadToS3 = require("../Utils/uploadToS3");
+const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 const jwt = require("jsonwebtoken")
 const Rules = require("../Models/Rules");
@@ -343,25 +345,13 @@ exports.registerTutor = asyncHandler(async (req, res) => {
           file => file.originalname === originalFileName
         );
         if (!uploadedFile) continue;
-
-        const oldPath = uploadedFile.path;
-        const ext = path.extname(uploadedFile.filename);
-        console.log("ext", ext);
-        const base = path.basename(uploadedFile.filename, ext);
-        console.log("base", base);
-        const newFilename = `${base}${ext}`;
-        console.log("newFilename", newFilename);
-        const newPath = `uploads/documents/${newFilename}`;
-
-        fs.renameSync(oldPath, newPath);
-
-        const relativePath = `/uploads/documents/${newFilename}`;
+        const s3Key = await uploadToS3(uploadedFile, 'documents');
         const newDoc = await TutorDocument.create(
           [
             {
               tutor_id: tutorProfile[0]._id,
               document_type: documentType,
-              file_url: relativePath,
+              file_url: s3Key,
               uploaded_at: new Date(),
               verified_by_admin: false,
               verification_status: "Pending"
@@ -405,16 +395,36 @@ exports.registerTutor = asyncHandler(async (req, res) => {
 });
 
 exports.registerParent = asyncHandler(async (req, res) => {
+  
   const { full_name, email, phone_number, password, age } = req.body;
-console.log(req.body)
-  // Get photo URL from uploaded file or use default
+
   let photo_url = null;
-  if (req.body.photo_url) {
-    photo_url = `/uploads/documents/${req.body.photo_url}`;
+  if (req.file) {
+    photo_url = await uploadToS3(req.file, 'profile');
+    console.log("✅ File uploaded to S3, S3 key:", photo_url);
   } else if (req.body.photo_url) {
-    photo_url = req.body.photo_url;
+    try {
+      const filename = req.body.photo_url;
+      const path = require('path');
+      const ext = path.extname(filename) || '.jpg';
+      const mimetype = ext === '.png' ? 'image/png' : 'image/jpeg';
+
+      const mockFile = {
+        originalname: filename,
+        buffer: Buffer.from(''),
+        mimetype: mimetype,
+        size: 0
+      };
+
+      photo_url = await uploadToS3(mockFile, 'profile');
+      console.log("✅ File uploaded to S3 from filename:", photo_url);
+
+    } catch (error) {
+      console.log("❌ Error uploading filename to S3:", error.message);
+      photo_url = req.body.photo_url;
+    }
   }
-  console.log("Photo URL:", photo_url);
+  console.log("Final Photo URL:", photo_url);
   if (!email || !password || !full_name) {
     res.status(400);
     throw new Error("Full name, email, and password are required");
@@ -1004,7 +1014,15 @@ exports.getUserProfile = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("User not found");
   }
-  res.status(200).json(user);
+  
+  // Convert S3 key to presigned URL for photo_url (private bucket)
+  const userProfile = user.toObject();
+  if (userProfile.photo_url) {
+    userProfile.photo_url = await s3KeyToUrl(userProfile.photo_url);
+  }
+  console.log(userProfile.photo_url);
+  
+  res.status(200).json(userProfile);
 });
 
 exports.updateUserPhoto = asyncHandler(async (req, res) => {
@@ -1014,16 +1032,16 @@ exports.updateUserPhoto = asyncHandler(async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const relativePath = `/uploads/documents/${req.file.filename}`;
+    const s3Key = await uploadToS3(req.file, 'profile');
     const user = await User.findByIdAndUpdate(
       user_id,
-      { photo_url: relativePath },
+      { photo_url: s3Key },
       { new: true }
     ).select('photo_url');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    return res.status(200).json({ success: true, photo_url: user.photo_url });
+    return res.status(200).json({ success: true, photo_url: await s3KeyToUrl(user.photo_url) });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

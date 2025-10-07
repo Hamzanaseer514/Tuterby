@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -10,7 +10,8 @@ import { useSubject } from '../../hooks/useSubject';
 
 function buildImageUrl(raw) {
   if (!raw) return '';
-  return raw.startsWith('http') ? raw : `${BASE_URL}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  // Backend already sends complete S3 URL, return as is
+  return raw;
 }
 
 function toArray(value) {
@@ -32,19 +33,40 @@ function toArray(value) {
 }
 
 const TutorSelfProfilePage = () => {
-  const { user, getAuthToken, fetchWithAuth } = useAuth();
+  const { user, getAuthToken, fetchWithAuth, getUserProfile } = useAuth();
   const token = getAuthToken();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [userProfile, setUserProfile] = useState(null); // Store user profile data with S3 URLs
   const [uploading, setUploading] = useState(false);
-  const avatarUrl = useMemo(() => buildImageUrl(profile?.user_id?.photo_url || user?.photo_url), [profile, user]);
+  const [previewImage, setPreviewImage] = useState(null); // For immediate preview
+  
+  const avatarUrl = useMemo(() => {
+    // Use preview image if available, otherwise use userProfile photo_url
+    if (previewImage) return previewImage;
+    
+    // Use userProfile photo_url (has S3 URL) or fallback to profile/user
+    const photoUrl = userProfile?.photo_url || profile?.user_id?.photo_url || user?.photo_url;
+    return buildImageUrl(photoUrl);
+  }, [userProfile, profile, user, previewImage]);
   const { subjects, academicLevels } = useSubject();
 
 
   useEffect(() => {
     if (!user?._id) return;
     loadProfile();
+    loadUserProfile(); // Also load user profile for S3 URLs
   }, [user]);
+
+  // Load user profile data (same as sidebar) to get S3 URLs
+  async function loadUserProfile() {
+    try {
+      const raw = await getUserProfile(user._id);
+      setUserProfile(raw);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  }
 
 
   const getSubjectName = (id) => {
@@ -116,6 +138,14 @@ const TutorSelfProfilePage = () => {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+
+                      // Show immediate preview
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        setPreviewImage(e.target.result);
+                      };
+                      reader.readAsDataURL(file);
+
                       try {
                         setUploading(true);
                         const formData = new FormData();
@@ -126,9 +156,26 @@ const TutorSelfProfilePage = () => {
                         }, token, (newToken) => localStorage.setItem("authToken", newToken));
                         const json = await res.json();
                         if (json?.success && json.photo_url) {
-                          // Force refresh local profile image by updating user.photo_url in memory if needed
-                          await loadProfile();
+                          // Update profile state with new photo_url without full reload
+                          setProfile(prev => ({
+                            ...prev,
+                            user_id: {
+                              ...prev?.user_id,
+                              photo_url: json.photo_url
+                            }
+                          }));
+                          // Also update userProfile state
+                          setUserProfile(prev => ({
+                            ...prev,
+                            photo_url: json.photo_url
+                          }));
+                          // Clear preview since we now have the real URL
+                          setPreviewImage(null);
                         }
+                      } catch (error) {
+                        // If upload fails, clear preview
+                        setPreviewImage(null);
+                        console.error('Upload failed:', error);
                       } finally {
                         setUploading(false);
                       }

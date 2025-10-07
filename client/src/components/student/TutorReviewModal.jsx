@@ -157,7 +157,7 @@ const TutorReviewModal = ({ tutor, isOpen, onClose, onReviewSubmitted }) => {
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
             {tutor.user_id?.photo_url ? (
               <img
-                src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                src={`${tutor.user_id.photo_url}`}
                 alt={tutor.user_id.full_name}
                 className="h-12 w-12 rounded-full object-cover"
               />

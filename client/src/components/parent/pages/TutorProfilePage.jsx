@@ -130,15 +130,21 @@ const TutorProfilePage = () => {
                 <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                         {/* Profile Image */}
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative mx-auto sm:mx-0">
                             {tutor.user_id?.photo_url ? (
                                 <img
-                                    src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                                    src={tutor.user_id.photo_url}
                                     alt="Profile"
-                                    className="h-full w-full object-cover rounded-full"
+                                    className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                                    loading="lazy"
                                 />
                             ) : (
-                                <User className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12 text-white" />
+                                <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                            )}
+                            {!tutor.user_id?.photo_url && (
+                                <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                                    <User className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12" />
+                                </div>
                             )}
                         </div>
 

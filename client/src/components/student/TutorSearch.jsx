@@ -665,15 +665,21 @@ const TutorSearch = () => {
                 <Card key={tutor._id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                         {tutor.user_id?.photo_url ? (
                           <img
-                            src={`${BASE_URL}${tutor.user_id.photo_url}`}
+                            src={tutor.user_id.photo_url}
                             alt="Profile"
-                            className="h-full w-full object-cover rounded-full"
+                            className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                            loading="lazy"
                           />
                         ) : (
-                          <User className="h-6 w-6 text-white" />
+                          <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                        )}
+                        {!tutor.user_id?.photo_url && (
+                          <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                            <User className="h-6 w-6" />
+                          </div>
                         )}
                       </div>
                       <div className="flex-1">

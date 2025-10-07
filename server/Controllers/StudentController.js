@@ -8,6 +8,7 @@ const StudentPayment = require("../Models/studentPaymentSchema"); // Added for s
 const Message = require("../Models/messageSchema"); // Added for messaging
 const TutorReview = require("../Models/tutorReviewSchema"); // Added for tutor reviews
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
+const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 
 
 
@@ -20,6 +21,7 @@ exports.getStudentProfile = asyncHandler(async (req, res) => {
         throw new Error('Student not found');
     }
     const studentProfile = await Student.findOne({ user_id: userId });
+    // Return profile with resolved photo URL for child
     res.status(200).json({
         student: studentProfile,
     });
@@ -405,9 +407,10 @@ exports.searchTutors = asyncHandler(async (req, res) => {
       });
   
       // Format tutors
-      const formattedTutors = tutors
+      const formattedTutors = await Promise.all(
+        tutors
         .filter((tutor) => tutor.user_id)
-        .map((tutor) => {
+        .map(async (tutor) => {
           const hireRecord = currentStudent.hired_tutors.find(
             (hire) => hire.tutor.toString() === tutor._id.toString()
           );
@@ -434,9 +437,13 @@ exports.searchTutors = asyncHandler(async (req, res) => {
           const max_hourly_rate_value =
             tutorHourlyRates.length > 0 ? Math.max(...tutorHourlyRates) : 0;
   
+          const resolvedPhotoUrl = tutor.user_id?.photo_url
+            ? await s3KeyToUrl(tutor.user_id.photo_url)
+            : tutor.user_id?.photo_url;
+
           return {
             _id: tutor._id,
-            user_id: tutor.user_id,
+            user_id: { ...tutor.user_id, photo_url: resolvedPhotoUrl },
             subjects: tutor.subjects,
             academic_levels_taught: tutor.academic_levels_taught,
             min_hourly_rate: min_hourly_rate_value,
@@ -451,7 +458,8 @@ exports.searchTutors = asyncHandler(async (req, res) => {
             hire_status: hireRecord ? hireRecord.status : null,
             hired_at: hireRecord ? hireRecord.hired_at : null,
           };
-        });
+        })
+      );
   
       // Send response
       res.status(200).json({
@@ -950,9 +958,12 @@ exports.getTutorDetails = asyncHandler(async (req, res) => {
             inquiryStats[stat._id] = stat.count;
         });
         const total_sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id });
+        // Resolve tutor profile photo URL
+        const tutorPhotoUrl = tutor.user_id?.photo_url ? await s3KeyToUrl(tutor.user_id.photo_url) : tutor.user_id?.photo_url;
+
         const formattedTutor = {
             _id: tutor._id,
-            user_id: tutor.user_id,
+            user_id: { ...tutor.user_id.toObject?.() ? tutor.user_id.toObject() : tutor.user_id, photo_url: tutorPhotoUrl },
             subjects: tutor.subjects,
             academic_levels_taught: tutorAcademicLevels.map(level => level.name),
             min_hourly_rate: min_hourly_rate_value,
@@ -1116,7 +1127,12 @@ exports.getStudentHelpRequests = asyncHandler(async (req, res) => {
         const tutorIds = inquiries.map(inquiry => inquiry.tutor_id);
         const tutorProfiles = await TutorProfile.find({ _id: { $in: tutorIds } });
         const userIds = tutorProfiles.map(tutor => tutor.user_id);
-        const users = await User.find({ _id: { $in: userIds } });
+        const usersRaw = await User.find({ _id: { $in: userIds } });
+        // Resolve S3 URLs for tutor user photos
+        const users = await Promise.all(usersRaw.map(async u => ({
+            ...(u.toObject ? u.toObject() : u),
+            photo_url: u.photo_url ? await s3KeyToUrl(u.photo_url) : u.photo_url
+        })));
 
         // Create a mapping of TutorProfile ID to User data for easy lookup
         const tutorToUserMap = {};
@@ -1273,8 +1289,8 @@ exports.getAcceptedTutorsForStudent = async (req, res) => {
                 path: "hired_tutors.tutor",
                 model: "TutorProfile",
                 populate: {
-                    path: "user_id", // if TutorProfile has a user reference for name/email
-                    select: "full_name email"
+                    path: "user_id", // include photo for chat avatar
+                    select: "full_name email photo_url"
                 }
             });
 
@@ -1286,15 +1302,21 @@ exports.getAcceptedTutorsForStudent = async (req, res) => {
         }
 
         // Step 2: Filter only accepted tutors
-        const acceptedTutors = student.hired_tutors
-            .filter(t => t.status === "accepted" && t.tutor !== null)
-            .map(t => ({
-                tutorId: t.tutor._id,
-                full_name: t.tutor.user_id?.full_name || "Unknown",
-                email: t.tutor.user_id?.email || "",
-                subject: t.tutor.subject || "",
-                hired_at: t.hired_at
-            }));
+        const acceptedTutors = await Promise.all(
+            student.hired_tutors
+                .filter(t => t.status === "accepted" && t.tutor !== null)
+                .map(async t => ({
+                    tutorId: t.tutor._id,
+                    full_name: t.tutor.user_id?.full_name || "Unknown",
+                    email: t.tutor.user_id?.email || "",
+                    subject: t.tutor.subject || "",
+                    hired_at: t.hired_at,
+                    user_id: {
+                        ...(t.tutor.user_id?.toObject ? t.tutor.user_id.toObject() : t.tutor.user_id),
+                        photo_url: t.tutor.user_id?.photo_url ? await s3KeyToUrl(t.tutor.user_id.photo_url) : t.tutor.user_id?.photo_url
+                    }
+                }))
+        );
 
         res.json({
             success: true,
@@ -1330,10 +1352,19 @@ exports.getStudentTutorChat = asyncHandler(async (req, res) => {
     .populate("tutorId", "full_name photo_url") // Fixed populate syntax
     .sort({ createdAt: 1 }); // oldest first for proper chat order
 
+    // resolve tutor photo URL via S3
+    const dataWithUrls = await Promise.all(messages.map(async m => ({
+        ...m.toObject(),
+        tutorId: {
+            ...(m.tutorId?.toObject ? m.tutorId.toObject() : m.tutorId),
+            photo_url: m.tutorId?.photo_url ? await s3KeyToUrl(m.tutorId.photo_url) : m.tutorId?.photo_url
+        }
+    })));
+
     res.status(200).json({
         success: true,
-        count: messages.length,
-        data: messages,
+        count: dataWithUrls.length,
+        data: dataWithUrls,
     });
 
 });
@@ -1362,19 +1393,20 @@ exports.getHiredTutors = asyncHandler(async (req, res) => {
         }
 
         // Filter and format hired tutors
-        const hiredTutors = student.hired_tutors
+        const hiredTutors = await Promise.all(student.hired_tutors
             .filter(hiredTutor => hiredTutor.tutor !== null) // Filter out any null tutors
-            .map(hiredTutor => {
+            .map(async hiredTutor => {
                 const tutorProfile = hiredTutor.tutor;
                 const user = tutorProfile.user_id;
+                const resolvedPhotoUrl = user?.photo_url ? await s3KeyToUrl(user.photo_url) : user?.photo_url;
 
                 return {
                     _id: tutorProfile._id,
                     tutor_id: tutorProfile._id,
-                    user_id: user,
+                    user_id: { ...user.toObject?.() ? user.toObject() : user, photo_url: resolvedPhotoUrl },
                     full_name: user.full_name,
                     email: user.email,
-                    photo_url: user.photo_url,
+                    photo_url: resolvedPhotoUrl,
                     hireStatus: hiredTutor.status,
                     // status: hiredTutor.status || 'pending',
                     hired_at: hiredTutor.hired_at,
@@ -1388,7 +1420,7 @@ exports.getHiredTutors = asyncHandler(async (req, res) => {
                     qualifications: tutorProfile.qualifications,
                     academic_levels_taught: tutorProfile.academic_levels_taught
                 };
-            });
+            }))
 
         res.status(200).json({
             success: true,

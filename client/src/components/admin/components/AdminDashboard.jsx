@@ -92,7 +92,7 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
     });
   };
 
-  // Update tab when prop changes or URL changes
+  // Update tab when prop changes or URL changes - IMMEDIATE DATA LOAD
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const urlTab = params.get('tab');
@@ -103,21 +103,20 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
     
     if (targetTab !== uiState.tabValue) {
       setUiState(prev => ({ ...prev, tabValue: targetTab }));
-      // Load data for the new tab if it doesn't exist
-      if (!dashboardState.users[targetTab] || dashboardState.users[targetTab].length === 0) {
-        loadUsers(targetTab);
-      }
+      // Load data immediately when tab changes
+      loadUsers(targetTab, false, false);
     }
-  }, [tabValue, uiState.tabValue, dashboardState.users, location.search, loadUsers]);
+  }, [tabValue, uiState.tabValue, location.search, loadUsers]);
 
-  // Load initial data only once
+  // Load initial data - IMMEDIATE LOADING
   useEffect(() => {
-    // Only load if no data exists
+    // Load dashboard stats if empty
     if (!dashboardState.stats || Object.keys(dashboardState.stats).length === 0) {
       loadDashboardData();
     }
-    loadUsers(tabValue);
-  }, [loadDashboardData, loadUsers, tabValue, dashboardState.stats]);
+    // Load users for current tab immediately
+    loadUsers(tabValue, false, false);
+  }, [loadDashboardData, loadUsers, tabValue]);
 
   // Check for auth token and handle authentication
   useEffect(() => {
@@ -131,9 +130,8 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
   }, []);
 
   const handleRequestReload = () => {
-    // Clear cache and force reload
-    clearCache();
-    refreshUserData(uiState.tabValue);
+    // Manual reload - only when user explicitly requests it
+    loadUsers(uiState.tabValue, true, true);
   };
 
   // Event handlers
@@ -320,7 +318,7 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 onChangeRowsPerPage={handleChangeRowsPerPage}
                 onRequestReload={handleRequestReload}
                 showNotification={showNotification}
-                loading={dashboardState.tabLoading[uiState.tabValue]}
+                loading={false}
               />
             </Paper>
 

@@ -220,7 +220,7 @@ const ParentProfilePage = () => {
                     />
                   ) : parentProfile?.user_id?.photo_url ? (
                     <img 
-                      src={`${BASE_URL}${parentProfile.user_id.photo_url}`} 
+                      src={parentProfile.user_id.photo_url} 
                       alt="Profile" 
                       className="w-full h-full object-cover"
                     />

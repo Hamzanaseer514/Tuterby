@@ -12,6 +12,8 @@ const StudentPayment = require("../Models/studentPaymentSchema"); // Added for p
 const Message = require("../Models/messageSchema"); // Importing Message model
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 const sendEmail = require("../Utils/sendEmail");
+const uploadToS3 = require("../Utils/uploadToS3");
+const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
 
@@ -20,12 +22,12 @@ const uploadDocument = asyncHandler(async (req, res) => {
     throw new Error("All fields and file are required");
   }
 
-  const relativePath = `/uploads/documents/${req.file.filename}`;
+  const s3Key = await uploadToS3(req.file, 'documents');
 
   const newDoc = await TutorDocument.create({
     tutor_id: tutor_id,
     document_type,
-    file_url: relativePath,
+    file_url: s3Key,
     uploaded_at: new Date(),
     verification_status: "Pending",
   });
@@ -63,7 +65,7 @@ const getRejectedDocuments = asyncHandler(async (req, res) => {
     // Get all document types to show which ones are missing
     const allDocumentTypes = ['ID Proof', 'Address Proof', 'Degree', 'Certificate', 'Reference Letter'];
     
-    const documentStatus = allDocumentTypes.map(type => {
+    const documentStatus = await Promise.all(allDocumentTypes.map(async type => {
       const existingDoc = allDocuments.find(doc => doc.document_type === type);
       let status = 'missing';
       
@@ -82,13 +84,13 @@ const getRejectedDocuments = asyncHandler(async (req, res) => {
         status: status,
         document: existingDoc ? {
           _id: existingDoc._id,
-          file_url: existingDoc.file_url,
+          file_url: await s3KeyToUrl(existingDoc.file_url),
           uploaded_at: existingDoc.uploaded_at,
           notes: existingDoc.notes || '',
           verification_status: existingDoc.verification_status
         } : null
       };
-    });
+    }));
 
     res.status(200).json({
       message: "Documents retrieved successfully",
@@ -130,7 +132,7 @@ const reuploadDocument = asyncHandler(async (req, res) => {
       });
     }
 
-    const relativePath = `/uploads/documents/${req.file.filename}`;
+    const s3Key = await uploadToS3(req.file, 'documents');
 
     // Always find existing document by document_type and tutor_id (replace approach)
     const existingDoc = await TutorDocument.findOne({
@@ -140,7 +142,7 @@ const reuploadDocument = asyncHandler(async (req, res) => {
 
     if (existingDoc) {
       // Update existing document (replace)
-      existingDoc.file_url = relativePath;
+      existingDoc.file_url = s3Key;
       existingDoc.uploaded_at = new Date();
       existingDoc.verification_status = "Pending";
       existingDoc.notes = ""; // Clear any previous notes
@@ -155,7 +157,7 @@ const reuploadDocument = asyncHandler(async (req, res) => {
       const newDoc = await TutorDocument.create({
         tutor_id: tutorProfile._id,
         document_type: document_type,
-        file_url: relativePath,
+        file_url: s3Key,
         uploaded_at: new Date(),
         verification_status: "Pending",
       });
@@ -1524,6 +1526,7 @@ const checkAvailability = asyncHandler(async (req, res) => {
   });
 });
 
+
 // Get hire requests for a tutor with optional status filter
 const getHireRequests = asyncHandler(async (req, res) => {
   const { user_id } = req.params;
@@ -1550,7 +1553,7 @@ const getHireRequests = asyncHandler(async (req, res) => {
     )
     .lean();
 
-  const shaped = students.map((s) => {
+  const shaped = await Promise.all(students.map(async (s) => {
     // Find ALL hire requests from this student for this tutor
     const allHires = (s.hired_tutors || []).filter(
       (h) => h && h.tutor && h.tutor.toString() === tutorProfile._id.toString()
@@ -1570,9 +1573,11 @@ const getHireRequests = asyncHandler(async (req, res) => {
         })
         : null;
 
+    const resolvedPhotoUrl = s.user_id?.photo_url ? await s3KeyToUrl(s.user_id.photo_url) : s.user_id?.photo_url;
+
     return {
       _id: s._id,
-      user_id: s.user_id,
+      user_id: { ...s.user_id, photo_url: resolvedPhotoUrl },
       academic_level: s.academic_level,
       preferred_subjects: s.preferred_subjects,
       createdAt: s.createdAt,
@@ -1589,7 +1594,7 @@ const getHireRequests = asyncHandler(async (req, res) => {
       // Include count of total requests for debugging
       total_requests: allHires.length,
     };
-  });
+  }));
 
   res.status(200).json({ success: true, requests: shaped });
 });
@@ -1950,6 +1955,7 @@ const sendMessageResponse = asyncHandler(async (req, res) => {
   });
 });
 
+
 const getTutorMessages = asyncHandler(async (req, res) => {
   const tutorId = req.user._id; // Logged-in tutor
 
@@ -1958,10 +1964,19 @@ const getTutorMessages = asyncHandler(async (req, res) => {
     .populate("studentId", "full_name photo_url")  // ✅ include photo_url
     .sort({ createdAt: -1 });
 
+  // Resolve student photo URLs
+  const dataWithUrls = await Promise.all(messages.map(async m => ({
+    ...m.toObject(),
+    studentId: {
+      ...(m.studentId?.toObject ? m.studentId.toObject() : m.studentId),
+      photo_url: m.studentId?.photo_url ? await s3KeyToUrl(m.studentId.photo_url) : m.studentId?.photo_url
+    }
+  })));
+
   res.status(200).json({
     success: true,
-    count: messages.length,
-    data: messages,
+    count: dataWithUrls.length,
+    data: dataWithUrls,
   });
 });
 
@@ -1989,11 +2004,18 @@ const getSpecificUserChat = asyncHandler(async (req, res) => {
   const messages = await Message.find({ tutorId, studentId })
     .populate("studentId", "full_name photo_url")
     .sort({ createdAt: 1 }); // oldest first for chat order
-console.log(messages);
+  const dataWithUrls = await Promise.all(messages.map(async m => ({
+    ...m.toObject(),
+    studentId: {
+      ...(m.studentId?.toObject ? m.studentId.toObject() : m.studentId),
+      photo_url: m.studentId?.photo_url ? await s3KeyToUrl(m.studentId.photo_url) : m.studentId?.photo_url
+    }
+  })));
+
   res.status(200).json({
     success: true,
-    count: messages.length,
-    data: messages,
+    count: dataWithUrls.length,
+    data: dataWithUrls,
   });
 });
 
@@ -2044,6 +2066,7 @@ const deleteSession = asyncHandler(async (req, res) => {
   });
 });
 
+
 // Get all verified tutors for home page display
 const getVerifiedTutors = asyncHandler(async (req, res) => {
   try {
@@ -2062,7 +2085,7 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
       .lean();
 
     // Transform the data to include min-max hourly rates and other required fields
-    const transformedTutors = verifiedTutors.map((tutor) => {
+    const transformedTutors = await Promise.all(verifiedTutors.map(async (tutor) => {
       const user = tutor.user_id;
 
       // Calculate min and max hourly rates
@@ -2085,11 +2108,14 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
       if (minHourlyRate === Infinity) minHourlyRate = 0;
       if (maxHourlyRate === 0) maxHourlyRate = 0;
 
+      // Resolve photo URL
+      const resolvedPhotoUrl = user?.photo_url ? await s3KeyToUrl(user.photo_url) : user?.photo_url;
+
       return {
         _id: tutor._id,
         user_id: tutor.user_id._id,
         full_name: user.full_name,
-        photo_url: user.photo_url,
+        photo_url: resolvedPhotoUrl,
         email: user.email,
         bio: tutor.bio,
         qualifications: tutor.qualifications,
@@ -2105,7 +2131,7 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
         is_reference_verified: tutor.is_reference_verified,
         is_qualification_verified: tutor.is_qualification_verified,
       };
-    });
+    }));
     res.status(200).json({
       success: true,
       count: transformedTutors.length,

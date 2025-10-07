@@ -180,7 +180,7 @@ const Chatting = () => {
                 <div className="relative">
                   {student.photo_url ? (
                     <img
-                      src={`${BASE_URL}${student.photo_url}`}
+                      src={`${student.photo_url}`}
                       alt={student.name}
                       className="h-8 w-8 rounded-full object-cover"
                     />
@@ -246,7 +246,7 @@ const Chatting = () => {
             <div className="flex items-center gap-3 bg-white shadow p-4 border-b border-gray-200">
               {selectedStudentPhoto ? (
                 <img
-                  src={`${BASE_URL}${selectedStudentPhoto}`}
+                  src={`${selectedStudentPhoto}`}
                   alt={selectedStudentName}
                   className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
                 />

@@ -75,10 +75,7 @@ const ParentDetailPage = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { updateUserInList, refreshUserData } = useAdminDashboard();
   
-  // Force refresh parent data when component mounts to get latest data
-  useEffect(() => {
-    refreshUserData('parents');
-  }, [refreshUserData]);
+  // Removed unnecessary refresh on mount - data is already available from navigation state
   useEffect(() => {
     if (!user) setLoading(false);
     else {
@@ -179,6 +176,7 @@ const ParentDetailPage = () => {
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton onClick={() => {
+              // Smart refresh - only refresh if data might be stale
               refreshUserData('parents');
               navigate("/admin/users?tab=parents", { state: { preserveData: true, tabValue } });
             }} sx={{ mr: 1 }}>
@@ -213,7 +211,7 @@ const ParentDetailPage = () => {
                 <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                       {user.photo_url ? (
                         <img
-                          src={`${BASE_URL}${user.photo_url}`}
+                          src={user.photo_url}
                           alt="Profile"
                           className="h-full w-full object-cover rounded-full"
                         />

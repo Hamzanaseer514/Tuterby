@@ -25,23 +25,8 @@ const { protect } = require("../Middleware/authMiddleware")
 const multer = require("multer");
 const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    console.log("file", file);
-    cb(null, 'uploads/documents/');
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    console.log("ext", ext);
-    const base = path.basename(file.originalname, ext);
-    console.log("base", base);
-    const newName = `${base}${ext}`;
-    console.log("newName", newName);
-    cb(null, newName);
-  }
-});
-
-const upload = multer({ storage });
+// Multer memory storage for S3 uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 
 router.get("/student/profile/:userId", protect, getStudentProfile);
@@ -51,7 +36,7 @@ router.post("/login-google", loginWithGoogle) // Google OAuth login for all user
 router.get("/test-google-oauth", testGoogleOAuth) // Test Google OAuth configuration
 router.put("/updatestudent/:user_id", updateStudentProfile)
 router.post("/register-tutor", upload.fields([{ name: 'documents', maxCount: 10 }]), registerTutor);
-router.post("/register-parent", registerParent)
+router.post("/register-parent", upload.single('photo'), registerParent);
 router.post("/login", loginUser)
 router.post("/refresh", refreshAccessToken);
 router.post("/logout", logoutUser);

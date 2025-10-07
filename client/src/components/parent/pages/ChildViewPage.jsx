@@ -218,7 +218,7 @@ const ChildViewPage = () => {
                                 <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 overflow-hidden">
                                     {child.photo_url ? (
                                         <img
-                                            src={`${BASE_URL}${child.photo_url}`}
+                                            src={`${child.photo_url}`}
                                             alt="Profile"
                                             className="w-full h-full rounded-full object-cover"
                                         />
@@ -365,7 +365,7 @@ const ChildViewPage = () => {
                                                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 overflow-hidden">
                                                         {hiredTutor.tutor.photo_url ? (
                                                             <img
-                                                                src={`${BASE_URL}${hiredTutor.tutor.photo_url}`}
+                                                                src={`${hiredTutor.tutor.photo_url}`}
                                                                 alt="Tutor"
                                                                 className="w-full h-full rounded-full object-cover"
                                                             />

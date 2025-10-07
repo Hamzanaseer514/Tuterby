@@ -153,17 +153,22 @@ const StudentChatting = () => {
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex-1">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden relative flex-shrink-0">
+                    {tutor.user_id?.photo_url ? (
+                      <img src={tutor.user_id.photo_url} alt={tutor.full_name} className="h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-gray-800">{tutor.full_name}</p>
+                    <p className="font-semibold text-sm sm:text-md md:text-lg text-gray-800">{tutor.full_name}</p>
                     {/* Red dot notification for new responses */}
                     {tutor.hasNewResponse && (
                       <div className="h-2 w-2 bg-red-500 rounded-full"></div>
                     )}
                   </div>
-                  <p className="text-gray-500 text-sm truncate">
-                    {tutor.email}
-                  </p>
+                  
                 </div>
                 {tutor.hasNewResponse && (
                   <span className="text-xs text-red-500 font-medium">

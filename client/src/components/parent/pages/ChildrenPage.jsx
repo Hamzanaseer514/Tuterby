@@ -291,15 +291,19 @@ const ChildrenPage = () => {
                                         {/* Header with Avatar */}
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0 overflow-hidden">
+                                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 group-hover:scale-105 transition-transform duration-300 flex-shrink-0 overflow-hidden relative">
                                                     {child.photo_url ? (
                                                         <img 
-                                                            src={`${BASE_URL}${child.photo_url}`}
+                                                            src={child.photo_url}
                                                             alt={child.full_name} 
-                                                            className="h-full w-full object-cover rounded-full"
+                                                            className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                                                            loading="lazy"
                                                         />
                                                     ) : (
-                                                        <div className="h-full w-full rounded-full flex items-center justify-center text-white bg-primary">
+                                                        <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                                                    )}
+                                                    {!child.photo_url && (
+                                                        <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
                                                             <User className="h-5 w-5 sm:h-6 sm:w-6" />
                                                         </div>
                                                     )}

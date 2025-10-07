@@ -616,15 +616,21 @@ const getAcademicLevel = (level) => {
                       <Box sx={{ display: "flex", alignItems: "center", mb: 2, width: "100%" }}>
                         {/* <Avatar sx={{ width: 80, height: 80, background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)", fontSize: "2rem", fontWeight: "bold", mr: 2 }}> */}
                           {/* {userName.charAt(0)} */}
-                          <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                          <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                       {localUser?.photo_url ? (
                         <img
-                          src={`${BASE_URL}${localUser.photo_url}`}
+                          src={localUser.photo_url}
                           alt="Profile"
-                          className="h-full w-full object-cover rounded-full"
+                          className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                          loading="lazy"
                         />
                       ) : (
-                        <User className="h-12 w-12 text-white" />
+                        <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                      )}
+                      {!localUser?.photo_url && (
+                        <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                          <User className="h-12 w-12" />
+                        </div>
                       )}
                     </div>
                         {/* </Avatar> */}

@@ -49,34 +49,14 @@ export const AdminDashboardProvider = ({ children }) => {
     setDashboardState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const loadUsers = useCallback(async (userType, forceReload = false, showLoading = true) => {
-    // Don't reload if data already exists and not forced
+  const loadUsers = useCallback(async (userType, forceReload = false, showLoading = false) => {
+    // IMMEDIATE LOADING - Load data instantly without loading spinner
     if (!forceReload && dashboardState.users[userType] && dashboardState.users[userType].length > 0) {
-      // Still show loading briefly for better UX
-      if (showLoading) {
-        setDashboardState(prev => ({
-          ...prev,
-          tabLoading: { ...prev.tabLoading, [userType]: true }
-        }));
-        
-        // Simulate a brief loading time (not too fast as requested)
-        setTimeout(() => {
-          setDashboardState(prev => ({
-            ...prev,
-            tabLoading: { ...prev.tabLoading, [userType]: false }
-          }));
-        }, 800); // 800ms loading time
-      }
+      // Data exists - no loading needed
       return;
     }
 
-    // Set tab-specific loading to true when starting to load
-    setDashboardState(prev => ({
-      ...prev,
-      tabLoading: { ...prev.tabLoading, [userType]: true },
-      error: null
-    }));
-
+    // Load data silently in background
     try {
       const usersResponse = await getAllUsers({ 
         userType,
@@ -102,7 +82,7 @@ export const AdminDashboardProvider = ({ children }) => {
         error: error.message
       }));
     }
-  }, [dashboardState.users]);
+  }, []);
 
   const loadDashboardData = useCallback(async () => {
     setDashboardState(prev => ({ ...prev, error: null }));
@@ -145,9 +125,17 @@ export const AdminDashboardProvider = ({ children }) => {
   }, []);
 
   const refreshUserData = useCallback(async (userType) => {
-    // Force reload specific user type
-    await loadUsers(userType, true);
-  }, [loadUsers]);
+    // SMART REFRESH - Only refresh when user is actually added/modified
+    // Check if we have recent data (less than 2 minutes old)
+    const lastUpdated = dashboardState.lastUpdated;
+    const isRecent = lastUpdated && (Date.now() - new Date(lastUpdated).getTime()) < 2 * 60 * 1000;
+    
+    // Only refresh if no data exists or data is not recent
+    if (!dashboardState.users[userType] || dashboardState.users[userType].length === 0 || !isRecent) {
+      await loadUsers(userType, true, false); // No loading spinner
+    }
+    // If data exists and is recent, do nothing
+  }, [loadUsers, dashboardState.users, dashboardState.lastUpdated]);
 
   const updateUserInList = useCallback((userType, updatedUser) => {
     setDashboardState(prev => ({
@@ -163,6 +151,12 @@ export const AdminDashboardProvider = ({ children }) => {
       lastUpdated: new Date()
     }));
   }, []);
+
+  // Handle user addition - only load when user is actually added
+  const handleUserAdded = useCallback(async (userType) => {
+    // Force refresh when user is added
+    await loadUsers(userType, true, true); // Show loading for user addition
+  }, [loadUsers]);
 
   const clearCache = useCallback(() => {
     localStorage.removeItem('adminDashboardState');
@@ -182,6 +176,7 @@ export const AdminDashboardProvider = ({ children }) => {
     loadDashboardData,
     refreshUserData,
     updateUserInList,
+    handleUserAdded,
     clearCache
   };
 
