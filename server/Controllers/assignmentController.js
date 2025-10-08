@@ -8,6 +8,18 @@ const TutorProfile = require('../Models/tutorProfileSchema');
 const StudentProfile = require('../Models/studentProfileSchema');
 const uploadToS3 = require('../Utils/uploadToS3');
 const s3KeyToUrl = require('../Utils/s3KeyToUrl');
+const mongoose = require('mongoose');
+const {
+
+  EducationLevel,
+
+  Subject,
+
+  SubjectType,
+
+} = require("../Models/LookupSchema");
+
+
 
 const ensureDirExists = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
@@ -37,7 +49,8 @@ const hasActivePayment = async (tutorProfileId, studentProfileId, subjectId, aca
 exports.createAssignment = asyncHandler(async (req, res) => {
   const { user_id } = req.params; // tutor user id
   const { student_user_id, subject, academic_level, title, description, due_date } = req.body;
-
+  console.log("req.body", req.body);
+  console.log("user_id", req.params);
   if (!student_user_id || !subject || !academic_level || !title) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
@@ -45,7 +58,7 @@ exports.createAssignment = asyncHandler(async (req, res) => {
   const tutorProfile = await TutorProfile.findOne({ user_id });
   if (!tutorProfile) return res.status(404).json({ message: 'Tutor profile not found' });
 
-  const studentProfile = await StudentProfile.findOne({ user_id: student_user_id });
+  const studentProfile = await StudentProfile.findOne({ _id: student_user_id });
   if (!studentProfile) return res.status(404).json({ message: 'Student profile not found' });
 
   const isAllowed = await hasActivePayment(
@@ -94,12 +107,28 @@ exports.getTutorAssignments = asyncHandler(async (req, res) => {
     .populate('academic_level', 'level')
     .populate({ path: 'student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name' } });
 
-  // Convert S3 keys to URLs for file attachments
+  // Convert S3 keys to URLs and add submission status
   const assignmentsWithUrls = await Promise.all(assignments.map(async (assignment) => {
     const assignmentObj = assignment.toObject();
+    
+    // Convert S3 key to URL for file attachments
     if (assignmentObj.file_url) {
       assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
     }
+
+    // Check if this assignment has been submitted
+    const submission = await AssignmentSubmission.findOne({
+      assignment_id: assignment._id
+    });
+
+    // Add submission status information
+    assignmentObj.has_submission = !!submission;
+    assignmentObj.submission_status = submission ? submission.status : 'not_submitted';
+    assignmentObj.submission_date = submission ? submission.submitted_at : null;
+    assignmentObj.is_graded = submission ? submission.status === 'graded' : false;
+    assignmentObj.grade = submission ? submission.grade : null;
+    assignmentObj.is_late = submission ? submission.is_late : false;
+
     return assignmentObj;
   }));
 
@@ -316,7 +345,14 @@ exports.getTutorSubmissions = asyncHandler(async (req, res) => {
   if (!tutorProfile) return res.status(404).json({ message: 'Tutor profile not found' });
 
   const submissions = await AssignmentSubmission.find({ tutor_id: tutorProfile._id })
-    .populate('assignment_id', 'title description due_date')
+    .populate({
+      path: 'assignment_id',
+      select: 'title description due_date academic_level subject',
+      populate: [
+        { path: 'academic_level', select: 'level' },
+        { path: 'subject', select: 'name' }
+      ]
+    })
     .populate('student_id', 'user_id')
     .populate({ path: 'student_id', populate: { path: 'user_id', select: 'full_name' } })
     .sort({ submitted_at: -1 });
@@ -427,6 +463,200 @@ exports.getAllSubmissions = asyncHandler(async (req, res) => {
     success: true,
     submissions: submissionsWithUrls,
     total: submissionsWithUrls.length
+  });
+});
+
+
+exports.getTutorAcademicLevels = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  const tutor = await TutorProfile.findOne({ user_id });
+
+  if (!tutor) {
+    return res.status(404).json({ message: "Tutor not found" });
+  }
+
+
+  const ids = tutor.academic_levels_taught.map(level =>
+    new mongoose.Types.ObjectId(level.educationLevel)
+  );
+
+  const academicLevels = await EducationLevel.find({
+    _id: { $in: ids },
+  }).select("_id level");
+
+
+  return res.status(200).json({
+    success: true,
+    academic_levels: academicLevels,
+  });
+});
+
+
+  // Get subjects for a specific academic level taught by tutor
+exports.getTutorSubjectsForLevel = asyncHandler(async (req, res) => {
+  const { user_id, academic_level_id } = req.params;
+  
+  const tutor = await TutorProfile.findOne({ user_id });
+  if (!tutor) {
+    return res.status(404).json({ message: 'Tutor not found' });
+  }
+
+  // Find the academic level data for this tutor
+  const academicLevelData = tutor.academic_levels_taught.find(
+    level => level.educationLevel.toString() === academic_level_id
+  );
+
+  if (!academicLevelData) {
+    return res.status(404).json({ message: 'Academic level not taught by this tutor' });
+  }
+
+  // Get subjects taught by this tutor
+  const subjects = await Subject.find({
+    _id: { $in: tutor.subjects }
+  }).select('_id name');
+
+  return res.status(200).json({
+    success: true,
+    subjects: subjects
+  });
+});
+
+// Get students for assignment creation (hired by tutor, payment active, specific academic level)
+exports.getStudentsForAssignment = asyncHandler(async (req, res) => {
+  const { user_id, academic_level_id, subject_id } = req.params;
+  
+  const tutor = await TutorProfile.findOne({ user_id });
+  if (!tutor) {
+    return res.status(404).json({ message: 'Tutor not found' });
+  }
+  // Find students who:
+  // 1. Have hired this tutor
+  // 2. Have active payment for this academic level and subject
+  // 3. Are studying at the specified academic level
+
+  const students = await StudentProfile.find({
+    'hired_tutors.tutor': tutor._id,
+    'hired_tutors.status': 'accepted',
+    'hired_tutors.academic_level_id': academic_level_id,
+    'hired_tutors.subject': subject_id,
+    // academic_level: academic_level_id
+  })
+  .populate("user_id", "full_name email photo_url")
+
+  // Filter students who have active payment for this subject and academic level
+  const studentsWithActivePayment = [];
+  
+  for (const student of students) {
+    const activePayment = await StudentPayment.findOne({
+      student_id: student._id,
+      tutor_id: tutor._id,
+      subject: subject_id,
+      academic_level: academic_level_id,
+      payment_status: 'paid',
+      academic_level_paid: true,
+      validity_status: 'active',
+      is_active: true
+    });
+
+    // Check if payment is valid (not expired)
+    const isPaymentValid = activePayment ? activePayment.isValid() : false;
+
+    if (isPaymentValid) {
+      studentsWithActivePayment.push({
+        _id: student._id,
+        user_id: student.user_id,
+        payment_info: {
+          payment_id: activePayment._id,
+          paid_at: activePayment.payment_date,
+          validity_status: activePayment.validity_status,
+          expires_at: activePayment.validity_end_date
+        }
+      });
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    students: studentsWithActivePayment,
+    total: studentsWithActivePayment.length
+  });
+});
+
+// Get unread submissions count for tutor
+exports.getUnreadSubmissionsCount = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  
+  const tutor = await TutorProfile.findOne({ user_id });
+  if (!tutor) {
+    return res.status(404).json({ message: 'Tutor not found' });
+  }
+
+  // Count submissions that haven't been graded yet
+  const unreadCount = await AssignmentSubmission.countDocuments({
+    tutor_id: tutor._id,
+    status: { $ne: 'graded' }
+  });
+
+  return res.status(200).json({
+    success: true,
+    unread_count: unreadCount
+  });
+});
+
+// Get submitted assignments for tutor (assignments that have submissions)
+exports.getSubmittedAssignments = asyncHandler(async (req, res) => {
+  const { user_id } = req.params;
+  console.log("tutor_id", req.params);
+  const tutor = await TutorProfile.findOne({ user_id });
+  if (!tutor) {
+    return res.status(404).json({ message: 'Tutor not found' });
+  }
+  console.log("tutor", tutor);
+  // Find assignments that have submissions
+  const assignmentsWithSubmissions = await Assignment.find({
+    tutor_id: tutor._id
+  })
+  .populate('student_id', 'user_id')
+  .populate({ path: 'student_id', populate: { path: 'user_id', select: 'full_name email' } })
+  .populate('subject', 'name')
+  .populate('academic_level', 'level')
+  .sort({ createdAt: -1 });
+  console.log("assignmentsWithSubmissions", assignmentsWithSubmissions);
+  // Get submission data for each assignment
+  const assignmentsWithSubmissionData = await Promise.all(
+    assignmentsWithSubmissions.map(async (assignment) => {
+      const submission = await AssignmentSubmission.findOne({
+        assignment_id: assignment._id
+      });
+
+      const assignmentObj = assignment.toObject();
+      
+      // Convert S3 key to URL for file attachments
+      if (assignmentObj.file_url) {
+        assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
+      }
+
+      return {
+        ...assignmentObj,
+        has_submission: !!submission,
+        submission_status: submission ? submission.status : 'not_submitted',
+        submission_date: submission ? submission.submitted_at : null,
+        is_graded: submission ? submission.status === 'graded' : false,
+        grade: submission ? submission.grade : null,
+        is_late: submission ? submission.is_late : false,
+      };
+    })
+  );
+
+  // Filter only assignments that have submissions
+  const submittedAssignments = assignmentsWithSubmissionData.filter(
+    assignment => assignment.has_submission
+  );
+
+  return res.status(200).json({
+    success: true,
+    assignments: submittedAssignments,
+    total: submittedAssignments.length
   });
 });
 

@@ -443,7 +443,7 @@ const StudentPreferences = () => {
                           {subject.subjectTypeData?.name}){" "}
                         </Button>
                       ))}
-                    {subjects.length > 20 && (
+                    {/* {subjects.length > 20 && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -451,7 +451,7 @@ const StudentPreferences = () => {
                       >
                         +{subjects.length - 20} more
                       </Button>
-                    )}
+                    )} */}
                   </div>
                   {subjects.length === 0 && (
                     <p className="text-sm text-gray-500 mt-2">

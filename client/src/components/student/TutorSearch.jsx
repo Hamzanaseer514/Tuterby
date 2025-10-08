@@ -88,7 +88,7 @@ const TutorSearch = () => {
     if (user && studentProfile) {
       searchTutors();
     }
-  }, [currentPage, filters, searchQuery, preferredSubjectsOnly, studentProfile]);
+  }, [filters, searchQuery, preferredSubjectsOnly, studentProfile]);
 
 
   const getSubjectById = useCallback((id) => {
@@ -498,6 +498,7 @@ const TutorSearch = () => {
             </Button>
             {(searchQuery || Object.values(filters).some(v => v) || preferredSubjectsOnly) && (
               <Button
+                type="button"
                 onClick={clearAllFilters}
                 variant="outline"
                 size="sm"
@@ -625,8 +626,8 @@ const TutorSearch = () => {
               )}
 
               <div className="flex gap-2 justify-center">
-                <Button onClick={loadAllTutors}>Try Again</Button>
-                <Button onClick={clearAllFilters} variant="outline">Clear Filters</Button>
+                <Button type="button" onClick={loadAllTutors}>Try Again</Button>
+                <Button type="button" onClick={clearAllFilters} variant="outline">Clear Filters</Button>
               </div>
             </CardContent>
           </Card>
@@ -643,9 +644,9 @@ const TutorSearch = () => {
                   : 'No tutors of your preferred subjects'
                 }
               </p>
-              {(searchQuery || Object.values(filters).some(v => v)) && (
+              {/* {(searchQuery || Object.values(filters).some(v => v)) && (
                 <Button onClick={clearAllFilters}>Show All Tutors</Button>
-              )}
+              )} */}
             </CardContent>
           </Card>
         ) : (

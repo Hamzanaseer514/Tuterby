@@ -12,6 +12,11 @@ const {
   getStudentSubmissions,
   getTutorSubmissions,
   gradeSubmission,
+  getTutorAcademicLevels,
+  getTutorSubjectsForLevel,
+  getStudentsForAssignment,
+  getUnreadSubmissionsCount,
+  getSubmittedAssignments,
 } = require('../Controllers/assignmentController');
 
 // Memory storage for S3 uploads
@@ -46,6 +51,15 @@ router.get('/tutor/:user_id/submissions', protect, getTutorSubmissions);
 
 // Tutor grades a submission
 router.put('/grade/:submission_id', protect, gradeSubmission);
+
+// New assignment creation flow APIs
+router.get('/tutor/:user_id/academic-levels', protect, getTutorAcademicLevels);
+router.get('/tutor/:user_id/academic-levels/:academic_level_id/subjects', protect, getTutorSubjectsForLevel);
+router.get('/tutor/:user_id/academic-levels/:academic_level_id/subjects/:subject_id/students', protect, getStudentsForAssignment);
+
+// Notification and submitted assignments APIs
+router.get('/tutor/:user_id/unread-submissions-count', protect, getUnreadSubmissionsCount);
+router.get('/tutor/:user_id/submitted-assignments', protect, getSubmittedAssignments);
 
 module.exports = router;
 

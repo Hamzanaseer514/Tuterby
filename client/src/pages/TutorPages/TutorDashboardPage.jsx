@@ -53,7 +53,7 @@ const TutorDashboardPage = () => {
     communication: true,
     account: true
   });
-  const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0 });
+  const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0, submissions: 0, assignments: 0 });
   const [hasRejectedDocuments, setHasRejectedDocuments] = useState(false);
   const navigate = useNavigate();
   const { user, loading, logout, isTutor, getUserProfile, fetchWithAuth } = useAuth();
@@ -250,7 +250,20 @@ const TutorDashboardPage = () => {
         }
       } catch { }
 
-      setBadgeCounts({ inquiries: inquiriesCount, chat: messagesCount, 'student-requests': hireCount, sessions: sessionsCount, interviews: interviewsCount });
+      // Unread submissions count for Submissions tab
+      let submissionsCount = 0;
+      try {
+        const subsRes = await fetchWithAuth(`${BASE_URL}/api/assignments/tutor/${user._id}/unread-submissions-count`, { headers }, token, (newToken) => localStorage.setItem('authToken', newToken));
+        if (subsRes.ok) {
+          const subsJson = await subsRes.json();
+          submissionsCount = Number(subsJson.unread_count) || 0;
+        }
+      } catch {}
+
+      // Use submissionsCount also to notify on Assignments tab
+      const assignmentsCount = 0;
+
+      setBadgeCounts({ inquiries: inquiriesCount, chat: messagesCount, 'student-requests': hireCount, sessions: sessionsCount, interviews: interviewsCount, submissions: submissionsCount, assignments: assignmentsCount });
     } catch { }
   }, [user?._id]);
 
@@ -295,24 +308,26 @@ const TutorDashboardPage = () => {
           icon: Calendar,
           component: <SessionManagement />
         },
-        {
-          id: 'availability',
-          name: 'Availability',
-          icon: Clock,
-          component: <AvailabilityCalendar />
-        },
-        {
-          id: 'interviews',
-          name: 'Interviews',
-          icon: Calendar,
-          component: <TutorInterviewSlotsPage />
-        },
+        
         {
           id: 'student-requests',
           name: 'Student Requests',
           icon: Briefcase,
           component: <StudentHireRequests />,
         },
+    
+        ...(user?.is_verified === 'partial_active' && hasRejectedDocuments ? [{
+          id: 'document-reupload',
+          name: 'Document Re-upload',
+          icon: Upload,
+          component: <TutorDocumentReuploadPage />
+        }] : [])
+      ]
+    },
+    {
+      group: 'payments & reviews',
+      name: 'Payments & Reviews',
+      items: [
         {
           id: 'payment-history',
           name: 'Payment History',
@@ -325,6 +340,12 @@ const TutorDashboardPage = () => {
           icon: Star,
           component: <TutorReviewsPageForTutor />
         },
+      ]
+    },
+    {
+      group: 'assignments',
+      name: 'Assignments',
+      items: [
         {
           id: 'assignments',
           name: 'Assignments',
@@ -333,16 +354,10 @@ const TutorDashboardPage = () => {
         },
         {
           id: 'submissions',
-          name: 'Submissions',
+          name: 'Evalutions ',
           icon: CheckCircle,
           component: <TutorSubmissions />
         },
-        ...(user?.is_verified === 'partial_active' && hasRejectedDocuments ? [{
-          id: 'document-reupload',
-          name: 'Document Re-upload',
-          icon: Upload,
-          component: <TutorDocumentReuploadPage />
-        }] : [])
       ]
     },
     {
@@ -380,7 +395,19 @@ const TutorDashboardPage = () => {
           name: 'Settings',
           icon: Settings,
           component: <TutorSetting />
-        }
+        },
+        {
+          id: 'availability',
+          name: 'Availability',
+          icon: Clock,
+          component: <AvailabilityCalendar />
+        },
+        {
+          id: 'interviews',
+          name: 'Interviews',
+          icon: Calendar,
+          component: <TutorInterviewSlotsPage />
+        },
       ]
     }
   ];

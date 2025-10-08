@@ -13,6 +13,7 @@ import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
   FileText,
   User,
@@ -22,9 +23,17 @@ import {
   Download,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  X,
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { getTutorSubmissions, gradeSubmission } from '../../services/assignmentService';
+import { useSubject } from '../../hooks/useSubject';
 
 // Submission Details Modal Component
 const SubmissionDetailsModal = ({ 
@@ -79,6 +88,20 @@ const SubmissionDetailsModal = ({
             <span className="text-sm font-medium">Submitted:</span>
             <span className="text-sm">{formatDateTime(submission.submitted_at)}</span>
           </div>
+          {submission.assignment_id.subject && (
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium">Subject:</span>
+              <span className="text-sm">{submission.assignment_id.subject.name}</span>
+            </div>
+          )}
+          {submission.assignment_id.academic_level && (
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium">Academic Level:</span>
+              <span className="text-sm">{submission.assignment_id.academic_level.level}</span>
+            </div>
+          )}
           {submission.assignment_id.due_date && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-500" />
@@ -175,6 +198,7 @@ const SubmissionDetailsModal = ({
 const TutorSubmissions = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { academicLevels, subjects } = useSubject();
   
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -187,6 +211,17 @@ const TutorSubmissions = () => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState(null);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    submission_status: 'all', // 'all', 'graded', 'pending'
+    subject: 'all',
+    academic_level: 'all',
+    sort_by: 'submitted_at', // 'submitted_at', 'title', 'student_name', 'grade'
+    sort_order: 'desc' // 'asc', 'desc'
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -198,6 +233,7 @@ const TutorSubmissions = () => {
     try {
       const data = await getTutorSubmissions(user._id);
       setSubmissions(data);
+      console.log("submissions", data);
     } catch (error) {
       toast({
         title: "Error",
@@ -218,6 +254,125 @@ const TutorSubmissions = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Filter and search functions
+  const getFilteredSubmissions = () => {
+    let filtered = [...submissions];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(submission => {
+        const title = submission?.assignment_id?.title || '';
+        const description = submission?.assignment_id?.description || '';
+        const studentName = submission?.student_id?.user_id?.full_name || '';
+        return (
+          title.toLowerCase().includes(query) ||
+          description.toLowerCase().includes(query) ||
+          studentName.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    // Apply submission status filter
+    if (filters.submission_status !== 'all') {
+      filtered = filtered.filter(submission => {
+        switch (filters.submission_status) {
+          case 'graded':
+            return submission?.status === 'graded';
+          case 'pending':
+            return submission?.status !== 'graded';
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply subject filter
+    if (filters.subject !== 'all') {
+      filtered = filtered.filter(submission => {
+        const subjectId = submission?.assignment_id?.subject?._id;
+        return subjectId === filters.subject;
+      });
+    }
+
+    // Apply academic level filter
+    if (filters.academic_level !== 'all') {
+      filtered = filtered.filter(submission => {
+        const levelId = submission?.assignment_id?.academic_level?._id;
+        return levelId === filters.academic_level;
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (filters.sort_by) {
+        case 'title': {
+          const aTitle = a?.assignment_id?.title || '';
+          const bTitle = b?.assignment_id?.title || '';
+          aValue = aTitle.toLowerCase();
+          bValue = bTitle.toLowerCase();
+          break;
+        }
+        case 'student_name': {
+          const aName = a?.student_id?.user_id?.full_name || '';
+          const bName = b?.student_id?.user_id?.full_name || '';
+          aValue = aName.toLowerCase();
+          bValue = bName.toLowerCase();
+          break;
+        }
+        case 'grade':
+          aValue = a?.grade ?? 0;
+          bValue = b?.grade ?? 0;
+          break;
+        case 'submitted_at':
+        default:
+          aValue = new Date(a?.submitted_at || 0);
+          bValue = new Date(b?.submitted_at || 0);
+          break;
+      }
+
+      if (filters.sort_order === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilters({
+      submission_status: 'all',
+      subject: 'all',
+      academic_level: 'all',
+      sort_by: 'submitted_at',
+      sort_order: 'desc'
+    });
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (filters.submission_status !== 'all') count++;
+    if (filters.subject !== 'all') count++;
+    if (filters.academic_level !== 'all') count++;
+    return count;
+  };
+
+  const getSubjectName = (subjectId) => {
+    const subject = subjects?.find(s => s._id === subjectId);
+    return subject?.name || 'Unknown Subject';
+  };
+
+  const getLevelName = (levelId) => {
+    const level = academicLevels?.find(l => l._id === levelId);
+    return level?.level || 'Unknown Level';
   };
 
   const handleGradeSubmission = (submission) => {
@@ -291,21 +446,189 @@ const TutorSubmissions = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Assignment Submissions</h2>
         <Badge variant="outline" className="text-sm">
-          {submissions.length} submission{submissions.length !== 1 ? 's' : ''}
+          {getFilteredSubmissions().length} submission{getFilteredSubmissions().length !== 1 ? 's' : ''}
         </Badge>
       </div>
 
-      {submissions.length === 0 ? (
+      {/* Search and Filters Section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search submissions by assignment title, description, or student name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+                {getActiveFiltersCount() > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {getActiveFiltersCount()}
+                  </Badge>
+                )}
+              </Button>
+              {getActiveFiltersCount() > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+                {/* Submission Status Filter */}
+                <div>
+                  <Label className="text-sm font-medium">Submission Status</Label>
+                  <Select
+                    value={filters.submission_status}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, submission_status: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending (Not Graded)</SelectItem>
+                      <SelectItem value="graded">Graded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Subject Filter */}
+                <div>
+                  <Label className="text-sm font-medium">Subject</Label>
+                  <Select
+                    value={filters.subject}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, subject: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subjects</SelectItem>
+                      {subjects?.map((subject) => (
+                        <SelectItem key={subject._id} value={subject._id}>
+                          {subject.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Academic Level Filter */}
+                <div>
+                  <Label className="text-sm font-medium">Academic Level</Label>
+                  <Select
+                    value={filters.academic_level}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, academic_level: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Levels</SelectItem>
+                      {academicLevels?.map((level) => (
+                        <SelectItem key={level._id} value={level._id}>
+                          {level.level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort Options */}
+                <div>
+                  <Label className="text-sm font-medium">Sort By</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={filters.sort_by}
+                      onValueChange={(value) => setFilters(prev => ({ ...prev, sort_by: value }))}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="submitted_at">Submission Date</SelectItem>
+                        <SelectItem value="title">Assignment Title</SelectItem>
+                        <SelectItem value="student_name">Student Name</SelectItem>
+                        <SelectItem value="grade">Grade</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFilters(prev => ({ 
+                        ...prev, 
+                        sort_order: prev.sort_order === 'asc' ? 'desc' : 'asc' 
+                      }))}
+                    >
+                      {filters.sort_order === 'asc' ? (
+                        <SortAsc className="h-4 w-4" />
+                      ) : (
+                        <SortDesc className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {getFilteredSubmissions().length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            {getActiveFiltersCount() > 0 ? (
+              <>
+                <p className="text-gray-600">No submissions match your filters</p>
+                <p className="text-sm text-gray-500">Try adjusting your search criteria</p>
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="mt-3"
+                >
+                  Clear Filters
+                </Button>
+              </>
+            ) : (
+              <>
             <p className="text-gray-600">No submissions yet</p>
             <p className="text-sm text-gray-500">Students will submit their assignments here</p>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {submissions.map((submission) => (
+          {/* Results Summary */}
+          {getActiveFiltersCount() > 0 && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm text-gray-600">
+                Showing {getFilteredSubmissions().length} of {submissions.length} submissions
+              </span>
+            </div>
+          )}
+          
+          {getFilteredSubmissions().map((submission) => (
             <Card key={submission._id}>
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-3">
@@ -340,6 +663,18 @@ const TutorSubmissions = () => {
                       <Calendar className="h-4 w-4" />
                       <span>{formatDateTime(submission.submitted_at)}</span>
                     </div>
+                    {submission.assignment_id.subject && (
+                      <div className="flex items-center gap-1">
+                        <BookOpen className="h-4 w-4" />
+                        <span>{submission.assignment_id.subject.name}</span>
+                      </div>
+                    )}
+                    {submission.assignment_id.academic_level && (
+                      <div className="flex items-center gap-1">
+                        <GraduationCap className="h-4 w-4" />
+                        <span>{submission.assignment_id.academic_level.level}</span>
+                      </div>
+                    )}
                     {submission.status === 'graded' && (
                       <div className="flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-green-600" />

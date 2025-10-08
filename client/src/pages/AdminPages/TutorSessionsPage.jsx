@@ -845,12 +845,7 @@ const TutorSessionsPage = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Try adjusting your filters or search terms
               </Typography>
-              <Button
-                variant="outlined"
-                onClick={() => setFilters({ page: 1, limit: 20, search: '', status: '', tutor_id: '', start_date: '', end_date: '' })}
-              >
-                Clear all filters
-              </Button>
+          
             </Box>
           ) : (
             sessions.slice(tablePage * rowsPerPage, tablePage * rowsPerPage + rowsPerPage).map((session) => (
@@ -984,12 +979,7 @@ const TutorSessionsPage = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Try adjusting your filters or search terms
                     </Typography>
-                    <Button
-                      variant="outlined"
-                      onClick={() => setFilters({ page: 1, limit: 20, search: '', status: '', tutor_id: '', start_date: '', end_date: '' })}
-                    >
-                      Clear all filters
-                    </Button>
+                  
                   </Box>
                 </TableCell>
               </TableRow>

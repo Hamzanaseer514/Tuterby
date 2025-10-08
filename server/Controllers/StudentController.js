@@ -94,6 +94,9 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
         }
     ]);
 
+    // Convert photo URLs to S3 URLs
+    const studentPhotoUrl = user.photo_url ? await s3KeyToUrl(user.photo_url) : null;
+
     res.status(200).json({
         student: {
             _id: studentProfile._id,
@@ -101,7 +104,7 @@ exports.getStudentDashboard = asyncHandler(async (req, res) => {
             email: user.email,
             phone_number: user.phone_number,
             age: user.age,
-            photo_url: user.photo_url
+            photo_url: studentPhotoUrl
         },
         profile: studentProfile,
         upcomingSessions,
@@ -151,7 +154,7 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
 
-    // 🔑 Check payments for each tutor-session
+    // 🔑 Check payments for each tutor-session and convert photo URLs to S3 URLs
     const enrichedSessions = await Promise.all(sessions.map(async (session) => {
         const payment = await StudentPayment.findOne({
             student_id: studentProfile._id,
@@ -165,8 +168,33 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
         // Check if payment is valid (not expired)
         const isPaymentValid = payment ? payment.isValid() : false;
 
+        const sessionObj = session.toObject();
+
+        // Convert tutor photo URL to S3 URL
+        if (sessionObj.tutor_id?.user_id?.photo_url) {
+            sessionObj.tutor_id.user_id.photo_url = await s3KeyToUrl(sessionObj.tutor_id.user_id.photo_url);
+        }
+
+        // Convert student photo URLs in responses to S3 URLs
+        if (sessionObj.student_responses) {
+            for (let response of sessionObj.student_responses) {
+                if (response.student_id?.user_id?.photo_url) {
+                    response.student_id.user_id.photo_url = await s3KeyToUrl(response.student_id.user_id.photo_url);
+                }
+            }
+        }
+
+        // Convert student photo URLs in ratings to S3 URLs
+        if (sessionObj.student_ratings) {
+            for (let rating of sessionObj.student_ratings) {
+                if (rating.student_id?.user_id?.photo_url) {
+                    rating.student_id.user_id.photo_url = await s3KeyToUrl(rating.student_id.user_id.photo_url);
+                }
+            }
+        }
+
         return {
-            ...session.toObject(),
+            ...sessionObj,
             payment_required: !payment || !isPaymentValid, // payment required if no payment or payment expired
             payment_status: payment ? payment.getPaymentStatus() : 'none',
         };
