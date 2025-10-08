@@ -2225,6 +2225,14 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
       const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount } =
         setting;
 
+
+      if (hourlyRate <= 0 || totalSessionsPerMonth <= 0 || discount <= 0) {
+        res.status(400);
+        return res.json({
+          success: false,
+          message: `Hourly rate, total sessions per month, and discount must be greater than 0`,
+        });
+      }
       // Find the corresponding academic level in tutor profile
       const levelIndex = tutorProfile.academic_levels_taught.findIndex(
         (level) => level.educationLevel.toString() === educationLevelId

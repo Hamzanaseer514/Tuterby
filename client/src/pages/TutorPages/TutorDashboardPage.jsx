@@ -167,10 +167,11 @@ const TutorDashboardPage = () => {
       const getAuthToken = () => sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
       const headers = { 'Content-Type': 'application/json' };
       const token = getAuthToken();
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      // if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const inquiriesRes = await fetchWithAuth(`${BASE_URL}/api/tutor/inquiries/${user._id}?status=unread`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
-      );
+      // console.log("inquiriesRes", inquiriesRes);  
+    );
       const inquiriesJson = inquiriesRes.ok ? await inquiriesRes.json() : { total: 0, inquiries: [] };
       const inquiriesList = inquiriesJson.inquiries || [];
       const inquiriesLatest = inquiriesList[0]?.created_at || inquiriesList[0]?.createdAt || null;

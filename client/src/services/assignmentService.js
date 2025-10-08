@@ -94,7 +94,7 @@ export const getStudentAssignments = async (studentUserId) => {
   return apiCall(`/student/${studentUserId}/assignments`);
 };
 
-// Download assignment file
+// Download assignment file - now returns S3 URL
 export const downloadAssignment = async (assignmentId) => {
   const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/download/${assignmentId}`, {
@@ -114,7 +114,8 @@ export const downloadAssignment = async (assignmentId) => {
     throw new Error(`Download failed: ${response.status}`);
   }
 
-  return response.blob();
+  const data = await response.json();
+  return data; // Returns { file_url, file_name, file_mime_type }
 };
 
 // Get paid subjects and academic levels for a specific student-tutor relationship

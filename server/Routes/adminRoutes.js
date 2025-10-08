@@ -42,6 +42,12 @@ const {
   getAllHireRequests
 } = require("../Controllers/adminController");
 
+// Import assignment controller functions
+const {
+  getAllAssignments,
+  getAllSubmissions
+} = require("../Controllers/assignmentController");
+
 
 
 // ADD RULED AND EDUCATOIN LEVEL.
@@ -92,6 +98,11 @@ router.get("/tutor-sessions", getAllTutorSessions);
 router.get("/tutor-payments", getAllTutorPayments);
 router.get("/tutor-reviews", getAllTutorReviews);
 router.get("/hire-requests", getAllHireRequests);
+
+// Assignment management routes
+router.get("/assignments", protect, adminOnly, getAllAssignments);
+router.get("/assignment-submissions", protect, adminOnly, getAllSubmissions);
+
 // User management
 router.put("/users/:user_id/status", require("../Controllers/adminController").updateUserStatus);
 

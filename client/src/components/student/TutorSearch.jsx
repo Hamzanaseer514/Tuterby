@@ -267,8 +267,9 @@ const TutorSearch = () => {
         params.append('search', searchQuery.trim());
       }
 
-      // Add preferred subjects filter if checkbox is checked and student profile exists
-      if (preferredSubjectsOnly && studentProfile?.preferred_subjects) {
+      // Add preferred subjects filter if checkbox is checked
+      if (preferredSubjectsOnly) {
+        console.log("preferredSubjectsOnly", studentProfile?.preferred_subjects)
         params.append('preferred_subjects_only', 'true');
       }
 
@@ -634,12 +635,12 @@ const TutorSearch = () => {
             <CardContent className="p-8 text-center">
               <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchQuery || Object.values(filters).some(v => v) ? 'No tutors found' : 'Loading tutors...'}
+                {searchQuery || Object.values(filters).some(v => v) ? 'No tutors found' : 'No tutors found'}
               </h3>
               <p className="text-gray-600 mb-4">
                 {searchQuery || Object.values(filters).some(v => v)
                   ? 'Try adjusting your search filters or broadening your criteria'
-                  : 'Please wait while we load all available tutors...'
+                  : 'No tutors of your preferred subjects'
                 }
               </p>
               {(searchQuery || Object.values(filters).some(v => v)) && (

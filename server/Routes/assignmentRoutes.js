@@ -1,6 +1,5 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
 const router = express.Router();
 const { protect } = require('../Middleware/authMiddleware');
 const {
@@ -15,34 +14,11 @@ const {
   gradeSubmission,
 } = require('../Controllers/assignmentController');
 
-// Storage for assignment files (separate from documents)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/assignments/');
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext);
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, base + '-' + unique + ext);
-  },
-});
+// Memory storage for S3 uploads
+const memoryStorage = multer.memoryStorage();
 
-// Storage for assignment submission files
-const submissionStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/assignment-submissions/');
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext);
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, base + '-' + unique + ext);
-  },
-});
-
-const upload = multer({ storage });
-const uploadSubmission = multer({ storage: submissionStorage });
+const upload = multer({ storage: memoryStorage });
+const uploadSubmission = multer({ storage: memoryStorage });
 
 // Tutor creates an assignment for a student
 router.post('/tutor/:user_id/assignments', protect, upload.single('file'), createAssignment);

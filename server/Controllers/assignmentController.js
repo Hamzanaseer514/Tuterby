@@ -6,6 +6,8 @@ const AssignmentSubmission = require('../Models/assignmentSubmissionSchema');
 const StudentPayment = require('../Models/studentPaymentSchema');
 const TutorProfile = require('../Models/tutorProfileSchema');
 const StudentProfile = require('../Models/studentProfileSchema');
+const uploadToS3 = require('../Utils/uploadToS3');
+const s3KeyToUrl = require('../Utils/s3KeyToUrl');
 
 const ensureDirExists = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
@@ -58,9 +60,9 @@ exports.createAssignment = asyncHandler(async (req, res) => {
 
   let fileFields = { file_url: '', file_name: '', file_mime_type: '' };
   if (req.file) {
-    const publicPath = `/uploads/assignments/${req.file.filename}`;
+    const s3Key = await uploadToS3(req.file, 'assignments');
     fileFields = {
-      file_url: publicPath,
+      file_url: s3Key,
       file_name: req.file.originalname,
       file_mime_type: req.file.mimetype,
     };
@@ -92,7 +94,16 @@ exports.getTutorAssignments = asyncHandler(async (req, res) => {
     .populate('academic_level', 'level')
     .populate({ path: 'student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name' } });
 
-  return res.status(200).json(assignments);
+  // Convert S3 keys to URLs for file attachments
+  const assignmentsWithUrls = await Promise.all(assignments.map(async (assignment) => {
+    const assignmentObj = assignment.toObject();
+    if (assignmentObj.file_url) {
+      assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
+    }
+    return assignmentObj;
+  }));
+
+  return res.status(200).json(assignmentsWithUrls);
 });
 
 // Student: list assignments assigned to them
@@ -108,7 +119,16 @@ exports.getStudentAssignments = asyncHandler(async (req, res) => {
     .populate({ path: 'tutor_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name' } })
     .populate({ path: 'student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name' } });
 
-  return res.status(200).json(assignments);
+  // Convert S3 keys to URLs for file attachments
+  const assignmentsWithUrls = await Promise.all(assignments.map(async (assignment) => {
+    const assignmentObj = assignment.toObject();
+    if (assignmentObj.file_url) {
+      assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
+    }
+    return assignmentObj;
+  }));
+
+  return res.status(200).json(assignmentsWithUrls);
 });
 
 // Get paid subjects and academic levels for a specific student-tutor relationship (for assignment creation)
@@ -239,9 +259,9 @@ exports.submitAssignment = asyncHandler(async (req, res) => {
   // Handle file upload
   let fileFields = { submission_file_url: '', submission_file_name: '', submission_file_mime_type: '' };
   if (req.file) {
-    const publicPath = `/uploads/assignment-submissions/${req.file.filename}`;
+    const s3Key = await uploadToS3(req.file, 'assignment-submissions');
     fileFields = {
-      submission_file_url: publicPath,
+      submission_file_url: s3Key,
       submission_file_name: req.file.originalname,
       submission_file_mime_type: req.file.mimetype,
     };
@@ -277,7 +297,16 @@ exports.getStudentSubmissions = asyncHandler(async (req, res) => {
     .populate({ path: 'tutor_id', populate: { path: 'user_id', select: 'full_name' } })
     .sort({ submitted_at: -1 });
 
-  return res.status(200).json(submissions);
+  // Convert S3 keys to URLs for submission files
+  const submissionsWithUrls = await Promise.all(submissions.map(async (submission) => {
+    const submissionObj = submission.toObject();
+    if (submissionObj.submission_file_url) {
+      submissionObj.submission_file_url = await s3KeyToUrl(submissionObj.submission_file_url);
+    }
+    return submissionObj;
+  }));
+
+  return res.status(200).json(submissionsWithUrls);
 });
 
 // Tutor: Get submissions for their assignments
@@ -292,7 +321,16 @@ exports.getTutorSubmissions = asyncHandler(async (req, res) => {
     .populate({ path: 'student_id', populate: { path: 'user_id', select: 'full_name' } })
     .sort({ submitted_at: -1 });
 
-  return res.status(200).json(submissions);
+  // Convert S3 keys to URLs for submission files
+  const submissionsWithUrls = await Promise.all(submissions.map(async (submission) => {
+    const submissionObj = submission.toObject();
+    if (submissionObj.submission_file_url) {
+      submissionObj.submission_file_url = await s3KeyToUrl(submissionObj.submission_file_url);
+    }
+    return submissionObj;
+  }));
+
+  return res.status(200).json(submissionsWithUrls);
 });
 
 // Tutor: Grade assignment submission
@@ -323,16 +361,73 @@ exports.gradeSubmission = asyncHandler(async (req, res) => {
   return res.status(200).json(submission);
 });
 
-// Optional: download assignment file directly
+// Get assignment file URL (S3 presigned URL)
 exports.downloadAssignment = asyncHandler(async (req, res) => {
   const { assignment_id } = req.params;
   const assignment = await Assignment.findById(assignment_id);
   if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
   if (!assignment.file_url) return res.status(404).json({ message: 'No file attached' });
 
-  const filePath = path.join(process.cwd(), assignment.file_url.replace(/^\//, ''));
-  if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'File not found on server' });
-  return res.download(filePath, assignment.file_name || path.basename(filePath));
+  // Convert S3 key to presigned URL
+  const fileUrl = await s3KeyToUrl(assignment.file_url);
+  if (!fileUrl) return res.status(404).json({ message: 'File not found in S3' });
+
+  return res.status(200).json({
+    file_url: fileUrl,
+    file_name: assignment.file_name,
+    file_mime_type: assignment.file_mime_type
+  });
+});
+
+// Admin: Get all assignments across the platform
+exports.getAllAssignments = asyncHandler(async (req, res) => {
+  const assignments = await Assignment.find()
+    .sort({ createdAt: -1 })
+    .populate('subject', 'name')
+    .populate('academic_level', 'level')
+    .populate({ path: 'tutor_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } })
+    .populate({ path: 'student_id', select: 'user_id', populate: { path: 'user_id', select: 'full_name email' } });
+
+  // Convert S3 keys to URLs for file attachments
+  const assignmentsWithUrls = await Promise.all(assignments.map(async (assignment) => {
+    const assignmentObj = assignment.toObject();
+    if (assignmentObj.file_url) {
+      assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
+    }
+    return assignmentObj;
+  }));
+
+  return res.status(200).json({
+    success: true,
+    assignments: assignmentsWithUrls,
+    total: assignmentsWithUrls.length
+  });
+});
+
+// Admin: Get all assignment submissions across the platform
+exports.getAllSubmissions = asyncHandler(async (req, res) => {
+  const submissions = await AssignmentSubmission.find()
+    .populate('assignment_id', 'title description due_date')
+    .populate('tutor_id', 'user_id')
+    .populate({ path: 'tutor_id', populate: { path: 'user_id', select: 'full_name email' } })
+    .populate('student_id', 'user_id')
+    .populate({ path: 'student_id', populate: { path: 'user_id', select: 'full_name email' } })
+    .sort({ submitted_at: -1 });
+
+  // Convert S3 keys to URLs for submission files
+  const submissionsWithUrls = await Promise.all(submissions.map(async (submission) => {
+    const submissionObj = submission.toObject();
+    if (submissionObj.submission_file_url) {
+      submissionObj.submission_file_url = await s3KeyToUrl(submissionObj.submission_file_url);
+    }
+    return submissionObj;
+  }));
+
+  return res.status(200).json({
+    success: true,
+    submissions: submissionsWithUrls,
+    total: submissionsWithUrls.length
+  });
 });
 
 

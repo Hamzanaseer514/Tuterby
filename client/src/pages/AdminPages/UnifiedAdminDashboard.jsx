@@ -50,6 +50,7 @@ const TutorReviewsPage = React.lazy(() => import('./TutorReviewsPage'));
 const HireRequestsPage = React.lazy(() => import('./HireRequestsPage'));
 const Chats = React.lazy(() => import('../../components/admin/components/Chats'));
 const AdminSettings = React.lazy(() => import('./AdminSettings'));
+const AdminAssignments = React.lazy(() => import('../../components/admin/components/AdminAssignments'));
 
 // Add CSS animation for spinning refresh icon
 const spinKeyframes = `
@@ -310,6 +311,7 @@ const UnifiedAdminDashboard = () => {
     if (pathname === '/admin/tutor-payments') return 'tutor-payments';
     if (pathname === '/admin/tutor-reviews') return 'tutor-reviews';
     if (pathname === '/admin/hire-requests') return 'hire-requests';
+    if (pathname === '/admin/assignments') return 'assignments';
     if (pathname === '/admin/settings') return 'settings';
     return 'dashboard';
   };
@@ -553,6 +555,7 @@ const UnifiedAdminDashboard = () => {
       'tutor-payments': '/admin/tutor-payments',
       'tutor-reviews': '/admin/tutor-reviews',
       'hire-requests': '/admin/hire-requests',
+      'assignments': '/admin/assignments',
       'settings': '/admin/settings'
     };
     
@@ -687,6 +690,16 @@ const UnifiedAdminDashboard = () => {
             </Box>
           }>
             <HireRequestsPage />
+          </Suspense>
+        );
+      case 'assignments':
+        return (
+          <Suspense fallback={
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+              <CircularProgress />
+            </Box>
+          }>
+            <AdminAssignments />
           </Suspense>
         );
       case 'chat':

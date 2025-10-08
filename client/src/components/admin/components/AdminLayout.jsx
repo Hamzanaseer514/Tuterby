@@ -10,7 +10,8 @@ import {
   UserCircleIcon,
   ChatBubbleLeftRightIcon,
   ChartBarIcon,
-  XMarkIcon
+  XMarkIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 // import { Dashboard as DashboardIcon } from '@mui/icons-material';
 import { getDashboardStats } from '../../../services/adminService';
@@ -151,6 +152,12 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
           id: 'hire-requests', 
           icon: <UserGroupIcon className="h-5 w-5" />, 
           label: 'Hire Requests', 
+          count: null 
+        },
+        { 
+          id: 'assignments', 
+          icon: <DocumentTextIcon className="h-5 w-5" />, 
+          label: 'Assignments', 
           count: null 
         }
       ]

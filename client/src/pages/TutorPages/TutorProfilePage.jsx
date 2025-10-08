@@ -349,7 +349,7 @@ const TutorProfilePage = () => {
               ) : (
                 <Button onClick={() => handleBookSession(tutor)}>
                   <Calendar className="w-4 h-4 mr-2" />
-                  Hire Tutor
+                  Request Tutor
                 </Button>
               )}
             </div>
@@ -821,7 +821,7 @@ const TutorProfilePage = () => {
                   ) : (
                     <Button onClick={() => handleBookSession(tutor)} className="w-full">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Hire Tutor
+                      Request Tutor
                     </Button>
                   )}
                   {/* <Button onClick={handleContactTutor} variant="outline" className="w-full">

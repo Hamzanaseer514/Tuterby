@@ -84,6 +84,8 @@ const Chats = lazy(() => import("./components/admin/components/Chats.jsx"));
 
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
 const PublicInterviewPage = lazy(() => import("./pages/PublicInterviewPage"));
+const AdminAssignments = lazy(() => import("./components/admin/components/AdminAssignments"));
+
 
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen">
@@ -142,6 +144,9 @@ function App() {
                 <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/admin/hire-requests" element={<ProtectedRoute allowedRoles={["admin"]}>
+                <UnifiedAdminDashboard />
+              </ProtectedRoute>} />
+              <Route path="/admin/assignments" element={<ProtectedRoute allowedRoles={["admin"]}>
                 <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />

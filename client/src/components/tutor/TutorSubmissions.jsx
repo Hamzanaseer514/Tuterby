@@ -118,7 +118,7 @@ const SubmissionDetailsModal = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open(`${BASE_URL}${submission.submission_file_url}`, '_blank')}
+                onClick={() => window.open(submission.submission_file_url, '_blank')}
               >
                 <Eye className="h-3 w-3 mr-1" />
                 View

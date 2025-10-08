@@ -151,7 +151,7 @@ const AssignmentDetailsModal = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open(`${BASE_URL}${assignment.file_url}`, '_blank')}
+                onClick={() => window.open(assignment.file_url, '_blank')}
               >
                 <Eye className="h-3 w-3 mr-1" />
                 View
@@ -212,7 +212,7 @@ const AssignmentDetailsModal = ({
                   size="sm"
                   variant="outline"
                   className="flex-end"
-                  onClick={() => window.open(`${BASE_URL}${submission.submission_file_url}`, '_blank')}
+                  onClick={() => window.open(submission.submission_file_url, '_blank')}
                 >
                   <Eye className="h-3 w-3 mr-1" />
                   View
@@ -314,24 +314,18 @@ const StudentAssignments = () => {
     setDownloading(prev => ({ ...prev, [assignmentId]: true }));
 
     try {
-      const blob = await downloadAssignment(assignmentId);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const data = await downloadAssignment(assignmentId);
+      // Open the S3 URL directly in a new tab
+      window.open(data.file_url, '_blank');
 
       toast({
         title: "Success",
-        description: "File downloaded successfully"
+        description: "File opened successfully"
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to download file",
+        description: "Failed to open file",
         variant: "destructive"
       });
     } finally {

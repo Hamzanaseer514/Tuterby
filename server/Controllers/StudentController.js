@@ -309,12 +309,14 @@ exports.searchTutors = asyncHandler(async (req, res) => {
       };
   
       // Preferred subjects filter
-      if (
-        preferred_subjects_only === "true" &&
-        currentStudent.preferred_subjects &&
-        currentStudent.preferred_subjects.length > 0
-      ) {
+      if (preferred_subjects_only === "true") {
+        if (currentStudent.preferred_subjects && currentStudent.preferred_subjects.length > 0) {
         query.subjects = { $in: currentStudent.preferred_subjects };
+        } else {
+          // If preferred_subjects_only is true but no preferred subjects exist,
+          // return empty results by setting an impossible condition
+          query.subjects = { $in: [] };
+        }
       } else if (subject_id) {
         if (subject_id.match(/^[0-9a-fA-F]{24}$/)) {
           query.subjects = { $in: [subject_id] };
@@ -363,10 +365,18 @@ exports.searchTutors = asyncHandler(async (req, res) => {
           ...(subjectIds.length ? [{ subjects: { $in: subjectIds } }] : []),
         ];
   
+        if (searchOrConditions.length > 0) {
         searchQuery = {
           ...query,
-          $or: searchOrConditions.length > 0 ? searchOrConditions : [{}],
-        };
+            $or: searchOrConditions,
+          };
+        } else {
+          // If no matches found for search term, return empty results
+          searchQuery = {
+            ...query,
+            _id: { $in: [] }, // This will match no documents
+          };
+        }
       }
   
       // Preserve subject filter if provided explicitly
@@ -1211,7 +1221,7 @@ exports.hireTutor = asyncHandler(async (req, res) => {
 
     if (invalidFields.length > 0) {
         return res.status(400).json({
-            message: `Tutor configuration for this academic level is incomplete or zero for: ${invalidFields.join(", ")}`,
+            message: `Tutor configuration for this academic level is incomplete. Please Try Another Academic Level`,
         });
     }
 
