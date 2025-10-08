@@ -108,12 +108,12 @@ exports.getParentProfile = asyncHandler(async (req, res) => {
     const parentProfile = await ParentProfile.findOne({ user_id })
       .populate({
         path: "user_id", // populate parent's own user info
-        select: "full_name email age  phone_number photo_url is_verified created_at updatedAt"
+        select: "full_name email age  phone_number photo_url is_verified createdAt updatedAt"
       })
       .populate({
         path: "students",
         populate: [
-          { path: "user_id", select: "full_name email phone_number age photo_url is_verified created_at" },
+          { path: "user_id", select: "full_name email phone_number age photo_url is_verified createdAt" },
           { path: "academic_level", select: "level" }
         ]
       });
@@ -132,7 +132,7 @@ exports.getParentProfile = asyncHandler(async (req, res) => {
       age: child.user_id.age,
       photo_url: child.user_id.photo_url ? await s3KeyToUrl(child.user_id.photo_url) : child.user_id.photo_url,
       is_verified: child.user_id.is_verified,
-      created_at: child.user_id.created_at,
+      created_at: child.user_id.createdAt,
       academic_level: child.academic_level,
       preferred_subjects: child.preferred_subjects,
     })));
@@ -222,7 +222,7 @@ exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
     const studentProfile = await Student.findOne({ user_id: userId })
       .populate({
         path: "user_id",
-        select: "full_name email phone_number age photo_url is_verified created_at"
+        select: "full_name email phone_number age photo_url is_verified createdAt"
       })
       .populate({
         path: "academic_level",
@@ -268,7 +268,7 @@ exports.getSpecificStudentDetail = asyncHandler(async (req, res) => {
       age: studentProfile.user_id.age,
       photo_url: studentProfile.user_id.photo_url ? await s3KeyToUrl(studentProfile.user_id.photo_url) : studentProfile.user_id.photo_url,
       is_verified: studentProfile.user_id.is_verified,
-      created_at: studentProfile.user_id.created_at,
+      created_at: studentProfile.user_id.createdAt,
       academic_level: studentProfile.academic_level,
       preferred_subjects: studentProfile.preferred_subjects,
       learning_goals: studentProfile.learning_goals,
@@ -1060,7 +1060,7 @@ exports.getParentReviews = asyncHandler(async (req, res) => {
           select: 'full_name email photo_url'
         }
       })
-      .sort({ created_at: -1 });
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,

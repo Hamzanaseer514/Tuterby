@@ -340,7 +340,7 @@ const ChildrenPage = () => {
                                                     {child.academic_level?.level || 'Not specified'}
                                                 </span>
                                             </div>
-
+                                            {console.log(child)}
                                             <div className="flex justify-between items-center py-1 sm:py-2 border-b border-gray-100 dark:border-gray-700">
                                                 <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Joined:</span>
                                                 <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">

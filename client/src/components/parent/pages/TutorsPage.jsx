@@ -171,7 +171,7 @@ const TutorsPage = () => {
                             Discover qualified tutors for your children
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 w-full xs:w-auto">
+                    {/* <div className="flex items-center gap-2 sm:gap-3 w-full xs:w-auto">
                         <Button
                             variant="outline"
                             onClick={() => setShowFilters(!showFilters)}
@@ -181,7 +181,7 @@ const TutorsPage = () => {
                             <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>Filters</span>
                         </Button>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 

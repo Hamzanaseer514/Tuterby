@@ -292,8 +292,9 @@ const ParentProfilePage = () => {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-xs sm:text-sm">Member Since</p>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
-                    {parentProfile?.user_id?.created_at 
-                      ? new Date(parentProfile.user_id.created_at).toLocaleDateString('en-US', {
+                    
+                    {parentProfile?.user_id?.createdAt 
+                      ? new Date(parentProfile.user_id.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'

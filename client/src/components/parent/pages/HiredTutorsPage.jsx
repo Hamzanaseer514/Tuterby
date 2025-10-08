@@ -150,7 +150,7 @@ const HiredTutorsPage = () => {
                 Your children haven't hired any tutors yet. They can search and hire tutors from the tutors page.
               </p>
               <Button 
-                onClick={() => navigate('/tutors')} 
+                onClick={() => navigate('/parent-dashboard/tutors')} 
                 className="w-full sm:w-auto text-xs sm:text-sm"
                 size="sm"
               >
