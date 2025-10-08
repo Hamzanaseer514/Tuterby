@@ -7,6 +7,7 @@ import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Avatar } from '../../ui/avatar';
 import { useToast } from '../../ui/use-toast';
+import { Link } from 'react-router-dom';
 import {
   User,
   Star,
@@ -149,14 +150,14 @@ const HiredTutorsPage = () => {
               <p className="text-xs sm:text-sm lg:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
                 Your children haven't hired any tutors yet. They can search and hire tutors from the tutors page.
               </p>
-              <Button 
-                onClick={() => navigate('/parent-dashboard/tutors')} 
-                className="w-full sm:w-auto text-xs sm:text-sm"
-                size="sm"
-              >
-                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Find Tutors
-              </Button>
+              <Link to="/parent-dashboard/tutors">
+                <Button 
+                  className="w-full sm:w-auto text-xs sm:text-sm"
+                  size="sm"
+                >
+                  Find Tutors
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (

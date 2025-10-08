@@ -548,12 +548,15 @@ const TutorSessionsPage = () => {
                           flexDirection: { xs: 'column', sm: 'row' },
                         }}
                       >
-                        <Avatar
-                          src={`${BASE_URL}${session.tutor.photo_url}`}
+                        <Box
+                          component="img"
+                          src={session.tutor.photo_url || ''}
                           alt={session.tutor.full_name}
                           sx={{
                             width: 60,
                             height: 60,
+                            borderRadius: '50%',
+                            objectFit: 'cover',
                             mr: { xs: 0, sm: 2 },
                             mb: { xs: 2, sm: 0 },
                           }}
@@ -640,12 +643,15 @@ const TutorSessionsPage = () => {
                                 mb={2}
                                 sx={{ flexDirection: { xs: 'column', sm: 'row' } }}
                               >
-                                <Avatar
-                                  src={`${BASE_URL}${student.photo_url}`}
+                                <Box
+                                  component="img"
+                                  src={student.photo_url || ''}
                                   alt={student.full_name}
                                   sx={{
                                     width: 50,
                                     height: 50,
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
                                     mr: { xs: 0, sm: 2 },
                                     mb: { xs: 2, sm: 0 },
                                   }}
@@ -1001,10 +1007,12 @@ const TutorSessionsPage = () => {
                   <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     {session.tutor ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar src={`${BASE_URL}${session.tutor.photo_url}`}
-                          sx={{ width: 32, height: 32 }}>
-                          <Person />
-                        </Avatar>
+                        <Box
+                          component="img"
+                          src={session.tutor.photo_url || ''}
+                          alt={session.tutor.full_name}
+                          sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                        />
                         <Box>
                           <Typography variant="body2">{session.tutor.full_name}</Typography>
                           <Typography variant="caption" color="text.secondary">

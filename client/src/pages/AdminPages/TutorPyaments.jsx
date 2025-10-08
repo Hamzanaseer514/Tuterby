@@ -49,7 +49,6 @@ import {
     Button,
     Divider,
     CircularProgress,
-    Avatar,
     useTheme
 } from '@mui/material';
 import {
@@ -866,10 +865,11 @@ const TutorPayments = () => {
                                             background: 'linear-gradient(to bottom right, #f0f7ff, white)'
                                         }}>
                                             <Box display="flex" alignItems="center" mb={2}>
-                                                <Avatar
-                                                    src={`${BASE_URL}${selectedPayment.stphoto_url}`}
-                                                    alt={selectedPayment.full_name}
-                                                    sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
+                                                <Box
+                                                    component="img"
+                                                    src={selectedPayment.stphoto_url || ''}
+                                                    alt={selectedPayment.student_name || 'Student'}
+                                                    sx={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
                                                 />
                                                 {/* {selectedPayment.student_name ? selectedPayment.student_name.charAt(0).toUpperCase() : 'S'} */}
                                                 <Box>
@@ -906,10 +906,11 @@ const TutorPayments = () => {
                                             background: 'linear-gradient(to bottom right, #f5fef5, white)'
                                         }}>
                                             <Box display="flex" alignItems="center" mb={2}>
-                                                <Avatar
-                                                    src={`${BASE_URL}${selectedPayment.tphoto_url}`}
-                                                    alt={selectedPayment.tutor_name}
-                                                    sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
+                                                <Box
+                                                    component="img"
+                                                    src={selectedPayment.tphoto_url || ''}
+                                                    alt={selectedPayment.tutor_name || 'Tutor'}
+                                                    sx={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
                                                 />
                                                 <Box>
                                                     <Typography variant="subtitle1" fontWeight="bold" color="secondary.main">

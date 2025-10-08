@@ -457,7 +457,7 @@ const TutorProfilePage = () => {
                                                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                                         {review.student_photo ? (
                                                             <img
-                                                                src={`${BASE_URL}${review.student_photo}`}
+                                                                src={`${review.student_photo}`}
                                                                 alt={review.student_name}
                                                                 className="h-full w-full object-cover rounded-full"
                                                             />

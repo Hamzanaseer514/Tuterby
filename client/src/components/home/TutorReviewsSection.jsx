@@ -260,7 +260,7 @@ const TutorReviewsSection = () => {
                 <div className="mb-4 z-10 flex items-center gap-3">
                   {review.reviewer?.photo_url ? (
                     <img
-                      src={`${BASE_URL}${review.reviewer.photo_url}`}
+                      src={`${review.reviewer.photo_url}`}
                       alt={review.reviewer.name}
                       className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
                     />

@@ -3324,10 +3324,10 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
           },
           tutor: {
             id: '$hired_tutors.tutor',
-            name: { $arrayElemAt: ['$tutor_profile.tutor_user.full_name', 0] },
-            email: { $arrayElemAt: ['$tutor_profile.tutor_user.email', 0] },
-            phone: { $arrayElemAt: ['$tutor_profile.tutor_user.phone_number', 0] },
-            photo_url: { $arrayElemAt: ['$tutor_profile.tutor_user.photo_url', 0] }
+            name: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.full_name', 0] }, 0 ] },
+            email: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.email', 0] }, 0 ] },
+            phone: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.phone_number', 0] }, 0 ] },
+            photo_url: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.photo_url', 0] }, 0 ] }
           },
           subject: {
             id: '$hired_tutors.subject',
@@ -3374,6 +3374,35 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
     // Execute aggregation
     const hireRequests = await StudentProfile.aggregate(pipeline);
 
+    // Resolve S3 photo URLs for student and tutor images
+    const resolvedHireRequests = await Promise.all(hireRequests.map(async (req) => {
+      let resolvedStudentPhoto = req?.student?.photo_url || '';
+      let resolvedTutorPhoto = req?.tutor?.photo_url || '';
+      try {
+        if (resolvedStudentPhoto && !resolvedStudentPhoto.startsWith('http')) {
+          const url = await s3KeyToUrl(resolvedStudentPhoto);
+          if (url) resolvedStudentPhoto = url;
+        }
+      } catch (_) {}
+      try {
+        if (resolvedTutorPhoto && !resolvedTutorPhoto.startsWith('http')) {
+          const url = await s3KeyToUrl(resolvedTutorPhoto);
+          if (url) resolvedTutorPhoto = url;
+        }
+      } catch (_) {}
+      return {
+        ...req,
+        student: {
+          ...req.student,
+          photo_url: resolvedStudentPhoto
+        },
+        tutor: {
+          ...req.tutor,
+          photo_url: resolvedTutorPhoto
+        }
+      };
+    }));
+
     // Calculate stats
     const statsPipeline = [
       { $match: { 'hired_tutors.0': { $exists: true } } },
@@ -3393,9 +3422,11 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
       rejected: statsResult.find(s => s._id === 'rejected')?.count || 0
     };
 
+    console.log("resolvedHireRequests", resolvedHireRequests);
+
     res.status(200).json({
       success: true,
-      hireRequests: hireRequests,
+      hireRequests: resolvedHireRequests,
       pagination: {
         current_page: pageNum,
         total_pages: Math.ceil(total / lim),

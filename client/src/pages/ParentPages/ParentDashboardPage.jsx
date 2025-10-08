@@ -17,12 +17,15 @@ const ParentDashboardPage = () => {
   // Determine active tab based on current route
   const getActiveTab = () => {
     const path = location.pathname;
+    // Order matters to avoid false matches:
+    // - "hired-tutors" before "tutors"
+    // - exact match for parent profile to avoid matching "/tutors/profile"
+    if (path.includes('/hired-tutors')) return 'hired-tutors';
+    if (path.startsWith('/parent-dashboard/tutors')) return 'tutors';
+    if (path === '/parent-dashboard/profile') return 'profile';
     if (path.includes('/children')) return 'children';
     if (path.includes('/sessions')) return 'sessions';
-    if (path.includes('/profile')) return 'profile';
     if (path.includes('/payments')) return 'payments';
-    if (path.includes('/tutors')) return 'tutors';
-    if (path.includes('/hired-tutors')) return 'hired-tutors';
     if (path.includes('/progress')) return 'progress';
     if (path.includes('/settings')) return 'settings';
     return 'overview';

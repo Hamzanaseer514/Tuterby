@@ -261,12 +261,12 @@ const HireRequestsPage = () => {
             gap: { xs: 1, sm: 0 }
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-              <Avatar 
-                src={request.student?.photo_url} 
-                sx={{ width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 } }}
-              >
-                <PersonIcon />
-              </Avatar>
+              <Box
+                component="img"
+                src={request.student?.photo_url || ''}
+                alt={request.student?.name || 'Student'}
+                sx={{ width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 }, borderRadius: '50%', objectFit: 'cover' }}
+              />
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography 
                   variant="subtitle2" 
@@ -312,12 +312,12 @@ const HireRequestsPage = () => {
 
           {/* Tutor Information */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Avatar 
-              src={request.tutor?.photo_url} 
-              sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
-            >
-              <PersonIcon />
-            </Avatar>
+            <Box
+              component="img"
+              src={request.tutor?.photo_url || ''}
+              alt={request.tutor?.name || 'Tutor'}
+              sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 }, borderRadius: '50%', objectFit: 'cover' }}
+            />
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography 
                 variant="body2" 
@@ -468,12 +468,12 @@ const HireRequestsPage = () => {
                   >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar 
-                          src={request.student?.photo_url} 
-                          sx={{ width: 32, height: 32 }}
-                        >
-                          <PersonIcon />
-                        </Avatar>
+                        <Box
+                          component="img"
+                          src={request.student?.photo_url || ''}
+                          alt={request.student?.name || 'Student'}
+                          sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                        />
                         <Box>
                           <Typography variant="subtitle2" fontWeight="medium">
                             {request.student?.name || 'Unknown Student'}
@@ -487,12 +487,12 @@ const HireRequestsPage = () => {
                     
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar 
-                          src={request.tutor?.photo_url} 
-                          sx={{ width: 32, height: 32 }}
-                        >
-                          <PersonIcon />
-                        </Avatar>
+                        <Box
+                          component="img"
+                          src={request.tutor?.photo_url || ''}
+                          alt={request.tutor?.name || 'Tutor'}
+                          sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                        />
                         <Box>
                           <Typography variant="subtitle2" fontWeight="medium">
                             {request.tutor?.name || 'Unknown Tutor'}
@@ -1035,17 +1035,18 @@ const HireRequestsPage = () => {
                 Student Information
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Avatar 
-                  src={selectedRequest.student?.photo_url} 
+                <Box
+                  component="img"
+                  src={selectedRequest.student?.photo_url || ''}
+                  alt={selectedRequest.student?.name || 'Student'}
                   sx={{ 
                     width: 56, 
                     height: 56,
+                    borderRadius: '50%',
                     border: '3px solid #e0e7ff',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    objectFit: 'cover'
                   }}
-                >
-                  <PersonIcon />
-                </Avatar>
+                />
                 <Box>
                   <Typography variant="subtitle1" fontWeight="bold" color="#1e293b">
                     {selectedRequest.student?.name || 'Unknown Student'}
@@ -1090,17 +1091,18 @@ const HireRequestsPage = () => {
                 Tutor Information
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Avatar 
-                  src={selectedRequest.tutor?.photo_url} 
+                <Box
+                  component="img"
+                  src={selectedRequest.tutor?.photo_url || ''}
+                  alt={selectedRequest.tutor?.name || 'Tutor'}
                   sx={{ 
                     width: 56, 
                     height: 56,
+                    borderRadius: '50%',
                     border: '3px solid #d1fae5',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                    objectFit: 'cover'
                   }}
-                >
-                  <PersonIcon />
-                </Avatar>
+                />
                 <Box>
                   <Typography variant="subtitle1" fontWeight="bold" color="#1e293b">
                     {selectedRequest.tutor?.name || 'Unknown Tutor'}
