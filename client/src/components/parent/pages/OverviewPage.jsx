@@ -211,7 +211,7 @@ const OverviewPage = ({ onTabChange }) => {
                           <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
                             {child.photo_url ? (
                               <img 
-                                src={`${BASE_URL}${child.photo_url}`}
+                                src={`${child.photo_url}`}
                                 alt={`${child.full_name}'s profile`}
                                 className="h-full w-full object-cover rounded-full"
                               />

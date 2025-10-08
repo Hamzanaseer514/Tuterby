@@ -676,10 +676,30 @@ exports.getTutorReviews = asyncHandler(async (req, res) => {
 
         const total = await TutorReview.countDocuments({ tutor_id: tutorId });
 
-        const formattedReviews = reviews.map(review => {
+        const formattedReviews = await Promise.all(reviews.map(async (review) => {
             const isStudentReview = review.student_id && review.review_type === 'student';
             const isParentReview = review.parent_id && review.review_type === 'parent';
-            
+
+            const rawReviewerPhoto = isStudentReview
+                ? (review.student_id?.user_id?.photo_url || '')
+                : isParentReview
+                ? (review.parent_id?.user_id?.photo_url || '')
+                : '';
+
+            const rawStudentPhoto = isStudentReview
+                ? (review.student_id?.user_id?.photo_url || '')
+                : isParentReview
+                ? (review.parent_id?.user_id?.photo_url || '')
+                : '';
+
+            const resolvedReviewerPhoto = rawReviewerPhoto
+                ? await s3KeyToUrl(rawReviewerPhoto)
+                : '';
+
+            const resolvedStudentPhoto = rawStudentPhoto
+                ? await s3KeyToUrl(rawStudentPhoto)
+                : '';
+
             return {
                 _id: review._id,
                 rating: review.rating,
@@ -692,11 +712,7 @@ exports.getTutorReviews = asyncHandler(async (req, res) => {
                         : isParentReview 
                         ? (review.parent_id?.user_id?.full_name || 'Anonymous Parent')
                         : 'Anonymous',
-                    photo_url: isStudentReview 
-                        ? (review.student_id?.user_id?.photo_url || '')
-                        : isParentReview 
-                        ? (review.parent_id?.user_id?.photo_url || '')
-                        : ''
+                    photo_url: resolvedReviewerPhoto
                 },
                 // Keep backward compatibility
                 student_name: isStudentReview 
@@ -704,15 +720,11 @@ exports.getTutorReviews = asyncHandler(async (req, res) => {
                     : isParentReview 
                     ? (review.parent_id?.user_id?.full_name || 'Anonymous')
                     : 'Anonymous',
-                student_photo: isStudentReview 
-                    ? (review.student_id?.user_id?.photo_url || '')
-                    : isParentReview 
-                    ? (review.parent_id?.user_id?.photo_url || '')
-                    : '',
+                student_photo: resolvedStudentPhoto,
                 created_at: review.created_at,
                 updated_at: review.updated_at
             };
-        });
+        }));
 
         res.status(200).json({
             success: true,
@@ -1630,10 +1642,13 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
             hasRenewalMap[renewal.original_payment_id.toString()] = true;
         });
 
-        // Transform payments into frontend format
-        const formattedPayments = payments.map(payment => {
+        // Transform payments into frontend format (resolve S3 photo URLs)
+        const formattedPayments = await Promise.all(payments.map(async (payment) => {
             const tutorName = payment.tutor_id?.user_id?.full_name || 'Unknown Tutor';
-            const tutorPhotoUrl = payment.tutor_id?.user_id?.photo_url || '';
+            const rawTutorPhoto = payment.tutor_id?.user_id?.photo_url || '';
+            const tutorPhotoUrl = rawTutorPhoto
+                ? await s3KeyToUrl(rawTutorPhoto)
+                : '';
             const subject = payment.subject?.name || 'Unknown Subject';
             const academicLevel = payment.academic_level?.level || 'Unknown Level';
 
@@ -1698,7 +1713,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
                 original_payment_id: payment.original_payment_id || null,
                 has_renewal: hasRenewalMap[payment._id.toString()] || false
             };
-        });
+        }));
 
         res.status(200).json({
             success: true,

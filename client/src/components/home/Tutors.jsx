@@ -104,7 +104,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, width: '100%' }}>
             <Avatar
-              src={`${BASE_URL}${tutor.photo_url}`}
+              src={`${tutor.photo_url}`}
               alt={tutor.full_name}
               sx={{
                 width: 60,

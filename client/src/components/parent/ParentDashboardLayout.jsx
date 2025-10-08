@@ -141,11 +141,11 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
     { id: 'overview', label: 'Overview', icon: Home, path: '/parent-dashboard' },
     { id: 'children', label: 'My Children', icon: Users, path: '/parent-dashboard/children' },
     { id: 'sessions', label: 'Sessions', icon: Calendar, path: '/parent-dashboard/sessions' },
-    { id: 'profile', label: 'My Profile', icon: User, path: '/parent-dashboard/profile' },
+    { id: 'profile', label: 'My Profile', icon: User, path: '/parent-dashboard/profileis me' },
     { id: 'payments', label: 'Payments', icon: CreditCard, path: '/parent-dashboard/payments' },
     { id: 'tutors', label: 'Find Tutors', icon: BarChart3, path: '/parent-dashboard/tutors' },
     { id: 'hired-tutors', label: 'Your Tutors', icon: Star, path: '/parent-dashboard/hired-tutors' },
-    { id: 'settings', label: 'Settings', icon: Settings, path: '/parent-dashboard/settings' }
+    // { id: 'settings', label: 'Settings', icon: Settings, path: '/parent-dashboard/settings' }
   ];
   
   useEffect(() => {

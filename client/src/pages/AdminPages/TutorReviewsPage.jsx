@@ -138,7 +138,7 @@ const TutorReviewsPage = () => {
           {tutorData.tutor.photo_url ? (
             <img
             //   src={tutorData.tutor.photo_url}
-              src={`${BASE_URL}${tutorData.tutor.photo_url}`}   
+              src={`${tutorData.tutor.photo_url}`}   
               alt={tutorData.tutor.name}
               className="h-16 w-16 rounded-full object-cover"
             />
@@ -179,7 +179,7 @@ const TutorReviewsPage = () => {
         <div className="flex-shrink-0">
           {review.reviewer?.photo_url ? (
             <img
-              src={`${BASE_URL}${review.reviewer.photo_url}`}
+              src={`${review.reviewer.photo_url}`}
               alt={review.reviewer.name}
               className="h-12 w-12 rounded-full object-cover"
             />
@@ -351,7 +351,7 @@ const TutorReviewsPage = () => {
                   {selectedTutor.tutor.photo_url ? (
                     <img
                     //   src={selectedTutor.tutor.photo_url}
-                      src={`${BASE_URL}${selectedTutor.tutor.photo_url}`}
+                      src={`${selectedTutor.tutor.photo_url}`}
                       alt={selectedTutor.tutor.name}
                       className="h-12 w-12 rounded-full object-cover"
                     />
