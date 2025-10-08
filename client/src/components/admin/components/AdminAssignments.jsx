@@ -138,15 +138,7 @@ const AdminAssignments = () => {
     }
   };
 
-  const getSubjectName = (subjectId) => {
-    const subject = subjects?.find(s => s._id === subjectId);
-    return subject?.name || 'Unknown Subject';
-  };
 
-  const getLevelName = (levelId) => {
-    const level = academicLevels?.find(l => l._id === levelId);
-    return level?.level || 'Unknown Level';
-  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -344,7 +336,8 @@ const AdminAssignments = () => {
                   {filteredAssignments.map((assignment) => {
                     const status = getAssignmentStatus(assignment);
                     return (
-                      <tr key={assignment._id} className="hover:bg-gray-50">
+                        <tr key={assignment._id} className="hover:bg-gray-50">
+                          {console.log("assignment", assignment)}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-medium text-gray-900">
@@ -367,10 +360,10 @@ const AdminAssignments = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {getSubjectName(assignment.subject._id)}
+                            {(assignment.subject.name)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {getLevelName(assignment.academic_level._id)}
+                            {(assignment.academic_level.level)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -419,7 +412,6 @@ const AdminAssignments = () => {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Assignment Information</h3>
@@ -430,16 +422,13 @@ const AdminAssignments = () => {
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-500">Subject:</span>
-                      <p className="text-sm text-gray-900">{getSubjectName(selectedAssignment.subject._id)}</p>
+                      <p className="text-sm text-gray-900">{(selectedAssignment.subject.name)}</p>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-500">Academic Level:</span>
-                      <p className="text-sm text-gray-900">{getLevelName(selectedAssignment.academic_level._id)}</p>
+                      <p className="text-sm text-gray-900">{(selectedAssignment.academic_level.level)}</p>
                     </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Created:</span>
-                      <p className="text-sm text-gray-900">{formatDate(selectedAssignment.createdAt)}</p>
-                    </div>
+                   
                     {selectedAssignment.due_date && (
                       <div>
                         <span className="text-sm font-medium text-gray-500">Due Date:</span>

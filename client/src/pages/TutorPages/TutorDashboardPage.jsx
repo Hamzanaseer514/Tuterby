@@ -53,7 +53,7 @@ const TutorDashboardPage = () => {
     communication: true,
     account: true
   });
-  const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0, submissions: 0, assignments: 0 });
+  const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0, submissions: 0, assignments: 0, 'payment-history': 0, reviews: 0 });
   const [hasRejectedDocuments, setHasRejectedDocuments] = useState(false);
   const navigate = useNavigate();
   const { user, loading, logout, isTutor, getUserProfile, fetchWithAuth } = useAuth();
@@ -263,7 +263,46 @@ const TutorDashboardPage = () => {
       // Use submissionsCount also to notify on Assignments tab
       const assignmentsCount = 0;
 
-      setBadgeCounts({ inquiries: inquiriesCount, chat: messagesCount, 'student-requests': hireCount, sessions: sessionsCount, interviews: interviewsCount, submissions: submissionsCount, assignments: assignmentsCount });
+      // Payment History badge: show if there are new payments or payment issues
+      let paymentHistoryCount = 0;
+      try {
+        const paymentRes = await fetchWithAuth(`${BASE_URL}/api/tutor/payment-history/${user._id}`, { headers }, token, (newToken) => localStorage.setItem('authToken', newToken));
+        if (paymentRes.ok) {
+          const paymentJson = await paymentRes.json();
+          const dataObj = paymentJson?.data || {};
+          const payments = Array.isArray(paymentJson) ? paymentJson : (Array.isArray(dataObj?.payments) ? dataObj.payments : (paymentJson.payments || []));
+          const latestPayment = payments[0]?.createdAt || payments[0]?.payment_date || payments[0]?.date || null;
+          const pendingPayments = payments.filter(p => {
+            const status = (p?.payment_status || p?.status || p?.state || '').toString().toLowerCase();
+            return status === 'pending' || status === 'failed';
+          }).length;
+          const seen = Number(localStorage.getItem(lastSeenKey('payment-history')) || 0);
+          
+          // Show badge if there are pending/failed payments or new payments since last seen
+          if (pendingPayments > 0 || (latestPayment && seen < new Date(latestPayment).getTime())) {
+            paymentHistoryCount = 1;
+          }
+        }
+      } catch {}
+
+      // Student Reviews badge: show if there are new reviews
+      let reviewsCount = 0;
+      try {
+        const reviewsRes = await fetchWithAuth(`${BASE_URL}/api/tutor/reviews/${user._id}`, { headers }, token, (newToken) => localStorage.setItem('authToken', newToken));
+        if (reviewsRes.ok) {
+          const reviewsJson = await reviewsRes.json();
+          const reviews = Array.isArray(reviewsJson) ? reviewsJson : (reviewsJson.reviews || []);
+          const latestReview = reviews[0]?.createdAt || reviews[0]?.review_date || null;
+          const seen = Number(localStorage.getItem(lastSeenKey('reviews')) || 0);
+          
+          // Show badge if there are new reviews since last seen
+          if (latestReview && seen < new Date(latestReview).getTime()) {
+            reviewsCount = 1;
+          }
+        }
+      } catch {}
+
+      setBadgeCounts({ inquiries: inquiriesCount, chat: messagesCount, 'student-requests': hireCount, sessions: sessionsCount, interviews: interviewsCount, submissions: submissionsCount, assignments: assignmentsCount, 'payment-history': paymentHistoryCount, reviews: reviewsCount });
     } catch { }
   }, [user?._id]);
 
