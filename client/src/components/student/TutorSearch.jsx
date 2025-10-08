@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { BASE_URL } from '@/config';
@@ -55,6 +55,8 @@ const TutorSearch = () => {
   }, [subjects, academicLevels]);
   // Simple search filter
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = useRef(null);
   const [studentProfile, setStudentProfile] = useState(null);
   // New checkbox state for preferred subjects filter
   const [preferredSubjectsOnly, setPreferredSubjectsOnly] = useState(false);
@@ -76,6 +78,7 @@ const TutorSearch = () => {
     min_rating: '',
     max_hourly_rate: ''
   });
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -84,11 +87,25 @@ const TutorSearch = () => {
     }
   }, [user]);
 
+  const skipNextSearchRef = useRef(false);
+
   useEffect(() => {
-    if (user && studentProfile) {
-      searchTutors();
+    if (!user || !studentProfile) return;
+    if (skipNextSearchRef.current) {
+      // Skip one automatic search after an intentional clear
+      skipNextSearchRef.current = false;
+      return;
     }
+    searchTutors();
   }, [filters, searchQuery, preferredSubjectsOnly, studentProfile]);
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
 
 
   const getSubjectById = useCallback((id) => {
@@ -213,7 +230,9 @@ const TutorSearch = () => {
       const cleanedTutors = cleanTutorData(data.tutors || []);
       setTutors(cleanedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
+      setInitialLoaded(true);
       setCurrentPage(1);
+      setInitialLoaded(true);
     } catch (error) {
       // console.error('Load all tutors error:', error);
       setError(error.message || 'Failed to load tutors');
@@ -310,8 +329,16 @@ const TutorSearch = () => {
   };
 
   const handleSearchChange = (value) => {
-    setSearchQuery(value);
-    setCurrentPage(1);
+    // Update input immediately for a responsive typing experience
+    setSearchInput(value);
+    // Debounce the actual search query to reduce API calls
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setCurrentPage(1);
+    }, 300);
   };
 
 
@@ -326,7 +353,12 @@ const TutorSearch = () => {
   };
 
 
-  const clearAllFilters = () => {
+  const clearAllFilters = async (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    // Prevent the useEffect search from firing once
+    skipNextSearchRef.current = true;
+    setSearchInput('');
     setSearchQuery('');
     setPreferredSubjectsOnly(false);
     setFilters({
@@ -337,6 +369,8 @@ const TutorSearch = () => {
       max_hourly_rate: ''
     });
     setCurrentPage(1);
+    // Proactively load all tutors to reflect cleared state without any navigation
+    await loadAllTutors();
   };
 
   const handlePageChange = (page) => {
@@ -447,7 +481,7 @@ const TutorSearch = () => {
     return stars;
   };
 
-  if (loading && tutors.length === 0) {
+  if (loading && tutors.length === 0 && !initialLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -461,6 +495,7 @@ const TutorSearch = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
+            type="button"
             onClick={() => navigate(`/student-dashboard`)}
             variant="outline"
             size="sm"
@@ -483,12 +518,13 @@ const TutorSearch = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Search by tutor name or subject..."
-                value={searchQuery}
+                value={searchInput}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
             <Button
+              type="button"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               variant="outline"
               className="flex items-center gap-2"
@@ -499,7 +535,7 @@ const TutorSearch = () => {
             {(searchQuery || Object.values(filters).some(v => v) || preferredSubjectsOnly) && (
               <Button
                 type="button"
-                onClick={clearAllFilters}
+                onClick={(e) => clearAllFilters(e)}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
@@ -627,7 +663,7 @@ const TutorSearch = () => {
 
               <div className="flex gap-2 justify-center">
                 <Button type="button" onClick={loadAllTutors}>Try Again</Button>
-                <Button type="button" onClick={clearAllFilters} variant="outline">Clear Filters</Button>
+                <Button type="button" onClick={(e) => clearAllFilters(e)} variant="outline">Clear Filters</Button>
               </div>
             </CardContent>
           </Card>
@@ -765,6 +801,7 @@ const TutorSearch = () => {
                         <div className="flex gap-2">
                           {tutor.hire_status === "accepted" ? (
                             <Button
+                              type="button"
                               // onClick={() => handleHireTutor(tutor)}
                               size="sm"
                               className="flex-1"
@@ -774,6 +811,7 @@ const TutorSearch = () => {
                             </Button>
                           ) : tutor.hire_status === "pending" ? (
                             <Button
+                              type="button"
                               size="sm"
                               className="flex-1"
                             >
@@ -782,6 +820,7 @@ const TutorSearch = () => {
                             </Button>
                           ) : (
                             <Button
+                              type="button"
                               onClick={() => handleHireTutor(tutor)}
                               size="sm"
                               className="flex-1"
@@ -798,6 +837,7 @@ const TutorSearch = () => {
                             </Button>
                           )}
                           <Button
+                            type="button"
                             onClick={() => handleViewTutor(tutor._id)}
                             variant="outline"
                             size="sm"
@@ -823,6 +863,7 @@ const TutorSearch = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-center gap-2">
                     <Button
+                    type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(currentPage - 1)}
@@ -836,6 +877,7 @@ const TutorSearch = () => {
                     </span>
 
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(currentPage + 1)}
@@ -925,6 +967,7 @@ const TutorSearch = () => {
 
               {/* Submit Button */}
               <Button
+                type="button"
                 onClick={handleHiringSubmit}
                 disabled={!hiringData.subject || !hiringData.academic_level || loading}
                 className="w-full py-3"
