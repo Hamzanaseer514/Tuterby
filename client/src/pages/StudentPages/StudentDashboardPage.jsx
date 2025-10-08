@@ -53,7 +53,7 @@ const StudentDashboardPage = () => {
     communication: true,
     account: true
   });
-  const [badgeCounts, setBadgeCounts] = useState({ sessions: 0, requests: 0, chat: 0 });
+  const [badgeCounts, setBadgeCounts] = useState({ sessions: 0, requests: 0, chat: 0, payments: 0, assignments: 0 });
 
   const { user, logout, loading: authLoading, getUserProfile, getAuthToken, fetchWithAuth } = useAuth();
   useEffect(() => {
@@ -109,7 +109,7 @@ const StudentDashboardPage = () => {
       if (!user?._id) return;
       const token = getAuthToken();
       const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      // if (token) headers['Authorization'] = `Bearer ${token}`;
 
       // Sessions: pending, compare latest update with lastSeen
       let sessionsCount = 0;
@@ -149,35 +149,73 @@ const StudentDashboardPage = () => {
         if (tutorsRes.ok) {
           const tutorsJson = await tutorsRes.json();
           if (tutorsJson.success && tutorsJson.data) {
-            // Check each tutor for new responses
             for (const tutor of tutorsJson.data) {
               try {
                 const chatRes = await fetchWithAuth(`${BASE_URL}/api/auth/getstudentchat/${tutor.tutorId}`, { headers }, token, (newToken) => localStorage.setItem("authToken", newToken));
                 if (chatRes.ok) {
                   const chatJson = await chatRes.json();
                   if (chatJson.success && chatJson.data) {
-                    // Count messages with responses (tutor replies)
                     const messagesWithResponses = chatJson.data.filter(msg => msg.response && msg.status === 'answered');
                     if (messagesWithResponses.length > 0) {
                       const latestResponseTime = Math.max(...messagesWithResponses.map(msg => new Date(msg.updatedAt || msg.createdAt).getTime()));
                       const lastSeenKey = `student_last_seen_${tutor.tutorId}`;
                       const lastSeenTime = Number(localStorage.getItem(lastSeenKey) || 0);
-                      
                       if (latestResponseTime > lastSeenTime) {
                         chatCount++;
                       }
                     }
                   }
                 }
-              } catch (error) {
-                console.error(`Error checking chat for tutor ${tutor.tutorId}:`, error);
-              }
+              } catch {}
             }
           }
         }
       } catch { }
 
-      setBadgeCounts({ sessions: sessionsCount, requests: requestsCount, chat: chatCount });
+      // Payments badge: show if payment status indicates pending/expired
+      let paymentsCount = 0;
+      try {
+        const pRes = await fetchWithAuth(`${BASE_URL}/api/auth/student/payment-status/${user._id}`, { headers }, token, (newToken) => localStorage.setItem('authToken', newToken));
+        if (pRes.ok) {
+          const pJson = await pRes.json();
+          const status = (pJson?.status || pJson?.payment_status || '').toString().toLowerCase();
+          const required = Boolean(pJson?.payment_required);
+          const hasUnpaid = Boolean(pJson?.has_unpaid_requests);
+          const totalUnpaid = Number(pJson?.total_unpaid_requests || 0);
+          const statuses = Array.isArray(pJson?.payment_statuses) ? pJson.payment_statuses : [];
+          const anyUnpaid = statuses.some(s => s?.is_paid === false);
+          const anyInvalid = statuses.some(s => ((s?.payment_details?.validity_status || '').toLowerCase() || 'none') !== 'active');
+
+          if (
+            required ||
+            hasUnpaid ||
+            totalUnpaid > 0 ||
+            anyUnpaid ||
+            anyInvalid ||
+            ['expired','pending','due','unpaid','inactive','none'].some(k => status.includes(k))
+          ) {
+            paymentsCount = 1;
+          }
+        }
+      } catch {}
+
+      // Assignments badge: show count of assignments needing action (not submitted / pending)
+      let assignmentsCount = 0;
+      try {
+        const aRes = await fetchWithAuth(`${BASE_URL}/api/assignments/student/${user._id}/assignments`, { headers }, token, (newToken) => localStorage.setItem('authToken', newToken));
+        if (aRes.ok) {
+          const aJson = await aRes.json();
+          const list = Array.isArray(aJson) ? aJson : (aJson.assignments || []);
+          assignmentsCount = list.filter(a => {
+            const subStatus = (a?.submission_status || '').toString().toLowerCase();
+            const status = (a?.status || '').toString().toLowerCase();
+            // consider requiring action if no submission or marked pending
+            return (!subStatus || subStatus === 'not_submitted' || subStatus === 'pending') || status === 'pending';
+          }).length;
+        }
+      } catch {}
+
+      setBadgeCounts({ sessions: sessionsCount, requests: requestsCount, chat: chatCount, payments: paymentsCount, assignments: assignmentsCount });
     } catch { }
   }, [user?._id, getAuthToken]);
 

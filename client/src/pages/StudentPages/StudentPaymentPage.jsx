@@ -387,7 +387,7 @@ const StudentPaymentPage = () => {
                                                 <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                                                 {payment.tutor_photo_url ? (
               <img
-                src={`${BASE_URL}${payment.tutor_photo_url}`}
+                src={`${payment.tutor_photo_url}`}
                 alt={payment.tutor_name || "Student"}
                 className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
               />

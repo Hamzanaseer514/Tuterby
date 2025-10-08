@@ -4,6 +4,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const express = require("express");
 const router = express.Router();
 const StudentPayment = require("../Models/studentPaymentSchema");
+const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 
 // @desc    Create Stripe Checkout Session (with better design + details)
 // @route   POST /api/payment/create-checkout-session
@@ -193,8 +194,40 @@ exports.confirmPayment = async (req, res) => {
             validity_end_date: validityEndDate,
             validity_start_date: validityStartDate,
 
-        }, { new: true });
-        res.json({ success: true, payment });
+        }, { new: true })
+        .populate({
+            path: "student_id",
+            populate: {
+                path: "user_id",
+                select: "full_name email photo_url"
+            }
+        })
+        .populate({
+            path: "tutor_id",
+            populate: {
+                path: "user_id",
+                select: "full_name email photo_url"
+            }
+        });
+
+        if (!payment) {
+            return res.status(404).json({ error: "Payment not found" });
+        }
+
+        // Convert S3 keys to URLs for profile photos
+        const paymentObj = payment.toObject();
+        
+        // Convert student photo URL to S3 URL
+        if (paymentObj.student_id?.user_id?.photo_url) {
+            paymentObj.student_id.user_id.photo_url = await s3KeyToUrl(paymentObj.student_id.user_id.photo_url);
+        }
+
+        // Convert tutor photo URL to S3 URL
+        if (paymentObj.tutor_id?.user_id?.photo_url) {
+            paymentObj.tutor_id.user_id.photo_url = await s3KeyToUrl(paymentObj.tutor_id.user_id.photo_url);
+        }
+
+        res.json({ success: true, payment: paymentObj });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to confirm payment" });
