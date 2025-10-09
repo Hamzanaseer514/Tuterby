@@ -142,7 +142,7 @@ const StudentPaymentPage = () => {
                     body: JSON.stringify({
                         validity_start_date: new Date().toISOString(),
                         validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-                        
+
                     })
                 }, token, (newToken) => localStorage.setItem("authToken", newToken));
 
@@ -179,7 +179,7 @@ const StudentPaymentPage = () => {
     
             // ✅ parse backend response
             const data = await response.json();
-    
+            console.log("data", data)
     
             // 🚀 instant redirect to Stripe Checkout
             window.location.href = data.url;

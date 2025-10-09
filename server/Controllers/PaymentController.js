@@ -5,17 +5,10 @@ const express = require("express");
 const StudentPayment = require("../Models/studentPaymentSchema");
 const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 
+
 // @desc    Create Stripe Checkout Session (with better design + details)
 // @route   POST /api/payment/create-checkout-session
 // @access  Private
-
-
-try {
-  const balance = await stripe.balance.retrieve();
-  console.log("✅ Stripe key works! Balance object:", balance);
-} catch (error) {
-  console.error("❌ Stripe key invalid or connectivity issue:", error.message);
-}
 
 exports.createCheckoutSession = async (req, res) => {
   console.log("🔵 [DEBUG] ========== CREATE CHECKOUT SESSION START ==========");
