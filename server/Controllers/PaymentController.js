@@ -2,26 +2,21 @@
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const express = require("express");
-const router = express.Router();
 const StudentPayment = require("../Models/studentPaymentSchema");
 const s3KeyToUrl = require("../Utils/s3KeyToUrl");
-const https = require("https");
-const dotenv = require("dotenv");
 
 // @desc    Create Stripe Checkout Session (with better design + details)
 // @route   POST /api/payment/create-checkout-session
 // @access  Private
 
 
+try {
+  const balance = await stripe.balance.retrieve();
+  console.log("✅ Stripe key works! Balance object:", balance);
+} catch (error) {
+  console.error("❌ Stripe key invalid or connectivity issue:", error.message);
+}
 
-// ✅ Stripe connectivity test
-https
-  .get("https://api.stripe.com", (res) => {
-    console.log("Stripe connectivity test:", res.statusCode);
-  })
-  .on("error", (err) => {
-    console.error("Stripe connectivity test failed:", err.message);
-  });
 exports.createCheckoutSession = async (req, res) => {
   console.log("🔵 [DEBUG] ========== CREATE CHECKOUT SESSION START ==========");
   console.log("🔵 [DEBUG] Step 1: Request received");

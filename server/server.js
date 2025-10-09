@@ -121,11 +121,11 @@ router.get('/', (req, res) => {
 });
 app.use("/", router);
 
-https.get("https://api.stripe.com", (res) => {
-  console.log("Stripe connectivity test:", res.statusCode);
-}).on("error", (err) => {
-  console.error("Stripe connectivity test failed:", err.message);
-});
+// https.get("https://api.stripe.com", (res) => {
+//   console.log("Stripe connectivity test:", res.statusCode);
+// }).on("error", (err) => {
+//   console.error("Stripe connectivity test failed:", err.message);
+// });
 
 // Error handler (should be AFTER routes)
 const { errorHandler } = require("./Middleware/errorHandler");
