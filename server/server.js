@@ -3,8 +3,7 @@ const app = express();
 require("dotenv").config();
 const router = express.Router();
 const https = require("https");
-
-
+const fetch = require("node-fetch"); 
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -121,11 +120,19 @@ router.get('/', (req, res) => {
 });
 app.use("/", router);
 
-// https.get("https://api.stripe.com", (res) => {
-//   console.log("Stripe connectivity test:", res.statusCode);
-// }).on("error", (err) => {
-//   console.error("Stripe connectivity test failed:", err.message);
-// });
+
+
+// 🧩 Test Stripe connectivity
+app.get("/test-stripe", async (req, res) => {
+  try {
+    const resp = await fetch("https://api.stripe.com/v1/charges", {
+      headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` },
+    });
+    res.send({ ok: resp.ok, status: resp.status });
+  } catch (e) {
+    res.status(500).send({ error: e.message });
+  }
+});
 
 // Error handler (should be AFTER routes)
 const { errorHandler } = require("./Middleware/errorHandler");

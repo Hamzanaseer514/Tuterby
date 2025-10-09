@@ -8,7 +8,8 @@ import {
   EyeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  FunnelIcon
+  FunnelIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { getAllTutorReviews } from '../../services/adminService';
@@ -92,6 +93,12 @@ const TutorReviewsPage = () => {
     // Keep showing tutor list but filter based on search
     setShowTutorList(true);
     fetchReviews(1, searchTerm);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setShowTutorList(true);
+    fetchReviews(1, '');
   };
 
   const handleTutorSelect = (tutorData) => {
@@ -290,24 +297,32 @@ const TutorReviewsPage = () => {
         {/* Search - Only show when not viewing specific tutor reviews */}
         {!selectedTutor && (
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <form onSubmit={handleSearch} className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
               <div className="flex-1 relative">
                 <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search by student name..."
+                  placeholder="Search by student name or tutor name..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    // Auto-search as user types
+                    if (e.target.value.length >= 2 || e.target.value.length === 0) {
+                      fetchReviews(1, e.target.value);
+                    }
+                  }}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
-              >
-                Search
-              </button>
-            </form>
+            </div>
           </div>
         )}
 

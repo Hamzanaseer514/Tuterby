@@ -229,7 +229,7 @@ const HireRequestsPage = () => {
     } else if (isMobile) {
       return ['Student', 'Tutor', 'Subject', 'Academic Level', 'Status', 'Actions'];
     } else {
-      return ['Student', 'Tutor', 'Subject', 'Academic Level', 'Status', 'Request Date', 'Actions'];
+      return ['Student', 'Tutor', 'Subject', 'Academic Level', 'Status', 'Actions'];
     }
   };
 
@@ -261,12 +261,18 @@ const HireRequestsPage = () => {
             gap: { xs: 1, sm: 0 }
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-              <Box
-                component="img"
-                src={request.student?.photo_url || ''}
+              <Avatar
+                src={request.student?.photo_url}
                 alt={request.student?.name || 'Student'}
-                sx={{ width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 }, borderRadius: '50%', objectFit: 'cover' }}
-              />
+                sx={{
+                  width: { xs: 28, sm: 32 },
+                  height: { xs: 28, sm: 32 },
+                  bgcolor: theme.palette.primary.main,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
+              >
+                {request.student?.name ? request.student.name.charAt(0).toUpperCase() : 'S'}
+              </Avatar>
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography 
                   variant="subtitle2" 
@@ -312,12 +318,18 @@ const HireRequestsPage = () => {
 
           {/* Tutor Information */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Box
-              component="img"
-              src={request.tutor?.photo_url || ''}
+            <Avatar
+              src={request.tutor?.photo_url}
               alt={request.tutor?.name || 'Tutor'}
-              sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 }, borderRadius: '50%', objectFit: 'cover' }}
-            />
+              sx={{
+                width: { xs: 20, sm: 24 },
+                height: { xs: 20, sm: 24 },
+                bgcolor: theme.palette.secondary.main,
+                fontSize: { xs: '0.65rem', sm: '0.75rem' }
+              }}
+            >
+              {request.tutor?.name ? request.tutor.name.charAt(0).toUpperCase() : 'T'}
+            </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography 
                 variant="body2" 
@@ -468,12 +480,18 @@ const HireRequestsPage = () => {
                   >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                          component="img"
-                          src={request.student?.photo_url || ''}
+                        <Avatar
+                          src={request.student?.photo_url}
                           alt={request.student?.name || 'Student'}
-                          sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                        />
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: theme.palette.primary.main,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {request.student?.name ? request.student.name.charAt(0).toUpperCase() : 'S'}
+                        </Avatar>
                         <Box>
                           <Typography variant="subtitle2" fontWeight="medium">
                             {request.student?.name || 'Unknown Student'}
@@ -487,12 +505,18 @@ const HireRequestsPage = () => {
                     
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                          component="img"
-                          src={request.tutor?.photo_url || ''}
+                        <Avatar
+                          src={request.tutor?.photo_url}
                           alt={request.tutor?.name || 'Tutor'}
-                          sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                        />
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: theme.palette.secondary.main,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {request.tutor?.name ? request.tutor.name.charAt(0).toUpperCase() : 'T'}
+                        </Avatar>
                         <Box>
                           <Typography variant="subtitle2" fontWeight="medium">
                             {request.tutor?.name || 'Unknown Tutor'}
@@ -547,20 +571,6 @@ const HireRequestsPage = () => {
                         }}
                       />
                     </TableCell>
-
-                    {isLargeScreen && (
-                      <TableCell>
-                        <Typography 
-                          variant="body2"
-                          sx={{ 
-                            fontSize: { xs: '0.65rem', sm: '0.75rem' }
-                          }}
-                        >
-                          {formatDate(request.hired_at)}
-                        </Typography>
-                      </TableCell>
-                    )}
-
                     <TableCell>
                       <IconButton
                         size="small"
@@ -964,7 +974,7 @@ const HireRequestsPage = () => {
         <Dialog 
           open={detailDialogOpen} 
           onClose={() => setDetailDialogOpen(false)}
-          maxWidth={isSmallMobile ? "sm" : isMobile ? "md" : "lg"}
+        maxWidth={isSmallMobile ? "sm" : isMobile ? "sm" : "sm"}
           fullWidth
           fullScreen={isSmallMobile}
           PaperProps={{
@@ -1003,11 +1013,18 @@ const HireRequestsPage = () => {
     px: { xs: 1, sm: 2 }
   }}>
     {selectedRequest && (
-      <Grid container spacing={{ xs: 2, sm: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Student and Tutor Information - Side by Side */}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'column' }, 
+                gap: 2,
+                alignItems: 'stretch'
+              }}>
         {/* Student Information */}
-        <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
+                    flex: 1,
               borderRadius: 3,
               border: '1px solid #e2e8f0',
               background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -1019,7 +1036,7 @@ const HireRequestsPage = () => {
               }
             }}
           >
-            <CardContent sx={{ p: 3 }}>
+                  <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography 
                 variant="h6" 
                 sx={{ 
@@ -1034,36 +1051,43 @@ const HireRequestsPage = () => {
                 <PersonIcon sx={{ color: '#4f46e5' }} />
                 Student Information
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Box
-                  component="img"
-                  src={selectedRequest.student?.photo_url || ''}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      flex: 1,
+                      justifyContent: 'center'
+                    }}>
+                      <Avatar
+                        src={selectedRequest.student?.photo_url}
                   alt={selectedRequest.student?.name || 'Student'}
                   sx={{ 
-                    width: 56, 
-                    height: 56,
-                    borderRadius: '50%',
+                          width: 80,
+                          height: 80,
                     border: '3px solid #e0e7ff',
-                    objectFit: 'cover'
-                  }}
-                />
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold" color="#1e293b">
+                          bgcolor: '#4f46e5',
+                          fontSize: '2rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {selectedRequest.student?.name ? selectedRequest.student.name.charAt(0).toUpperCase() : 'S'}
+                      </Avatar>
+                      <Box sx={{ textAlign: 'center', flex: 1 }}>
+                        <Typography variant="h6" fontWeight="bold" color="#1e293b" sx={{ mb: 1 }}>
                     {selectedRequest.student?.name || 'Unknown Student'}
                   </Typography>
-                  <Typography variant="body2" color="#64748b">
+                        <Typography variant="body1" color="#64748b">
                     {selectedRequest.student?.email}
                   </Typography>
                 </Box>
               </Box>
             </CardContent>
           </Card>
-        </Grid>
 
         {/* Tutor Information */}
-        <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
+                    flex: 1,
               borderRadius: 3,
               border: '1px solid #e2e8f0',
               background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -1075,7 +1099,7 @@ const HireRequestsPage = () => {
               }
             }}
           >
-            <CardContent sx={{ p: 3 }}>
+                  <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography 
                 variant="h6" 
                 sx={{ 
@@ -1090,34 +1114,41 @@ const HireRequestsPage = () => {
                 <SchoolIcon sx={{ color: '#059669' }} />
                 Tutor Information
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Box
-                  component="img"
-                  src={selectedRequest.tutor?.photo_url || ''}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2, 
+                      flex: 1,
+                      justifyContent: 'center'
+                    }}>
+                      <Avatar
+                        src={selectedRequest.tutor?.photo_url}
                   alt={selectedRequest.tutor?.name || 'Tutor'}
                   sx={{ 
-                    width: 56, 
-                    height: 56,
-                    borderRadius: '50%',
+                          width: 80,
+                          height: 80,
                     border: '3px solid #d1fae5',
-                    objectFit: 'cover'
-                  }}
-                />
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold" color="#1e293b">
+                          bgcolor: '#059669',
+                          fontSize: '2rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {selectedRequest.tutor?.name ? selectedRequest.tutor.name.charAt(0).toUpperCase() : 'T'}
+                      </Avatar>
+                      <Box sx={{ textAlign: 'center', flex: 1 }}>
+                        <Typography variant="h6" fontWeight="bold" color="#1e293b" sx={{ mb: 1 }}>
                     {selectedRequest.tutor?.name || 'Unknown Tutor'}
                   </Typography>
-                  <Typography variant="body2" color="#64748b">
+                        <Typography variant="body1" color="#64748b">
                     {selectedRequest.tutor?.email}
                   </Typography>
                 </Box>
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+              </Box>
 
-        {/* Request Details */}
-        <Grid item xs={12}>
+              {/* Request Details - 2x2 Grid */}
           <Card 
             sx={{ 
               borderRadius: 3,
@@ -1146,58 +1177,51 @@ const HireRequestsPage = () => {
                 <Assignment sx={{ color: '#7c3aed' }} />
                 Request Details
               </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, background: '#f0f9ff', borderRadius: 2 }}>
-                    <Typography variant="body2" color="#0369a1" fontWeight="medium">
+                  <Box sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+                    gap: 2 
+                  }}>
+                    <Box sx={{ textAlign: 'center', p: 3, background: '#f0f9ff', borderRadius: 2 }}>
+                      <Typography variant="body2" color="#0369a1" fontWeight="medium" sx={{ mb: 1 }}>
                       Subject
                     </Typography>
-                    <Typography variant="subtitle1" fontWeight="bold" color="#0c4a6e" sx={{ mt: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" color="#0c4a6e">
                       {selectedRequest.subject?.name || 'N/A'}
                     </Typography>
                   </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, background: '#f0fdf4', borderRadius: 2 }}>
-                    <Typography variant="body2" color="#059669" fontWeight="medium">
+                    <Box sx={{ textAlign: 'center', p: 3, background: '#f0fdf4', borderRadius: 2 }}>
+                      <Typography variant="body2" color="#059669" fontWeight="medium" sx={{ mb: 1 }}>
                       Academic Level
                     </Typography>
-                    <Typography variant="subtitle1" fontWeight="bold" color="#064e3b" sx={{ mt: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" color="#064e3b">
                       {selectedRequest.academic_level?.level || 'N/A'}
                     </Typography>
                   </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, background: '#fffbeb', borderRadius: 2 }}>
-                    <Typography variant="body2" color="#d97706" fontWeight="medium">
+                    <Box sx={{ textAlign: 'center', p: 3, background: '#fffbeb', borderRadius: 2 }}>
+                      <Typography variant="body2" color="#d97706" fontWeight="medium" sx={{ mb: 1 }}>
                       Status
                     </Typography>
-                    <Box sx={{ mt: 1 }}>
                       <Chip
                         icon={getStatusColor(selectedRequest.status).icon}
                         label={getStatusColor(selectedRequest.status).label}
                         color={getStatusColor(selectedRequest.status).color}
-                        size="small"
+                        size="medium"
                         sx={{ fontWeight: 600 }}
                       />
                     </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, background: '#faf5ff', borderRadius: 2 }}>
-                    <Typography variant="body2" color="#7c3aed" fontWeight="medium">
+                    <Box sx={{ textAlign: 'center', p: 3, background: '#faf5ff', borderRadius: 2 }}>
+                      <Typography variant="body2" color="#7c3aed" fontWeight="medium" sx={{ mb: 1 }}>
                       Request Date
                     </Typography>
-                    <Typography variant="subtitle1" fontWeight="bold" color="#5b21b6" sx={{ mt: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" color="#5b21b6">
                       {formatDate(selectedRequest.hired_at)}
                     </Typography>
                   </Box>
-                </Grid>
-              </Grid>
+                  </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+            </Box>
     )}
   </DialogContent>
   

@@ -34,7 +34,6 @@ import {
 import { useSubject } from '../../hooks/useSubject';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
-
 const TutorSearch = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -50,9 +49,9 @@ const TutorSearch = () => {
 
   // Debug: Log subjects data
   useEffect(() => {
-
     fetchSubjectRelatedToAcademicLevels(academicLevels.map(level => level._id));
   }, [subjects, academicLevels]);
+  
   // Simple search filter
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -107,7 +106,6 @@ const TutorSearch = () => {
     };
   }, []);
 
-
   const getSubjectById = useCallback((id) => {
     if (!id) return undefined;
     const s = (subjects || []).find(s => s?._id?.toString() === id.toString());
@@ -118,7 +116,6 @@ const TutorSearch = () => {
     if (!id) return undefined;
     const a = (academicLevels || []).find(a => a?._id?.toString() === id.toString());
     return a;
-
   }, [academicLevels]);
 
   // Helper functions
@@ -137,7 +134,6 @@ const TutorSearch = () => {
           const parsed = JSON.parse(field[0]);
           return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
-          // console.warn(`Failed to parse array field: ${field[0]}`, error);
           return [];
         }
       }
@@ -152,14 +148,12 @@ const TutorSearch = () => {
         const parsed = JSON.parse(field);
         return Array.isArray(parsed) ? [...new Set(parsed)] : [];
       } catch (error) {
-        // console.warn(`Failed to parse string field: ${field}`, error);
         return [];
       }
     }
 
     return [];
   };
-
 
   const cleanTutorData = (tutors) => {
     return tutors.map((tutor) => {
@@ -182,7 +176,7 @@ const TutorSearch = () => {
         headers: {
           "Content-Type": "application/json",
         },
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -192,11 +186,10 @@ const TutorSearch = () => {
       const data = await response.json();
       setStudentProfile(data.student);
     } catch (error) {
-      // console.error('Error fetching student profile:', error);
       // Don't show error toast for profile fetch, just log it
     }
   }
-  // Inside your loadAllTutors function
+
   const loadAllTutors = async () => {
     try {
       setLoading(true);
@@ -209,14 +202,12 @@ const TutorSearch = () => {
         user_id: user._id
       });
 
-      // Debug: Log the load all params
-
       const response = await fetchWithAuth(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         method: "GET",
         headers: {
           'Content-Type': 'application/json'
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -226,26 +217,17 @@ const TutorSearch = () => {
 
       const data = await response.json();
 
-      // ✅ Fix subjects & academic_levels_taught here
       const cleanedTutors = cleanTutorData(data.tutors || []);
       setTutors(cleanedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
       setInitialLoaded(true);
       setCurrentPage(1);
-      setInitialLoaded(true);
     } catch (error) {
-      // console.error('Load all tutors error:', error);
       setError(error.message || 'Failed to load tutors');
-      // toast({
-      //   title: "Error",
-      //   description: error.message || "Failed to load tutors",
-      //   variant: "destructive"
-      // });
     } finally {
       setLoading(false);
     }
   };
-
 
   const searchTutors = async () => {
     try {
@@ -253,7 +235,6 @@ const TutorSearch = () => {
       setError(null);
       const authToken = getAuthToken();
 
-      // Validate that we have required data before making the API call
       if (!user?._id) {
         throw new Error('User not authenticated');
       }
@@ -264,16 +245,11 @@ const TutorSearch = () => {
         user_id: user._id
       });
 
-      // Add filters only if they have values
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value.trim() !== '') {
-          // For subject filter, we need to send it as subject_id, not subject
-          // The backend expects subject_id to search by subject ID
           if (key === 'subject') {
             params.append('subject_id', value.trim());
           } else if (key === 'academic_level') {
-            // For academic level filter, we need to send it as academic_level
-            // The backend expects academic_level to search by academic level ID
             params.append('academic_level', value.trim());
           } else {
             params.append(key, value.trim());
@@ -281,42 +257,33 @@ const TutorSearch = () => {
         }
       });
 
-      // Add search query if provided
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim());
       }
 
-      // Add preferred subjects filter if checkbox is checked
       if (preferredSubjectsOnly) {
-        console.log("preferredSubjectsOnly", studentProfile?.preferred_subjects)
         params.append('preferred_subjects_only', 'true');
       }
 
-
-      // Make the search request with the correct parameters
       const response = await fetchWithAuth(`${BASE_URL}/api/auth/tutors/search?${params}`, {
         method: "GET",
         headers: {
           'Content-Type': 'application/json'
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // console.error('Search API error:', errorData);
-
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
 
-      // ✅ Fix subjects & academic_levels_taught here too
       const cleanedTutors = cleanTutorData(data.tutors || []);
       setTutors(cleanedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
     } catch (error) {
-      // console.error('Search error:', error);
       setError(error.message || 'Failed to search tutors');
       toast({
         title: "Error",
@@ -329,9 +296,7 @@ const TutorSearch = () => {
   };
 
   const handleSearchChange = (value) => {
-    // Update input immediately for a responsive typing experience
     setSearchInput(value);
-    // Debounce the actual search query to reduce API calls
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
     }
@@ -341,7 +306,6 @@ const TutorSearch = () => {
     }, 300);
   };
 
-
   const handleFilterChange = async (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -349,14 +313,11 @@ const TutorSearch = () => {
     if (key === "academic_level") {
       fetchSubjectRelatedToAcademicLevels([value]);
     }
-
   };
-
 
   const clearAllFilters = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-    // Prevent the useEffect search from firing once
     skipNextSearchRef.current = true;
     setSearchInput('');
     setSearchQuery('');
@@ -369,7 +330,6 @@ const TutorSearch = () => {
       max_hourly_rate: ''
     });
     setCurrentPage(1);
-    // Proactively load all tutors to reflect cleared state without any navigation
     await loadAllTutors();
   };
 
@@ -381,13 +341,10 @@ const TutorSearch = () => {
     navigate(`/tutor`, {
       state: { tutorId: tutorId }
     });
-
   };
-
 
   const handleHireTutor = (tutor) => {
     setSelectedTutor(tutor);
-    // Auto-select first academic level when tutor data loads
     if (tutor?.academic_levels_taught && tutor.academic_levels_taught.length > 0) {
       const firstLevel = tutor.academic_levels_taught[0];
       setHiringData(prev => ({
@@ -412,7 +369,6 @@ const TutorSearch = () => {
       setLoading(true);
       const token = getAuthToken();
 
-      // Map academic_level name to ID from global academicLevels
       let academic_level_id = null;
       if (hiringData.academic_level) {
         const match = (academicLevels || []).find(l => l.level === hiringData.academic_level || l._id === hiringData.academic_level);
@@ -432,7 +388,7 @@ const TutorSearch = () => {
           notes: hiringData.notes || 'Hiring request from student',
           payment_type: 'hourly'
         })
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       const data = await response.json();
@@ -448,7 +404,6 @@ const TutorSearch = () => {
           title: "Success",
           description: data.message,
         });
-        // Close dialog and refresh the tutors list
         setShowHiringDialog(false);
         searchTutors();
       }
@@ -464,10 +419,6 @@ const TutorSearch = () => {
     }
   };
 
-
-
-
-
   const renderStars = (rating) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -480,6 +431,12 @@ const TutorSearch = () => {
     }
     return stars;
   };
+
+  // Separate height constants for different sections
+  const ACADEMIC_LEVELS_HEIGHT = 'h-8'; // Fixed height for academic levels
+  const SUBJECTS_HEIGHT = 'h-12'; // Fixed height for subjects
+  const BIO_HEIGHT = 'h-18'; // Fixed height for bio
+  const BUTTONS_HEIGHT = 'h-8'; // Fixed height for buttons
 
   if (loading && tutors.length === 0 && !initialLoaded) {
     return (
@@ -574,7 +531,6 @@ const TutorSearch = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
                 <Select value={filters.academic_level} onValueChange={(value) => handleFilterChange('academic_level', value)}>
@@ -587,7 +543,6 @@ const TutorSearch = () => {
                         {level.level}
                       </SelectItem>
                     ))}
-
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">Select an academic level to filter tutors</p>
@@ -613,9 +568,6 @@ const TutorSearch = () => {
                 <p className="text-xs text-gray-500 mt-1">Select a subject to find tutors who teach it</p>
               </div>
 
-
-
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Max Hourly Rate</label>
                 <Input
@@ -627,7 +579,6 @@ const TutorSearch = () => {
                 <p className="text-xs text-gray-500 mt-1">Maximum hourly rate you're willing to pay</p>
               </div>
             </div>
-
           </CardContent>
         </Card>
       )}
@@ -641,9 +592,6 @@ const TutorSearch = () => {
                 <Search className="w-16 h-16 mx-auto" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Tutor Found</h3>
-              {/* <p className="text-gray-600 mb-4">{error}</p> */}
-
-              {/* Helpful error guidance */}
               {error.includes('Cast to ObjectId failed') && (
                 <div className="mb-4 p-3 bg-yellow-50 rounded-lg text-left">
                   <div className="flex items-start gap-2">
@@ -680,9 +628,6 @@ const TutorSearch = () => {
                   : 'No tutors of your preferred subjects'
                 }
               </p>
-              {/* {(searchQuery || Object.values(filters).some(v => v)) && (
-                <Button onClick={clearAllFilters}>Show All Tutors</Button>
-              )} */}
             </CardContent>
           </Card>
         ) : (
@@ -698,163 +643,166 @@ const TutorSearch = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tutors.map((tutor) => (
-                <Card key={tutor._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
-                        {tutor.user_id?.photo_url ? (
-                          <img
-                            src={tutor.user_id.photo_url}
-                            alt="Profile"
-                            className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
-                        )}
-                        {!tutor.user_id?.photo_url && (
-                          <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
-                            <User className="h-6 w-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tutors.map((tutor) => {
+                const visibleAcademicLevels = tutor.academic_levels_taught?.slice(0, 3) || [];
+                const hiddenAcademicLevelsCount = Math.max(0, (tutor.academic_levels_taught?.length || 0) - 3);
+                
+                const visibleSubjects = tutor.subjects?.slice(0, 3) || [];
+                const hiddenSubjectsCount = Math.max(0, (tutor.subjects?.length || 0) - 3);
+
+                return (
+                  <Card key={tutor._id} className="hover:shadow-md transition-shadow flex flex-col h-full">
+                    <CardContent className="p-6 flex flex-col flex-1">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative flex-shrink-0">
+                          {tutor.user_id?.photo_url ? (
+                            <img
+                              src={tutor.user_id.photo_url}
+                              alt="Profile"
+                              className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                          )}
+                          {!tutor.user_id?.photo_url && (
+                            <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                              <User className="h-6 w-6" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                {tutor.user_id?.full_name || 'Unknown Tutor'}
+                              </h3>
+                            </div>
+                            <div className="text-right flex-shrink-0 ml-2">
+                              <p className="text-lg font-bold text-gray-900 whitespace-nowrap">
+                                £{tutor.min_hourly_rate || 0} - £{tutor.max_hourly_rate || 0}/hr
+                              </p>
+                              {tutor.average_rating && typeof tutor.average_rating === 'number' && (
+                                <div className="flex items-center gap-1 mt-1 justify-end">
+                                  {renderStars(tutor.average_rating)}
+                                  <span className="text-sm text-gray-600 ml-1 whitespace-nowrap">
+                                    ({tutor.average_rating})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {tutor.user_id?.full_name || 'Unknown Tutor'}
-                            </h3>
-                           
+
+                          {/* Academic Levels with separate fixed height */}
+                          <div className={`mb-3 ${ACADEMIC_LEVELS_HEIGHT} overflow-hidden`}>
+                            <div className="flex flex-wrap gap-1">
+                              {visibleAcademicLevels.map((level, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs max-w-full truncate">
+                                  {typeof level === 'object' ? getAcademicLevelById(level.educationLevel)?.level : level}
+                                </Badge>
+                              ))}
+                              {hiddenAcademicLevelsCount > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{hiddenAcademicLevelsCount} more
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-gray-900">
-                              £{tutor.min_hourly_rate || 0} - £{tutor.max_hourly_rate || 0}/hr
-                            </p>
-                            {tutor.average_rating && typeof tutor.average_rating === 'number' && (
-                              <div className="flex items-center gap-1 mt-1">
-                                {renderStars(tutor.average_rating)}
-                                <span className="text-sm text-gray-600 ml-1">
-                                  ({tutor.average_rating})
-                                </span>
+
+                          {/* Subjects with separate fixed height */}
+                          <div className={`mb-3 ${SUBJECTS_HEIGHT} overflow-hidden`}>
+                            <div className="flex flex-wrap gap-1">
+                              {visibleSubjects.map((subject, index) => (
+                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
+                                  {typeof subject === 'object' ? subject.name : (getSubjectById(subject)?.name || subject)}
+                                </Badge>
+                              ))}
+                              {hiddenSubjectsCount > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{hiddenSubjectsCount} more
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Bio with separate fixed height */}
+                          {tutor.bio && typeof tutor.bio === 'string' && (
+                            <div className={`mb-4 ${BIO_HEIGHT} overflow-hidden`}>
+                              <p className="text-sm text-gray-600 line-clamp-3 h-full">
+                                {tutor.bio}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                            <div className="flex items-center gap-1">
+                              <BookOpen className="w-4 h-4" />
+                              {typeof tutor.total_sessions === 'number' ? tutor.total_sessions : 0} sessions
+                            </div>
+                            {tutor.experience_years && typeof tutor.experience_years === 'number' && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {tutor.experience_years} years
                               </div>
                             )}
                           </div>
                         </div>
+                      </div>
 
-                        <div className="mb-3">
-
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {tutor.academic_levels_taught?.map((level, index) => {
-                              return (
-                                <Badge key={index} variant="secondary" className="text-xs">
-
-                                  {typeof level === 'object' ? getAcademicLevelById(level.educationLevel)?.level : level}
-                                </Badge>
-                              );
-                            })}
-                            {/* {tutor.academic_levels_taught?.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{tutor.academic_levels_taught.length - 3} more
-                              </Badge>
-                            )} */}
-                          </div>
-
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {tutor.subjects?.map((subject, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {typeof subject === 'object' ? subject.name : (getSubjectById(subject)?.name || subject)}
-                              </Badge>
-                            ))}
-                            {/* {tutor.subjects?.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{tutor.subjects.length - 3} more
-                              </Badge>
-                            )} */}
-                          </div>
-
-                        </div>
-
-
-
-
-                        {tutor.bio && typeof tutor.bio === 'string' && (
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                            {tutor.bio}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                          <div className="flex items-center gap-1">
-                            <BookOpen className="w-4 h-4" />
-                            {typeof tutor.total_sessions === 'number' ? tutor.total_sessions : 0} sessions
-                          </div>
-                          {tutor.experience_years && typeof tutor.experience_years === 'number' && (
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {tutor.experience_years} years
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex gap-2">
-                          {tutor.hire_status === "accepted" ? (
-                            <Button
-                              type="button"
-                              // onClick={() => handleHireTutor(tutor)}
-                              size="sm"
-                              className="flex-1"
-                            >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Hired
-                            </Button>
-                          ) : tutor.hire_status === "pending" ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="flex-1"
-                            >
-                              <Clock className="w-4 h-4 mr-2" />
-                              Pending
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              onClick={() => handleHireTutor(tutor)}
-                              size="sm"
-                              className="flex-1"
-                              disabled={loading}
-                            >
-                              {loading ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              ) : (
-                                <>
-                                  <Calendar className="w-4 h-4 mr-2" />
-                                  Request Tutor
-                                </>
-                              )}
-                            </Button>
-                          )}
+                      {/* Buttons container with separate fixed height */}
+                      <div className={`flex gap-2 mt-auto ${BUTTONS_HEIGHT} items-center`}>
+                        {tutor.hire_status === "accepted" ? (
                           <Button
                             type="button"
-                            onClick={() => handleViewTutor(tutor._id)}
-                            variant="outline"
                             size="sm"
-
-                            className="flex-1"
+                            className="flex-1 h-10"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Profile
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Hired
                           </Button>
-                        </div>
-
-
+                        ) : tutor.hire_status === "pending" ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="flex-1 h-10"
+                          >
+                            <Clock className="w-4 h-4 mr-2" />
+                            Pending
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            onClick={() => handleHireTutor(tutor)}
+                            size="sm"
+                            className="flex-1 h-10"
+                            disabled={loading}
+                          >
+                            {loading ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            ) : (
+                              <>
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Request Tutor
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          onClick={() => handleViewTutor(tutor._id)}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-10"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Profile
+                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Pagination */}
@@ -863,7 +811,7 @@ const TutorSearch = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-center gap-2">
                     <Button
-                    type="button"
+                      type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(currentPage - 1)}
@@ -985,9 +933,8 @@ const TutorSearch = () => {
           )}
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };
 
-export default TutorSearch; 
+export default TutorSearch;

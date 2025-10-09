@@ -56,6 +56,12 @@ export const AdminDashboardProvider = ({ children }) => {
       return;
     }
 
+    // Set loading state for this tab
+    setDashboardState(prev => ({
+      ...prev,
+      tabLoading: { ...prev.tabLoading, [userType]: true }
+    }));
+
     // Load data silently in background
     try {
       const usersResponse = await getAllUsers({ 
@@ -82,7 +88,7 @@ export const AdminDashboardProvider = ({ children }) => {
         error: error.message
       }));
     }
-  }, []);
+  }, [dashboardState.users]);
 
   const loadDashboardData = useCallback(async () => {
     setDashboardState(prev => ({ ...prev, error: null }));

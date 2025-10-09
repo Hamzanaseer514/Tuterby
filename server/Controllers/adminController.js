@@ -3055,46 +3055,103 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
       query.tutor_id = new mongoose.Types.ObjectId(tutor_id);
     }
 
-    // Search by student name
+    // Fast search by student name or tutor name using aggregation
     if (search && search.trim()) {
       const searchTerm = search.trim();
+      const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Try multiple search strategies for better results
-      const searchStrategies = [
-        // Exact match (case insensitive)
-        { full_name: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
-        // Word boundary match (matches whole words)
-        { full_name: { $regex: `\\b${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, $options: 'i' } },
-        // Starts with match
-        { full_name: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }
-      ];
-      
-      // Use $or to try all strategies
-      const matchedUsers = await User.find({ $or: searchStrategies }).select('_id').lean();
-      const userIds = matchedUsers.map(u => u._id);
-      
-      if (userIds.length > 0) {
-        const studentIds = await StudentProfile.find({ user_id: { $in: userIds } }).select('_id').lean();
-        const studentObjectIds = studentIds.map(s => s._id);
-        
-        if (studentObjectIds.length > 0) {
-          query.student_id = { $in: studentObjectIds };
-        } else {
-          // No matching students found, return empty result
-          return res.status(200).json({
-            success: true,
-            reviews: [],
-            pagination: {
-              current_page: pageNum,
-              total_pages: 0,
-              total_reviews: 0,
-              has_next: false,
-              has_prev: false
-            }
-          });
+      // Use aggregation pipeline for faster search
+      const searchPipeline = [
+        // Lookup student profiles and their users
+        {
+          $lookup: {
+            from: 'studentprofiles',
+            localField: 'student_id',
+            foreignField: '_id',
+            as: 'student_profile',
+            pipeline: [
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'user_id',
+                  foreignField: '_id',
+                  as: 'user',
+                  pipeline: [
+                    {
+                      $match: {
+                        full_name: { $regex: escapedSearchTerm, $options: 'i' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                $match: {
+                  'user.0': { $exists: true }
+                }
+              }
+            ]
+          }
+        },
+        // Lookup tutor profiles and their users
+        {
+          $lookup: {
+            from: 'tutorprofiles',
+            localField: 'tutor_id',
+            foreignField: '_id',
+            as: 'tutor_profile',
+            pipeline: [
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'user_id',
+                  foreignField: '_id',
+                  as: 'user',
+                  pipeline: [
+                    {
+                      $match: {
+                        full_name: { $regex: escapedSearchTerm, $options: 'i' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                $match: {
+                  'user.0': { $exists: true }
+                }
+              }
+            ]
+          }
+        },
+        // Match reviews where either student or tutor matches
+        {
+          $match: {
+            $or: [
+              { 'student_profile.0': { $exists: true } },
+              { 'tutor_profile.0': { $exists: true } }
+            ]
+          }
+        },
+        // Project only the fields we need
+        {
+          $project: {
+            tutor_id: 1,
+            student_id: 1,
+            parent_id: 1,
+            rating: 1,
+            review_text: 1,
+            review_type: 1,
+            created_at: 1,
+            updated_at: 1
+          }
         }
-      } else {
-        // No matching users found, return empty result
+      ];
+
+      // Execute the search pipeline
+      const searchResults = await TutorReview.aggregate(searchPipeline);
+      
+      if (searchResults.length === 0) {
         return res.status(200).json({
           success: true,
           reviews: [],
@@ -3107,6 +3164,10 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
           }
         });
       }
+
+      // Get the IDs of matching reviews
+      const matchingReviewIds = searchResults.map(r => r._id);
+      query._id = { $in: matchingReviewIds };
     }
 
     // Fetch reviews with optimized populated data

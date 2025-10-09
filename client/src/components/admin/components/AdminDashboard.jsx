@@ -317,7 +317,7 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 onChangeRowsPerPage={handleChangeRowsPerPage}
                 onRequestReload={handleRequestReload}
                 showNotification={showNotification}
-                loading={false}
+                loading={dashboardState.tabLoading[uiState.tabValue] || dashboardState.loading}
               />
             </Paper>
 
