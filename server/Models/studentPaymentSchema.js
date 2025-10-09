@@ -40,7 +40,14 @@ const studentPaymentSchema = new mongoose.Schema({
     max: 100,
     default: 0
   },
-  
+  isParentPayment: {
+    type: Boolean,
+    default: false
+  },
+  studentName: {
+    type: String,
+    default: ''
+  },
   // Monthly Package Details (if payment_type is 'monthly')
   monthly_amount: {
     type: Number,

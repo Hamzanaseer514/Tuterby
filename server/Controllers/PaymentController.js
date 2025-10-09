@@ -29,7 +29,7 @@ exports.createCheckoutSession = async (req, res) => {
       total_sessions_per_month,
       base_amount,
       discount_percentage,
-      isParentPayment, // ✅ New: Flag for parent payments
+      isParentPayment , // ✅ New: Flag for parent payments
       studentName, // ✅ New: Child's name for parent payments
     } = req.body;
 
