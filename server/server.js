@@ -36,6 +36,8 @@ if (!process.env.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
 }
 
 console.log('✅ Environment variables validated successfully');
+console.log("Stripe Secret Key starts with:", process.env.STRIPE_SECRET_KEY?.slice(0, 10));
+
 
 const PORT = process.env.PORT || 5000;
 const cors = require("cors");
