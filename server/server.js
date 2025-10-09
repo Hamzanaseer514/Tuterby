@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 const router = express.Router();
+const https = require("https");
+
 
 
 // Validate required environment variables
@@ -116,6 +118,12 @@ router.get('/', (req, res) => {
   res.send("Hi, TutorNearby");
 });
 app.use("/", router);
+
+https.get("https://api.stripe.com", (res) => {
+  console.log("Stripe connectivity test:", res.statusCode);
+}).on("error", (err) => {
+  console.error("Stripe connectivity test failed:", err.message);
+});
 
 // Error handler (should be AFTER routes)
 const { errorHandler } = require("./Middleware/errorHandler");

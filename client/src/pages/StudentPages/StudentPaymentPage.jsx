@@ -142,6 +142,7 @@ const StudentPaymentPage = () => {
                     body: JSON.stringify({
                         validity_start_date: new Date().toISOString(),
                         validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+                        
                     })
                 }, token, (newToken) => localStorage.setItem("authToken", newToken));
 
@@ -168,6 +169,8 @@ const StudentPaymentPage = () => {
                     base_amount: payment.base_amount,
                     discount_percentage: payment.discount_percentage,
                     days_remaining: payment.days_remaining,
+                    isParentPayment: false,
+                    studentName: '',
                 })
             }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
             );
