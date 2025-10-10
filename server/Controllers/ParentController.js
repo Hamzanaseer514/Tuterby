@@ -611,6 +611,7 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     academic_level,
     location,
     min_rating,
+    max_hourly_rate,
     preferred_subjects_only,
     page = 1,
     limit = 10
@@ -639,6 +640,19 @@ exports.searchTutors = asyncHandler(async (req, res) => {
     // ✅ Rating filter
     if (min_rating) {
       query.average_rating = { $gte: parseFloat(min_rating) };
+    }
+
+    // ✅ Max hourly rate filter - only show tutors whose minimum rate is within budget
+    if (max_hourly_rate) {
+      console.log('ParentController - Max hourly rate filter:', max_hourly_rate);
+      // Use aggregation to filter tutors whose minimum hourly rate is within budget
+      query.$expr = {
+        $lte: [
+          { $min: "$academic_levels_taught.hourlyRate" },
+          parseFloat(max_hourly_rate)
+        ]
+      };
+      console.log('ParentController - Query with max rate filter:', JSON.stringify(query, null, 2));
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);

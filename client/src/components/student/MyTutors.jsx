@@ -26,12 +26,14 @@ import {
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
 import TutorReviewModal from './TutorReviewModal';
+
 const MyTutors = () => {
   const { getAuthToken, user, fetchWithAuth } = useAuth();
   const { toast } = useToast();
   const [hiredTutors, setHiredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const { subjects, academicLevels } = useSubject();
   const navigate = useNavigate();
   
@@ -39,6 +41,13 @@ const MyTutors = () => {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [tutorPaymentStatus, setTutorPaymentStatus] = useState({});
+
+  // Height constants for consistent sizing
+  const CARD_HEIGHT = 'h-[390px]'; // Fixed height for tutor cards
+  const SUBJECTS_HEIGHT = 'h-20'; // Fixed height for subjects section
+  const BASIC_INFO_HEIGHT = 'h-20'; // Fixed height for basic info
+  const BUTTONS_HEIGHT = 'h-8'; // Fixed height for buttons
+
   useEffect(() => {
     fetchHiredTutors();
   }, []);
@@ -54,7 +63,7 @@ const MyTutors = () => {
         headers: {
           'Content-Type': 'application/json'
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -68,11 +77,6 @@ const MyTutors = () => {
       await checkPaymentStatusForTutors(data.tutors || []);
     } catch (error) {
       setError(error.message);
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to load hired tutors",
-      //   variant: "destructive"
-      // });
     } finally {
       setLoading(false);
     }
@@ -104,7 +108,7 @@ const MyTutors = () => {
         setTutorPaymentStatus(paymentStatusMap);
       }
     } catch (error) {
-      // console.error('Error checking payment status:', error);
+      // Error handling
     }
   };
 
@@ -148,7 +152,6 @@ const MyTutors = () => {
     navigate(`/tutor`, {
       state: { tutorId: tutorId }
     });
-
   };
 
   const handleOpenReviewModal = (tutor) => {
@@ -162,7 +165,6 @@ const MyTutors = () => {
   };
 
   const handleReviewSubmitted = () => {
-    // Refresh the tutors list to show updated ratings
     fetchHiredTutors();
   };
 
@@ -185,20 +187,6 @@ const MyTutors = () => {
       </div>
     );
   }
-
-  // if (error) {
-  //   return (
-  //       <div className="min-h-screen bg-gray-50">
-  //           <div className="container mx-auto px-4 py-8">
-  //         <div className="text-center">
-  //           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Tutors</h2>
-  //           <p className="text-gray-600 mb-4">{error}</p>
-  //           {/* <Button onClick={fetchHiredTutors}>Try Again</Button> */}
-  //         </div>
-  //           </div>
-  //       </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -244,112 +232,132 @@ const MyTutors = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hiredTutors.map((hiredTutor) => (
-              <Card key={hiredTutor._id} className="hover:shadow-lg transition-shadow" >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      {hiredTutor.user_id?.photo_url ? (
-                          <img
-                            src={`${hiredTutor.user_id.photo_url}`}
-                            alt="Profile"
-                            className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
-                          />
-                        ) : (
-                          <User className="h-6 w-6 text-white" />
-                        )}
+            {hiredTutors.map((hiredTutor) => {
+              const visibleSubjects = hiredTutor.subjects?.slice(0, 2) || [];
+              const hiddenSubjectsCount = Math.max(0, (hiredTutor.subjects?.length || 0) - 2);
+
+              return (
+                <Card key={hiredTutor._id} className={`hover:shadow-lg transition-shadow ${CARD_HEIGHT} flex flex-col`}>
+                  <CardHeader className="pb-4 flex-shrink-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          {hiredTutor.user_id?.photo_url ? (
+                            <img
+                              src={`${hiredTutor.user_id.photo_url}`}
+                              alt="Profile"
+                              className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100"
+                            />
+                          ) : (
+                            <User className="h-6 w-6 text-white" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-lg truncate">{hiredTutor.full_name}</CardTitle>
+                          <p className="text-sm text-gray-600 truncate">
+                            {hiredTutor.location || 'Location not specified'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">{hiredTutor.full_name}</CardTitle>
-                        <p className="text-sm text-gray-600">{hiredTutor.location || 'Location not specified'}</p>
-                      </div>
+                      {getHiringStatusBadge(hiredTutor.hireStatus)}
                     </div>
-                    {getHiringStatusBadge(hiredTutor.hireStatus)}
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  {/* Basic Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Hourly Rate:</span>
-                      <span className="font-semibold">£{hiredTutor.hourly_rate}/hr</span>
-                    </div>
-                    
-                    {hiredTutor.experience && (
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4 flex-1 flex flex-col">
+                    {/* Basic Info with fixed height */}
+                    <div className={`${BASIC_INFO_HEIGHT} space-y-2 overflow-hidden`}>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Experience:</span>
-                        <span className="font-semibold">{hiredTutor.experience} years</span>
+                        <span className="text-gray-600 text-sm">Hourly Rate:</span>
+                        {(() => {
+                          if (hiredTutor.academic_levels_taught && hiredTutor.academic_levels_taught.length > 0) {
+                            const rates = hiredTutor.academic_levels_taught.map(level => level.hourlyRate).filter(rate => rate);
+                            if (rates.length > 0) {
+                              const minRate = Math.min(...rates);
+                              const maxRate = Math.max(...rates);
+                              return (
+                                <span className="font-semibold text-sm">
+                                  £{minRate === maxRate ? minRate : `${minRate}-${maxRate}`}/hr
+                                </span>
+                              );
+                            }
+                          }
+                          return <span className="font-semibold text-sm">£{hiredTutor.hourly_rate || 'N/A'}/hr</span>;
+                        })()}
                       </div>
-                    )}
-                    
-                    {hiredTutor.rating && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Rating:</span>
-                        <div className="flex items-center gap-1">
-                          {renderStars(hiredTutor.rating)}
-                          {/* <span className="font-semibold ml-1">{hiredTutor.rating.toFixed(1)}</span> */}
+                      
+                      {hiredTutor.experience && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 text-sm">Experience:</span>
+                          <span className="font-semibold text-sm">{hiredTutor.experience} years</span>
+                        </div>
+                      )}
+                      
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 text-sm">Rating:</span>
+                          <div className="flex items-center gap-1">
+                          {hiredTutor.rating && (
+                            <>
+                            {renderStars(hiredTutor.rating)}
+                            </> )}
+                          </div>
+                        </div>
+                    </div>
+
+                    {/* Subjects with fixed height and overflow handling */}
+                    {hiredTutor.subjects && hiredTutor.subjects.length > 0 && (
+                      <div className={`${SUBJECTS_HEIGHT} overflow-hidden`}>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Subjects:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {visibleSubjects.map((subject, index) => (
+                            <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
+                              {getSubjectName(subject).name}
+                            </Badge>
+                          ))}
+                          {hiddenSubjectsCount > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{hiddenSubjectsCount} more
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     )}
-                  </div>
 
-                  {/* Subjects */}
-                  {hiredTutor.subjects && hiredTutor.subjects.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Subjects:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {hiredTutor.subjects.slice(0, 3).map((subject, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {getSubjectName(subject).name}
-                          </Badge>
-                        ))}
-                        {hiredTutor.subjects.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{hiredTutor.subjects.length - 3} more
-                          </Badge>
-                        )}
+                    {/* Request Details */}
+                    <div className="border-t pt-4 space-y-2 flex-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Requested on:</span>
+                        <span className="font-medium">{formatDate(hiredTutor.hired_at)}</span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Request Details */}
-                  <div className="border-t pt-4 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Requested on:</span>
-                      <span className="font-medium">{formatDate(hiredTutor.hired_at)}</span>
-                    </div>
-                    
-                  
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleViewTutor(hiredTutor._id)}
-                    >
-                      <User className="w-4 h-4 mr-2" />
-                      View Profile
-                    </Button>
-                    
-                    {hiredTutor.hireStatus === 'accepted' && tutorPaymentStatus[hiredTutor._id] && (
+                    {/* Action Buttons with fixed height */}
+                    <div className={`flex gap-2 pt-2 ${BUTTONS_HEIGHT} items-center`}>
                       <Button 
+                        variant="outline" 
                         size="sm" 
-                        className="flex-1"
-                        onClick={() => handleOpenReviewModal(hiredTutor)}
+                        className="flex-1 h-10"
+                        onClick={() => handleViewTutor(hiredTutor._id)}
                       >
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Rate & Review
+                        <User className="w-4 h-4 mr-2" />
+                        View Profile
                       </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      
+                      {hiredTutor.hireStatus === 'accepted' && tutorPaymentStatus[hiredTutor._id] && (
+                        <Button 
+                          size="sm" 
+                          className="flex-1 h-10"
+                          onClick={() => handleOpenReviewModal(hiredTutor)}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Rate & Review
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BASE_URL } from '@/config';
 import { useAuth } from '../../hooks/useAuth';
+import { Avatar } from '../ui/avatar';
 
 const StudentChatting = () => {
   const { fetchWithAuth, user, getAuthToken } = useAuth();
@@ -154,13 +155,19 @@ const StudentChatting = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden relative flex-shrink-0">
+                  <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
                     {tutor.user_id?.photo_url ? (
-                      <img src={tutor.user_id.photo_url} alt={tutor.full_name} className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
-                    )}
-                  </div>
+                      <img 
+                        src={tutor.user_id.photo_url} 
+                        alt={tutor.full_name || 'Tutor'} 
+                        className="h-full w-full object-cover" 
+                        loading="lazy" 
+                      />
+                    ) : null}
+                    <div className="h-full w-full bg-blue-600 flex items-center justify-center text-white font-semibold text-xs md:text-sm">
+                      {(tutor.full_name || 'T').charAt(0).toUpperCase()}
+                    </div>
+                  </Avatar>
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm sm:text-md md:text-lg text-gray-800">{tutor.full_name}</p>
                     {/* Red dot notification for new responses */}
@@ -189,9 +196,19 @@ const StudentChatting = () => {
           <>
             {/* Header */}
             <div className="flex items-center gap-3 bg-white shadow p-4 border-b border-gray-200">
-              <div className="w-10 h-10 rounded-full bg-blue-300 flex items-center justify-center text-white font-bold">
-                {selectedTutor.full_name.charAt(0).toUpperCase()}
-              </div>
+              <Avatar className="w-10 h-10">
+                {selectedTutor.user_id?.photo_url ? (
+                  <img 
+                    src={selectedTutor.user_id.photo_url} 
+                    alt={selectedTutor.full_name || 'Tutor'} 
+                    className="h-full w-full object-cover" 
+                    loading="lazy" 
+                  />
+                ) : null}
+                <div className="h-full w-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                  {(selectedTutor.full_name || 'T').charAt(0).toUpperCase()}
+                </div>
+              </Avatar>
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">
                   {selectedTutor.full_name}

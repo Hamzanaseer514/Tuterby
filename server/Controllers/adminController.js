@@ -3152,18 +3152,18 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
       const searchResults = await TutorReview.aggregate(searchPipeline);
       
       if (searchResults.length === 0) {
-        return res.status(200).json({
-          success: true,
-          reviews: [],
-          pagination: {
-            current_page: pageNum,
-            total_pages: 0,
-            total_reviews: 0,
-            has_next: false,
-            has_prev: false
-          }
-        });
-      }
+          return res.status(200).json({
+            success: true,
+            reviews: [],
+            pagination: {
+              current_page: pageNum,
+              total_pages: 0,
+              total_reviews: 0,
+              has_next: false,
+              has_prev: false
+            }
+          });
+        }
 
       // Get the IDs of matching reviews
       const matchingReviewIds = searchResults.map(r => r._id);

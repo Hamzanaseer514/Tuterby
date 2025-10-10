@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Slider, Typography } from '@mui/material';
 
 const TutorSearch = () => {
   const { toast } = useToast();
@@ -44,6 +45,7 @@ const TutorSearch = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [searchCache, setSearchCache] = useState(new Map()); // Cache for search results
   const token = getAuthToken();
   const { subjects, academicLevels, fetchSubjectRelatedToAcademicLevels, subjectRelatedToAcademicLevels } = useSubject();
 
@@ -51,7 +53,7 @@ const TutorSearch = () => {
   useEffect(() => {
     fetchSubjectRelatedToAcademicLevels(academicLevels.map(level => level._id));
   }, [subjects, academicLevels]);
-  
+
   // Simple search filter
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -75,7 +77,8 @@ const TutorSearch = () => {
     academic_level: '',
     location: '',
     min_rating: '',
-    max_hourly_rate: ''
+    min_price: 0,
+    max_price: 100
   });
   const [initialLoaded, setInitialLoaded] = useState(false);
 
@@ -190,11 +193,30 @@ const TutorSearch = () => {
     }
   }
 
-  const loadAllTutors = async () => {
+  const loadAllTutors = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const token = getAuthToken();
+
+      // Check cache for initial load
+      const cacheKey = JSON.stringify({
+        page: 1,
+        filters: {},
+        searchQuery: '',
+        preferredSubjectsOnly: false,
+        user_id: user._id
+      });
+
+      if (searchCache.has(cacheKey)) {
+        const cachedData = searchCache.get(cacheKey);
+        setTutors(cachedData.tutors);
+        setTotalPages(cachedData.totalPages);
+        setInitialLoaded(true);
+        setCurrentPage(1);
+        setLoading(false);
+        return;
+      }
 
       const params = new URLSearchParams({
         page: 1,
@@ -218,6 +240,17 @@ const TutorSearch = () => {
       const data = await response.json();
 
       const cleanedTutors = cleanTutorData(data.tutors || []);
+      
+      // Cache the results
+      setSearchCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(cacheKey, {
+          tutors: cleanedTutors,
+          totalPages: data.pagination?.total_pages || 1
+        });
+        return newCache;
+      });
+
       setTutors(cleanedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
       setInitialLoaded(true);
@@ -227,9 +260,9 @@ const TutorSearch = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, searchCache, fetchWithAuth, token, cleanTutorData]);
 
-  const searchTutors = async () => {
+  const searchTutors = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -239,6 +272,24 @@ const TutorSearch = () => {
         throw new Error('User not authenticated');
       }
 
+      // Create cache key
+      const cacheKey = JSON.stringify({
+        page: currentPage,
+        filters,
+        searchQuery,
+        preferredSubjectsOnly,
+        user_id: user._id
+      });
+
+      // Check cache first
+      if (searchCache.has(cacheKey)) {
+        const cachedData = searchCache.get(cacheKey);
+        setTutors(cachedData.tutors);
+        setTotalPages(cachedData.totalPages);
+        setLoading(false);
+        return;
+      }
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: 12,
@@ -246,13 +297,20 @@ const TutorSearch = () => {
       });
 
       Object.entries(filters).forEach(([key, value]) => {
-        if (value && value.trim() !== '') {
+        if (value !== '' && value !== null && value !== undefined) {
           if (key === 'subject') {
-            params.append('subject_id', value.trim());
+            params.append('subject_id', value.toString().trim());
           } else if (key === 'academic_level') {
-            params.append('academic_level', value.trim());
+            params.append('academic_level', value.toString().trim());
+          } else if (key === 'min_price' || key === 'max_price') {
+            // Handle price range filters
+            if (key === 'min_price' && value > 0) {
+              params.append('min_hourly_rate', value);
+            } else if (key === 'max_price' && value < 1000) {
+              params.append('max_hourly_rate', value);
+            }
           } else {
-            params.append(key, value.trim());
+            params.append(key, value.toString().trim());
           }
         }
       });
@@ -281,6 +339,22 @@ const TutorSearch = () => {
       const data = await response.json();
 
       const cleanedTutors = cleanTutorData(data.tutors || []);
+      
+      // Cache the results
+      setSearchCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(cacheKey, {
+          tutors: cleanedTutors,
+          totalPages: data.pagination?.total_pages || 1
+        });
+        // Limit cache size to prevent memory issues
+        if (newCache.size > 50) {
+          const firstKey = newCache.keys().next().value;
+          newCache.delete(firstKey);
+        }
+        return newCache;
+      });
+
       setTutors(cleanedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
     } catch (error) {
@@ -293,7 +367,7 @@ const TutorSearch = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters, searchQuery, preferredSubjectsOnly, user, searchCache, fetchWithAuth, token, cleanTutorData]);
 
   const handleSearchChange = (value) => {
     setSearchInput(value);
@@ -303,17 +377,17 @@ const TutorSearch = () => {
     searchDebounceRef.current = setTimeout(() => {
       setSearchQuery(value);
       setCurrentPage(1);
-    }, 300);
+    }, 150); // Reduced from 300ms to 150ms for faster response
   };
 
-  const handleFilterChange = async (key, value) => {
+  const handleFilterChange = useCallback(async (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
 
     if (key === "academic_level") {
       fetchSubjectRelatedToAcademicLevels([value]);
     }
-  };
+  }, [fetchSubjectRelatedToAcademicLevels]);
 
   const clearAllFilters = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -327,7 +401,8 @@ const TutorSearch = () => {
       academic_level: '',
       location: '',
       min_rating: '',
-      max_hourly_rate: ''
+      min_price: 0,
+      max_price: 100
     });
     setCurrentPage(1);
     await loadAllTutors();
@@ -432,11 +507,11 @@ const TutorSearch = () => {
     return stars;
   };
 
-  // Separate height constants for different sections
+  // Height constants for different sections
   const ACADEMIC_LEVELS_HEIGHT = 'h-8'; // Fixed height for academic levels
   const SUBJECTS_HEIGHT = 'h-12'; // Fixed height for subjects
-  const BIO_HEIGHT = 'h-18'; // Fixed height for bio
-  const BUTTONS_HEIGHT = 'h-8'; // Fixed height for buttons
+  const BIO_HEIGHT = 'h-16'; // Fixed height for bio
+  const BUTTONS_HEIGHT = 'h-10'; // Fixed height for buttons
 
   if (loading && tutors.length === 0 && !initialLoaded) {
     return (
@@ -569,14 +644,34 @@ const TutorSearch = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Max Hourly Rate</label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 50"
-                  value={filters.max_hourly_rate}
-                  onChange={(e) => handleFilterChange('max_hourly_rate', e.target.value)}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  £{filters.min_price} - £{filters.max_price}/hr
+                </Typography>
+                <Slider
+                  value={[filters.min_price, filters.max_price]}
+                  onChange={(event, newValue) => {
+                    handleFilterChange('min_price', newValue[0]);
+                    handleFilterChange('max_price', newValue[1]);
+                  }}
+                  valueLabelDisplay="auto"
+                  min={0}
+                  max={100}
+                  step={4}
+                  sx={{
+                    color: '#7C3AED',
+                    '& .MuiSlider-thumb': {
+                      backgroundColor: '#7C3AED',
+                    },
+                    '& .MuiSlider-track': {
+                      backgroundColor: '#7C3AED',
+                    },
+                    '& .MuiSlider-rail': {
+                      backgroundColor: '#E5E7EB',
+                    }
+                  }}
                 />
-                <p className="text-xs text-gray-500 mt-1">Maximum hourly rate you're willing to pay</p>
+                <p className="text-xs text-gray-500 mt-1">Set your preferred hourly rate range</p>
               </div>
             </div>
           </CardContent>
@@ -585,7 +680,48 @@ const TutorSearch = () => {
 
       {/* Results */}
       <div className="space-y-4">
-        {error ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <Card key={item} className="hover:shadow-md transition-shadow flex flex-col h-full">
+                <CardContent className="p-6 flex flex-col flex-1">
+                  {/* Skeleton for profile picture and name */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse flex-shrink-0"></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="h-6 bg-gray-200 rounded animate-pulse mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+                  </div>
+                  
+                  {/* Skeleton for badges */}
+                  <div className="space-y-3 flex-1">
+                    <div className="flex gap-1">
+                      <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                      <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+                    </div>
+                    <div className="flex gap-1">
+                      <div className="h-6 bg-gray-200 rounded animate-pulse w-14"></div>
+                      <div className="h-6 bg-gray-200 rounded animate-pulse w-18"></div>
+                    </div>
+                    <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex gap-4">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Skeleton for buttons */}
+                  <div className="flex gap-2 mt-4 h-10">
+                    <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
           <Card>
             <CardContent className="p-8 text-center">
               <div className="text-red-500 mb-4">
@@ -647,15 +783,17 @@ const TutorSearch = () => {
               {tutors.map((tutor) => {
                 const visibleAcademicLevels = tutor.academic_levels_taught?.slice(0, 3) || [];
                 const hiddenAcademicLevelsCount = Math.max(0, (tutor.academic_levels_taught?.length || 0) - 3);
-                
+
                 const visibleSubjects = tutor.subjects?.slice(0, 3) || [];
                 const hiddenSubjectsCount = Math.max(0, (tutor.subjects?.length || 0) - 3);
 
                 return (
                   <Card key={tutor._id} className="hover:shadow-md transition-shadow flex flex-col h-full">
                     <CardContent className="p-6 flex flex-col flex-1">
+                      {/* Row 1: Profile Picture, Name, Rating, and Hourly Rates */}
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative flex-shrink-0">
+                        {/* Profile Picture */}
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative flex-shrink-0">
                           {tutor.user_id?.photo_url ? (
                             <img
                               src={tutor.user_id.photo_url}
@@ -668,90 +806,96 @@ const TutorSearch = () => {
                           )}
                           {!tutor.user_id?.photo_url && (
                             <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
-                              <User className="h-6 w-6" />
+                              <User className="h-8 w-8" />
                             </div>
                           )}
                         </div>
+                        
+                        {/* Name, Rating, and Pricing */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-2">
                             <div className="min-w-0 flex-1">
                               <h3 className="text-lg font-semibold text-gray-900 truncate">
                                 {tutor.user_id?.full_name || 'Unknown Tutor'}
                               </h3>
+                                <div className="flex items-center gap-1 mt-1">
+                                  {renderStars(tutor.average_rating)}
+                              {tutor.average_rating && typeof tutor.average_rating === 'number' && (
+                                  <span className="text-sm text-gray-600 ml-1">
+                                    ({tutor.average_rating})
+                                  </span>
+                                )}
+                                </div>
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
                               <p className="text-lg font-bold text-gray-900 whitespace-nowrap">
                                 £{tutor.min_hourly_rate || 0} - £{tutor.max_hourly_rate || 0}/hr
                               </p>
-                              {tutor.average_rating && typeof tutor.average_rating === 'number' && (
-                                <div className="flex items-center gap-1 mt-1 justify-end">
-                                  {renderStars(tutor.average_rating)}
-                                  <span className="text-sm text-gray-600 ml-1 whitespace-nowrap">
-                                    ({tutor.average_rating})
-                                  </span>
-                                </div>
-                              )}
                             </div>
-                          </div>
-
-                          {/* Academic Levels with separate fixed height */}
-                          <div className={`mb-3 ${ACADEMIC_LEVELS_HEIGHT} overflow-hidden`}>
-                            <div className="flex flex-wrap gap-1">
-                              {visibleAcademicLevels.map((level, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs max-w-full truncate">
-                                  {typeof level === 'object' ? getAcademicLevelById(level.educationLevel)?.level : level}
-                                </Badge>
-                              ))}
-                              {hiddenAcademicLevelsCount > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{hiddenAcademicLevelsCount} more
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Subjects with separate fixed height */}
-                          <div className={`mb-3 ${SUBJECTS_HEIGHT} overflow-hidden`}>
-                            <div className="flex flex-wrap gap-1">
-                              {visibleSubjects.map((subject, index) => (
-                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
-                                  {typeof subject === 'object' ? subject.name : (getSubjectById(subject)?.name || subject)}
-                                </Badge>
-                              ))}
-                              {hiddenSubjectsCount > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{hiddenSubjectsCount} more
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Bio with separate fixed height */}
-                          {tutor.bio && typeof tutor.bio === 'string' && (
-                            <div className={`mb-4 ${BIO_HEIGHT} overflow-hidden`}>
-                              <p className="text-sm text-gray-600 line-clamp-3 h-full">
-                                {tutor.bio}
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                            <div className="flex items-center gap-1">
-                              <BookOpen className="w-4 h-4" />
-                              {typeof tutor.total_sessions === 'number' ? tutor.total_sessions : 0} sessions
-                            </div>
-                            {tutor.experience_years && typeof tutor.experience_years === 'number' && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {tutor.experience_years} years
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Buttons container with separate fixed height */}
-                      <div className={`flex gap-2 mt-auto ${BUTTONS_HEIGHT} items-center`}>
+                      {/* Row 2: Other Details - Academic Levels, Subjects, Bio, Stats */}
+                      <div className="space-y-3 flex-1">
+                        {/* Academic Levels */}
+                        <div className={`${ACADEMIC_LEVELS_HEIGHT} mt-2 overflow-hidden`}>
+                          <div className="flex flex-wrap gap-1">
+                            {visibleAcademicLevels.map((level, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs max-w-full truncate">
+                                {typeof level === 'object' ? getAcademicLevelById(level.educationLevel)?.level : level}
+                              </Badge>
+                            ))}
+                            {hiddenAcademicLevelsCount > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{hiddenAcademicLevelsCount} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Subjects */}
+                        <div className={`${SUBJECTS_HEIGHT} overflow-hidden`}>
+                          <div className="flex flex-wrap gap-1">
+                            {visibleSubjects.map((subject, index) => (
+                              <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
+                                {typeof subject === 'object' ? subject.name : (getSubjectById(subject)?.name || subject)}
+                              </Badge>
+                            ))}
+                            {hiddenSubjectsCount > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{hiddenSubjectsCount} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bio */}
+                        {tutor.bio && typeof tutor.bio === 'string' && (
+                          <div className={`${BIO_HEIGHT} overflow-hidden`}>
+                            <p className="text-sm text-gray-600 line-clamp-3 h-full">
+                              {tutor.bio}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <BookOpen className="w-4 h-4" />
+                            <span>{typeof tutor.total_sessions === 'number' ? tutor.total_sessions : 0} sessions</span>
+                          </div>
+                          {tutor.experience_years && typeof tutor.experience_years === 'number' && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{tutor.experience_years} years</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Buttons - Fixed at bottom */}
+                      <div className={`flex gap-2 mt-4 ${BUTTONS_HEIGHT} items-center`}>
                         {tutor.hire_status === "accepted" ? (
                           <Button
                             type="button"

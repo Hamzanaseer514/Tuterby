@@ -139,7 +139,7 @@ const TutorProfilePage = () => {
 
       setTutor(parsedTutor);
       // setTutor(data);
-      
+
       // Fetch reviews after tutor data is loaded
       fetchTutorReviews();
     } catch (error) {
@@ -156,7 +156,7 @@ const TutorProfilePage = () => {
 
   const fetchTutorReviews = async (page = 1) => {
     if (!tutorId) return;
-    
+
     try {
       setLoadingReviews(true);
       const response = await fetch(`${BASE_URL}/api/auth/tutor/${tutorId}/reviews?page=${page}&limit=5`, {
@@ -203,7 +203,7 @@ const TutorProfilePage = () => {
       } else if (user?._id) {
         // Student view - fetch current user's profile
         response = await fetchWithAuth(`${BASE_URL}/api/auth/student/profile/${user._id}`, {
-          method: 'GET',  
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json'
           }
@@ -379,15 +379,18 @@ const TutorProfilePage = () => {
                           <h2 className="text-2xl font-bold text-gray-900 mb-2">
                             {tutor.user_id.full_name}
                           </h2>
-                      
-                          {tutor.average_rating && (
-                            <div className="flex items-center gap-1 mb-2">
+
+                            <div className="flex items-center gap-1 mb-2 justify-center">
                               {renderStars(tutor.average_rating)}
                               <span className="text-sm text-gray-600 ml-2">
+                              {tutor.average_rating && (
+                                <>  
+
                                 {tutor.average_rating} ({tutor.total_sessions || 0} sessions)
+                                </>
+                              )}
                               </span>
                             </div>
-                          )}
                         </div>
 
                         <div className="text-right">
@@ -412,7 +415,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-           
+
 
               {/* Hiring Statistics */}
               <Card>
@@ -450,7 +453,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-             
+
               {/* Inquiry Statistics */}
               <Card>
                 <CardHeader>
@@ -491,7 +494,7 @@ const TutorProfilePage = () => {
                 </CardContent>
               </Card>
 
-            
+
               {/* Tutor Reviews */}
               <Card>
                 <CardHeader>
@@ -522,11 +525,10 @@ const TutorProfilePage = () => {
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
-                                className={`w-4 h-4 ${
-                                  star <= Math.round(tutor.average_rating || 0)
+                                className={`w-4 h-4 ${star <= Math.round(tutor.average_rating || 0)
                                     ? 'text-yellow-500 fill-current'
                                     : 'text-gray-300'
-                                }`}
+                                  }`}
                               />
                             ))}
                           </div>
@@ -551,11 +553,10 @@ const TutorProfilePage = () => {
                                   {[1, 2, 3, 4, 5].map((star) => (
                                     <Star
                                       key={star}
-                                      className={`w-4 h-4 ${
-                                        star <= review.rating
+                                      className={`w-4 h-4 ${star <= review.rating
                                           ? 'text-yellow-500 fill-current'
                                           : 'text-gray-300'
-                                      }`}
+                                        }`}
                                     />
                                   ))}
                                 </div>
@@ -626,8 +627,8 @@ const TutorProfilePage = () => {
                   </CardContent>
                 </Card>
               )}
-   {/* Subjects and Levels */}
-   <Card>
+              {/* Subjects and Levels */}
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BookOpen className="w-5 h-5" />
@@ -691,33 +692,33 @@ const TutorProfilePage = () => {
               )}
               {/* Requested For This Tutor */}
               {studentProfile?.hired_tutors?.length > 0 && (
-  <Card>
-    <CardHeader>
-      <CardTitle>Tutor is Requested For</CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-gray-600">Academic Level</span>
-        <span className="font-semibold">
-          {getAcademicLevelById(studentProfile.hired_tutors[0].academic_level_id)?.level || 'Unknown Level'}
-        </span>
-      </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tutor is Requested For</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Academic Level</span>
+                      <span className="font-semibold">
+                        {getAcademicLevelById(studentProfile.hired_tutors[0].academic_level_id)?.level || 'Unknown Level'}
+                      </span>
+                    </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-gray-600">Subject</span>
-        <span className="font-semibold">
-          {getSubjectById(studentProfile.hired_tutors[0].subject)?.name || 'Unknown Subject'}
-        </span>
-      </div>
-    </CardContent>
-  </Card>
-)}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Subject</span>
+                      <span className="font-semibold">
+                        {getSubjectById(studentProfile.hired_tutors[0].subject)?.name || 'Unknown Subject'}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
 
 
               {/* Student's Inquiries Summary */}
               {tutor.student_inquiries && tutor.student_inquiries.length > 0 && (
-                <Card className="cursor-pointer"  onClick={() => navigate(`/student-dashboard?tab=requests`)}   >
+                <Card className="cursor-pointer" onClick={() => navigate(`/student-dashboard?tab=requests`)}   >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MessageCircle className="w-5 h-5" />
@@ -773,15 +774,17 @@ const TutorProfilePage = () => {
                     </div>
                   )}
 
-                  {tutor.average_rating && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Rating</span>
-                      <div className="flex items-center gap-1">
-                        {renderStars(tutor.average_rating)}
-                        {/* <span className="font-semibold ml-1">{tutor.average_rating}</span> */}
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Rating</span>
+                    <div className="flex items-center gap-1">
+                      {tutor.average_rating && (
+                        <>
+                          {renderStars(tutor.average_rating)}
+                        </>
                   )}
+                    </div>
+                  </div>
+
 
                   {tutor.response_statistics?.average_response_time_minutes > 0 && (
                     <div className="flex items-center justify-between">
@@ -794,7 +797,7 @@ const TutorProfilePage = () => {
 
 
               {/* Contact Actions */}
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Get Started</CardTitle>
                 </CardHeader>
@@ -824,15 +827,11 @@ const TutorProfilePage = () => {
                       Request Tutor
                     </Button>
                   )}
-                  {/* <Button onClick={handleContactTutor} variant="outline" className="w-full">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Send Message
-                  </Button> */}
                 </CardContent>
-              </Card>
+              </Card> */}
 
 
-               {/* Response Time Statistics */}
+              {/* Response Time Statistics */}
               {tutor.response_statistics?.total_replied >= 0 && (
                 <Card>
                   <CardHeader>

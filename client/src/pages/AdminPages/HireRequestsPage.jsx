@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -99,6 +99,7 @@ const HireRequestsPage = () => {
     tutor_id: '',
     student_id: ''
   });
+  const [searchInput, setSearchInput] = useState('');
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 0,
@@ -119,13 +120,14 @@ const HireRequestsPage = () => {
 
   const token = localStorage.getItem('authToken');
 
-  const fetchHireRequests = async () => {
+  const fetchHireRequests = useCallback(async (customFilters = null) => {
     try {
       setLoading(true);
       setError(null);
 
+      const currentFilters = customFilters || filters;
       const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
+      Object.entries(currentFilters).forEach(([key, value]) => {
         if (value) queryParams.append(key, value);
       });
 
@@ -157,7 +159,22 @@ const HireRequestsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, token]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchInput !== filters.search) {
+        setFilters(prev => ({
+          ...prev,
+          search: searchInput,
+          page: 1
+        }));
+      }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, filters.search]);
 
   useEffect(() => {
     fetchHireRequests();
@@ -173,13 +190,9 @@ const HireRequestsPage = () => {
     }));
   };
 
-  const handleSearchChange = (event) => {
-    setFilters(prev => ({
-      ...prev,
-      search: event.target.value,
-      page: 1
-    }));
-  };
+  const handleSearchChange = useCallback((event) => {
+    setSearchInput(event.target.value);
+  }, []);
 
   const handlePageChange = (event, newPage) => {
     setFilters(prev => ({
@@ -188,9 +201,9 @@ const HireRequestsPage = () => {
     }));
   };
 
-  const handleRefresh = () => {
-    fetchHireRequests();
-  };
+  const handleRefresh = useCallback(() => {
+    fetchHireRequests(filters);
+  }, [fetchHireRequests, filters]);
 
   const handleViewDetails = (request) => {
     setSelectedRequest(request);
@@ -233,12 +246,12 @@ const HireRequestsPage = () => {
     }
   };
 
-  const renderMobileCard = (request) => {
+  const renderMobileCard = (request, index) => {
     const statusInfo = getStatusColor(request.status);
     
     return (
       <Card 
-        key={request._id} 
+        key={`${request._id}-${index}-${filters.search}`} 
         sx={{ 
           mb: 2, 
           borderRadius: 2,
@@ -454,7 +467,7 @@ const HireRequestsPage = () => {
                       No Hire Requests Found
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {filters.search || filters.status 
+                      {searchInput || filters.status 
                         ? 'Try adjusting your search criteria' 
                         : 'No hire requests have been made yet'
                       }
@@ -464,12 +477,11 @@ const HireRequestsPage = () => {
               </TableRow>
             ) : (
                 
-              hireRequests.map((request) => {
+              hireRequests.map((request, index) => {
                 const statusInfo = getStatusColor(request.status);
-                console.log("request", request);
                 return (
                   <TableRow 
-                    key={request._id}
+                    key={`${request._id}-${index}-${filters.search}`}
                     sx={{ 
                       '&:hover': { 
                         backgroundColor: alpha(theme.palette.primary.main, 0.02) 
@@ -797,8 +809,8 @@ const HireRequestsPage = () => {
               <TextField
                 fullWidth
                 size="small"
-                placeholder="Search students, tutors, subjects..."
-                value={filters.search}
+                placeholder="Search students, tutors, subjects, Academic Level..."
+                value={searchInput}
                 onChange={handleSearchChange}
                 InputProps={{
                   startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
@@ -931,14 +943,14 @@ const HireRequestsPage = () => {
                     fontSize: { xs: '0.75rem', sm: '0.875rem' }
                   }}
                 >
-                  {filters.search || filters.status 
+                  {searchInput || filters.status 
                     ? 'Try adjusting your search criteria' 
                     : 'No hire requests have been made yet'
                   }
                 </Typography>
               </Card>
             ) : (
-              hireRequests.map(renderMobileCard)
+              hireRequests.map((request, index) => renderMobileCard(request, index))
             )}
           </Box>
         ) : (

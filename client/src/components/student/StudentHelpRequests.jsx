@@ -66,6 +66,12 @@ const StudentHelpRequests = () => {
     urgency_level: 'normal'
   });
 
+  // Height constants for consistent sizing
+  const TUTOR_CARD_HEIGHT = 'h-[330px]'; // Fixed height for tutor cards
+  const SUBJECTS_HEIGHT = 'h-16'; // Fixed height for subjects section
+  const DESCRIPTION_HEIGHT = 'h-20'; // Fixed height for description
+  const BUTTONS_HEIGHT = 'h-8'; // Fixed height for buttons
+
   useEffect(() => {
     if (user) {
       fetchHiredTutors();
@@ -91,7 +97,6 @@ const StudentHelpRequests = () => {
           const parsed = JSON.parse(field[0]);
           return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
-          // console.warn(`Failed to parse array field: ${field[0]}`, error);
           return [];
         }
       }
@@ -108,7 +113,6 @@ const StudentHelpRequests = () => {
         const parsed = JSON.parse(field);
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
-        // console.warn(`Failed to parse string field: ${field}`, error);
         return [];
       }
     }
@@ -139,7 +143,7 @@ const StudentHelpRequests = () => {
         headers: {
           'Content-Type': 'application/json'
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -154,7 +158,6 @@ const StudentHelpRequests = () => {
       );
       setHiredTutors(cleanTutorData(acceptedTutors));
     } catch (err) {
-      // console.error('Error fetching hired tutors:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -168,7 +171,7 @@ const StudentHelpRequests = () => {
         headers: {
           'Content-Type': 'application/json'
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -180,12 +183,7 @@ const StudentHelpRequests = () => {
       setTotalPages(data.pagination?.total_pages || 1);
       setTutorToUserMap(data.tutorToUserMap || {});
     } catch (err) {
-      // console.error('Error fetching help requests:', err);
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to fetch help requests",
-      //   variant: "destructive"
-      // });
+      // Error handling remains the same
     }
   };
 
@@ -198,10 +196,10 @@ const StudentHelpRequests = () => {
         },
         body: JSON.stringify({
           tutor_id: tutorId,
-          subject: 'General Help Request', // You can make this dynamic
+          subject: 'General Help Request',
           message: 'I need help with my studies. Please let me know when you are available.'
         })
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
 
       if (!response.ok) {
@@ -209,14 +207,12 @@ const StudentHelpRequests = () => {
       }
 
       const result = await response.json();
-      // Show success message
       toast({
         title: "Success",
         description: result.message || 'Help request sent successfully!',
         variant: "default"
       });
     } catch (err) {
-      // console.error('Error sending help request:', err);
       toast({
         title: "Error",
         description: 'Failed to send help request: ' + err.message,
@@ -228,7 +224,6 @@ const StudentHelpRequests = () => {
   const handleTutorSelect = (tutor) => {
     setSelectedTutor(tutor);
     setShowTutorSelection(false);
-    // Reset form data
     setFormData({
       subject: '',
       academic_level: '',
@@ -297,7 +292,7 @@ const StudentHelpRequests = () => {
           preferred_schedule: formData.preferred_schedule,
           urgency_level: formData.urgency_level
         })
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
       if (!response.ok) {
         throw new Error('Failed to submit help request');
@@ -311,14 +306,10 @@ const StudentHelpRequests = () => {
         variant: "default"
       });
 
-      // Reset form and go back to tutor selection
       handleBackToTutorSelection();
-      
-      // Refresh help requests
       fetchHelpRequests();
       
     } catch (error) {
-      // console.error('Error submitting help request:', error);
       toast({
         title: "Error",
         description: error.message || 'Failed to submit help request',
@@ -425,19 +416,6 @@ const StudentHelpRequests = () => {
     );
   }
 
-  // if (error) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-  //         <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Tutors</h2>
-  //         <p className="text-gray-600 mb-4">{error}</p>
-  //         <Button onClick={fetchHiredTutors}>Try Again</Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -471,7 +449,6 @@ const StudentHelpRequests = () => {
               ) : (
                 <div className="space-y-4">
                   {helpRequests.map((request) => {
-                    // Use the mapping to find the tutor user
                     const tutorUser = tutorToUserMap[request.tutor_id];
                     return (
                       <div key={request._id} className={`p-4 border rounded-lg ${request.type === 'additional_help' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`}>
@@ -490,7 +467,7 @@ const StudentHelpRequests = () => {
                             </div>
                             
                             {/* Academic Level and Schedule */}
-                            <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div className="grid grid-cols-2 gap-4">
                               <div className="flex items-center gap-2">
                                 <Label className="text-sm font-medium text-gray-600">Academic Level:</Label>
                                 <span className="text-sm text-gray-700">{request.academic_level}</span>
@@ -512,10 +489,10 @@ const StudentHelpRequests = () => {
                           </div>
                         </div>
 
-                        {/* Description Section */}
-                        <div className="mb-4">
+                        {/* Description Section with fixed height */}
+                        <div className={`${DESCRIPTION_HEIGHT} overflow-hidden`}>
                           <Label className="text-sm font-medium text-gray-600 mb-2 block">Description:</Label>
-                          <p className="text-sm text-gray-700 bg-white p-3 rounded border">
+                          <p className="text-sm text-gray-700 bg-white p-3 rounded border line-clamp-2">
                             {request.description || request.message || 'No description provided'}
                           </p>
                         </div>
@@ -602,21 +579,28 @@ const StudentHelpRequests = () => {
             {/* Hired Tutors Grid */}
             {hiredTutors.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {hiredTutors.map((tutor) => (
-                  <Card key={tutor._id || tutor.tutor_id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-4">
+                {hiredTutors.map((tutor) => {
+                  const visibleSubjects = tutor.subjects?.slice(0, 2) || [];
+                  const hiddenSubjectsCount = Math.max(0, (tutor.subjects?.length || 0) - 2);
+
+                  return (
+                    <Card key={tutor._id || tutor.tutor_id} className={`hover:shadow-lg transition-shadow ${TUTOR_CARD_HEIGHT} flex flex-col`}>
+                      <CardHeader className="pb-4 flex-shrink-0">
                       <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12 ring-2 ring-gray-100 flex-shrink-0">
                       {tutor.user_id?.photo_url ? (
                           <img
                             src={`${tutor.user_id.photo_url}`}
-                            alt="Profile"
-                            className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
-                          />
-                        ) : (
-                          <User className="h-6 w-6 text-white" />
-                        )}
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">
+                                alt={tutor.full_name || tutor.user_id?.full_name || 'Tutor'}
+                                className="h-full w-full rounded-full object-cover"
+                              />
+                            ) : null}
+                            <div className="h-full w-full rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                              {(tutor.full_name || tutor.user_id?.full_name || 'T').charAt(0).toUpperCase()}
+                            </div>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-lg truncate">
                             {tutor.full_name || tutor.user_id?.full_name || 'Tutor Name'}
                           </CardTitle>
                           <div className="flex items-center space-x-2 mt-1">
@@ -631,43 +615,50 @@ const StudentHelpRequests = () => {
                       </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-4">
-                      
-                        <div className="flex items-center space-x-2">
+                      <CardContent className="space-y-4 flex-1 flex flex-col">
+                        {/* Rating */}
+                        <div className="flex items-center space-x-2 h-6">
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                          <p>{tutor.rating ? tutor.rating : 0.0}/5</p>
+                          <p className="text-sm">{tutor.rating ? tutor.rating : 0.0}/5</p>
                         </div>
                     
-
-                      {/* Subjects */}
-                      {tutor.subjects && tutor.subjects.length > 0 && (
-                        <div>
-                          {/* <h4 className="text-sm font-medium text-gray-700 mb-2">Teaching Subjects:</h4> */}
-                          <div className="flex flex-wrap gap-2">
-                            {tutor.subjects.map((subject, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
+                        {/* Subjects with fixed height and overflow handling */}
+                        <div className={`${SUBJECTS_HEIGHT} overflow-hidden`}>
+                          {tutor.subjects && tutor.subjects.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {visibleSubjects.map((subject, index) => (
+                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
                                 {getSubjectName(subject)}
                               </Badge>
                             ))}
+                              {hiddenSubjectsCount > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{hiddenSubjectsCount} more
+                                </Badge>
+                              )}
                           </div>
-                        </div>
+                          ) : (
+                            <div className="text-sm text-gray-500 h-full flex items-center">No subjects listed</div>
                       )}
-
-                     
+                        </div>
 
                       {/* Experience */}
-                      {tutor.experience && (
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600 h-6">
+                          {tutor.experience ? (
+                            <>
                           <BookOpen className="h-4 w-4" />
                           <span>{tutor.experience} years experience</span>
-                        </div>
+                            </>
+                          ) : (
+                            <span className="text-gray-500">No experience listed</span>
                       )}
+                        </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex space-x-2 pt-4">
+                        {/* Action Buttons with fixed height */}
+                        <div className={`flex space-x-2 pt-4 mt-auto ${BUTTONS_HEIGHT} items-center`}>
                         <Button
                           onClick={() => handleTutorSelect(tutor)}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 h-10"
                         >
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Request Help
@@ -675,7 +666,8 @@ const StudentHelpRequests = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <Card>
@@ -776,18 +768,18 @@ const StudentHelpRequests = () => {
                     </div>
                   </div>
                   
-                  <div className="flex space-x-4 pt-4">
+                  <div className={`flex space-x-4 pt-4 ${BUTTONS_HEIGHT} items-center`}>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleBackToTutorSelection}
-                      className="flex-1"
+                      className="flex-1 h-10"
                     >
                       Back to Tutors
                     </Button>
                     <Button
                       type="submit"
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 h-10"
                       disabled={submitting}
                     >
                       {submitting ? (

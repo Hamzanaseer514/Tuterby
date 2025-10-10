@@ -53,7 +53,7 @@ export default function LoginForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, rememberMe }),
-          credentials: "include", // 👈 ye zaroori hai
+        credentials: "include", // 👈 ye zaroori hai
 
       });
       const data = await response.json();
@@ -75,18 +75,18 @@ export default function LoginForm() {
         return;
       }
       // if(data.user && data.user.role === 'student') {
-        if(data.isOtpTrue) {
-          setUserId(data.userId);
-          setOtpPhase(true);
-        
-        }
-        else {
-          login(data.user, data.accessToken, rememberMe);
-          setSuccess('Welcome to your Student Dashboard! Redirecting...');
-          setTimeout(() => {
-            navigate(`/student-dashboard`);
-          }, 1000);
-        }
+      if (data.isOtpTrue) {
+        setUserId(data.userId);
+        setOtpPhase(true);
+
+      }
+      else {
+        login(data.user, data.accessToken, rememberMe);
+        setSuccess('Welcome to your Student Dashboard! Redirecting...');
+        setTimeout(() => {
+          navigate(`/student-dashboard`);
+        }, 1000);
+      }
       // }
     } catch (err) {
       setError(err.message);
@@ -117,8 +117,8 @@ export default function LoginForm() {
 
 
       if (data.accessToken || data.authToken) {
-      login(data.user, data.accessToken, rememberMe);
-       
+        login(data.user, data.accessToken, rememberMe);
+
         if (data.user && data.user.role === 'tutor') {
           setSuccess('Welcome to your Tutor Dashboard! Redirecting...');
           setTimeout(() => {
@@ -163,7 +163,7 @@ export default function LoginForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, rememberMe }),
-          credentials: "include", // 👈 ye zaroori hai
+        credentials: "include", // 👈 ye zaroori hai
       });
 
       const data = await response.json();
@@ -183,7 +183,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center sm:p-6 lg:p-8">
+    <div className="flex flex-col items-center justify-center">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400 to-indigo-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
         <div className="absolute -left-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-red-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
@@ -191,20 +191,20 @@ export default function LoginForm() {
       </div>
 
       {/* Header Section */}
-      <div className="relative z-10 text-center mb-8 px-4">
+      <div className="relative z-10 text-center mb-4 px-2">
         <div className="flex items-center justify-center mb-4">
           <div className="p-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full shadow-lg">
             <BookOpen className="h-6 w-6 text-white" />
           </div>
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-red-600 via-purple-600 to-red-600 bg-clip-text text-transparent mb-3">
+        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-red-600 via-purple-600 to-red-600 bg-clip-text text-transparent mb-3">
           Welcome Back
         </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Sign in to access your personalized learning dashboard and connect with amazing tutors
+        <p className="text-[1.1rem] text-gray-600 max-w-2xl mx-auto">
+          SignIn to access personalized dashboard and connect with amazing tutors
         </p>
 
-        <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
+        <div className="flex items-center justify-center gap-6 mt-3 text-sm text-gray-500">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-green-500" />
             <span>Secure Login</span>
@@ -220,6 +220,13 @@ export default function LoginForm() {
         </div>
       </div>
 
+
+      <p className="text-base text-gray-600 mb-6 relative z-20">
+        Don't have an account?{' '}
+        <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
+          Sign up
+        </Link>
+      </p>
       <div className="w-full pb-6 max-w-5xl flex flex-col md:flex-row gap-8">
         {/* Login Card */}
         <Card className="w-full md:w-[70%] bg-white shadow-lg relative z-20">
@@ -305,18 +312,18 @@ export default function LoginForm() {
                     </div>
                   </div>
 
-                                     <div className="flex items-center justify-between">
-                     <div className="flex items-center">
-                       <Checkbox
-                         id="remember-me"
-                         checked={rememberMe}
-                         onCheckedChange={(checked) => setRememberMe(checked)}
-                         disabled={isLoading}
-                       />
-                       <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                         Remember me
-                       </Label>
-                     </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Checkbox
+                        id="remember-me"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMe(checked)}
+                        disabled={isLoading}
+                      />
+                      <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                        Remember me
+                      </Label>
+                    </div>
 
                     <div className="text-sm">
                       <Link to="#" className="font-medium text-indigo-600 hover:text-indigo-500">
@@ -403,7 +410,7 @@ export default function LoginForm() {
                     <span className="px-2 bg-white text-gray-500">Or continue with</span>
                   </div> */}
                 </div>
-                
+
                 {/* Google OAuth for Login */}
                 <div className="mt-4">
                   <GoogleOAuth mode="login" />
@@ -412,15 +419,10 @@ export default function LoginForm() {
             )}
           </CardContent>
 
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Sign up
-              </Link>
-            </p>
+          {/* <CardFooter className="flex justify-center">
+           
           </CardFooter>
-          
+           */}
         </Card>
 
         <Card className="w-full md:w-[60%] bg-white shadow-lg relative z-20">
@@ -455,6 +457,7 @@ export default function LoginForm() {
             <Button
               variant="outline"
               className="w-full border-indigo-600 text-indigo-600 relative overflow-hidden group"
+              onClick={() => navigate('/contact')}
             >
               <span className="relative z-10 transition-colors duration-300 delay-100 group-hover:text-white">
                 Submit Requirements
