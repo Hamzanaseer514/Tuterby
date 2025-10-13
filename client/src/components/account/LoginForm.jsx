@@ -191,20 +191,20 @@ export default function LoginForm() {
       </div>
 
       {/* Header Section */}
-      <div className="relative z-10 text-center mb-4 px-2">
-        <div className="flex items-center justify-center mb-4">
+      <div className="relative z-10 text-center  px-2">
+        <div className="flex items-center justify-center -mt-3 ">
           <div className="p-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full shadow-lg">
             <BookOpen className="h-6 w-6 text-white" />
           </div>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-red-600 via-purple-600 to-red-600 bg-clip-text text-transparent mb-3">
+        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-red-600 via-purple-600 to-red-600 bg-clip-text text-transparent mb-1">
           Welcome Back
         </h1>
         <p className="text-[1.1rem] text-gray-600 max-w-2xl mx-auto">
           SignIn to access personalized dashboard and connect with amazing tutors
         </p>
 
-        <div className="flex items-center justify-center gap-6 mt-3 text-sm text-gray-500">
+        <div className="flex items-center justify-center gap-6 mt-2 text-sm text-gray-500">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-green-500" />
             <span>Secure Login</span>
@@ -221,7 +221,7 @@ export default function LoginForm() {
       </div>
 
 
-      <p className="text-base text-gray-600 mb-6 relative z-20">
+      <p className="text-base text-gray-600 mb-3 mt-3 relative z-20">
         Don't have an account?{' '}
         <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
           Sign up
@@ -238,6 +238,7 @@ export default function LoginForm() {
             <CardDescription className="text-gray-600">
               {otpPhase ? 'Enter the OTP sent to your email' : 'Sign in to access your personalized learning dashboard'}
             </CardDescription>
+            
           </CardHeader>
 
           <CardContent>
