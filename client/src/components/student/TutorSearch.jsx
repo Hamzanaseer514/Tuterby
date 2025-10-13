@@ -480,8 +480,21 @@ const TutorSearch = () => {
           description: data.message,
         });
         setShowHiringDialog(false);
-        // searchTutors();
-        loadAllTutors();
+        
+        // Optimistic UI update - immediately update the tutor's hire status
+        setTutors(prevTutors => 
+          prevTutors.map(tutor => 
+            tutor._id === selectedTutor._id 
+              ? { ...tutor, hire_status: 'pending', is_hired: true }
+              : tutor
+          )
+        );
+        
+        // Skip next automatic search to prevent reload
+        skipNextSearchRef.current = true;
+        
+        // Update student profile in background (no loading state)
+        getStudentProfile();
       }
 
     } catch (error) {
