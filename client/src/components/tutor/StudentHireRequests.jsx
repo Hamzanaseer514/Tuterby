@@ -42,11 +42,11 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
   }, [subjects]);
 
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow border border-gray-200 rounded-lg overflow-hidden">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex flex-col gap-4">
-          {/* Header with avatar and name */}
-          <div className="flex items-center gap-3">
+    <Card className="shadow-sm hover:shadow-md transition-shadow border border-gray-200 rounded-lg overflow-hidden h-full flex flex-col">
+      <CardContent className="p-4 sm:p-5 flex flex-col flex-1">
+        <div className="flex flex-col flex-1 gap-4">
+          {/* Header with avatar and name - Fixed height */}
+          <div className="flex items-center gap-3 min-h-[3rem]">
             {user.photo_url ? (
               <img
                 src={`${user.photo_url}`}
@@ -61,8 +61,8 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
               </Avatar>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-semibold text-gray-900 truncate">{user.full_name}</h3>
-              <div className="mt-1">
+              <h3 className="text-base font-semibold text-gray-900 truncate leading-tight">{user.full_name}</h3>
+              <div className="mt-1 min-h-[1.25rem]">
                 {hire.status === 'accepted' && (
                   <Badge variant="success" className="text-xs">Accepted</Badge>
                 )}
@@ -76,32 +76,36 @@ const StudentCard = ({ student, onRespond, loadingId }) => {
             </div>
           </div>
 
-          {/* Student details */}
-          <div className="space-y-2 text-sm text-gray-700">
-            <div>
-              <span className="font-medium">Academic level: </span>
+          {/* Student details - Fixed height sections */}
+          <div className="space-y-3 text-sm text-gray-700 flex-1">
+            {/* Academic Level - Fixed height */}
+            <div className="min-h-[1.25rem]">
+              <span className="font-bold">Academic level: </span>
               {student_academic_level_name || 'N/A'}
             </div>
-            
-            {Array.isArray(student.preferred_subjects) && student.preferred_subjects.length > 0 ? (
-              <div>
-                <span className="font-medium">Interests: </span>
-                  {student.preferred_subjects.slice(0, 5).map(subject => getSubjectById(subject)?.name || subject).join(', ')}
-              </div>
-            ) : (
-              <div>
-                <span className="font-medium">Interests: </span>N/A
-              </div>
-            )}
 
-            <div>
-              <span className="font-medium">Requested For: </span>
+            {/* Interests - Fixed height */}
+
+              <div className="min-h-[1.25rem] flex gap-2">
+                <span className="font-bold">Interests: </span>
+                {Array.isArray(student.preferred_subjects) && student.preferred_subjects.length > 0 ? (
+                  <span className="line-clamp-1">
+                    {student.preferred_subjects.slice(0, 5).map(subject => getSubjectById(subject)?.name || subject).join(', ')}
+                  </span>
+                ) : (
+                  'N/A'
+                )}
+              </div>
+
+            {/* Requested For - Fixed height */}
+            <div className="min-h-[1.25rem]">
+              <span className="font-bold">Requested For: </span>
               {academic_level_name} - {getSubjectById(hire.subject)?.name || hire.subject}
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+          {/* Action buttons - Fixed at bottom */}
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 mt-auto">
             {(hire.status === 'accepted' || hire.status === 'pending') && (
               <Button
                 variant="outline"
@@ -222,7 +226,7 @@ const StudentHireRequests = () => {
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Student Requests</h2>
           <p className="text-sm text-gray-600 mt-1">Review and respond to students who want your help in their studies.</p>
         </div>
-        
+
         {/* Search and filters */}
         <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
           <div className="flex-1">
@@ -233,7 +237,7 @@ const StudentHireRequests = () => {
               className="w-full"
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-full text-sm">
@@ -246,7 +250,7 @@ const StudentHireRequests = () => {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full text-sm">
                 <SelectValue placeholder="Sort by" />
@@ -256,7 +260,7 @@ const StudentHireRequests = () => {
                 <SelectItem value="name">Name</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Button variant="outline" size="sm" onClick={fetchRequests} className="hidden sm:flex">
               Refresh
             </Button>
@@ -267,11 +271,11 @@ const StudentHireRequests = () => {
       {loading && requests.length === 0 && (
         <div className="py-16 text-center text-gray-500">Loading requests...</div>
       )}
-      
+
       {!loading && error && (
         <div className="py-6 text-center text-red-600 text-sm">{error}</div>
       )}
-      
+
       {!loading && !error && filtered.length === 0 && (
         <div className="py-16 text-center text-gray-500">
           {search || status !== 'all' ? 'No matching requests found.' : 'No help requests found.'}
@@ -288,7 +292,7 @@ const StudentHireRequests = () => {
           />
         ))}
       </div>
-      
+
       {loading && requests.length > 0 && (
         <div className="fixed inset-0 bg-white/50 flex items-center justify-center z-10">
           <Loader2 className="w-8 h-8 animate-spin text-gray-600" />

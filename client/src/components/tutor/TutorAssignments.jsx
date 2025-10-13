@@ -725,16 +725,18 @@ const TutorAssignments = () => {
 
               {/* Assignment Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    type="datetime-local"
-                    value={formData.due_date}
-                    onChange={(e) => handleInputChange('due_date', e.target.value)}
-                  />
-                </div>
-              </div>
+              <div>
+  <Label htmlFor="due_date">Due Date</Label>
+  <Input
+    type="datetime-local"
+    id="due_date"
+    value={formData.due_date}
+    className="w-full appearance-none"
+    onChange={(e) => handleInputChange('due_date', e.target.value)}
+  />
+</div>
 
+             
               <div>
                 <Label htmlFor="title">Assignment Title *</Label>
                 <Input
@@ -743,7 +745,7 @@ const TutorAssignments = () => {
                   placeholder="Enter assignment title"
                 />
               </div>
-
+              </div>
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -1027,14 +1029,14 @@ const TutorAssignments = () => {
                         <FileText className="h-4 w-4 text-blue-600" />
                         <span className="text-sm text-blue-600">Student has submitted this assignment</span>
                       </div>
-                      <Button
+                      {/* <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>{} }
                       >
                         <Eye className="h-3 w-3 mr-1" />
                         View Submission
-                      </Button>
+                      </Button> */}
                     </div>
                   </CardContent>
                 </Card>

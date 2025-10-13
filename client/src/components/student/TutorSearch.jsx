@@ -480,7 +480,8 @@ const TutorSearch = () => {
           description: data.message,
         });
         setShowHiringDialog(false);
-        searchTutors();
+        // searchTutors();
+        loadAllTutors();
       }
 
     } catch (error) {

@@ -247,6 +247,7 @@ const AssignmentDetailsModal = ({
         ) : (
           <div className="text-center py-6 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 mb-3">Ready to submit your work?</p>
+            <p className="text-xs text-gray-500 mb-3">Note: File upload is required for submission</p>
             <Button
               onClick={() => onSubmitAssignment(assignment)}
               className="w-full max-w-xs"
@@ -417,6 +418,16 @@ const StudentAssignments = () => {
 
   const handleSubmitForm = async () => {
     if (!selectedAssignment) {
+      return;
+    }
+
+    // Validate that a file is uploaded
+    if (!submissionForm.file) {
+      toast({
+        title: "Error",
+        description: "Please upload a file to submit your assignment",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -629,7 +640,7 @@ const StudentAssignments = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="submission_text">Submission Text (Optional)</Label>
+                <Label htmlFor="submission_text">Submission Text</Label>
                 <Textarea
                   id="submission_text"
                   value={submissionForm.submission_text}
@@ -640,19 +651,26 @@ const StudentAssignments = () => {
               </div>
 
               <div>
-                <Label htmlFor="submission_file">Upload File (Optional)</Label>
+                <Label htmlFor="submission_file">Upload File <span className="text-red-500">*</span></Label>
                 <Input
                   id="submission_file"
                   type="file"
                   onChange={handleFileChange}
                   accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">File upload is required for submission</p>
+                {submissionForm.file && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ File selected: {submissionForm.file.name}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2">
                 <Button
                   onClick={handleSubmitForm}
-                  disabled={submitting}
+                  disabled={submitting || !submissionForm.file}
                   className="flex-1"
                 >
                   {submitting ? 'Submitting...' : 'Submit'}
