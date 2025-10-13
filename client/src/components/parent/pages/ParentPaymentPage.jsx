@@ -33,6 +33,7 @@ const ParentPaymentPage = () => {
   const [payments, setPayments] = useState([]);
   const [error, setError] = useState(null);
   const [processingPayment, setProcessingPayment] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user?._id) {
@@ -42,6 +43,7 @@ const ParentPaymentPage = () => {
 
   const fetchPayments = async () => {
     try {
+      setIsLoading(true);
       setError(null);
       const response = await getParentStudentsPayments(user._id);
       if (response.success) {
@@ -50,6 +52,8 @@ const ParentPaymentPage = () => {
     } catch (error) {
       // console.error('Error fetching payments:', error);
       setError('Failed to fetch payment data');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -159,10 +163,18 @@ const ParentPaymentPage = () => {
     }).format(amount);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <h3 className="text-lg sm:text-xl font-medium text-gray-900 dark:text-white mb-2">
+            Loading payment data...
+          </h3>
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
+            Please wait while we fetch your payment records
+          </p>
+        </div>
       </div>
     );
   }

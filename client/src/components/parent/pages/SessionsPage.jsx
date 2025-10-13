@@ -362,20 +362,20 @@ const SessionsPage = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => {
-      fetchStudentSessions(user._id);
-      setLoading(false);
-    }, 1000);
+    fetchStudentSessions(user._id);
   }, []);
 
   const fetchStudentSessions = async (userId) => {
     try {
+      setLoading(true);
       const response = await getStudentSessions(userId);
       if (response) {
         setSessions(response.sessions);
       }
     } catch (error) {
       // console.error('Error fetching student sessions:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -513,13 +513,22 @@ const SessionsPage = () => {
       {/* Sessions List */}
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-          <CardTitle className="text-lg sm:text-xl">Sessions ({sessions.length})</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">
+            Sessions {loading ? '(Loading...)' : `(${sessions.length})`}
+          </CardTitle>
           <CardDescription className="text-sm sm:text-base">
             All tutoring sessions for your children
           </CardDescription>
         </CardHeader>
         <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
-          {sessions.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8 sm:py-12">
+              <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-primary mx-auto mb-3 sm:mb-4"></div>
+              <h3 className="text-base sm:text-lg lg:text-xl font-medium text-gray-900 dark:text-white mb-2">
+                Loading sessions...
+              </h3>
+            </div>
+          ) : sessions.length === 0 ? (
             <div className="text-center py-8 sm:py-12">
               <Calendar className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
               <h3 className="text-base sm:text-lg lg:text-xl font-medium text-gray-900 dark:text-white mb-2">
