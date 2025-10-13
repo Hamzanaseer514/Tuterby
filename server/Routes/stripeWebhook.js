@@ -119,12 +119,9 @@ async function handleCheckoutSessionExpired(session) {
 
   try {
     await StudentPayment.findByIdAndUpdate(paymentId, {
-      validity_status: "expired",
-      is_active: false,
       academic_level_paid: false,
       gateway_transaction_id: session.id
     });
-    
     console.log(`⏰ Checkout session expired for paymentId: ${paymentId}`);
   } catch (error) {
     console.error(`❌ Failed to update expired session ${paymentId}:`, error);

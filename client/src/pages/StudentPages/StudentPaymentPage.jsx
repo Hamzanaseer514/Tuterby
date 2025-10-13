@@ -519,7 +519,7 @@ const StudentPaymentPage = () => {
                                                         Academic Level Access Granted
                                                     </Button>
                                                 )}
-
+                                                {console.log("p",payment)}
                                                 {payment.status === 'completed' && payment.validity_status === 'expired' && !payment.has_renewal && (
                                                     <Button
                                                         onClick={() => handlePayment(payment)}

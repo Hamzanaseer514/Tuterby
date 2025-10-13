@@ -3277,7 +3277,6 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
     const { userId } = req.params;
 
 
-
     // Verify the user is requesting their own data
 
     if (req.user._id.toString() !== userId) {
@@ -3293,7 +3292,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
         // Get student profile
 
         const studentProfile = await Student.findOne({ user_id: userId });
-
+        console.log("studentProfile", studentProfile);
         if (!studentProfile) {
 
             res.status(404);
@@ -3344,8 +3343,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
 
         ]);
 
-
-
+        console.log("payments", payments);
         // Get all renewal payments to check which payments have been renewed
 
         const renewalPayments = await StudentPayment.find({
@@ -3356,7 +3354,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
 
         });
 
-
+        console.log("renewalPayments", renewalPayments);
 
         // Create a map of original payment IDs that have renewals
 
@@ -3408,7 +3406,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
 
             }
 
-
+            console.log("status", status);
 
             // Calculate validity and session info
 
@@ -3419,10 +3417,7 @@ exports.getStudentPayments = asyncHandler(async (req, res) => {
             const daysRemaining = Math.ceil((validityEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
             const isValid = payment.isValid ? payment.isValid() : false;
-
             const paymentStatus = payment.getPaymentStatus ? payment.getPaymentStatus() : 'pending';
-
-
 
             return {
 
@@ -3677,7 +3672,6 @@ exports.processStudentPayment = asyncHandler(async (req, res) => {
 exports.createRenewalPayment = asyncHandler(async (req, res) => {
 
     const { expiredPaymentId } = req.params;
-
     const { validity_start_date, validity_end_date } = req.body;
 
 
@@ -3687,7 +3681,6 @@ exports.createRenewalPayment = asyncHandler(async (req, res) => {
         // Find the expired payment
 
         const expiredPayment = await StudentPayment.findById(expiredPaymentId);
-
         if (!expiredPayment) {
 
             res.status(404);
@@ -3709,6 +3702,7 @@ exports.createRenewalPayment = asyncHandler(async (req, res) => {
             throw new Error('Student profile not found');
 
         }
+        console.log("studentProfile", studentProfile);
 
 
 
@@ -3719,7 +3713,6 @@ exports.createRenewalPayment = asyncHandler(async (req, res) => {
             throw new Error('Unauthorized access to this payment');
 
         }
-
 
 
         // Check if payment is actually expired

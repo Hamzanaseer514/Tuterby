@@ -3297,8 +3297,8 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
     const lim = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * lim;
 
-    // Build aggregation pipeline for efficient querying
-    const pipeline = [
+    // Build base aggregation pipeline for efficient querying (shared by list, count, and stats)
+    const basePipeline = [
       // Match students with hire requests
       {
         $match: {
@@ -3416,24 +3416,26 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
             { 'academic_level.level': { $regex: search, $options: 'i' } }
           ]
         }
-      }] : []),
-      // Sort by most recent first
-      { $sort: { hired_at: -1 } }
+      }] : [])
     ];
 
-    // Get total count for pagination
-    const countPipeline = [...pipeline, { $count: 'total' }];
-    const countResult = await StudentProfile.aggregate(countPipeline);
+    // Get total count for pagination (use base pipeline without pagination or sort)
+    const countResult = await StudentProfile.aggregate([
+      ...basePipeline,
+      { $count: 'total' }
+    ]);
     const total = countResult[0]?.total || 0;
 
-    // Add pagination
-    pipeline.push(
+    // Build list pipeline by adding sort and pagination
+    const listPipeline = [
+      ...basePipeline,
+      { $sort: { hired_at: -1 } },
       { $skip: skip },
       { $limit: lim }
-    );
+    ];
 
     // Execute aggregation
-    const hireRequests = await StudentProfile.aggregate(pipeline);
+    const hireRequests = await StudentProfile.aggregate(listPipeline);
 
     // Resolve S3 photo URLs for student and tutor images
     const resolvedHireRequests = await Promise.all(hireRequests.map(async (req) => {
@@ -3464,18 +3466,16 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
       };
     }));
 
-    // Calculate stats
-    const statsPipeline = [
-      { $match: { 'hired_tutors.0': { $exists: true } } },
-      { $unwind: '$hired_tutors' },
+    // Calculate stats using the SAME base filters/search as the list
+    const statsResult = await StudentProfile.aggregate([
+      ...basePipeline,
       {
         $group: {
-          _id: '$hired_tutors.status',
+          _id: '$status',
           count: { $sum: 1 }
         }
       }
-    ];
-    const statsResult = await StudentProfile.aggregate(statsPipeline);
+    ]);
     const stats = {
       total: total,
       pending: statsResult.find(s => s._id === 'pending')?.count || 0,

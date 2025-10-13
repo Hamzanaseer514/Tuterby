@@ -553,7 +553,7 @@ const TutorCreateSessionPage = () => {
                                                         } else if (paymentStatus.active_payments_count > 0) {
                                                             // Show detailed payment and validity status
                                                             const activePayments = paymentStatus.active_payments || [];
-                                                            
+                                                                                    
                                                             return (
                                                                 <div className="space-y-1">
                                                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
@@ -566,6 +566,15 @@ const TutorCreateSessionPage = () => {
                                                                             {activePayments.reduce((sum, p) => sum + (p.sessions_remaining || 0), 0)} sessions left
                                                                         </span>
                                                                     )} */}
+                                                                </div>
+                                                            );
+                                                        } else if (paymentStatus.expired_payments_count > 0) {
+                                                            return (
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                                                                        <ShieldX className="h-3 w-3" />
+                                                                        Payment Expired
+                                                                    </span>
                                                                 </div>
                                                             );
                                                         } else {
@@ -633,7 +642,7 @@ const TutorCreateSessionPage = () => {
                                                         } else if (paymentStatus.active_payments_count > 0) {
                                                             // Show detailed payment and validity status
                                                             const activePayments = paymentStatus.active_payments || [];
-                                                            
+                                                            console.log(paymentStatus);
                                                             return (
                                                                 <div className="space-y-1">
                                                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
@@ -646,6 +655,15 @@ const TutorCreateSessionPage = () => {
                                                                             {activePayments.reduce((sum, p) => sum + (p.sessions_remaining || 0), 0)} sessions left
                                                                         </span>
                                                                     )} */}
+                                                                </div>
+                                                            );
+                                                        } else if (paymentStatus.expired_payments_count > 0) {
+                                                            return (
+                                                                <div className="space-y-1">
+                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                                                                        <ShieldX className="h-3 w-3" />
+                                                                        Payment Expired
+                                                                    </span>
                                                                 </div>
                                                             );
                                                         } else {

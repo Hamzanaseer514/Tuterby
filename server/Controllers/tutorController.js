@@ -590,7 +590,6 @@ const createSession = asyncHandler(async (req, res) => {
       .filter((email) => !!email); // remove null/undefined
 
     const allRecipients = [tutorEmail, ...studentEmails].filter((e) => !!e);
-    console.log("Email recipients:", allRecipients);
 
     if (allRecipients.length === 0) {
       console.error("❌ No valid recipients found for email");
@@ -601,7 +600,6 @@ const createSession = asyncHandler(async (req, res) => {
           "New Tutoring Session - Meeting Link",
           `<p>Your tutoring session has been scheduled. Join using this link: <a href="${meetLink}">${meetLink}</a></p>`
         );
-        console.log("✅ Email sent successfully for session:", session._id);
       } catch (emailError) {
         console.error("❌ Email sending failed:", emailError);
         // If email fails, we should still return success since session was created
@@ -1082,7 +1080,6 @@ const getTutorProfile = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Tutor profile not found");
   }
-console.log("profile", profile);
   res.json({ ...profile, total_sessions });
 });
 
@@ -1806,6 +1803,7 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
         academic_level: academic_level,
         payment_status: "paid",
         validity_status: "active",
+        academic_level_paid: true,
       }).sort({ createdAt: -1 }); // Get the most recent payment
 
       if (payment) {
@@ -1817,7 +1815,6 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
         };
       }
     }
-
     return res.status(200).json({
       canCreateSession: canCreate,
       paymentDetails: paymentDetails,
@@ -1867,11 +1864,11 @@ const getStudentPaymentStatus = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 });
 
     // Process payment statuses
+    const now = new Date();
     const paymentStatuses = payments.map(payment => {
-      const now = new Date();
       const isValidDate = payment.validity_end_date > now;
       const hasSessionsRemaining = payment.sessions_remaining > 0;
-      const isActive = payment.payment_status === 'paid' && payment.validity_status === 'active' && isValidDate && hasSessionsRemaining;
+      const isActive = payment.payment_status === 'paid' && payment.validity_status === 'active' && payment.academic_level_paid === true && isValidDate && hasSessionsRemaining;
 
       return {
         _id: payment._id,
@@ -1885,7 +1882,7 @@ const getStudentPaymentStatus = asyncHandler(async (req, res) => {
         validity_end_date: payment.validity_end_date,
         payment_date: payment.payment_date,
         is_active: isActive,
-        is_expired: !isValidDate,
+        is_expired: !isValidDate || payment.validity_status === 'expired',
         base_amount: payment.base_amount,
         monthly_amount: payment.monthly_amount,
         total_sessions_per_month: payment.total_sessions_per_month
@@ -1897,13 +1894,9 @@ const getStudentPaymentStatus = asyncHandler(async (req, res) => {
       payment.payment_status !== 'paid'
     );
 
-    // Get active payments (paid, active validity, not expired, has sessions)
-    const activePayments = payments.filter(payment => 
-      payment.payment_status === 'paid' && 
-      payment.validity_status === 'active' && 
-      payment.validity_end_date > new Date() && 
-      payment.sessions_remaining > 0
-    );
+    // Get active and expired payments from computed statuses
+    const activePayments = paymentStatuses.filter(p => p.is_active);
+    const expiredPayments = paymentStatuses.filter(p => p.is_expired);
 
     return res.status(200).json({
       student_id: studentId,
@@ -1913,7 +1906,9 @@ const getStudentPaymentStatus = asyncHandler(async (req, res) => {
       has_unpaid_requests: hasUnpaidRequests,
       total_payments: payments.length,
       active_payments: activePayments,
-      active_payments_count: activePayments.length
+      active_payments_count: activePayments.length,
+      expired_payments: expiredPayments,
+      expired_payments_count: expiredPayments.length
     });
   } catch (error) {
     console.error("Error getting student payment status:", error);
