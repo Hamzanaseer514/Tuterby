@@ -71,17 +71,17 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
         height: '100%',
         minHeight: '400px',
         width: '100%',
-        maxWidth: '400px', // Fixed max width
-        borderRadius: 3,
+        borderRadius: 4,
         display: 'flex',
         flexDirection: 'column',
         border: `1px solid ${theme.palette.divider}`,
-        transition: 'all 0.3s ease',
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #F3F4F6 100%)',
+        transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
         overflow: 'hidden',
         flex: '0 0 auto', // Don't grow or shrink
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: theme.shadows[8],
+          boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
           borderColor: theme.palette.primary.main
         }
       }}
@@ -96,77 +96,62 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
       }}>
         {/* Header Section */}
         <Box sx={{
-          p: 2.5,
+          p: 3,
           borderBottom: `1px solid ${theme.palette.divider}`,
-          backgroundColor: theme.palette.grey[50],
+          background: 'linear-gradient(180deg, #FFFFFF 0%, #F3F4F6 100%)',
           minWidth: 0,
           width: '100%'
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, width: '100%' }}>
-            <Avatar
-              src={`${tutor.photo_url}`}
-              alt={tutor.full_name}
-              sx={{
-                width: 60,
-                height: 60,
-                border: `3px solid ${theme.palette.primary.light}`,
-                // border: '3px solid #7C3AED',
-
-                boxShadow: theme.shadows[2],
-                flexShrink: 0
-              }}
-            />
-            <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, minWidth: 0, width: '100%' }}>
+            <Box sx={{ p: 0.5, borderRadius: '50%', background: 'linear-gradient(90deg, #6C63FF, #3F3D56)' }}>
+              <Avatar
+                src={`${tutor.photo_url}`}
+                alt={tutor.full_name}
+                sx={{
+                  width: 72,
+                  height: 72,
+                  border: '3px solid #FFFFFF',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}
+              />
+            </Box>
+            <Box sx={{ textAlign: 'center', minWidth: 0, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5, minWidth: 0 }}>
                 <Typography
                   variant="h6"
-                  fontWeight="bold"
-                  className="gradient-text"
+                  fontWeight={600}
                   sx={{
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    fontSize: '1rem',
+                    fontSize: '1.2rem',
                     minWidth: 0,
-                    flex: 1
+                    color: theme.palette.text.primary
                   }}
                 >
                   {tutor.full_name}
                 </Typography>
-
                 {(tutor.is_background_checked || tutor.is_qualification_verified) && (
-                  <CheckCircle
-                    sx={{
-                      fontSize: '1rem',
-                      color: 'success.main',
-                      flexShrink: 0
-                    }}
-                  />
+                  <CheckCircle sx={{ fontSize: '1rem', color: 'success.main', flexShrink: 0 }} />
                 )}
               </Box>
-
-              {/* Rating and Location */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5, flexWrap: 'wrap', minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                  <Rating
-                    value={tutor.average_rating || 0}
-                    readOnly
-                    size="small"
-                    sx={{ color: '#7C3AED' }}
-                  />
-                  <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5, fontSize: '0.8rem' }}>
-                    {tutor.average_rating || 0}
-                  </Typography>
-                </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5, flexWrap: 'wrap', minWidth: 0 }}>
+                <Rating
+                  value={tutor.average_rating || 0}
+                  readOnly
+                  size="small"
+                  sx={{ color: '#6C63FF' }}
+                />
+                <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                  {tutor.average_rating || 0}
+                </Typography>
               </Box>
-
               <Typography
                 variant="h6"
-                fontWeight="bold"
-                className="gradient-text"
+                fontWeight={700}
                 sx={{ 
-                  fontSize: '1rem', 
-                  textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  fontSize: '1rem',
+                  color: '#3F3D56',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap'
@@ -236,7 +221,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
           {/* Subjects Section */}
           {tutor.subjects && tutor.subjects.length > 0 && (
             <Box sx={{ mb: 1.5, minHeight: '60px', minWidth: 0, width: '100%' }}>
-              <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: theme.palette.text.primary, fontSize: '0.8rem' }}>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#6b7280', fontSize: '0.8rem', letterSpacing: 0.2 }}>
                 📚 Subjects
               </Typography>
               <Box sx={{ 
@@ -252,20 +237,14 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: "0.7rem",
-                      borderColor: theme.palette.primary.main,
-                      color: theme.palette.primary.main,
-                      backgroundColor: theme.palette.primary.light + '20',
+                      fontSize: { xs: '0.65rem', sm: '0.65rem', lg: '0.7rem' },
+                      borderColor: theme.palette.grey[300],
+                      color: '#3F3D56',
+                      backgroundColor: theme.palette.grey[100],
                       fontWeight: 500,
                       height: '22px',
-                      // maxWidth: '120px',
-                      // flexShrink: 0,
-                      // '& .MuiChip-label': {
-                      //   overflow: 'hidden',
-                      //   textOverflow: 'ellipsis',
-                      //   whiteSpace: 'nowrap',
-                      //   maxWidth: '100px'
-                      // }
+                      borderRadius: 1.5,
+                      '&:hover': { backgroundColor: theme.palette.grey[200] }
                     }}
                   />
                 ))}
@@ -275,11 +254,12 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: "0.7rem",
-                      borderColor: theme.palette.grey[400],
+                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                      borderColor: theme.palette.grey[300],
                       color: theme.palette.grey[600],
                       height: '22px',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      borderRadius: 1.5
                     }}
                   />
                 )}
@@ -290,7 +270,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
           {/* Academic Levels Section */}
           {tutor.academic_levels && tutor.academic_levels.length > 0 && (
             <Box sx={{ mb: 1.5, minHeight: '60px', minWidth: 0, width: '100%' }}>
-              <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: theme.palette.text.primary, fontSize: '0.8rem' }}>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: '#6b7280', fontSize: '0.8rem', letterSpacing: 0.2 }}>
                 🎓 Levels
               </Typography>
               <Box sx={{ 
@@ -306,20 +286,14 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: '0.7rem',
-                      borderColor: theme.palette.success.main,
-                      color: theme.palette.success.main,
-                      backgroundColor: theme.palette.success.light + '20',
+                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                      borderColor: theme.palette.grey[300],
+                      color: '#3F3D56',
+                      backgroundColor: theme.palette.grey[100],
                       fontWeight: 500,
                       height: '22px',
-                      // maxWidth: '140px',
-                      // flexShrink: 0,
-                      // '& .MuiChip-label': {
-                      //   overflow: 'hidden',
-                      //   textOverflow: 'ellipsis',
-                      //   whiteSpace: 'nowrap',
-                      //   maxWidth: '120px'
-                      // }
+                      borderRadius: 1.5,
+                      '&:hover': { backgroundColor: theme.palette.grey[200] }
                     }}
                   />
                 ))}
@@ -329,11 +303,12 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: '0.7rem',
-                      borderColor: theme.palette.grey[400],
+                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                      borderColor: theme.palette.grey[300],
                       color: theme.palette.grey[600],
                       height: '22px',
                       // flexShrink: 0
+                      borderRadius: 1.5
                     }}
                   />
                 )}
@@ -364,21 +339,21 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
               fontSize: '0.9rem',
               minWidth: 0,
               ...(user && user.role === 'student' ? {
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                background: 'linear-gradient(90deg, #6C63FF, #3F3D56)',
                 color: 'white',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                  background: 'linear-gradient(90deg, #5A53E6, #343247)',
                   transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 20px rgba(139, 92, 246, 0.4)'
+                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)'
                 }
               } : {
-                borderColor: '#8B5CF6',
-                color: '#8B5CF6',
+                borderColor: '#6C63FF',
+                color: '#6C63FF',
                 '&:hover': {
-                  borderColor: '#7C3AED',
-                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                  color: '#7C3AED'
+                  borderColor: '#3F3D56',
+                  backgroundColor: 'rgba(108, 99, 255, 0.08)',
+                  color: '#3F3D56'
                 }
               })
             }}
@@ -407,7 +382,7 @@ const Tutors = () => {
   const [hireLoading, setHireLoading] = useState(false);
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(8);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -431,7 +406,7 @@ const Tutors = () => {
 
   // Reset visible count when filters change
   useEffect(() => {
-    setVisibleCount(6);
+    setVisibleCount(8);
   }, [filters]);
 
   const applyFilters = () => {
@@ -492,15 +467,15 @@ const Tutors = () => {
       minPrice: 0,
       maxPrice: 1000
     });
-    setVisibleCount(6);
+    setVisibleCount(8);
   };
 
   const handleLoadMore = () => {
-    setVisibleCount(prev => prev + 6);
+    setVisibleCount(prev => prev + 8);
   };
 
   const handleShowLess = () => {
-    setVisibleCount(6);
+    setVisibleCount(8);
   };
 
   const fetchVerifiedTutors = async () => {
@@ -643,14 +618,17 @@ const Tutors = () => {
       {/* Filter Section */}
       <Paper 
   sx={{ 
-    p: {xs: 1, sm: 2, md: 3}, 
-    mb: 4, 
-    mx: { xs: 1, md:2, lg: 8 },  // 👈 responsive margin
-    borderRadius: 3 
+    p: {xs: 1.5, sm: 2, md: 2.5}, 
+    mb: 5, 
+    mx: { xs: 1, md:2, lg: 8 },
+    borderRadius: 4,
+    border: `1px solid ${theme.palette.divider}`,
+    background: `linear-gradient(180deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
+    boxShadow: theme.shadows[2]
   }}
 >
 
-        <Accordion sx={{ boxShadow: 'none' }}>
+        <Accordion sx={{ boxShadow: 'none', background: 'transparent' }}>
           <AccordionSummary
             expandIcon={<TrendingUp />}
             sx={{
@@ -662,9 +640,10 @@ const Tutors = () => {
           >
     <Typography 
   variant="h6" 
-  fontWeight="600"
+  fontWeight="700"
   sx={{ 
-    fontSize: { xs: "0.6rem", sm: "0.9rem", md: "1.3rem" } 
+    fontSize: { xs: '0.95rem', sm: '1.05rem', md: '1.25rem' },
+    display: 'flex', alignItems: 'center', gap: 1
   }}
 >
   🔍 Filter & Search Tutors
@@ -673,7 +652,7 @@ const Tutors = () => {
 <Typography 
   variant="body2" 
   color="textSecondary"
-  sx={{ display: { xs: "none", md: "block", lg: "block" } }} 
+  sx={{ display: { xs: 'none', md: 'block' } }} 
 >
   {filteredTutors.length} of {tutors.length} tutors found
 </Typography>
@@ -683,7 +662,7 @@ const Tutors = () => {
             <Box sx={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: { xs: 1, sm: 2, md: 3 }
+              gap: { xs: 1.5, sm: 2, md: 2.5 }
             }}>
               {/* Name Search */}
               <TextField
@@ -691,7 +670,9 @@ const Tutors = () => {
                 value={filters.searchName}
                 onChange={(e) => handleFilterChange('searchName', e.target.value)}
                 placeholder="Enter tutor name..."
-                sx={{ flex: '1 1 200px' }}
+                size="small"
+                variant="outlined"
+                sx={{ flex: '1 1 220px' }}
               />
 
               {/* Subject Filter */}
@@ -700,7 +681,9 @@ const Tutors = () => {
                 value={filters.subject}
                 onChange={(e) => handleFilterChange('subject', e.target.value)}
                 placeholder="e.g., Math, Science..."
-                sx={{ flex: '1 1 200px' }}
+                size="small"
+                variant="outlined"
+                sx={{ flex: '1 1 220px' }}
               />
 
               {/* Academic Level Filter */}
@@ -709,12 +692,14 @@ const Tutors = () => {
                 value={filters.academicLevel}
                 onChange={(e) => handleFilterChange('academicLevel', e.target.value)}
                 placeholder="e.g., GCSE, A-Level..."
-                sx={{ flex: '1 1 200px' }}
+                size="small"
+                variant="outlined"
+                sx={{ flex: '1 1 220px' }}
               />
 
               {/* Rating Range */}
-              <Box sx={{ flex: '1 1 200px' }}>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              <Box sx={{ flex: '1 1 240px' }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontWeight: 600 }}>
                   Rating Range: {filters.minRating} - {filters.maxRating}
                 </Typography>
                 <Slider
@@ -731,8 +716,8 @@ const Tutors = () => {
               </Box>
 
               {/* Price Range */}
-              <Box sx={{ flex: '1 1 200px' }}>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              <Box sx={{ flex: '1 1 240px' }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5, fontWeight: 600 }}>
                   Price Range: £{filters.minPrice} - £{filters.maxPrice}/hr
                 </Typography>
                 <Slider
@@ -750,14 +735,19 @@ const Tutors = () => {
 
               {/* Clear Filters Button */}
               <Button
-                variant="outlined"
+                variant="contained"
                 onClick={clearFilters}
                 sx={{
-                  height: 56,
+                  height: 40,
                   borderRadius: 2,
                   textTransform: 'none',
-                  fontWeight: '600',
-                  flex: '1 1 200px'
+                  fontWeight: '700',
+                  flex: '1 1 180px',
+                  background: 'linear-gradient(90deg, #6C63FF, #3F3D56)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                  '&:hover': {
+                    background: 'linear-gradient(90deg, #5A53E6, #343247)'
+                  }
                 }}
               >
                 🗑️ Clear All Filters
@@ -770,46 +760,66 @@ const Tutors = () => {
       {/* Tutors Grid */}
       {filteredTutors.length > 0 ? (
         <>
-          <Box sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 3,
-            justifyContent: 'center',
-            alignItems: 'stretch'
-          }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
             {filteredTutors.slice(0, visibleCount).map((tutor) => (
-              <TutorCard
-                key={tutor._id}
-                tutor={tutor}
-                onHire={handleHire}
-                loading={hireLoading}
-                user={user}
-              />
+              <div key={tutor._id} className="flex">
+                <TutorCard
+                  tutor={tutor}
+                  onHire={handleHire}
+                  loading={hireLoading}
+                  user={user}
+                />
+              </div>
             ))}
-          </Box>
-
-
-             {/* Load More / Show Less Buttons */}
-        {filteredTutors.length > 0 && (
-          <div className="text-center mt-10">
-            {visibleCount < filteredTutors.length && (
-              <button
-                onClick={handleLoadMore}
-                className="w-[20%] px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium mr-3"
-              >
-                Load More
-              </button>
-            )}
-            {visibleCount > 6 && (
-              <button
-                onClick={handleShowLess}
-                className="w-[20%] px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors text-sm font-medium"
-              >
-                Show Less
-              </button>
-            )}
           </div>
-        )}
+          {/* Load More / Show Less Buttons */}
+          {filteredTutors.length > 0 && (
+            <Box sx={{ textAlign: 'center', mt: 6 }}>
+              {visibleCount < filteredTutors.length && (
+                <Button
+                  onClick={handleLoadMore}
+                  variant="contained"
+                  sx={{
+                    mr: 2,
+                    px: 4,
+                    py: 1.25,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                    boxShadow: '0 8px 20px rgba(124, 58, 237, 0.25)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                    }
+                  }}
+                >
+                  Load More
+                </Button>
+              )}
+              {visibleCount > 8 && (
+                <Button
+                  onClick={handleShowLess}
+                  variant="outlined"
+                  sx={{
+                    px: 4,
+                    py: 1.25,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    borderColor: '#8B5CF6',
+                    color: '#8B5CF6',
+                    '&:hover': {
+                      borderColor: '#7C3AED',
+                      backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                      color: '#7C3AED'
+                    }
+                  }}
+                >
+                  Show Less
+                </Button>
+              )}
+            </Box>
+          )}
         </>
       ) : tutors.length > 0 ? (
         <Box sx={{
