@@ -71,7 +71,6 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
         height: '100%',
         minHeight: '400px',
         width: '100%',
-        maxWidth: '400px', // Fixed max width
         borderRadius: 4,
         display: 'flex',
         flexDirection: 'column',
@@ -238,7 +237,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: '0.7rem',
+                      fontSize: { xs: '0.65rem', sm: '0.65rem', lg: '0.7rem' },
                       borderColor: theme.palette.grey[300],
                       color: '#3F3D56',
                       backgroundColor: theme.palette.grey[100],
@@ -255,7 +254,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: "0.7rem",
+                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
                       borderColor: theme.palette.grey[300],
                       color: theme.palette.grey[600],
                       height: '22px',
@@ -287,7 +286,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: '0.7rem',
+                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
                       borderColor: theme.palette.grey[300],
                       color: '#3F3D56',
                       backgroundColor: theme.palette.grey[100],
@@ -304,7 +303,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                     size="small"
                     variant="outlined"
                     sx={{
-                      fontSize: '0.7rem',
+                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
                       borderColor: theme.palette.grey[300],
                       color: theme.palette.grey[600],
                       height: '22px',
@@ -383,7 +382,7 @@ const Tutors = () => {
   const [hireLoading, setHireLoading] = useState(false);
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(8);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -407,7 +406,7 @@ const Tutors = () => {
 
   // Reset visible count when filters change
   useEffect(() => {
-    setVisibleCount(6);
+    setVisibleCount(8);
   }, [filters]);
 
   const applyFilters = () => {
@@ -468,15 +467,15 @@ const Tutors = () => {
       minPrice: 0,
       maxPrice: 1000
     });
-    setVisibleCount(6);
+    setVisibleCount(8);
   };
 
   const handleLoadMore = () => {
-    setVisibleCount(prev => prev + 6);
+    setVisibleCount(prev => prev + 8);
   };
 
   const handleShowLess = () => {
-    setVisibleCount(6);
+    setVisibleCount(8);
   };
 
   const fetchVerifiedTutors = async () => {
@@ -761,23 +760,18 @@ const Tutors = () => {
       {/* Tutors Grid */}
       {filteredTutors.length > 0 ? (
         <>
-          <Box sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: { xs: 2, sm: 2.5, md: 3 },
-            justifyContent: 'center',
-            alignItems: 'stretch'
-          }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
             {filteredTutors.slice(0, visibleCount).map((tutor) => (
-              <TutorCard
-                key={tutor._id}
-                tutor={tutor}
-                onHire={handleHire}
-                loading={hireLoading}
-                user={user}
-              />
+              <div key={tutor._id} className="flex">
+                <TutorCard
+                  tutor={tutor}
+                  onHire={handleHire}
+                  loading={hireLoading}
+                  user={user}
+                />
+              </div>
             ))}
-          </Box>
+          </div>
           {/* Load More / Show Less Buttons */}
           {filteredTutors.length > 0 && (
             <Box sx={{ textAlign: 'center', mt: 6 }}>
@@ -802,7 +796,7 @@ const Tutors = () => {
                   Load More
                 </Button>
               )}
-              {visibleCount > 6 && (
+              {visibleCount > 8 && (
                 <Button
                   onClick={handleShowLess}
                   variant="outlined"
