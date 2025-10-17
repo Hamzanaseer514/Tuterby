@@ -300,7 +300,7 @@ const SubjectsPage = () => {
                 whileInView={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
                 viewport={{ once: true, amount: 0.2 }}
-                className="h-full"
+                // className="h-full"
               >
                 <SubjectLevelCard
                   level={{
