@@ -128,11 +128,10 @@ const SubjectsPage = () => {
       const usedKeys = new Set();
       for (const t of levelGroup.types) {
         const baseName = t.typeName || "Other";
-        const suffix = t.typeId ? ` • ${String(t.typeId).slice(-4)}` : "";
-        let key = `${baseName}${suffix}`;
+        let key = baseName;
         let attempt = 2;
         while (usedKeys.has(key)) {
-          key = `${baseName}${suffix} #${attempt}`;
+          key = `${baseName} #${attempt}`;
           attempt += 1;
         }
         usedKeys.add(key);
@@ -307,7 +306,7 @@ const SubjectsPage = () => {
                   level={{
                     id: levelGroup.levelId,
                     levelName: levelGroup.levelName,
-                    description: `Explore ${levelGroup.levelName} subjects grouped by type.`,
+                    description: `Exploredddd ${levelGroup.levelName} subjects grouped by type.`,
                     subjects: (() => {
                       const all = levelGroup.types.flatMap((t) => t.subjects || []);
                       const seen = new Set();

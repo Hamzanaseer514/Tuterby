@@ -466,7 +466,7 @@ const UnifiedAdminDashboard = () => {
         onClick: () => handleTabChange('students'),
       },
       {
-        title: 'Engaged Parents',
+        title: 'Active Parents',
         value: parentsTotal,
         icon: Groups,
         color: 'info',
