@@ -60,7 +60,7 @@ const InquiryManagement = () => {
       const data = await response.json();
       setInquiries(data.inquiries || []);
     } catch (err) {
-      console.error('Error fetching inquiries:', err);
+      // console.error('Error fetching inquiries:', err);
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ const InquiryManagement = () => {
       setReplyMessage('');
       setSelectedInquiry(null);
     } catch (err) {
-      console.error('Error sending reply:', err);
+      // console.error('Error sending reply:', err);
     }
   };
 

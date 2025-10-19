@@ -114,7 +114,7 @@ const TutorAssignments = () => {
         setTutorAcademicLevels(data.academic_levels || []);
       }
     } catch (error) {
-      console.error('Failed to fetch academic levels:', error);
+      // console.error('Failed to fetch academic levels:', error);
     }
   };
 
@@ -130,7 +130,7 @@ const TutorAssignments = () => {
         setAvailableSubjects(data.subjects || []);
       }
     } catch (error) {
-      console.error('Failed to fetch subjects:', error);
+      // console.error('Failed to fetch subjects:', error);
       setAvailableSubjects([]);
     }
   };
@@ -148,7 +148,7 @@ const TutorAssignments = () => {
         setAvailableStudents(data.students || []);
       }
     } catch (error) {
-      console.error('Failed to fetch students:', error);
+      // console.error('Failed to fetch students:', error);
       setAvailableStudents([]);
     } finally {
       setLoadingStudents(false);
@@ -167,7 +167,7 @@ const TutorAssignments = () => {
         setSubmittedAssignments(data.assignments || []);
       }
     } catch (error) {
-      console.error('Failed to fetch submitted assignments:', error);
+      // console.error('Failed to fetch submitted assignments:', error);
     }
   };
 
@@ -183,7 +183,7 @@ const TutorAssignments = () => {
         setUnreadCount(data.unread_count || 0);
       }
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      // console.error('Failed to fetch unread count:', error);
     }
   };
 
@@ -714,7 +714,6 @@ const TutorAssignments = () => {
                             <span className="font-medium">{student.user_id.full_name}</span>
 
                           </div>
-                          {console.log("student", student)}
                           <p className="text-xs text-gray-500 ml-2">Payment Status: {(student.payment_info.validity_status === 'active') ? (
                             <Badge variant="success">
                               Active

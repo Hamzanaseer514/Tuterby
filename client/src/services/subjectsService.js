@@ -15,14 +15,14 @@ const apiCall = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API Error Response:', errorText);
+      //console.error('API Error Response:', errorText);
       throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('API call failed:', error);
+    //console.error('API call failed:', error);
     throw error;
   }
 };
@@ -33,7 +33,7 @@ export const getSubjects = async () => {
     const response = await apiCall('/subjects');
     return response.data;
   } catch (error) {
-    console.error('Error fetching subjects:', error);
+    //console.error('Error fetching subjects:', error);
     throw error;
   }
 };
@@ -44,7 +44,7 @@ export const getSubjectsByLevel = async (levelName) => {
     const allSubjects = await getSubjects();
     return allSubjects[levelName] || [];
   } catch (error) {
-    console.error(`Error fetching subjects for level ${levelName}:`, error);
+    //console.error(`Error fetching subjects for level ${levelName}:`, error);
     throw error;
   }
 };
@@ -74,7 +74,7 @@ export const getSampleSubjects = async (maxPerLevel = 4) => {
     
     return sampleSubjects;
   } catch (error) {
-    console.error('Error fetching sample subjects:', error);
+    //console.error('Error fetching sample subjects:', error);
     throw error;
   }
 };

@@ -23,7 +23,7 @@ export const AdminDashboardProvider = ({ children }) => {
           return parsed;
         }
       } catch (error) {
-        console.error('Error parsing saved dashboard state:', error);
+        // console.error('Error parsing saved dashboard state:', error);
       }
     }
     
@@ -80,7 +80,7 @@ export const AdminDashboardProvider = ({ children }) => {
         lastUpdated: new Date()
       }));
     } catch (error) {
-      console.error('Failed to load users:', error);
+      // console.error('Failed to load users:', error);
       setDashboardState(prev => ({
         ...prev,
         users: { ...prev.users, [userType]: [] },
@@ -121,7 +121,7 @@ export const AdminDashboardProvider = ({ children }) => {
         lastUpdated: new Date()
       }));
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      // console.error('Failed to load dashboard data:', error);
       setDashboardState(prev => ({
         ...prev,
         loading: false,

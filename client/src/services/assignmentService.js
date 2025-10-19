@@ -23,7 +23,7 @@ const apiCall = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API Error Response:', errorText);
+      //console.error('API Error Response:', errorText);
       
       if (response.status === 401) {
         window.location.href = '/login';
@@ -36,7 +36,7 @@ const apiCall = async (endpoint, options = {}) => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('API call failed:', error);
+    //console.error('API call failed:', error);
     throw error;
   }
 };
@@ -71,7 +71,7 @@ export const createAssignment = async (tutorUserId, assignmentData) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('API Error Response:', errorText);
+    //console.error('API Error Response:', errorText);
     
     if (response.status === 401) {
       window.location.href = '/login';
@@ -104,7 +104,7 @@ export const downloadAssignment = async (assignmentId) => {
   });
 
   if (!response.ok) {
-    console.error('Download failed:', response.status);
+    //console.error('Download failed:', response.status);
     
     if (response.status === 401) {
       window.location.href = '/login';
@@ -147,7 +147,7 @@ export const submitAssignment = async (assignmentId, submissionData) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('API Error Response:', errorText);
+    //console.error('API Error Response:', errorText);
     
     if (response.status === 401) {
       window.location.href = '/login';

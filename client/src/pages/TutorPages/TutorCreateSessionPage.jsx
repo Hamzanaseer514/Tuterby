@@ -163,7 +163,7 @@ const TutorCreateSessionPage = () => {
             }
             return null;
         } catch (err) {
-            console.error('Error checking payment status:', err);
+            //console.error('Error checking payment status:', err);
             return null;
         } finally {
             setLoadingPaymentStatus(false);
@@ -251,9 +251,9 @@ const TutorCreateSessionPage = () => {
         };
 
         setHiredSubjectsAndLevels(combinedData);
-        console.log("newPaymentStatuses", newPaymentStatuses);
+        //console.log("newPaymentStatuses", newPaymentStatuses);
         setStudentPaymentStatuses(newPaymentStatuses);
-        console.log("studentPaymentStatuses", studentPaymentStatuses);
+        //console.log("studentPaymentStatuses", studentPaymentStatuses);
         setLoadingHiredData(false);
     };
 
@@ -642,7 +642,7 @@ const TutorCreateSessionPage = () => {
                                                         } else if (paymentStatus.active_payments_count > 0) {
                                                             // Show detailed payment and validity status
                                                             const activePayments = paymentStatus.active_payments || [];
-                                                            console.log(paymentStatus);
+                                                            //console.log(paymentStatus);
                                                             return (
                                                                 <div className="space-y-1">
                                                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">

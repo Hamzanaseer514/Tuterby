@@ -1681,10 +1681,7 @@ exports.getDashboardStats = async (req, res) => {
       acc[p._id] = p.count;
       return acc;
     }, {});
-
-   console.log('tutorStats', tutorStats);
-   console.log('studentStats', studentStats);
-   console.log('parentStats', parentStats);
+    
     const stats = {
       tutors: {
         total: Object.values(tutorStats).reduce((sum, count) => sum + count, 0),

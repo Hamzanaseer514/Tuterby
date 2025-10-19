@@ -51,7 +51,7 @@ const TutorReviewModal = ({ tutor, isOpen, onClose, onReviewSubmitted }) => {
         }
       }
     } catch (error) {
-      console.error('Error fetching existing review:', error);
+      // console.error('Error fetching existing review:', error);
     }
   };
 

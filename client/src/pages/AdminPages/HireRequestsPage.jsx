@@ -153,7 +153,7 @@ const HireRequestsPage = () => {
         throw new Error(data.message || 'Failed to fetch hire requests');
       }
     } catch (err) {
-      console.error('Error fetching hire requests:', err);
+      //console.error('Error fetching hire requests:', err);
       setError(err.message);
       setHireRequests([]);
     } finally {

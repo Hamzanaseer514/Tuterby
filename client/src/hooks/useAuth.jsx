@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
         credentials: "include", // refreshToken cookie bhejne ke liye
       });
     } catch (error) {
-      console.error("Logout error:", error);
+      //console.error("Logout error:", error);
     }
 
     // ✅ Frontend state clear
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("authToken", data.accessToken);
       return data.accessToken;
     } catch (err) {
-      console.error("Refresh token expired:", err);
+      //console.error("Refresh token expired:", err);
       logout();
       throw err;
     }

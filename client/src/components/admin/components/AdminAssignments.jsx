@@ -84,7 +84,6 @@ const AdminAssignments = () => {
         throw new Error('Failed to fetch assignments');
       }
     } catch (error) {
-      console.error('Error fetching assignments:', error);
       if (error.message === 'Refresh failed') {
         toast({
           title: "Session Expired",
@@ -127,7 +126,6 @@ const AdminAssignments = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching submissions:', error);
       if (error.message === 'Refresh failed') {
         toast({
           title: "Session Expired",
@@ -337,7 +335,6 @@ const AdminAssignments = () => {
                     const status = getAssignmentStatus(assignment);
                     return (
                         <tr key={assignment._id} className="hover:bg-gray-50">
-                          {console.log("assignment", assignment)}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-medium text-gray-900">

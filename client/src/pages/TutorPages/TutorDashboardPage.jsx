@@ -70,7 +70,7 @@ const TutorDashboardPage = () => {
         // Backend already sends complete S3 URL, no need to construct
         setProfileImageUrl(photo_url);
       } catch (error) {
-        console.error('Error fetching profile image:', error);
+        //console.error('Error fetching profile image:', error);
         setProfileImageUrl('');
       }
     };
@@ -94,7 +94,7 @@ const TutorDashboardPage = () => {
           // Backend already sends complete S3 URL, no need to construct
           setProfileImageUrl(photo_url);
         } catch (error) {
-          console.error('Error fetching profile image:', error);
+          //console.error('Error fetching profile image:', error);
           setProfileImageUrl('');
         }
       }
@@ -154,10 +154,10 @@ const TutorDashboardPage = () => {
           doc.status === 'rejected' || doc.status === 'pending' || doc.status === 'missing'
         );
         setHasRejectedDocuments(hasRejectedOrPending);
-        console.log('Has Rejected/Pending/Missing Documents:', hasRejectedOrPending);
+        //console.log('Has Rejected/Pending/Missing Documents:', hasRejectedOrPending);
       }
     } catch (error) {
-      console.error('Error checking rejected documents:', error);
+      //console.error('Error checking rejected documents:', error);
     }
   };
 

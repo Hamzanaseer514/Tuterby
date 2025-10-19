@@ -72,7 +72,7 @@ const TutorSetting = () => {
             }));
             setLevels(enriched);
         } catch (e) {
-            console.error(e);
+            // console.error(e);
             //     toast({
             //     title: 'Error', 
             //     description: e.message || 'Failed to load settings', 
@@ -139,7 +139,7 @@ const TutorSetting = () => {
                 isTutorCanChangeRate: levelDoc.isTutorCanChangeRate !== false
             }]);
         } catch (e) {
-            console.error(e);
+            // console.error(e);
             toast({ 
                 title: 'Error', 
                 description: e.message || 'Failed to add level', 
@@ -181,7 +181,7 @@ const TutorSetting = () => {
                 l.educationLevelId === level.educationLevelId ? { ...l, isSaved: true } : l
             ));
         } catch (e) {
-            console.error(e);
+            // console.error(e);
                 toast({
                 title: 'Error', 
                 description: e.message || 'Failed to update', 
@@ -211,7 +211,7 @@ const TutorSetting = () => {
             // Optimistically update the UI
             setLevels(prev => prev.filter(l => l.educationLevelId !== level.educationLevelId));
         } catch (e) {
-            console.error(e);
+            // console.error(e);
             toast({
                 title: 'Error', 
                 description: e.message || 'Failed to remove', 

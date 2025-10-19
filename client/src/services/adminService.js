@@ -28,7 +28,7 @@ const apiCall = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API Error Response:', errorText);
+      //console.error('API Error Response:', errorText);
       
       if (response.status === 401) {
         // Redirect to login if unauthorized
@@ -42,7 +42,7 @@ const apiCall = async (endpoint, options = {}) => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('API call failed:', error);
+    //console.error('API call failed:', error);
     throw error;
   }
 };
@@ -68,7 +68,7 @@ const getDocumentUrl = (fileUrl) => {
 // Dashboard Statistics - Always fetch fresh data
 export const getDashboardStats = async () => {
   const data = await apiCall('/dashboard/stats');
-  console.log('data', data);
+  //console.log('data', data);
   return data;
 };
 
@@ -101,7 +101,7 @@ export const getAllUsers = async (filters = {}) => {
     
     return result;
   } catch (error) {
-    console.error('Error fetching users from API:', error);
+    //console.error('Error fetching users from API:', error);
     throw error;
   }
 };
@@ -138,10 +138,10 @@ export const getTutorDetails = async (userId) => {
     } else {
       details.preferredSlots = [];
     }
-    console.log("details", details);
+    //console.log("details", details);
     return details;
   } catch (error) {
-    console.error("Error fetching tutor details:", error);
+    //console.error("Error fetching tutor details:", error);
     throw error;
   }
 };
@@ -177,7 +177,7 @@ export const getAvailableInterviewSlots = async (date) => {
     const slots = await apiCall(`/interviews/available-slots?date=${date}`);
     return slots;
   } catch (error) {
-    console.error('Error fetching available slots:', error);
+    //console.error('Error fetching available slots:', error);
     // Return mock slots as fallback
     return [
       { date: date, time: '09:00', available: true },
@@ -317,7 +317,7 @@ export const getAllTutorSessions = async (filters = {}) => {
     
     return response;
   } catch (error) {
-    console.error('Error fetching tutor sessions:', error);
+    //console.error('Error fetching tutor sessions:', error);
     throw error;
   }
 };
@@ -339,7 +339,7 @@ export const getAllTutorPayments = async (filters = {}) => {
     
     return response;
   } catch (error) {
-    console.error('Error fetching tutor payments:', error);
+    //console.error('Error fetching tutor payments:', error);
     throw error;
   }
 };
@@ -361,7 +361,7 @@ export const getAllTutorReviews = async (filters = {}) => {
     
     return response;
   } catch (error) {
-    console.error('Error fetching tutor reviews:', error);
+    //console.error('Error fetching tutor reviews:', error);
     throw error;
   }
 };

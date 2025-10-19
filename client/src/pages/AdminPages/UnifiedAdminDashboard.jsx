@@ -332,7 +332,7 @@ const UnifiedAdminDashboard = () => {
           };
         }
       } catch (error) {
-        console.error('Error parsing saved dashboard stats:', error);
+        //console.error('Error parsing saved dashboard stats:', error);
       }
     }
     return {
@@ -405,7 +405,7 @@ const UnifiedAdminDashboard = () => {
         lastUpdated: new Date()
       }));
     } catch (error) {
-      console.error('Dashboard data loading error:', error);
+      //console.error('Dashboard data loading error:', error);
       setDashboardState(prev => ({
         ...prev,
         error: error.message,
@@ -443,7 +443,6 @@ const UnifiedAdminDashboard = () => {
     const sessionsPending = dashboardState.stats.sessions?.pending || 0;
     const revenueTotal = dashboardState.stats.revenue?.total || 0;
     const revenueLastMonth = dashboardState.stats.revenue?.lastMonth || 0;
-    console.log('dashboardState.stats', dashboardState.stats);
     return [
       {
         title: 'Total Tutors',

@@ -190,7 +190,7 @@ const TutorPayments = () => {
                 throw new Error(response.message || 'Failed to fetch payments');
             }
         } catch (err) {
-            console.error('Error fetching payments:', err);
+            //console.error('Error fetching payments:', err);
             setError(err.message);
             setSnackbar({ open: true, message: `Error: ${err.message}`, severity: 'error' });
         } finally {

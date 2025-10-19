@@ -46,7 +46,6 @@ export default function LoginForm() {
     setError('');
 
     try {
-      console.log(BASE_URL)
       const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -62,7 +61,6 @@ export default function LoginForm() {
         throw new Error(data.message || 'Login failed');
       }
 
-      console.log(data)
 
       // Check if this is an admin login (no OTP required)
       if (data.user && data.user.role === 'admin') {

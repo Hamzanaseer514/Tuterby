@@ -64,7 +64,7 @@ const TutorSelfProfilePage = () => {
       const raw = await getUserProfile(user._id);
       setUserProfile(raw);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      //console.error('Error fetching user profile:', error);
     }
   }
 
@@ -175,7 +175,7 @@ const TutorSelfProfilePage = () => {
                       } catch (error) {
                         // If upload fails, clear preview
                         setPreviewImage(null);
-                        console.error('Upload failed:', error);
+                        //console.error('Upload failed:', error);
                       } finally {
                         setUploading(false);
                       }

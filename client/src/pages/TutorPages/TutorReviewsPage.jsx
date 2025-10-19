@@ -62,7 +62,7 @@ const TutorReviewsPage = () => {
       setPage(pageNum);
       
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      //console.error('Error fetching reviews:', error);
       setError(error.message);
     } finally {
       setLoading(false);

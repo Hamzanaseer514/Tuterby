@@ -59,7 +59,6 @@ const SubmissionDetailsModal = ({
       {/* Assignment Info */}
       <div className="space-y-4">
         <div className="flex justify-between items-start">
-          {console.log("submission", submission)}
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-medium font-medium">Title:</span>
@@ -239,7 +238,6 @@ const TutorSubmissions = () => {
     try {
       const data = await getTutorSubmissions(user._id);
       setSubmissions(data);
-      console.log("submissions", data);
     } catch (error) {
       toast({
         title: "Error",

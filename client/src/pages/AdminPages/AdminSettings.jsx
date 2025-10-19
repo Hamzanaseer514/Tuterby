@@ -237,7 +237,7 @@ const AdminSettings = () => {
       const data = await res.json();
       setOtpActive(data.data?.otp_rule_active || false);
     } catch (error) {
-      console.error("Error fetching OTP status:", error);
+      //console.error("Error fetching OTP status:", error);
       // toast.error("Failed to fetch OTP status");
     }
   };
@@ -250,7 +250,7 @@ const AdminSettings = () => {
       setEducationLevels(Array.isArray(data) ? data : []);
       setFilteredLevels(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error fetching education levels:", error);
+      //console.error("Error fetching education levels:", error);
       // toast.error("Failed to fetch education levels");
     } finally {
       setLoadingLevels(false);
@@ -272,7 +272,7 @@ const AdminSettings = () => {
         }`
       );
     } catch (error) {
-      console.error("Error toggling OTP:", error);
+      //console.error("Error toggling OTP:", error);
       toast.error("Failed to toggle OTP setting");
     } finally {
       setLoadingOtp(false);
@@ -327,7 +327,7 @@ const AdminSettings = () => {
       setIsEditing(false);
       fetchEducationLevels();
     } catch (error) {
-      console.error("Error saving education level:", error);
+      //console.error("Error saving education level:", error);
       toast.error(
         <div>
           <p className="font-medium">Operation Failed</p>
@@ -374,7 +374,7 @@ const AdminSettings = () => {
       toast.success(data.message || "Education level deleted successfully");
       fetchEducationLevels();
     } catch (error) {
-      console.error("Error deleting education level:", error);
+      //console.error("Error deleting education level:", error);
       toast.error(
         <div>
           <p className="font-medium">Deletion Failed</p>
@@ -455,7 +455,7 @@ const AdminSettings = () => {
       fetchEducationLevels();
       setShowManageModal(false);
     } catch (error) {
-      console.error("Error updating education level rates:", error);
+      //console.error("Error updating education level rates:", error);
       toast.error(
         <div>
           <p className="font-medium">Update Failed</p>
@@ -482,7 +482,7 @@ const AdminSettings = () => {
       setSubjects(subjectsData);
       setFilteredSubjects(subjectsData);
     } catch (error) {
-      console.error("Error fetching subjects:", error);
+      //console.error("Error fetching subjects:", error);
       // toast.error("Failed to fetch subjects");
     } finally {
       setLoadingSubjects(false);
@@ -554,7 +554,7 @@ const AdminSettings = () => {
       setIsEditingSubject(false);
       fetchSubjects();
     } catch (error) {
-      console.error("Error saving subject:", error);
+      //console.error("Error saving subject:", error);
       toast.error(
         <div>
           <p className="font-medium">Operation Failed</p>
@@ -587,7 +587,7 @@ const AdminSettings = () => {
         prev.filter((sub) => sub._id !== subjectToDelete._id)
       );
     } catch (error) {
-      console.error("Error deleting subject:", error);
+      //console.error("Error deleting subject:", error);
       toast.error(
         <div>
           <p className="font-medium">Deletion Failed</p>
@@ -627,7 +627,7 @@ const AdminSettings = () => {
       setSubjectTypes(types);
       setFilteredTypes(types);
     } catch (error) {
-      console.error("Error fetching subject types:", error);
+      //console.error("Error fetching subject types:", error);
       // toast.error("Failed to fetch subject types");
     }
   };
@@ -688,7 +688,7 @@ const AdminSettings = () => {
       setIsEditingType(false);
       fetchSubjectTypes();
     } catch (error) {
-      console.error("Error saving subject type:", error);
+      //console.error("Error saving subject type:", error);
       toast.error(
         <div>
           <p className="font-medium">Operation Failed</p>
@@ -732,7 +732,7 @@ const AdminSettings = () => {
         prev.filter((type) => type._id !== typeToDelete._id)
       );
     } catch (error) {
-      console.error("Error deleting subject type:", error);
+      //console.error("Error deleting subject type:", error);
       toast.error(
         <div>
           <p className="font-medium">Deletion Failed</p>

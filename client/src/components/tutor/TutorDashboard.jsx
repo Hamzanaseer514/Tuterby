@@ -99,7 +99,7 @@ const TutorDashboard = () => {
         const parsed = JSON.parse(field);
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
-        console.warn(`Failed to parse string field: ${field}`, error);
+        // console.warn(`Failed to parse string field: ${field}`, error);
         return [];
       }
     }
@@ -195,7 +195,7 @@ const TutorDashboard = () => {
         variant: "default",
       });
     } catch (err) {
-      console.error('Error sending reply:', err);
+      // console.error('Error sending reply:', err);
       toast({
         title: "Error",
         description: "Failed to send reply: " + err.message,
@@ -235,7 +235,7 @@ const TutorDashboard = () => {
         setAcademicLevels(data.academic_levels);
       }
     } catch (err) {
-      console.error('Error fetching students:', err);
+      // console.error('Error fetching students:', err);
     } finally {
       setLoadingStudents(false);
     }

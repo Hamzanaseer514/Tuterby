@@ -84,7 +84,7 @@ const TutorPaymentHistory = () => {
       }
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching payment history:', err);
+      // console.error('Error fetching payment history:', err);
     } finally {
       setLoading(false);
     }

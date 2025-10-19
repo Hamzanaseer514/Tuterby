@@ -312,7 +312,7 @@ const StudentAssignments = () => {
       const data = await getStudentSubmissions(user._id);
       setSubmissions(data);
     } catch (error) {
-      console.error('Failed to fetch submissions:', error);
+      // console.error('Failed to fetch submissions:', error);
     }
   };
 
