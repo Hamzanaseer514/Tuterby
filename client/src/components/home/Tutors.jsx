@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -230,6 +230,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                 gap: 0.5,
                 minWidth: 0
               }}>
+                {/* Show 1 subject on xs and sm screens, 2 on larger screens */}
                 {tutor.subjects.slice(0, 2).map((subject, index) => (
                   <Chip
                     key={index}
@@ -244,24 +245,46 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                       fontWeight: 500,
                       height: '22px',
                       borderRadius: 1.5,
-                      '&:hover': { backgroundColor: theme.palette.grey[200] }
+                      '&:hover': { backgroundColor: theme.palette.grey[200] },
+                      // Show only first subject on xs and sm screens, both on lg+ screens
+                      display: { xs: index === 0 ? 'flex' : 'none', sm: index === 0 ? 'flex' : 'none', lg: 'flex' }
                     }}
                   />
                 ))}
-                {tutor.subjects.length > 2 && (
-                  <Chip
-                    label={`+${tutor.subjects.length - 2}`}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
-                      borderColor: theme.palette.grey[300],
-                      color: theme.palette.grey[600],
-                      height: '22px',
-                      flexShrink: 0,
-                      borderRadius: 1.5
-                    }}
-                  />
+                {/* Show + badge when there are more subjects than displayed */}
+                {tutor.subjects.length > 1 && (
+                  <>
+                    {/* For xs and sm screens - show +X where X = remaining subjects after 1 */}
+                    <Chip
+                      label={`+${tutor.subjects.length - 1}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                        borderColor: theme.palette.grey[300],
+                        color: theme.palette.grey[600],
+                        height: '22px',
+                        flexShrink: 0,
+                        borderRadius: 1.5,
+                        display: { xs: 'flex', sm: 'flex', lg: 'none' }
+                      }}
+                    />
+                    {/* For lg+ screens - show +X where X = remaining subjects after 2 */}
+                    <Chip
+                      label={`+${tutor.subjects.length - 2}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                        borderColor: theme.palette.grey[300],
+                        color: theme.palette.grey[600],
+                        height: '22px',
+                        flexShrink: 0,
+                        borderRadius: 1.5,
+                        display: { xs: 'none', sm: 'none', lg: 'flex' }
+                      }}
+                    />
+                  </>
                 )}
               </Box>
             </Box>
@@ -279,6 +302,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                 gap: 0.5,
                 minWidth: 0
               }}>
+                {/* Show 1 level on xs and sm screens, 2 on larger screens */}
                 {tutor.academic_levels.slice(0, 2).map((level, index) => (
                   <Chip
                     key={index}
@@ -293,24 +317,46 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                       fontWeight: 500,
                       height: '22px',
                       borderRadius: 1.5,
-                      '&:hover': { backgroundColor: theme.palette.grey[200] }
+                      '&:hover': { backgroundColor: theme.palette.grey[200] },
+                      // Show only first level on xs and sm screens, both on lg+ screens
+                      display: { xs: index === 0 ? 'flex' : 'none', sm: index === 0 ? 'flex' : 'none', lg: 'flex' }
                     }}
                   />
                 ))}
-                {tutor.academic_levels.length > 2 && (
-                  <Chip
-                    label={`+${tutor.academic_levels.length - 2}`}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
-                      borderColor: theme.palette.grey[300],
-                      color: theme.palette.grey[600],
-                      height: '22px',
-                      // flexShrink: 0
-                      borderRadius: 1.5
-                    }}
-                  />
+                {/* Show + badge when there are more levels than displayed */}
+                {tutor.academic_levels.length > 1 && (
+                  <>
+                    {/* For xs and sm screens - show +X where X = remaining levels after 1 */}
+                    <Chip
+                      label={`+${tutor.academic_levels.length - 1}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                        borderColor: theme.palette.grey[300],
+                        color: theme.palette.grey[600],
+                        height: '22px',
+                        flexShrink: 0,
+                        borderRadius: 1.5,
+                        display: { xs: 'flex', sm: 'flex', lg: 'none' }
+                      }}
+                    />
+                    {/* For lg+ screens - show +X where X = remaining levels after 2 */}
+                    <Chip
+                      label={`+${tutor.academic_levels.length - 2}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                        borderColor: theme.palette.grey[300],
+                        color: theme.palette.grey[600],
+                        height: '22px',
+                        flexShrink: 0,
+                        borderRadius: 1.5,
+                        display: { xs: 'none', sm: 'none', lg: 'flex' }
+                      }}
+                    />
+                  </>
                 )}
               </Box>
             </Box>
@@ -375,6 +421,7 @@ const Tutors = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const tutorsRef = useRef(null);
 
   const [tutors, setTutors] = useState([]);
   const [filteredTutors, setFilteredTutors] = useState([]);
@@ -382,7 +429,7 @@ const Tutors = () => {
   const [hireLoading, setHireLoading] = useState(false);
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [visibleCount, setVisibleCount] = useState(8);
+  const [visibleCount, setVisibleCount] = useState(6);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -406,7 +453,7 @@ const Tutors = () => {
 
   // Reset visible count when filters change
   useEffect(() => {
-    setVisibleCount(8);
+    setVisibleCount(6);
   }, [filters]);
 
   const applyFilters = () => {
@@ -467,15 +514,19 @@ const Tutors = () => {
       minPrice: 0,
       maxPrice: 1000
     });
-    setVisibleCount(8);
+    setVisibleCount(6);
   };
 
   const handleLoadMore = () => {
-    setVisibleCount(prev => prev + 8);
+    setVisibleCount(prev => prev + 6);
   };
 
   const handleShowLess = () => {
-    setVisibleCount(8);
+    setVisibleCount(6);
+    // Scroll to the Tutors component
+    if (tutorsRef.current) {
+      tutorsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const fetchVerifiedTutors = async () => {
@@ -596,7 +647,7 @@ const Tutors = () => {
   }
 
   return (
-    <Box sx={{ py: 6, px: isMobile ? 2 : 4 }}>
+    <Box ref={tutorsRef} sx={{ py: 6, px: isMobile ? 2 : 4 }}>
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 6 }}>
         <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-primary mx-auto mb-2" />
@@ -760,7 +811,7 @@ const Tutors = () => {
       {/* Tutors Grid */}
       {filteredTutors.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+          <div className="xl:px-[4rem] lg:px-[1rem] sm:px-[1rem] px-[1rem] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
             {filteredTutors.slice(0, visibleCount).map((tutor) => (
               <div key={tutor._id} className="flex">
                 <TutorCard
@@ -796,7 +847,7 @@ const Tutors = () => {
                   Load More
                 </Button>
               )}
-              {visibleCount > 8 && (
+              {visibleCount > 6 && (
                 <Button
                   onClick={handleShowLess}
                   variant="outlined"

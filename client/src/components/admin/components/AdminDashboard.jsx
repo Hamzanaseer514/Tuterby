@@ -299,9 +299,8 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 onClearSearch={handleClearSearch}
                 onFilterChange={handleFilterChange}
                 onViewModeChange={handleViewModeChange}
-
                 onImport={handleImport}
-                onRefresh={loadDashboardData}
+                onRefresh={handleRequestReload}
               />
 
               {/* User Table */}
