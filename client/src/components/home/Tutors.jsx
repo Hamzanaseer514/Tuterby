@@ -342,20 +342,20 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                       }}
                     />
                     {/* For lg+ screens - show +X where X = remaining levels after 2 */}
-                    <Chip
-                      label={`+${tutor.academic_levels.length - 2}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
-                        borderColor: theme.palette.grey[300],
-                        color: theme.palette.grey[600],
-                        height: '22px',
+                  <Chip
+                    label={`+${tutor.academic_levels.length - 2}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                      borderColor: theme.palette.grey[300],
+                      color: theme.palette.grey[600],
+                      height: '22px',
                         flexShrink: 0,
                         borderRadius: 1.5,
                         display: { xs: 'none', sm: 'none', lg: 'flex' }
-                      }}
-                    />
+                    }}
+                  />
                   </>
                 )}
               </Box>

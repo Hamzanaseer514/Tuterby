@@ -1682,11 +1682,13 @@ exports.getDashboardStats = async (req, res) => {
       return acc;
     }, {});
 
-   
+   console.log('tutorStats', tutorStats);
+   console.log('studentStats', studentStats);
+   console.log('parentStats', parentStats);
     const stats = {
       tutors: {
         total: Object.values(tutorStats).reduce((sum, count) => sum + count, 0),
-        inactive: tutorStats.unverified || 0,
+        inactive: tutorStats.rejected || 0,
         verified: tutorStats.approved || 0,
       },
       students: { 
