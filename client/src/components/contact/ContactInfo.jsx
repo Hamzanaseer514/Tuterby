@@ -36,10 +36,10 @@ import React from 'react';
                   </a>
                </Button>
             </div>
-            <div className="pt-4">
+            {/* <div className="pt-4">
               <p className="text-sm text-muted-foreground">We aim to respond to all enquiries within 24 business hours.</p>
               <p className="text-sm text-muted-foreground mt-2">For in-person tutoring requests, please provide your postcode in the message so we can check local availability.</p>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       );

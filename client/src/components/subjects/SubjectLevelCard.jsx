@@ -111,7 +111,7 @@ const SubjectLevelCard = ({ level, onExpand, isExpanded, isHomePage }) => {
         </CardHeader>
 
         <CardContent className="p-6 flex-grow">
-          <p className="text-sm font-semibold text-foreground mb-3">
+          <p className="text-sm font-medium text-foreground/90 mb-3">
             {isPremiumService
               ? "Key Features Include:"
               : "Popular Subjects/Modules:"}
@@ -122,7 +122,7 @@ const SubjectLevelCard = ({ level, onExpand, isExpanded, isHomePage }) => {
               return (
                 <li
                   key={index}
-                  className="flex items-center text-sm text-foreground/90 dark:text-slate-300"
+                  className="flex items-center text-sm  text-muted-foreground  dark:text-slate-300"
                 >
                   {isValidLucideIcon(SubjectIcon) && (
                     <SubjectIcon

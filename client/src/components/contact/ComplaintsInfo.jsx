@@ -28,12 +28,12 @@ const ComplaintsInfo = ({ className }) => {
         <div className="flex items-start space-x-3 p-3 bg-destructive/5 dark:bg-destructive/10 rounded-md">
           <MailWarning className="h-6 w-6 text-destructive mt-1" />
           <div>
-            <p className="font-semibold text-destructive-foreground">Complaints Email</p>
+            <p className="font-medium text-black">Complaints Email</p>
             <a href="mailto:complaints@tutornearby.uk" className="text-destructive hover:underline">complaints@tutornearby.uk</a>
           </div>
         </div>
         
-        <div className="pt-2">
+        {/* <div className="pt-2">
           <p className="text-sm text-muted-foreground mb-3">
             We take all feedback seriously and aim to resolve any issues promptly and fairly. 
             We aim to acknowledge receipt of your complaint within 2 business days and provide a full response or update within 10 business days.
@@ -50,7 +50,7 @@ const ComplaintsInfo = ({ className }) => {
               </li>
             ))}
           </ul>
-        </div>
+        </div> */}
         <p className="text-xs text-muted-foreground pt-3">
           Your feedback is invaluable in helping us improve our services. Thank you for bringing any concerns to our attention.
         </p>

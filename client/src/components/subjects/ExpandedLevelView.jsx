@@ -94,9 +94,7 @@ const ExpandedLevelView = ({ level, onClose }) => {
           
           let CategoryIconForUG = BookOpen; 
           if (typeof dataObject === 'object' && dataObject !== null && isValidLucideIcon(dataObject.icon)) {
-             CategoryIconForUG = dataObject.icon;
-          }
-          
+             CategoryIconForUG = dataObject.icon; }
           return (
              <CategorySection 
                 key={degreeArea} 
@@ -119,8 +117,7 @@ const ExpandedLevelView = ({ level, onClose }) => {
               } else {
                 const allowedNames = new Set(subjectList);
                 categorySubjects = allSubjectsWithIcons.filter(s => allowedNames.has(s.name));
-              }
-            }
+              } }
 
             if (categorySubjects.length === 0) return null;
             // De-duplicate subjects within category by stable id or name
