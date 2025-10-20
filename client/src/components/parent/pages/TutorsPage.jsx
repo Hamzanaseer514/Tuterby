@@ -37,6 +37,7 @@ const TutorsPage = () => {
     const [filteredTutors, setFilteredTutors] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [visibleCount, setVisibleCount] = useState(12);
     const [showFilters, setShowFilters] = useState(false);
     
     // Search and filter states
@@ -71,8 +72,15 @@ const TutorsPage = () => {
             };
 
             const data = await getTutorsForParent(params);
-            setTutors(data.tutors || []);
-            setTotalPages(data.pagination?.total || 1);
+            const pageTutors = Array.isArray(data?.tutors) ? data.tutors : [];
+            // Append when loading next pages; replace on first page
+            setTutors(prev => currentPage === 1 ? pageTutors : [...prev, ...pageTutors]);
+            const newTotalPages = data?.pagination?.total_pages || data?.pagination?.total || data?.pagination?.totalPages || 1;
+            setTotalPages(newTotalPages);
+            // Reset visible count when filters/search changed (page back to 1)
+            if (currentPage === 1) {
+                setVisibleCount(12);
+            }
         } catch (error) {
             // console.error('Error loading tutors');
         }
@@ -120,6 +128,7 @@ const TutorsPage = () => {
         });
         setSearchQuery('');
         setCurrentPage(1);
+        setVisibleCount(12);
     };
 
     const getSubjectName = (subjectId) => {
@@ -363,7 +372,7 @@ const TutorsPage = () => {
                     </Card>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                        {filteredTutors.map((tutor) => (
+                        {filteredTutors.slice(0, visibleCount).map((tutor) => (
                             <Card 
                                 key={tutor._id} 
                                 className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 flex flex-col h-full"
@@ -500,30 +509,40 @@ const TutorsPage = () => {
                     </div>
                 )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
+                {/* Show More / Show Less */}
+                {filteredTutors.length > 0 && (
                     <div className="flex items-center justify-center gap-2 mt-6 sm:mt-8">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            className="text-xs sm:text-sm h-8 sm:h-9"
-                        >
-                            Previous
-                        </Button>
-                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-2 sm:px-4">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            className="text-xs sm:text-sm h-8 sm:h-9"
-                        >
-                            Next
-                        </Button>
+                        {(visibleCount < filteredTutors.length || currentPage < totalPages) && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    // If there are more pages, load next page first; otherwise increase visible slice
+                                    if (currentPage < totalPages) {
+                                        setCurrentPage(prev => prev + 1);
+                                        setVisibleCount(prev => prev + 12);
+                                    } else {
+                                        setVisibleCount(prev => Math.min(prev + 12, filteredTutors.length));
+                                    }
+                                }}
+                                className="text-xs sm:text-sm h-8 sm:h-9"
+                            >
+                                Show More
+                            </Button>
+                        )}
+                        {(visibleCount > 12 || currentPage > 1) && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setVisibleCount(12);
+                                    setCurrentPage(1);
+                                }}
+                                className="text-xs sm:text-sm h-8 sm:h-9"
+                            >
+                                Show Less
+                            </Button>
+                        )}
                     </div>
                 )}
             </div>

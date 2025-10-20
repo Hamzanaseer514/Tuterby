@@ -101,6 +101,13 @@ const TutorSearch = () => {
     searchTutors();
   }, [filters, searchQuery, preferredSubjectsOnly, studentProfile]);
 
+  // Trigger search when page changes
+  useEffect(() => {
+    if (!user || !studentProfile) return;
+    if (!initialLoaded) return;
+    searchTutors();
+  }, [currentPage, initialLoaded, user, studentProfile]);
+
   useEffect(() => {
     return () => {
       if (searchDebounceRef.current) {
