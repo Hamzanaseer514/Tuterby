@@ -916,6 +916,7 @@ exports.resendOtp = asyncHandler(async (req, res) => {
 
 exports.addAdmin = asyncHandler(async (req, res) => {
   const { full_name, email, password, phone_number } = req.body;
+  console.log(req.body)
 
   if (!email || !password || !full_name || !phone_number) {
     res.status(400);

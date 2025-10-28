@@ -78,6 +78,10 @@ const AdminSettings = () => {
   const [subjectSortConfig, setSubjectSortConfig] = useState({ key: null, direction: 'asc' });
   const [typeSortConfig, setTypeSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Deletion dependency states
+  const [levelDependencies, setLevelDependencies] = useState({ subjectCount: 0, sampleSubjects: [] });
+  const [typeDependencies, setTypeDependencies] = useState({ subjectCount: 0, sampleSubjects: [] });
+
   // Fetch initial data
   useEffect(() => {
     fetchOtpStatus();
@@ -349,6 +353,18 @@ const AdminSettings = () => {
 
   const confirmDelete = (level) => {
     setLevelToDelete(level);
+    // compute dependencies for this level
+    try {
+      const dependents = (Array.isArray(subjects) ? subjects : []).filter(
+        (s) => (s.level_id?._id || s.level) === level._id
+      );
+      setLevelDependencies({
+        subjectCount: dependents.length,
+        sampleSubjects: dependents.slice(0, 5).map((s) => s.name),
+      });
+    } catch (e) {
+      setLevelDependencies({ subjectCount: 0, sampleSubjects: [] });
+    }
     setShowDeleteModal(true);
   };
 
@@ -365,9 +381,22 @@ const AdminSettings = () => {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(
-          errorData.message || "Failed to delete education level"
+        const deps = errorData?.dependencies || {};
+        const nonZero = Object.entries(deps).filter(([, v]) => v > 0);
+        toast.error(
+          <div>
+            <p className="font-medium">{errorData.message || "Cannot delete education level"}</p>
+            {nonZero.length > 0 && (
+              <ul className="list-disc pl-5 mt-2 text-sm text-gray-700">
+                {nonZero.map(([k, v]) => (
+                  <li key={k}>{k.replace(/_/g, ' ')}: {v}</li>
+                ))}
+              </ul>
+            )}
+          </div>,
+          { autoClose: 7000 }
         );
+        return;
       }
 
       const data = await res.json();
@@ -385,6 +414,7 @@ const AdminSettings = () => {
     } finally {
       setShowDeleteModal(false);
       setLevelToDelete(null);
+      setLevelDependencies({ subjectCount: 0, sampleSubjects: [] });
     }
   };
 
@@ -578,7 +608,22 @@ const AdminSettings = () => {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to delete subject");
+        const deps = errorData?.dependencies || {};
+        const nonZero = Object.entries(deps).filter(([, v]) => v > 0);
+        toast.error(
+          <div>
+            <p className="font-medium">{errorData.message || "Cannot delete subject"}</p>
+            {nonZero.length > 0 && (
+              <ul className="list-disc pl-5 mt-2 text-sm text-gray-700">
+                {nonZero.map(([k, v]) => (
+                  <li key={k}>{k.replace(/_/g, ' ')}: {v}</li>
+                ))}
+              </ul>
+            )}
+          </div>,
+          { autoClose: 7000 }
+        );
+        return;
       }
 
       const data = await res.json();
@@ -723,7 +768,22 @@ const AdminSettings = () => {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to delete subject type");
+        const deps = errorData?.dependencies || {};
+        const nonZero = Object.entries(deps).filter(([, v]) => v > 0);
+        toast.error(
+          <div>
+            <p className="font-medium">{errorData.message || "Cannot delete subject type"}</p>
+            {nonZero.length > 0 && (
+              <ul className="list-disc pl-5 mt-2 text-sm text-gray-700">
+                {nonZero.map(([k, v]) => (
+                  <li key={k}>{k.replace(/_/g, ' ')}: {v}</li>
+                ))}
+              </ul>
+            )}
+          </div>,
+          { autoClose: 7000 }
+        );
+        return;
       }
 
       const data = await res.json();
@@ -743,7 +803,25 @@ const AdminSettings = () => {
     } finally {
       setShowTypeDeleteModal(false);
       setTypeToDelete(null);
+      setTypeDependencies({ subjectCount: 0, sampleSubjects: [] });
     }
+  };
+
+  // Confirm type delete with dependency computation
+  const confirmTypeDelete = (type) => {
+    setTypeToDelete(type);
+    try {
+      const dependents = (Array.isArray(subjects) ? subjects : []).filter(
+        (s) => (s.subject_type?._id || s.subject_type) === type._id
+      );
+      setTypeDependencies({
+        subjectCount: dependents.length,
+        sampleSubjects: dependents.slice(0, 5).map((s) => s.name),
+      });
+    } catch (e) {
+      setTypeDependencies({ subjectCount: 0, sampleSubjects: [] });
+    }
+    setShowTypeDeleteModal(true);
   };
 
   // Filter subject types based on search term
@@ -804,11 +882,23 @@ const AdminSettings = () => {
             <h3 className="text-lg font-medium text-gray-800 mb-4">
               Confirm Deletion
             </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">"{levelToDelete?.level}"</span>?
-              This action cannot be undone.
-            </p>
+            {levelDependencies.subjectCount > 0 ? (
+              <div className="mb-6">
+                <p className="text-red-600 font-medium">
+                  Cannot delete. This education level has {levelDependencies.subjectCount} linked subject(s).
+                </p>
+                {levelDependencies.sampleSubjects.length > 0 && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Example subjects: {levelDependencies.sampleSubjects.join(", ")}
+                    {levelDependencies.subjectCount > levelDependencies.sampleSubjects.length && " ..."}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <span className="font-semibold">"{levelToDelete?.level}"</span>? This action cannot be undone.
+              </p>
+            )}
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -1005,11 +1095,23 @@ const AdminSettings = () => {
             <h3 className="text-lg font-medium text-gray-800 mb-4">
               Confirm Deletion
             </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">"{typeToDelete?.name}"</span>?
-              This action cannot be undone.
-            </p>
+            {typeDependencies.subjectCount > 0 ? (
+              <div className="mb-6">
+                <p className="text-red-600 font-medium">
+                  Cannot delete. This subject type has {typeDependencies.subjectCount} linked subject(s).
+                </p>
+                {typeDependencies.sampleSubjects.length > 0 && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Example subjects: {typeDependencies.sampleSubjects.join(", ")}
+                    {typeDependencies.subjectCount > typeDependencies.sampleSubjects.length && " ..."}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <span className="font-semibold">"{typeToDelete?.name}"</span>? This action cannot be undone.
+              </p>
+            )}
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowTypeDeleteModal(false)}
@@ -1588,10 +1690,7 @@ const AdminSettings = () => {
                               Edit
                             </button>
                             <button
-                              onClick={() => {
-                                setTypeToDelete(type);
-                                setShowTypeDeleteModal(true);
-                              }}
+                              onClick={() => confirmTypeDelete(type)}
                               className="text-red-600 hover:text-red-800"
                             >
                               Delete

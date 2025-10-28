@@ -53,7 +53,7 @@ export default function LoginForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, rememberMe }),
-        credentials: "include", // 👈 ye zaroori hai
+       
 
       });
       const data = await response.json();

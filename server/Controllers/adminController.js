@@ -1963,7 +1963,8 @@ exports.getEducationLevels = asyncHandler(async (req, res) => {
 
 exports.deleteEducationLevel = asyncHandler(async (req, res) => {
 
-  const level = await EducationLevel.findByIdAndDelete(req.params.id);
+  const id = req.params.id;
+  const level = await EducationLevel.findById(id);
 
 
 
@@ -1976,6 +1977,44 @@ exports.deleteEducationLevel = asyncHandler(async (req, res) => {
   }
 
 
+
+  // Check dependencies across the system
+  const [
+    subjectCount,
+    tutorLevelCount,
+    studentLevelCount,
+    studentHireLevelCount,
+    sessionLevelCount,
+    paymentLevelCount,
+  ] = await Promise.all([
+    Subject.countDocuments({ level_id: id }),
+    TutorProfile.countDocuments({ 'academic_levels_taught.educationLevel': id }),
+    StudentProfile.countDocuments({ academic_level: id }),
+    StudentProfile.countDocuments({ 'hired_tutors.academic_level_id': id }),
+    TutoringSession.countDocuments({ academic_level: id }),
+    StudentPayment.countDocuments({ academic_level: id }),
+  ]);
+
+  const dependencies = {
+    subjects: subjectCount,
+    tutors: tutorLevelCount,
+    students: studentLevelCount,
+    student_hires: studentHireLevelCount,
+    sessions: sessionLevelCount,
+    payments: paymentLevelCount,
+  };
+
+  const totalDeps = Object.values(dependencies).reduce((sum, v) => sum + v, 0);
+  if (totalDeps > 0) {
+    return res.status(400).json({
+      success: false,
+      message:
+        'Cannot delete academic level. It is referenced by other records. Please remove or reassign those references first.',
+      dependencies,
+    });
+  }
+
+  await EducationLevel.findByIdAndDelete(id);
 
   res.status(200).json({
 
@@ -2403,7 +2442,8 @@ exports.updateSubject = asyncHandler(async (req, res) => {
 
 exports.deleteSubject = asyncHandler(async (req, res) => {
 
-  const subject = await Subject.findByIdAndDelete(req.params.id);
+  const id = req.params.id;
+  const subject = await Subject.findById(id);
 
 
 
@@ -2416,6 +2456,41 @@ exports.deleteSubject = asyncHandler(async (req, res) => {
   }
 
 
+
+  // Dependency checks across system
+  const [
+    tutorCount,
+    studentPrefCount,
+    studentHireCount,
+    sessionCount,
+    paymentCount,
+  ] = await Promise.all([
+    TutorProfile.countDocuments({ subjects: id }),
+    StudentProfile.countDocuments({ preferred_subjects: id }),
+    StudentProfile.countDocuments({ 'hired_tutors.subject': id }),
+    TutoringSession.countDocuments({ subject: id }),
+    StudentPayment.countDocuments({ subject: id }),
+  ]);
+
+  const dependencies = {
+    tutors: tutorCount,
+    students_preferred: studentPrefCount,
+    student_hires: studentHireCount,
+    sessions: sessionCount,
+    payments: paymentCount,
+  };
+
+  const totalDeps = Object.values(dependencies).reduce((sum, v) => sum + v, 0);
+  if (totalDeps > 0) {
+    return res.status(400).json({
+      success: false,
+      message:
+        'Cannot delete subject. It is referenced by other records. Please remove or reassign those references first.',
+      dependencies,
+    });
+  }
+
+  await Subject.findByIdAndDelete(id);
 
   res.status(200).json({
 
@@ -2549,7 +2624,8 @@ exports.updateSubjectType = asyncHandler(async (req, res) => {
 
 exports.deleteSubjectType = asyncHandler(async (req, res) => {
 
-  const subjectType = await SubjectType.findById(req.params.id);
+  const id = req.params.id;
+  const subjectType = await SubjectType.findById(id);
 
 
 
@@ -2562,6 +2638,19 @@ exports.deleteSubjectType = asyncHandler(async (req, res) => {
   }
 
 
+
+  // Dependency checks: any subjects using this type?
+  const subjectCount = await Subject.countDocuments({ subject_type: id });
+  const dependencies = { subjects: subjectCount };
+  const totalDeps = Object.values(dependencies).reduce((sum, v) => sum + v, 0);
+  if (totalDeps > 0) {
+    return res.status(400).json({
+      success: false,
+      message:
+        'Cannot delete subject type. It is referenced by subjects. Please delete or reassign those subjects first.',
+      dependencies,
+    });
+  }
 
   await subjectType.deleteOne();
 

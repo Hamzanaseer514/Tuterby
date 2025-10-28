@@ -547,7 +547,7 @@ const Tutors = () => {
 
   if (loading) {
     return (
-      <Box sx={{ py: 6, px: isMobile ? 2 : 4 }}>
+      <Box sx={{ pt: 0, pb: 6, px: isMobile ? 2 : 3 }}>
         <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-primary mx-auto mb-2" />
         <h2 className="text-2xl md:text-3xl font-bold mb-2">
           Tutors of  <span className="gradient-text">TutorNearby</span>
@@ -596,7 +596,7 @@ const Tutors = () => {
   }
 
   return (
-    <Box sx={{ py: 6, px: isMobile ? 2 : 4 }}>
+    <Box sx={{ pt: 0, pb: 6, px: isMobile ? 2 : 4 }}>
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 6 }}>
         <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-primary mx-auto mb-2" />
