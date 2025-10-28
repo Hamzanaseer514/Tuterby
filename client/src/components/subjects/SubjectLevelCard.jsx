@@ -95,7 +95,7 @@ const SubjectLevelCard = ({ level, onExpand, isExpanded, isHomePage }) => {
       whileHover="hover"
       className="h-full"
     >
-      <Card className="h-full flex flex-col bg-card/80 dark:bg-card/90 backdrop-blur-sm border-2 border-primary/10 hover:border-primary/30 transition-all duration-300 shadow-lg hover:shadow-2xl rounded-2xl overflow-hidden">
+      <Card className="h-full flex flex-col  bg-card/80 dark:bg-card/90 backdrop-blur-sm border-2 border-primary/10 hover:border-primary/30 transition-all duration-300 shadow-lg hover:shadow-2xl rounded-2xl overflow-hidden">
         <CardHeader className="px-4 py-2 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 dark:from-primary/10 dark:to-secondary/10">
           <div className="items-start mb-3">
             {isValidLucideIcon(headerIcon) && (

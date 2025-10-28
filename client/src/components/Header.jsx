@@ -60,7 +60,7 @@ const NavItem = React.memo(({ to, text, onClick, aria }) => (
     to={to}
     className={({ isActive }) =>
       cn(
-        "text-sm font-medium transition-colors hover:text-primary",
+        "text-sm font-medium transition-colors hover:text-primary whitespace-nowrap",
         isActive
           ? "text-primary font-semibold nav-link-active"
           : "text-foreground/70"
@@ -142,7 +142,7 @@ const UserDropdown = ({ user, onClose }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute right-0 mt-2 w-48 bg-background rounded-md shadow-lg py-1 z-50 border"
+            className="absolute right-0 mt-2 w-56 bg-background rounded-md shadow-lg py-1 z-50 border"
           >
             <div className="px-4 py-2 border-b">
               <p className="text-sm font-medium">{user.full_name || user.email}</p>
@@ -186,6 +186,8 @@ const UserDropdown = ({ user, onClose }) => {
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev);
@@ -195,22 +197,20 @@ const Header = () => {
     setIsMobileMenuOpen(false);
   }, []);
 
-  const { user } = useAuth();
-
   return (
     <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md dark:bg-background/60">
-      <div className="container flex h-20 items-center justify-between px-4">
+      <div className="container flex h-16 sm:h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           to="/"
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0"
           onClick={closeMobileMenu}
           aria-label="TutorNearby Homepage"
         >
-          <BookOpen className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold gradient-text">TutorNearby</span>
+          <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <span className="text-lg sm:text-xl lg:text-2xl font-bold gradient-text">TutorNearby</span>
         </Link>
 
-        <nav className="hidden md:flex items-center space-x-10">
+        <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
           {navLinksData.map((link) => (
             <NavItem
               key={link.to}
@@ -221,8 +221,8 @@ const Header = () => {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center space-x-3">
-          <Button variant="outline" size="sm" asChild>
+        <div className="hidden lg:flex items-center space-x-2 xl:space-x-3 flex-shrink-0">
+          <Button variant="outline" size="sm" asChild className="hidden xl:flex">
             <a
               href={whatsAppURL}
               target="_blank"
@@ -233,10 +233,9 @@ const Header = () => {
               <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
             </a>
           </Button>
-          <Button size="sm" asChild>
+          <Button size="sm" asChild className="whitespace-nowrap">
             <Link
               to="/contact"
-              className=""
               aria-label="Book a free consultation"
             >
               Free Consultation
@@ -253,7 +252,7 @@ const Header = () => {
           )}
         </div>
 
-        <div className="md:hidden">
+        <div className="lg:hidden flex-shrink-0 ml-2">
           <Button
             variant="ghost"
             size="icon"
@@ -263,9 +262,9 @@ const Header = () => {
             }
           >
             {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             ) : (
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
             )}
           </Button>
         </div>
@@ -278,8 +277,8 @@ const Header = () => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="md:hidden absolute top-20 left-0 right-0 bg-background/95 dark:bg-background/90 shadow-lg p-4 border-t"
-            style={{ maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}
+            className="lg:hidden absolute top-16 sm:top-20 left-0 right-0 bg-background/95 dark:bg-background/90 shadow-lg p-4 sm:p-6 border-t"
+            style={{ maxHeight: "calc(100vh - 64px)", overflowY: "auto" }}
           >
             <nav className="flex flex-col space-y-3">
               {navLinksData.map((link) => (
@@ -344,8 +343,10 @@ const Header = () => {
                       variant="ghost"
                       className="w-full justify-start px-4 py-2 text-sm font-medium hover:text-primary"
                       onClick={() => {
-                        handleLogout();
+                        logout();
                         closeMobileMenu();
+                        toast.success("Logged out successfully");
+                        navigate("/login");
                       }}
                     >
                       <LogOut className="h-4 w-4 mr-2" />
