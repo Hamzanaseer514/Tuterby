@@ -224,7 +224,7 @@ const SubjectsPage = () => {
         }
         schemaMarkup={currentBreadcrumbSchema}
       />
-      <div className="space-y-12 md:space-y-16 container mx-auto px-4 py-8">
+      <div className="space-y-8 md:space-y-10 container mx-auto px-4 py-4">
         <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -247,7 +247,7 @@ const SubjectsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="py-10 px-6 md:px-8 bg-gradient-to-r from-primary/5 via-background to-primary/10 dark:from-primary/20 dark:via-slate-900 dark:to-primary/20 rounded-xl text-center shadow-lg border border-primary/20"
+            className="py-8 px-6 md:px-6 bg-gradient-to-r from-primary/5 via-background to-primary/10 dark:from-primary/20 dark:via-slate-900 dark:to-primary/20 rounded-xl text-center shadow-lg border border-primary/20"
           >
             <Search className="w-12 h-12 text-primary mx-auto mb-3" />
             <h2 className="text-2xl md:text-3xl font-bold mb-3 text-primary"></h2>

@@ -47,7 +47,7 @@ const FeaturesSection = () => {
   };
 
   return (
-    <section className="bg-background dark:bg-slate-900/50">
+    <section className="bg-background -mt-3 dark:bg-slate-900/50">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

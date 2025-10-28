@@ -110,13 +110,13 @@ const SubjectLevelCard = ({ level, onExpand, isExpanded, isHomePage }) => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="p-6 flex-grow">
-          <p className="text-sm font-medium text-foreground/90 mb-3">
+        <CardContent className="p-5 flex-grow">
+          <p className="text-sm font-medium text-foreground/90 mb-2">
             {isPremiumService
               ? "Key Features Include:"
               : "Popular Subjects/Modules:"}
           </p>
-          <ul className="space-y-2.5">
+          <ul className="space-y-2">
             {displayedSubjects.map((subject, index) => {
               const SubjectIcon = subject.icon;
               return (
@@ -147,7 +147,7 @@ const SubjectLevelCard = ({ level, onExpand, isExpanded, isHomePage }) => {
           </ul>
         </CardContent>
 
-        <CardFooter className="p-6 bg-muted/30 dark:bg-slate-800/30 mt-auto">
+        <CardFooter className="p-3 bg-muted/30 dark:bg-slate-800/30 mt-auto">
           <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
             <Button
               onClick={() => onExpand(level.id)}

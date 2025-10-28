@@ -79,8 +79,8 @@ const ExpandedLevelView = ({ level, onClose }) => {
         <X className="w-6 h-6" />
       </Button>
 
-      <div className="text-center mb-10">
-        {isValidLucideIcon(LevelIcon) && <LevelIcon className="w-20 h-20 text-primary mx-auto mb-4" />}
+      <div className="text-center mb-7">
+        {isValidLucideIcon(LevelIcon) && <LevelIcon className="w-20 h-20 text-primary mx-auto mb-3" />}
         <h1 className="text-4xl md:text-5xl font-bold mb-3 text-foreground">
           Full {isPremiumService ? "Feature" : "Subject"} List for <span className="gradient-text">{name}</span>
         </h1>
@@ -147,7 +147,7 @@ const ExpandedLevelView = ({ level, onClose }) => {
         </div>
       )}
       
-      <div className="mt-12 text-center">
+      <div className="mt-8 text-center">
         <Button onClick={onClose} variant="outline" size="lg" className="group border-primary text-primary hover:bg-primary hover:text-primary-foreground" aria-label={closeAriaLabel}>
           <X className="mr-2 h-5 w-5" /> Close Full List
         </Button>
