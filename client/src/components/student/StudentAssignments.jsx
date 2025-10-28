@@ -50,7 +50,8 @@ const AssignmentDetailsModal = ({
       weekday: 'short',
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
   };
 
@@ -61,7 +62,9 @@ const AssignmentDetailsModal = ({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC'
     });
   };
 
@@ -89,10 +92,12 @@ const AssignmentDetailsModal = ({
               <span className="text-medium font-medium">Title:</span>
               <h3 className="text-xl font-semibold mb-2">{assignment.title}</h3>
             </div>
+            {assignment.description && (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Description:</span>
-              <p className="text-gray-600">{assignment.description}</p>
-            </div>
+                <span className="text-sm font-medium">Description:</span>
+                <p className="text-gray-600">{assignment.description}</p>
+              </div>
+            )}
 
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -307,7 +312,7 @@ const StudentAssignments = () => {
       const data = await getStudentSubmissions(user._id);
       setSubmissions(data);
     } catch (error) {
-      console.error('Failed to fetch submissions:', error);
+      // console.error('Failed to fetch submissions:', error);
     }
   };
 
@@ -339,7 +344,8 @@ const StudentAssignments = () => {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
   };
 
@@ -350,7 +356,9 @@ const StudentAssignments = () => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC'
     });
   };
 
@@ -503,14 +511,17 @@ const StudentAssignments = () => {
                         <span className="text-medium font-medium">Title:</span>
                         <h4 className="text-lg font-semibold">{assignment.title}</h4>
                       </div>
+                      {assignment.description && (
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">Description:</span>
                         <p className="text-gray-600">{assignment.description}</p>
                       </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       {submission && (
                         <div className="flex flex-col items-end gap-1">
+                        <div className="flex gap-2">
 
                           {dueStatus && (
                             <Badge variant={dueStatus.color}>
@@ -521,14 +532,16 @@ const StudentAssignments = () => {
                               {dueStatus.status === 'graded' && 'Graded'}
                             </Badge>
                           )}
-                          <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
-                            {submission.is_late ? 'Late' : 'On Time'}
-                          </Badge>
-                          {submission.status === 'graded' && (
+                            {submission.status === 'graded' && (
                             <span className="text-sm font-medium text-green-600">
                               Grade: {submission.grade}/100
                             </span>
                           )}
+                          </div>
+                          <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
+                            {submission.is_late ? 'Late Submission' : 'On Time'}
+                          </Badge>
+                        
                         </div>
                       )}
                       {dueStatus && !submission && (
@@ -544,17 +557,20 @@ const StudentAssignments = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
+                        <span className="text-sm font-medium">Tutor:</span>
+                        <User className="h-4 w-4 text-gray-500 font-bold" />
                         <span>{getTutorName(assignment)}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4" />
+                        <span className="text-sm font-medium">Subject:</span>
+                        <BookOpen className="h-4 w-4 text-gray-500 font-bold" />
                         <span>{getSubjectName(assignment.subject._id)}</span>
                       </div>
                       {assignment.due_date && (
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{formatDate(assignment.due_date)}</span>
+                          <span className="text-sm font-medium">Due Date:</span>
+                          <Calendar className="h-4 w-4 text-gray-500 font-bold" />
+                          <span>{formatDateTime(assignment.due_date)}</span>
                         </div>
                       )}
                     </div>

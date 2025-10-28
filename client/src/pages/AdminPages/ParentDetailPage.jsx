@@ -90,7 +90,6 @@ const ParentDetailPage = () => {
       </Box>
     );
   }
-  {console.log("user:", user)}
 
   const getSubjectName = (subjectId) => {
     const subject = subjects.find(s => s._id === subjectId);
@@ -127,9 +126,6 @@ const ParentDetailPage = () => {
   const userJoinDate = user?.joinDate || "Unknown";
   const userLastActive = user?.lastActive || "Unknown";
   const userChildren = user?.children || [];
-  console.log("userChildren:", userChildren);
-  console.log("First child:", userChildren[0]);
-  console.log("Second child:", userChildren[1]);
   const userSessionsBooked = user?.sessionsBooked || 0;
 
 
@@ -238,7 +234,6 @@ const ParentDetailPage = () => {
                   {userName}
                 </Typography>
               </Box>
-{console.log("userStatus:", userStatus)}
               {/* Action Buttons */}
              {/* Action Button (Top Right Corner) */}
              <Stack direction="row" spacing={1}>

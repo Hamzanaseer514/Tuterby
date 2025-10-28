@@ -39,7 +39,7 @@ const HowItWorksSection = () => {
   };
 
   return (
-    <section className="py-8 md:py-10 bg-muted dark:bg-slate-800/40 rounded-xl">
+    <div className="py-8 md:py-10 bg-muted dark:bg-slate-800/40 rounded-xl">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -85,7 +85,7 @@ const HowItWorksSection = () => {
           </Button>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

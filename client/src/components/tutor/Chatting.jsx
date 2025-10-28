@@ -79,7 +79,7 @@ const Chatting = () => {
         setStudents(uniqueStudents);
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   };
 
@@ -112,7 +112,7 @@ const Chatting = () => {
         );
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   };
 
@@ -150,7 +150,7 @@ const Chatting = () => {
         fetchAllMessages();
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   };
 

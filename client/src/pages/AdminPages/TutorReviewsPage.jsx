@@ -78,7 +78,7 @@ const TutorReviewsPage = () => {
       }
     } catch (err) {
       setError('Failed to fetch reviews');
-      console.error('Error fetching reviews:', err);
+      //console.error('Error fetching reviews:', err);
     } finally {
       setLoading(false);
     }

@@ -199,7 +199,7 @@ const getAcademicLevel = (level) => {
         const fresh = await getTutorDetails(user.id);
         setLocalUser(fresh);
       } catch (e) {
-        console.error("Failed to refresh tutor details:", e);
+        //console.error("Failed to refresh tutor details:", e);
       }
     };
     fetchDetails();
@@ -240,7 +240,7 @@ const getAcademicLevel = (level) => {
       }));
       toast.success("Interview toggle updated successfully!");
     } catch (error) {
-      console.error("Failed to update interview toggle:", error);
+      //console.error("Failed to update interview toggle:", error);
     }
   };
 
@@ -269,7 +269,7 @@ const getAcademicLevel = (level) => {
       const slots = await getAvailableInterviewSlots(date);
       setAvailableSlots(slots);
     } catch (error) {
-      console.error("Error fetching slots:", error);
+      //console.error("Error fetching slots:", error);
       setSlotError("Failed to load available slots. Using default times.");
       setAvailableSlots([
         { date: date, time: "09:00", available: true },
@@ -311,7 +311,7 @@ const getAcademicLevel = (level) => {
         const fresh = await getTutorDetails(user.id);
         setLocalUser(fresh);
       } catch (e) {
-        console.error("Post-schedule refresh failed:", e);
+        //console.error("Post-schedule refresh failed:", e);
       }
       setTimeout(() => {
         setSchedulingStatus("");
@@ -319,7 +319,7 @@ const getAcademicLevel = (level) => {
         setSelectedTimes([]);
       }, 2000);
     } catch (error) {
-      console.error("Error scheduling interview:", error);
+      //console.error("Error scheduling interview:", error);
       setSchedulingStatus("error");
     }
   };
@@ -475,10 +475,10 @@ const getAcademicLevel = (level) => {
         setLocalUser(fresh);
         setSnackbar({ open: true, message: "Documents verified successfully.", severity: "success" });
       } catch (e) {
-        console.error("Post-verify refresh failed:", e);
+        //console.error("Post-verify refresh failed:", e);
       }
     } catch (err) {
-      console.error("Bulk verification failed:", err);
+      //console.error("Bulk verification failed:", err);
       setSnackbar({ open: true, message: "Failed to verify documents. Please try again.", severity: "error" });
     }
   };
@@ -501,10 +501,10 @@ const getAcademicLevel = (level) => {
         setSnackbar({ open: true, message: `${rejectModal.groupType} documents rejected successfully.`, severity: "success" });
         setRejectModal({ open: false, groupType: "", reason: "" });
       } catch (e) {
-        console.error("Post-reject refresh failed:", e);
+        //console.error("Post-reject refresh failed:", e);
       }
     } catch (err) {
-      console.error("Bulk rejection failed:", err);
+      //console.error("Bulk rejection failed:", err);
       setSnackbar({ open: true, message: "Failed to reject documents. Please try again.", severity: "error" });
     }
   };
@@ -611,7 +611,7 @@ const getAcademicLevel = (level) => {
             <Card sx={{ mb: 3, background: "linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)" }}>
               <CardContent>
                 <Grid container spacing={3}>
-                  <Grid item xs={12} md={3}>
+                  <Grid item xs={12} sm={12} md={3}>
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <Box sx={{ display: "flex", alignItems: "center", mb: 2, width: "100%" }}>
                         {/* <Avatar sx={{ width: 80, height: 80, background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)", fontSize: "2rem", fontWeight: "bold", mr: 2 }}> */}
@@ -651,7 +651,7 @@ const getAcademicLevel = (level) => {
                     </Box>
                   </Grid>
 
-                  <Grid item xs={12} md={9}>
+                  <Grid item xs={12} sm={12} md={9}>
                     <Box sx={{ mt: 4 }}>
                       <Typography variant="h6" gutterBottom>
                         Tutor Details
@@ -821,9 +821,9 @@ const getAcademicLevel = (level) => {
                               }
                               secondary={
                                 <Box>
-                                  <Typography variant="body2">Uploaded: {doc.uploadDate}</Typography>
+                                  <Typography component="span" variant="body2">Uploaded: {doc.uploadDate}</Typography>
                                   {doc.notes && (
-                                    <Typography variant="body2" color="text.secondary">
+                                    <Typography component="span" variant="body2" color="text.secondary" sx={{ display: 'block' }}>
                                       {doc.notes}
                                     </Typography>
                                   )}
@@ -1211,7 +1211,6 @@ const getAcademicLevel = (level) => {
                 <div className="flex justify-end space-x-2 pt-4 border-t">
                   {(() => {
                     const rawUrl = selectedDocument.url || selectedDocument.file_url;
-                    console.log("rawUrl", rawUrl);
                     return rawUrl ? (
                       <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(resolveUrl(rawUrl), "_blank")}>
                       Download

@@ -3,6 +3,7 @@ import ParentDashboardLayout from '../../components/parent/ParentDashboardLayout
 import OverviewPage from '../../components/parent/pages/OverviewPage';
 import ChildrenPage from '../../components/parent/pages/ChildrenPage';
 import SessionsPage from '../../components/parent/pages/SessionsPage';
+import ParentAssignmentsPage from '../../components/parent/pages/ParentAssignmentsPage';
 import ParentProfilePage from '../../components/parent/pages/ParentProfilePage';
 import ParentPaymentPage from '../../components/parent/pages/ParentPaymentPage';
 import TutorsPage from '../../components/parent/pages/TutorsPage';
@@ -26,6 +27,7 @@ const ParentDashboardPage = () => {
     if (path.includes('/children')) return 'children';
     if (path.includes('/sessions')) return 'sessions';
     if (path.includes('/payments')) return 'payments';
+    if (path.includes('/assignments')) return 'assignments';
     if (path.includes('/progress')) return 'progress';
     if (path.includes('/settings')) return 'settings';
     return 'overview';
@@ -41,6 +43,7 @@ const ParentDashboardPage = () => {
         <Route path="/children/:childSlug" element={<ChildViewPage />} />
         <Route path="/children/:childSlug/edit" element={<ChildViewPage initialEditMode={true} />} />
         <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/assignments" element={<ParentAssignmentsPage />} />
         <Route path="/profile" element={<ParentProfilePage />} />
         <Route path="/payments" element={<ParentPaymentPage />} />
         <Route path="/tutors" element={<TutorsPage />} />
@@ -62,3 +65,6 @@ const ParentDashboardPage = () => {
 };
 
 export default ParentDashboardPage;
+
+
+

@@ -175,7 +175,7 @@ const TutorProfilePage = () => {
       setReviewsTotal(data.pagination?.total_reviews || 0);
       setReviewsPage(page);
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      //console.error('Error fetching reviews:', error);
       // Don't show error toast for reviews, just log it
     } finally {
       setLoadingReviews(false);
@@ -219,7 +219,7 @@ const TutorProfilePage = () => {
       const data = await response.json();
       setStudentProfile(data.student);
     } catch (e) {
-      console.error("Error fetching student profile:", e);
+      //console.error("Error fetching student profile:", e);
       // Don't throw error, just log it
     }
   };

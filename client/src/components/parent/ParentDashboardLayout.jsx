@@ -16,7 +16,8 @@ import {
   BarChart3,
   MessageSquare,
   User,
-  Star
+  Star,
+  FileText
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -141,6 +142,7 @@ const ParentDashboardLayout = ({ children, activeTab }) => {
     { id: 'overview', label: 'Overview', icon: Home, path: '/parent-dashboard' },
     { id: 'children', label: 'My Children', icon: Users, path: '/parent-dashboard/children' },
     { id: 'sessions', label: 'Sessions', icon: Calendar, path: '/parent-dashboard/sessions' },
+    { id: 'assignments', label: 'Assignments', icon: FileText, path: '/parent-dashboard/assignments' },
     { id: 'profile', label: 'My Profile', icon: User, path: '/parent-dashboard/profileis me' },
     { id: 'payments', label: 'Payments', icon: CreditCard, path: '/parent-dashboard/payments' },
     { id: 'tutors', label: 'Find Tutors', icon: BarChart3, path: '/parent-dashboard/tutors' },

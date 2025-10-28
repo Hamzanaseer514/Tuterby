@@ -44,7 +44,7 @@ const TutorAssignments = () => {
   const { toast } = useToast();
   const { user, fetchWithAuth } = useAuth();
   const { academicLevels, subjects } = useSubject();
-  
+
   const [assignments, setAssignments] = useState([]);
   const [submittedAssignments, setSubmittedAssignments] = useState([]);
   const [tutorAcademicLevels, setTutorAcademicLevels] = useState([]);
@@ -56,7 +56,7 @@ const TutorAssignments = () => {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState('all'); // 'all' or 'submitted'
-  
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -67,7 +67,7 @@ const TutorAssignments = () => {
     sort_order: 'desc' // 'asc', 'desc'
   });
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     academic_level: '',
     subject: '',
@@ -91,7 +91,7 @@ const TutorAssignments = () => {
     try {
       const data = await getTutorAssignments(user._id);
       setAssignments(data);
-      
+
     } catch (error) {
       // toast({
       //   title: "Error",
@@ -114,7 +114,7 @@ const TutorAssignments = () => {
         setTutorAcademicLevels(data.academic_levels || []);
       }
     } catch (error) {
-      console.error('Failed to fetch academic levels:', error);
+      // console.error('Failed to fetch academic levels:', error);
     }
   };
 
@@ -124,13 +124,13 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setAvailableSubjects(data.subjects || []);
       }
     } catch (error) {
-      console.error('Failed to fetch subjects:', error);
+      // console.error('Failed to fetch subjects:', error);
       setAvailableSubjects([]);
     }
   };
@@ -142,13 +142,13 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setAvailableStudents(data.students || []);
       }
     } catch (error) {
-      console.error('Failed to fetch students:', error);
+      // console.error('Failed to fetch students:', error);
       setAvailableStudents([]);
     } finally {
       setLoadingStudents(false);
@@ -161,13 +161,13 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setSubmittedAssignments(data.assignments || []);
       }
     } catch (error) {
-      console.error('Failed to fetch submitted assignments:', error);
+      // console.error('Failed to fetch submitted assignments:', error);
     }
   };
 
@@ -177,20 +177,20 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUnreadCount(data.unread_count || 0);
       }
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      // console.error('Failed to fetch unread count:', error);
     }
   };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // If academic level changes, fetch subjects for that level
       if (field === 'academic_level' && value) {
         fetchSubjectsForLevel(value);
@@ -200,14 +200,14 @@ const TutorAssignments = () => {
         setAvailableSubjects([]);
         setAvailableStudents([]);
       }
-      
+
       // If subject changes, fetch students for that subject and level
       if (field === 'subject' && value && prev.academic_level) {
         fetchStudentsForAssignment(prev.academic_level, value);
         // Reset selected students when subject changes
         newData.selected_students = [];
       }
-      
+
       return newData;
     });
   };
@@ -217,7 +217,7 @@ const TutorAssignments = () => {
       const newSelectedStudents = isSelected
         ? [...prev.selected_students, studentId]
         : prev.selected_students.filter(id => id !== studentId);
-      
+
       return {
         ...prev,
         selected_students: newSelectedStudents
@@ -232,7 +232,7 @@ const TutorAssignments = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.academic_level || !formData.subject || !formData.title || formData.selected_students.length === 0) {
       toast({
         title: "Error",
@@ -245,20 +245,20 @@ const TutorAssignments = () => {
     setSubmitting(true);
     try {
       // Create assignment for each selected student
-      const assignmentPromises = formData.selected_students.map(studentId => 
+      const assignmentPromises = formData.selected_students.map(studentId =>
         createAssignment(user._id, {
           ...formData,
           student_user_id: studentId
         })
       );
-      
+
       await Promise.all(assignmentPromises);
-      
+
       toast({
         title: "Success",
         description: `Assignment created successfully for ${formData.selected_students.length} student(s)`
       });
-      
+
       setFormData({
         academic_level: '',
         subject: '',
@@ -282,13 +282,26 @@ const TutorAssignments = () => {
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatOnlyDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  };
+  const formatDate = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayName = weekdays[date.getUTCDay()];
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = months[date.getUTCMonth()];
+    const year = date.getUTCFullYear();
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${dayName}, ${day} ${month} ${year}, ${hours}:${minutes}`;
   };
 
   const getSubjectName = (subjectId) => {
@@ -308,7 +321,7 @@ const TutorAssignments = () => {
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(assignment => 
+      filtered = filtered.filter(assignment =>
         assignment.title.toLowerCase().includes(query) ||
         assignment.description.toLowerCase().includes(query) ||
         assignment.student_id.user_id.full_name.toLowerCase().includes(query)
@@ -333,14 +346,14 @@ const TutorAssignments = () => {
 
     // Apply subject filter
     if (filters.subject !== 'all') {
-      filtered = filtered.filter(assignment => 
+      filtered = filtered.filter(assignment =>
         assignment.subject._id === filters.subject
       );
     }
 
     // Apply academic level filter
     if (filters.academic_level !== 'all') {
-      filtered = filtered.filter(assignment => 
+      filtered = filtered.filter(assignment =>
         assignment.academic_level._id === filters.academic_level
       );
     }
@@ -348,7 +361,7 @@ const TutorAssignments = () => {
     // Apply sorting
     filtered.sort((a, b) => {
       let aValue, bValue;
-      
+
       switch (filters.sort_by) {
         case 'title':
           aValue = a.title.toLowerCase();
@@ -424,7 +437,7 @@ const TutorAssignments = () => {
               {unreadCount} New
             </Badge>
           )}
-          
+
           {/* Tab Buttons */}
           <div className="flex gap-2">
             <Button
@@ -449,19 +462,19 @@ const TutorAssignments = () => {
               )}
             </Button>
           </div>
-          
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Create Assignment
-        </Button>
+
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Assignment
+          </Button>
         </div>
       </div>
 
       {/* Search and Filters Section */}
-        <Card>
+      <Card>
         <CardContent className="p-4">
           <div className="space-y-4">
             {/* Search Bar */}
@@ -506,7 +519,7 @@ const TutorAssignments = () => {
                 {/* Submission Status Filter */}
                 <div>
                   <Label className="text-sm font-medium">Submission Status</Label>
-                  <Select 
+                  <Select
                     value={filters.submission_status}
                     onValueChange={(value) => setFilters(prev => ({ ...prev, submission_status: value }))}
                   >
@@ -525,7 +538,7 @@ const TutorAssignments = () => {
                 {/* Subject Filter */}
                 <div>
                   <Label className="text-sm font-medium">Subject</Label>
-                  <Select 
+                  <Select
                     value={filters.subject}
                     onValueChange={(value) => setFilters(prev => ({ ...prev, subject: value }))}
                   >
@@ -546,7 +559,7 @@ const TutorAssignments = () => {
                 {/* Academic Level Filter */}
                 <div>
                   <Label className="text-sm font-medium">Academic Level</Label>
-                  <Select 
+                  <Select
                     value={filters.academic_level}
                     onValueChange={(value) => setFilters(prev => ({ ...prev, academic_level: value }))}
                   >
@@ -558,8 +571,8 @@ const TutorAssignments = () => {
                       {academicLevels?.map((level) => (
                         <SelectItem key={level._id} value={level._id}>
                           {level.level}
-                          </SelectItem>
-                        ))}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -584,9 +597,9 @@ const TutorAssignments = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setFilters(prev => ({ 
-                        ...prev, 
-                        sort_order: prev.sort_order === 'asc' ? 'desc' : 'asc' 
+                      onClick={() => setFilters(prev => ({
+                        ...prev,
+                        sort_order: prev.sort_order === 'asc' ? 'desc' : 'asc'
                       }))}
                     >
                       {filters.sort_order === 'asc' ? (
@@ -620,8 +633,8 @@ const TutorAssignments = () => {
                   <GraduationCap className="h-4 w-4" />
                   Step 1: Select Academic Level *
                 </Label>
-                <Select 
-                  value={formData.academic_level} 
+                <Select
+                  value={formData.academic_level}
                   onValueChange={(value) => handleInputChange('academic_level', value)}
                 >
                   <SelectTrigger>
@@ -646,8 +659,8 @@ const TutorAssignments = () => {
                   <BookOpen className="h-4 w-4" />
                   Step 2: Select Subject *
                 </Label>
-                <Select 
-                  value={formData.subject} 
+                <Select
+                  value={formData.subject}
                   onValueChange={(value) => handleInputChange('subject', value)}
                   disabled={!formData.academic_level}
                 >
@@ -676,7 +689,7 @@ const TutorAssignments = () => {
                   <Users className="h-4 w-4" />
                   Step 3: Select Students * ({formData.selected_students.length} selected)
                 </Label>
-                
+
                 {!formData.subject ? (
                   <p className="text-xs text-gray-500">Please select a subject first</p>
                 ) : loadingStudents ? (
@@ -699,9 +712,8 @@ const TutorAssignments = () => {
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
                             <span className="font-medium">{student.user_id.full_name}</span>
-                          
+
                           </div>
-                          {console.log("student", student)}
                           <p className="text-xs text-gray-500 ml-2">Payment Status: {(student.payment_info.validity_status === 'active') ? (
                             <Badge variant="success">
                               Active
@@ -725,26 +737,26 @@ const TutorAssignments = () => {
 
               {/* Assignment Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-  <Label htmlFor="due_date">Due Date</Label>
-  <Input
-    type="datetime-local"
-    id="due_date"
-    value={formData.due_date}
-    className="w-full appearance-none"
-    onChange={(e) => handleInputChange('due_date', e.target.value)}
-  />
-</div>
+                <div>
+                  <Label htmlFor="due_date">Due Date</Label>
+                  <Input
+                    type="datetime-local"
+                    id="due_date"
+                    value={formData.due_date}
+                    className="w-full appearance-none"
+                    onChange={(e) => handleInputChange('due_date', e.target.value)}
+                  />
+                </div>
 
-             
-              <div>
-                <Label htmlFor="title">Assignment Title *</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="Enter assignment title"
-                />
-              </div>
+
+                <div>
+                  <Label htmlFor="title">Assignment Title *</Label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="Enter assignment title"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
@@ -769,9 +781,9 @@ const TutorAssignments = () => {
                 <Button type="submit" disabled={submitting}>
                   {submitting ? 'Creating...' : 'Create Assignment'}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setShowCreateForm(false)}
                 >
                   Cancel
@@ -805,13 +817,13 @@ const TutorAssignments = () => {
             </div>
           )}
         </div>
-        
+
         {activeTab === 'all' ? (
           // All Assignments View
           getFilteredAssignments().length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <Card>
+              <CardContent className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 {getActiveFiltersCount() > 0 ? (
                   <>
                     <p className="text-gray-600">No assignments match your filters</p>
@@ -826,57 +838,54 @@ const TutorAssignments = () => {
                   </>
                 ) : (
                   <>
-              <p className="text-gray-600">No assignments created yet</p>
-              <p className="text-sm text-gray-500">Create your first assignment to get started</p>
+                    <p className="text-gray-600">No assignments created yet</p>
+                    <p className="text-sm text-gray-500">Create your first assignment to get started</p>
                   </>
                 )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
               {getFilteredAssignments().map((assignment) => (
                 <Card key={assignment._id} className={
-                  assignment.has_submission 
-                    ? assignment.is_graded 
-                      ? 'border-green-200' 
-                      : 'border-orange-200' 
+                  assignment.has_submission
+                    ? assignment.is_graded
+                      ? 'border-green-200'
+                      : 'border-orange-200'
                     : 'border-gray-200'
                 }>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                      <span className="text-medium font-medium">Title:</span>
-                      <h4 className="text-lg font-semibold">{assignment.title}</h4>
-                        {assignment.has_submission ? (
-                          assignment.is_graded ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-medium font-medium">Title:</span>
+                          <h4 className="text-lg font-semibold">{assignment.title}</h4>
+                          {assignment.has_submission ? (
+                            assignment.is_graded ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            ) : (
+                              <AlertCircle className="h-5 w-5 text-orange-600" />
+                            )
                           ) : (
-                            <AlertCircle className="h-5 w-5 text-orange-600" />
-                          )
-                        ) : (
-                          <Clock className="h-5 w-5 text-gray-400" />
+                            <Clock className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                        {assignment.description && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Description:</span>
+                          <p className="text-gray-600">{assignment.description}</p>
+                          </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Description:</span>
-                      <p className="text-gray-600">{assignment.description}</p>
-                      </div>
-                    </div>
                       <div className="flex flex-col items-end gap-2">
-                    <Badge variant="secondary">
-                      {formatDate(assignment.createdAt)}
-                    </Badge>
+                        <Badge variant="secondary">
+                         Created At: {formatOnlyDate(assignment.createdAt)}
+                        </Badge>
                         {assignment.has_submission ? (
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex  gap-1">
                             <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
                               {assignment.is_graded ? 'Graded' : 'Submitted'}
                             </Badge>
-                            {/* {assignment.grade && (
-                              <Badge variant="outline" className="text-green-600">
-                                Grade: {assignment.grade}/100
-                              </Badge>
-                            )} */}
                             {assignment.is_late && (
                               <Badge variant="destructive" className="text-xs">
                                 Late Submission
@@ -889,52 +898,51 @@ const TutorAssignments = () => {
                           </Badge>
                         )}
                       </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium">Student:</span>
-                      <span className="text-sm">{assignment.student_id.user_id.full_name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium">Subject:</span>
-                      <span className="text-sm">{getSubjectName(assignment.subject._id)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium">Academic Level:</span>
-                      <span className="text-sm">{getLevelName(assignment.academic_level._id)}</span>
-                    </div>
-                    {assignment.due_date && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Due Date:</span>
-                        <span className="text-sm">{formatDate(assignment.due_date)}</span>
+                        <User className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium">Student:</span>
+                        <span className="text-sm">{assignment.student_id.user_id.full_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium">Subject:</span>
+                        <span className="text-sm">{getSubjectName(assignment.subject._id)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium">Academic Level:</span>
+                        <span className="text-sm">{getLevelName(assignment.academic_level._id)}</span>
+                      </div>
+                      {assignment.due_date && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm font-medium">Due Date:</span>
+                          <span className="text-sm">{formatDate(assignment.due_date)}</span>
+                        </div>
+                      )}
+
+                    </div>
+
+                    {assignment.file_url && (
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm text-blue-600">{assignment.file_name}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(assignment.file_url, '_blank')}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
                       </div>
                     )}
-                      
-                  </div>
-
-                  {assignment.file_url && (
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm text-blue-600">{assignment.file_name}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                          onClick={() => window.open(assignment.file_url, '_blank')}
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )
         ) : (
           // Submitted Assignments View
@@ -978,12 +986,16 @@ const TutorAssignments = () => {
                             <AlertCircle className="h-5 w-5 text-orange-600" />
                           )}
                         </div>
+                        {assignment.description && (
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">Description:</span>
                           <p className="text-gray-600">{assignment.description}</p>
                         </div>
+                        )}
                       </div>
                       <div className="flex flex-col items-end gap-2">
+                      <div className="flex  gap-2">
+
                         <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
                           {assignment.is_graded ? 'Graded' : 'Pending Evaluation'}
                         </Badge>
@@ -992,7 +1004,7 @@ const TutorAssignments = () => {
                             Grade: {assignment.grade}/100
                           </Badge>
                         )}
-                        {console.log("assignment", assignment)}
+</div>
                         {assignment.is_late && (
                           <Badge variant="destructive" className="text-xs">
                             Late Submission

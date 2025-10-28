@@ -110,7 +110,6 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                 ) : (
                   <User className="h-10 w-10 text-white" />
                 )}
-                {console.log("BASE_URL", `${user.photo_url}`)}
               </div>
               
             </Badge>
@@ -135,9 +134,9 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {Array.isArray(user.subjects) && user.subjects.length > 0 ? (
-                  user.subjects.slice(0, 3).map(subject => (
+                  user.subjects.slice(0, 3).map((subject, index) => (
                     <Chip
-                      key={subject}
+                      key={subject._id || `subject-${index}`}
                       label={getSubjectName(subject._id).name}
                       size="small"
                       variant="outlined"
@@ -198,9 +197,9 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {user.subjects?.length > 0 ? (
-                  user.subjects.slice(0, 3).map(subject => (
+                  user.subjects.slice(0, 3).map((subject, index) => (
                     <Chip
-                      key={subject}
+                      key={subject._id || `subject-${index}`}
                       label={getSubjectName(subject).name}
                       size="small"
                       variant="outlined"
@@ -250,7 +249,6 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           <>
             <TableCell>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {console.log(user.children)}
                 {user.children?.length > 0 ? (
                   user.children.slice(0, 3).map(child => (
                     <Chip
@@ -469,7 +467,6 @@ const UserTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {console.log("loading", loading)}
             {loading ? (
               <TableRow>
                 <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>

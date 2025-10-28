@@ -50,7 +50,7 @@ const TutorDocumentReuploadPage = () => {
         toast.error(data.message || 'Failed to fetch documents');
       }
     } catch (error) {
-      console.error('Error fetching documents:', error);
+      //console.error('Error fetching documents:', error);
       toast.error('Failed to fetch documents');
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ const TutorDocumentReuploadPage = () => {
         toast.error(data.message || 'Failed to upload document');
       }
     } catch (error) {
-      console.error('Error uploading document:', error);
+      //console.error('Error uploading document:', error);
       toast.error('Failed to upload document');
     } finally {
       setUploading(prev => ({ ...prev, [documentType]: false }));

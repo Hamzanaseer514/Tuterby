@@ -73,7 +73,7 @@ const StudentPaymentPage = () => {
             const data = await response.json();
             setPayments(data.payments || []);
         } catch (error) {
-            console.error('Error fetching payments:', error);
+            //console.error('Error fetching payments:', error);
             // toast({
             //     title: "Error",
             //     description: "Failed to load payment data",
@@ -131,7 +131,7 @@ const StudentPaymentPage = () => {
         try {
             setLoading(true);
             const token = getAuthToken();
-            console.log("payment", payment);
+            //console.log("payment", payment);
             // If it's an expired payment, create renewal first
             if (payment.status === 'completed' && payment.validity_status === 'expired') {
                 const renewalResponse = await fetchWithAuth(`${BASE_URL}/api/auth/student/payments/${payment._id}/renew`, {
@@ -174,18 +174,18 @@ const StudentPaymentPage = () => {
                 })
             }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
             );
-            console.log("response", response)
+            //console.log("response", response)
             if (!response.ok) throw new Error("Failed to create checkout session");
     
             // ✅ parse backend response
             const data = await response.json();
-            console.log("data", data)
+            //console.log("data", data)
     
             // 🚀 instant redirect to Stripe Checkout
             window.location.href = data.url;
     
         } catch (error) {
-            console.error("Error processing payment:", error);
+            //console.error("Error processing payment:", error);
             toast({
                 title: "Error",
                 description: "Failed to process payment",
@@ -519,7 +519,6 @@ const StudentPaymentPage = () => {
                                                         Academic Level Access Granted
                                                     </Button>
                                                 )}
-                                                {console.log("p",payment)}
                                                 {payment.status === 'completed' && payment.validity_status === 'expired' && !payment.has_renewal && (
                                                     <Button
                                                         onClick={() => handlePayment(payment)}

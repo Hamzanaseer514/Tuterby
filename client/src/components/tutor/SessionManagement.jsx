@@ -180,7 +180,7 @@ const SessionManagement = () => {
       const data = await response.json();
       setSessions(data.sessions);
     } catch (err) {
-      console.error('Error fetching sessions:', err);
+      // console.error('Error fetching sessions:', err);
     } finally {
       setLoading(false);
     }
@@ -257,7 +257,7 @@ const SessionManagement = () => {
       //   setAcademicLevels(data.academic_levels);
       // }
     } catch (err) {
-      console.error('Error fetching students:', err);
+      // console.error('Error fetching students:', err);
     } finally {
       setLoadingStudents(false);
     }
@@ -364,7 +364,7 @@ const SessionManagement = () => {
       });
       fetchSessions(); // Refresh sessions after update
     } catch (err) {
-      console.error('Error updating session:', err);
+      // console.error('Error updating session:', err);
       toast.error(err.message || 'Failed to update session');
     }
   };

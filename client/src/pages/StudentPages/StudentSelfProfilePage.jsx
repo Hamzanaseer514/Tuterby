@@ -284,7 +284,7 @@ const StudentSelfProfilePage = () => {
                     } catch (error) {
                       // If upload fails, clear preview
                       setPreviewImage(null);
-                      console.error('Upload failed:', error);
+                      //console.error('Upload failed:', error);
                     } finally {
                       setUploading(false);
                     }

@@ -132,7 +132,7 @@ const TutorSessionsPage = () => {
         setError(response.message || 'Failed to load sessions');
       }
     } catch (error) {
-      console.error('Error loading sessions:', error);
+      //console.error('Error loading sessions:', error);
       setError(error.message || 'Failed to load sessions');
     } finally {
       setLoading(false);

@@ -70,7 +70,7 @@ const StudentDashboardPage = () => {
           : `${BASE_URL}${photo_url.startsWith('/') ? '' : '/'}${photo_url}`;
         setProfileImageUrl(url);
       } catch (error) {
-        console.error('Error fetching profile image:', error);
+        //console.error('Error fetching profile image:', error);
         setProfileImageUrl('');
       }
     };

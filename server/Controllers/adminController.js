@@ -1681,12 +1681,11 @@ exports.getDashboardStats = async (req, res) => {
       acc[p._id] = p.count;
       return acc;
     }, {});
-
-   
+    
     const stats = {
       tutors: {
         total: Object.values(tutorStats).reduce((sum, count) => sum + count, 0),
-        inactive: tutorStats.unverified || 0,
+        inactive: tutorStats.rejected || 0,
         verified: tutorStats.approved || 0,
       },
       students: { 

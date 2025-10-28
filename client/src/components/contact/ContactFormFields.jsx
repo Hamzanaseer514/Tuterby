@@ -24,7 +24,7 @@ const ContactFormFields = ({ formData, handleChange, handleCheckboxChange, handl
         <Label htmlFor="phone" className="flex items-center mb-1"><Phone className="w-4 h-4 mr-2 text-primary" />Phone Number <span className="text-destructive ml-1">*</span></Label>
         <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="e.g. 07123456789" required />
       </div>
-
+{/* 
       <div>
         <Label htmlFor="selectedPlan" className="flex items-center mb-1"><ShoppingBag className="w-4 h-4 mr-2 text-primary" />Select a Plan</Label>
         <Select name="selectedPlan" value={formData.selectedPlan} onValueChange={(value) => handleSelectChange('selectedPlan', value)}>
@@ -54,9 +54,9 @@ const ContactFormFields = ({ formData, handleChange, handleCheckboxChange, handl
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </div> */}
 
-      <div>
+      {/* <div>
         <Label htmlFor="tutoringPreference" className="flex items-center mb-1"><Star className="w-4 h-4 mr-2 text-primary" />Tutoring Preference</Label>
         <Select name="tutoringPreference" value={formData.tutoringPreference} onValueChange={(value) => handleSelectChange('tutoringPreference', value)}>
           <SelectTrigger id="tutoringPreference"><SelectValue placeholder="Online or In-Person? (Optional)" /></SelectTrigger>
@@ -66,9 +66,9 @@ const ContactFormFields = ({ formData, handleChange, handleCheckboxChange, handl
             <SelectItem value="Flexible">Flexible / No Preference</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
 
-      <div>
+      {/* <div>
         <Label className="flex items-center mb-2"><CalendarClock className="w-4 h-4 mr-2 text-primary" />Preferred Days</Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
           {days.map(day => (
@@ -92,7 +92,7 @@ const ContactFormFields = ({ formData, handleChange, handleCheckboxChange, handl
             {hours.map(hourRange => <SelectItem key={hourRange} value={hourRange}>{hourRange}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
 
       <div>
         <Label htmlFor="message" className="flex items-center mb-1"><MessageSquare className="w-4 h-4 mr-2 text-primary" />Message <span className="text-destructive ml-1">*</span></Label>

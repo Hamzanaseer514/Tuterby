@@ -684,7 +684,6 @@ const Register = () => {
             navigate("/login?registrationSuccess=true");
           }, 2000);
         } catch (err) {
-          console.error("Registration error:", err);
           setError(err.message);
           addToast("Error", err.message);
         } finally {

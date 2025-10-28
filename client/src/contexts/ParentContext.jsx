@@ -27,7 +27,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching parent profile:', error);
+      // console.error('Error fetching parent profile:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -50,7 +50,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error adding child:', error);
+      //console.error('Error adding child:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -72,7 +72,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error updating parent profile:', error);
+      //console.error('Error updating parent profile:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -94,7 +94,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      //console.error('Error fetching dashboard stats:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -118,7 +118,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      //console.error('Error uploading photo:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -141,7 +141,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error updating child profile:', error);
+      //console.error('Error updating child profile:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -167,7 +167,7 @@ export const ParentProvider = ({ children }) => {
 
       return await response.json();
     } catch (error) {
-      console.error('Error uploading child photo:', error);
+      //console.error('Error uploading child photo:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -227,7 +227,7 @@ export const ParentProvider = ({ children }) => {
       };
 
     } catch (error) {
-      console.error('Error creating parent payment session:', error);
+      //console.error('Error creating parent payment session:', error);
       throw new Error(`Payment session creation failed: ${error.message}`);
     } finally {
       setLoading(false);
@@ -251,7 +251,7 @@ export const ParentProvider = ({ children }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error fetching student details:', error);
+      //console.error('Error fetching student details:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -274,7 +274,7 @@ export const ParentProvider = ({ children }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      //console.error('Error fetching payments:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -298,7 +298,7 @@ export const ParentProvider = ({ children }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      //console.error('Error fetching sessions:', error);
       throw error;
     }
   }, [getAuthToken]);
@@ -325,7 +325,7 @@ export const ParentProvider = ({ children }) => {
       toast.success('Child deleted successfully');
       return data;
     } catch (error) {
-      console.error('Error deleting child:', error);
+      //console.error('Error deleting child:', error);
       toast.error(error.message || 'Failed to delete child');
       throw error;
     } finally {
@@ -364,7 +364,7 @@ export const ParentProvider = ({ children }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error fetching tutors:', error);
+      //console.error('Error fetching tutors:', error);
       // toast.error(error.message || 'Failed to fetch tutors');
       throw error;
     } finally {
@@ -392,7 +392,7 @@ export const ParentProvider = ({ children }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error fetching hired tutors:', error);
+      //console.error('Error fetching hired tutors:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -421,7 +421,7 @@ export const ParentProvider = ({ children }) => {
       toast.success('Review submitted successfully');
       return data;
     } catch (error) {
-      console.error('Error submitting review:', error);
+      //console.error('Error submitting review:', error);
       toast.error(error.message || 'Failed to submit review');
       throw error;
     } finally {
@@ -449,7 +449,7 @@ export const ParentProvider = ({ children }) => {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      //console.error('Error fetching reviews:', error);
       throw error;
     } finally {
       setLoading(false);

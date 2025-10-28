@@ -19,7 +19,7 @@ export const SubjectProvider = ({ children }) => {
         const data = await res.json();
         setSubjects(data.data);
       } catch (err) {
-        console.error("Error fetching subjects:", err);
+        //console.error("Error fetching subjects:", err);
       }
     };
 
@@ -30,7 +30,7 @@ export const SubjectProvider = ({ children }) => {
         const data = await res.json();
         setAcademicLevels(data);
       } catch (err) {
-        console.error("Error fetching academic levels:", err);
+        //console.error("Error fetching academic levels:", err);
       }
     };
 
@@ -54,7 +54,7 @@ export const SubjectProvider = ({ children }) => {
     const data = await res.json();
     setSubjectRelatedToAcademicLevels(data.data);
   } catch (err) {
-    console.error("Error fetching subjects:", err);
+    //console.error("Error fetching subjects:", err);
   }
 };
 

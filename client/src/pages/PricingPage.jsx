@@ -119,7 +119,7 @@ const PricingPage = () => {
         </p>
       </motion.div>
 
-      <div className="flex flex-wrap justify-center gap-2 mb-10 md:mb-12">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-2 mb-10 md:mb-12">
         {filterButtons.map(btn => (
           <Button
             key={btn.filter}

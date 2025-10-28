@@ -36,10 +36,10 @@ import { getTutorSubmissions, gradeSubmission } from '../../services/assignmentS
 import { useSubject } from '../../hooks/useSubject';
 
 // Submission Details Modal Component
-const SubmissionDetailsModal = ({ 
-  submission, 
-  onGradeSubmission, 
-  grading 
+const SubmissionDetailsModal = ({
+  submission,
+  onGradeSubmission,
+  grading
 }) => {
   const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-GB', {
@@ -48,7 +48,9 @@ const SubmissionDetailsModal = ({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC'
     });
   };
 
@@ -58,21 +60,22 @@ const SubmissionDetailsModal = ({
       <div className="space-y-4">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-medium font-medium">Title:</span>
-                <h3 className="text-xl font-semibold mb-2">{submission.assignment_id.title}</h3>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-medium font-medium">Title:</span>
+              <h3 className="text-xl font-semibold mb-2">{submission.assignment_id.title}</h3>
+            </div>
+            {submission.assignment_id.description && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Description:</span>
                 <p className="text-gray-600">{submission.assignment_id.description}</p>
               </div>
-           
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge variant={submission.status === 'graded' ? 'default' : 'secondary'}>
-              {submission.status === 'graded' ? 'Graded' : 'Pending'}
+              {submission.status === 'graded' ? 'Graded' : 'Pending Evaluation'}
             </Badge>
-          
+
           </div>
         </div>
 
@@ -82,11 +85,6 @@ const SubmissionDetailsModal = ({
             <User className="h-4 w-4 text-gray-500" />
             <span className="text-sm font-medium">Student:</span>
             <span className="text-sm">{submission.student_id.user_id.full_name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium">Submitted:</span>
-            <span className="text-sm">{formatDateTime(submission.submitted_at)}</span>
           </div>
           {submission.assignment_id.subject && (
             <div className="flex items-center gap-2">
@@ -115,37 +113,44 @@ const SubmissionDetailsModal = ({
       {/* Submission Content */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-        <h4 className="font-medium text-gray-900">Student's Submission</h4>
-        <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
-                            {submission.is_late ? 'Late' : 'On Time'}
-                          </Badge>
-                          </div>
+          <div className="flex  gap-2">
+            <h4 className="font-medium text-gray-900">Student's Submission</h4>
+            <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
+              {submission.is_late ? 'Late Submission' : 'On Time'}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium">Submitted:</span>
+            <span className="text-sm">{formatDateTime(submission.submitted_at)}</span>
+          </div>
+        </div>
         {submission.submission_text && (
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex items-center gap-5">
-            <p className="text-sm font-medium">Submission Text:</p>
-            <p className="text-sm text-gray-700">{submission.submission_text}</p>
+              <p className="text-sm font-medium">Submission Text:</p>
+              <p className="text-sm text-gray-700">{submission.submission_text}</p>
             </div>
           </div>
         )}
-        
+
         {submission.submission_file_url && (
           <div className="flex items-center gap-2 justify-between">
             <div className="flex items-center gap-12">
-            <p className="text-sm font-medium">Submitted File:</p>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-600" />
-              <span className="text-sm text-blue-600">{submission.submission_file_name}</span>
+              <p className="text-sm font-medium">Submitted File:</p>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-600">{submission.submission_file_name}</span>
               </div>
             </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => window.open(submission.submission_file_url, '_blank')}
-              >
-                <Eye className="h-3 w-3 mr-1" />
-                View
-              </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(submission.submission_file_url, '_blank')}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              View
+            </Button>
           </div>
         )}
 
@@ -169,10 +174,10 @@ const SubmissionDetailsModal = ({
             {submission.feedback && (
               <div className="mt-2">
                 <div className="flex items-center gap-5">
-                <p className="text-sm font-medium">Feedback:</p>
-                <p className="text-sm text-gray-700">{submission.feedback}</p>
+                  <p className="text-sm font-medium">Feedback:</p>
+                  <p className="text-sm text-gray-700">{submission.feedback}</p>
                 </div>
-                </div>
+              </div>
             )}
             <p className="text-xs text-gray-500 mt-2">
               Graded: {formatDateTime(submission.graded_at)}
@@ -199,7 +204,7 @@ const TutorSubmissions = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { academicLevels, subjects } = useSubject();
-  
+
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [grading, setGrading] = useState({});
@@ -211,7 +216,7 @@ const TutorSubmissions = () => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState(null);
-  
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -233,7 +238,6 @@ const TutorSubmissions = () => {
     try {
       const data = await getTutorSubmissions(user._id);
       setSubmissions(data);
-      console.log("submissions", data);
     } catch (error) {
       toast({
         title: "Error",
@@ -252,7 +256,9 @@ const TutorSubmissions = () => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC'
     });
   };
 
@@ -308,7 +314,7 @@ const TutorSubmissions = () => {
     // Apply sorting
     filtered.sort((a, b) => {
       let aValue, bValue;
-      
+
       switch (filters.sort_by) {
         case 'title': {
           const aTitle = a?.assignment_id?.title || '';
@@ -505,7 +511,7 @@ const TutorSubmissions = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending (Not Graded)</SelectItem>
+                      <SelectItem value="pending">Pending Evaluation</SelectItem>
                       <SelectItem value="graded">Graded</SelectItem>
                     </SelectContent>
                   </Select>
@@ -574,9 +580,9 @@ const TutorSubmissions = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setFilters(prev => ({ 
-                        ...prev, 
-                        sort_order: prev.sort_order === 'asc' ? 'desc' : 'asc' 
+                      onClick={() => setFilters(prev => ({
+                        ...prev,
+                        sort_order: prev.sort_order === 'asc' ? 'desc' : 'asc'
                       }))}
                     >
                       {filters.sort_order === 'asc' ? (
@@ -611,8 +617,8 @@ const TutorSubmissions = () => {
               </>
             ) : (
               <>
-            <p className="text-gray-600">No submissions yet</p>
-            <p className="text-sm text-gray-500">Students will submit their assignments here</p>
+                <p className="text-gray-600">No submissions yet</p>
+                <p className="text-sm text-gray-500">Students will submit their assignments here</p>
               </>
             )}
           </CardContent>
@@ -627,7 +633,7 @@ const TutorSubmissions = () => {
               </span>
             </div>
           )}
-          
+
           {getFilteredSubmissions().map((submission) => (
             <Card key={submission._id}>
               <CardContent className="p-4">
@@ -637,54 +643,61 @@ const TutorSubmissions = () => {
                       <span className="text-medium font-medium">Title:</span>
                       <h3 className="text-xl font-semibold mb-2">{submission.assignment_id.title}</h3>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Description:</span>
-                      <p className="text-gray-600">{submission.assignment_id.description}</p>
-                    </div>
-                   
+                    {submission.assignment_id.description && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Description:</span>
+                        <p className="text-gray-600">{submission.assignment_id.description}</p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <Badge variant={submission.status === 'graded' ? 'default' : 'secondary'}>
-                      {submission.status === 'graded' ? 'Graded' : 'Pending'}
+                      {submission.status === 'graded' ? 'Graded' : 'Pending Evaluation'}
                     </Badge>
                     <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
-                            {submission.is_late ? 'Late' : 'On Time'}
-                          </Badge>
+                      {submission.is_late ? 'Late Submission' : 'On Time'}
+                    </Badge>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      <span>{submission.student_id.user_id.full_name}</span>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium">Student:</span>
+                      <span className="text-sm">{submission.student_id.user_id.full_name}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{formatDateTime(submission.submitted_at)}</span>
-                    </div>
+
+                    {/* <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium">Submitted:</span>
+                      <span className="text-sm">{formatDateTime(submission.submitted_at)}</span>
+                    </div> */}
                     {submission.assignment_id.subject && (
                       <div className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4" />
+                        <BookOpen className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium">Subject:</span>
                         <span>{submission.assignment_id.subject.name}</span>
                       </div>
                     )}
                     {submission.assignment_id.academic_level && (
                       <div className="flex items-center gap-1">
-                        <GraduationCap className="h-4 w-4" />
+                        <GraduationCap className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium">Academic Level:</span>
                         <span>{submission.assignment_id.academic_level.level}</span>
                       </div>
                     )}
                     {submission.status === 'graded' && (
                       <div className="flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium">Grade:</span>
                         <span className="text-green-600 font-medium">{submission.grade}/100</span>
                       </div>
                     )}
                   </div>
-                  
-                  <Button 
-                    size="sm" 
+
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => handleViewDetails(submission)}
                   >
@@ -700,7 +713,7 @@ const TutorSubmissions = () => {
 
       {/* Submission Details Modal */}
       {showDetailsModal && currentSubmission && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={() => {
@@ -708,7 +721,7 @@ const TutorSubmissions = () => {
             setCurrentSubmission(null);
           }}
         >
-          <div 
+          <div
             className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-lg"
             onClick={(e) => e.stopPropagation()}
           >
@@ -718,8 +731,8 @@ const TutorSubmissions = () => {
                   <FileText className="h-5 w-5" />
                   {currentSubmission.assignment_id.title}
                 </h2>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setShowDetailsModal(false);
@@ -730,7 +743,7 @@ const TutorSubmissions = () => {
                 </Button>
               </div>
 
-              <SubmissionDetailsModal 
+              <SubmissionDetailsModal
                 submission={currentSubmission}
                 onGradeSubmission={handleGradeSubmission}
                 grading={grading}
@@ -742,7 +755,7 @@ const TutorSubmissions = () => {
 
       {/* Grade Modal */}
       {showGradeModal && selectedSubmission && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={() => {
@@ -769,7 +782,7 @@ const TutorSubmissions = () => {
                   placeholder="Enter grade"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="feedback">Feedback (Optional)</Label>
                 <Textarea
@@ -780,7 +793,7 @@ const TutorSubmissions = () => {
                   rows={4}
                 />
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   onClick={handleSubmitGrade}

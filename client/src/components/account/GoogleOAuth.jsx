@@ -58,9 +58,6 @@ const GoogleOAuth = ({ role = "student", mode = "register" }) => {
       // Determine the endpoint based on mode
       const endpoint = mode === 'login' ? '/api/auth/login-google' : '/api/auth/register-google';
       
-      console.log('Sending request to:', `${BASE_URL}${endpoint}`);
-      console.log('Mode:', mode);
-      console.log('Role:', role);
       
       // Send the ID token to your backend
       const apiResponse = await fetch(`${BASE_URL}${endpoint}`, {
@@ -76,7 +73,6 @@ const GoogleOAuth = ({ role = "student", mode = "register" }) => {
       });
 
       const data = await apiResponse.json();
-      console.log('API Response:', data);
 
       if (apiResponse.ok) {
         // Store the auth token and user data using existing structure
@@ -109,7 +105,6 @@ const GoogleOAuth = ({ role = "student", mode = "register" }) => {
         }
       }
     } catch (error) {
-      console.error('Google OAuth error:', error);
       toast.error(`Google ${mode === 'login' ? 'login' : 'authentication'} failed. Please try again.`);
     } finally {
       setIsLoading(false);

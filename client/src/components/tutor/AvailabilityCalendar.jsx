@@ -101,7 +101,7 @@ const AvailabilityCalendar = () => {
         is_accepting_bookings: data.is_accepting_bookings
       });
     } catch (err) {
-      console.error('Error fetching availability:', err);
+      // console.error('Error fetching availability:', err);
       setError(err.message);
     } finally {
       setLoading(false);
