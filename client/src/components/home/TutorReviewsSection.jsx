@@ -7,7 +7,6 @@ const TutorReviewsSection = () => {
   const [reviews, setReviews] = useState([]);
   const [visibleCount, setVisibleCount] = useState(6);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -26,12 +25,15 @@ const TutorReviewsSection = () => {
     try {
       setLoading(true);
       const response = await fetch(`${BASE_URL}/api/admin/tutor-reviews`);
-      if (!response.ok) throw new Error('Failed to fetch reviews');
+      if (!response.ok) {
+        setReviews([]);
+        return;
+      }
       const data = await response.json();
       setReviews(data.reviews || []);
     } catch (error) {
-      // console.error('Error fetching tutor reviews:', error);
-      setError('Failed to load reviews. Please try again later.');
+      // Silently fail and show no reviews available
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -115,9 +117,6 @@ const TutorReviewsSection = () => {
     return <div className="py-10 text-center">Loading reviews...</div>;
   }
 
-  if (error) {
-    return <div className="py-10 text-center text-red-600">{error}</div>;
-  }
 
   return (
     <section className="py-10 md:py-12 bg-background dark:bg-slate-900/50">
@@ -137,6 +136,7 @@ const TutorReviewsSection = () => {
             Discover how TutorNearby has helped students and parents forge brighter academic futures.
           </p>
         </motion.div>
+
 
         {/* Filter Section */}
         <motion.div
@@ -243,7 +243,7 @@ const TutorReviewsSection = () => {
             </div>
           )}
         </motion.div>
-
+    
         {/* Reviews Grid */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
@@ -338,12 +338,12 @@ const TutorReviewsSection = () => {
         )}
 
         {/* No Results Message */}
-        {filteredReviews.length === 0 && reviews.length > 0 && (
-          <div className="text-center py-12">
+        {filteredReviews.length == 0 && reviews.length == 0 && (
+          <div className="text-center pt-10">
             <div className="text-muted-foreground mb-4">
               <Filter className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">No reviews match your filters</h3>
-              <p className="text-sm">Try adjusting your search criteria or reset the filters to see all reviews.</p>
+              <h3 className="text-lg font-medium">No reviews available</h3>
+              <p className="text-sm">No reviews have been submitted yet.</p>
             </div>
             {hasActiveFilters && (
               <button
