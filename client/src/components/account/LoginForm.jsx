@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield, Star, CheckCircle } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BASE_URL } from '@/config';
 import { Link } from 'react-router-dom';
@@ -25,7 +25,18 @@ export default function LoginForm() {
   const [userId, setUserId] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { login, clearAllAuthData } = useAuth();
+  const redirectAfterLogin = (userRole) => {
+    const redirectTo = location.state?.redirectTo;
+    const tutorId = location.state?.tutorId;
+    if (redirectTo === '/tutor' && tutorId && (userRole === 'student' || userRole === 'parent')) {
+      navigate('/tutor', { state: { tutorId } });
+      return true;
+    }
+    return false;
+  };
+
 
   useEffect(() => {
     const registrationSuccess = searchParams.get('registrationSuccess');
@@ -80,10 +91,16 @@ export default function LoginForm() {
       }
       else {
         login(data.user, data.accessToken, rememberMe);
-        setSuccess('Welcome to your Student Dashboard! Redirecting...');
-        setTimeout(() => {
-          navigate(`/student-dashboard`);
-        }, 1000);
+        // Try intent redirect first
+        if (!redirectAfterLogin(data.user?.role)) {
+          setSuccess('Welcome to your Dashboard! Redirecting...');
+          setTimeout(() => {
+            if (data.user?.role === 'student') navigate(`/student-dashboard`);
+            else if (data.user?.role === 'parent') navigate(`/parent-dashboard`);
+            else if (data.user?.role === 'tutor') navigate(`/tutor-dashboard`);
+            else navigate('/');
+          }, 800);
+        }
       }
       // }
     } catch (err) {
@@ -125,17 +142,23 @@ export default function LoginForm() {
 
         }
         else if (data.user && data.user.role === 'student') {
-          setSuccess('Welcome to your Student Dashboard! Redirecting...');
-          setTimeout(() => {
-            navigate(`/student-dashboard`);
-          }, 1000);
+          // Try intent redirect first
+          if (!redirectAfterLogin('student')) {
+            setSuccess('Welcome to your Student Dashboard! Redirecting...');
+            setTimeout(() => {
+              navigate(`/student-dashboard`);
+            }, 1000);
+          }
         }
 
         else if (data.user && data.user.role === 'parent') {
-          setSuccess('Welcome to your Parent Dashboard! Redirecting...');
-          setTimeout(() => {
-            navigate(`/parent-dashboard`);
-          }, 1000);
+          // Try intent redirect first
+          if (!redirectAfterLogin('parent')) {
+            setSuccess('Welcome to your Parent Dashboard! Redirecting...');
+            setTimeout(() => {
+              navigate(`/parent-dashboard`);
+            }, 1000);
+          }
         } else {
           setSuccess('Welcome to your Dashboard! Redirecting...');
           setTimeout(() => {
@@ -221,7 +244,7 @@ export default function LoginForm() {
 
       <p className="text-base text-gray-600 mb-3 mt-3 relative z-20">
         Don't have an account?{' '}
-        <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
+        <Link to="/register" state={location.state} className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
           Sign up
         </Link>
       </p>

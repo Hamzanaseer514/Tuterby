@@ -37,6 +37,7 @@ import {
 import { UserPlus, Shield, Star } from "lucide-react";
 import { CheckCircle, AlertCircle, FileUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
 import { useSubject } from "../../hooks/useSubject";
@@ -130,6 +131,7 @@ const Register = () => {
   const [currentDocumentIndex, setCurrentDocumentIndex] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const documentTypes = [
     "ID Proof",
@@ -681,7 +683,12 @@ const Register = () => {
           });
 
           setTimeout(() => {
-            navigate("/login?registrationSuccess=true");
+            navigate("/login?registrationSuccess=true", {
+              state: location.state && {
+                redirectTo: location.state.redirectTo,
+                tutorId: location.state.tutorId,
+              },
+            });
           }, 2000);
         } catch (err) {
           setError(err.message);
@@ -787,7 +794,12 @@ const Register = () => {
         });
         setSelectedDuration("");
         setTimeout(() => {
-          navigate("/login?registrationSuccess=true");
+          navigate("/login?registrationSuccess=true", {
+            state: location.state && {
+              redirectTo: location.state.redirectTo,
+              tutorId: location.state.tutorId,
+            },
+          });
         }, 1000);
       }
     } catch (err) {

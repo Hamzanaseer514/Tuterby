@@ -405,9 +405,9 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
             }}
           >
             {loading ? 'Processing...' :
-              !user ? 'Request This Tutor' :
+              !user ? 'View Tutor Profile' :
                 user.role !== 'student' ? 'Students Only' :
-                  'Request This Tutor'
+                  'View Tutor Profile'
             }
           </Button>
         </Box>
@@ -558,7 +558,9 @@ const Tutors = () => {
       navigate('/login', {
         state: {
           from: '/tutors',
-          message: 'Please login to hire a tutor'
+          message: 'Please login to view tutor profile',
+          redirectTo: '/tutor',
+          tutorId: tutor._id
         }
       });
       return;
@@ -577,12 +579,12 @@ const Tutors = () => {
     try {
       setHireLoading(true);
 
-      // Redirect to student dashboard
-      navigate('/student/tutor-search', {
+      // Open the tutor profile page directly
+      navigate('/tutor', {
         state: {
-          tutor: tutor
+          tutorId: tutor._id
         }
-      })
+      });
 
     } catch (error) {
       // console.error('Error hiring tutor:', error);

@@ -34,6 +34,7 @@ const {
   updateTutorSettings,
   addTutorAcademicLevel,
   removeTutorAcademicLevel,
+  removeTutorSubject,
   sendMeetingLink,
   getStudentPaymentStatus,
   getHiredSubjectsAndLevels,
@@ -102,6 +103,7 @@ router.get('/settings/:user_id', getTutorSettings);
 router.put('/settings/update/:user_id', protect, updateTutorSettings);
 router.post('/settings/:user_id/level', protect, addTutorAcademicLevel);
 router.delete('/settings/delete/:user_id/level/:education_level_id', protect, removeTutorAcademicLevel);
+router.delete('/settings/delete/:user_id/subject/:subject_id', protect, removeTutorSubject);
 router.get('/hired-subjects-and-levels/:studentId/:tutorId', getHiredSubjectsAndLevels);
 
 // Payment history routes

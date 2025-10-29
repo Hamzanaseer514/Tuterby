@@ -2296,11 +2296,11 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
   }
 });
 
-// Add a new academic level to tutor profile
+// Add a new academic level to tutor profile (and optionally add selected subjects)
 const addTutorAcademicLevel = asyncHandler(async (req, res) => {
   try {
     const { user_id } = req.params;
-    const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount } =
+    const { educationLevelId, hourlyRate, totalSessionsPerMonth, discount, subjects: selectedSubjects } =
       req.body || {};
 
     const tutorProfile = await TutorProfile.findOne({ user_id });
@@ -2355,6 +2355,16 @@ const addTutorAcademicLevel = asyncHandler(async (req, res) => {
       monthlyRate,
     });
 
+    // Optionally merge selected subjects into tutor profile subjects
+    if (Array.isArray(selectedSubjects) && selectedSubjects.length > 0) {
+      const current = (tutorProfile.subjects || []).map(id => id.toString());
+      const additions = selectedSubjects
+        .filter(Boolean)
+        .map(String);
+      const mergedSet = new Set([...current, ...additions]);
+      tutorProfile.subjects = Array.from(mergedSet).map(id => new mongoose.Types.ObjectId(id));
+    }
+
     await tutorProfile.save();
 
     return res.status(201).json({
@@ -2392,19 +2402,73 @@ const removeTutorAcademicLevel = asyncHandler(async (req, res) => {
       throw new Error("Academic level not found in tutor profile");
     }
 
+    // Remove the academic level from profile
     tutorProfile.academic_levels_taught.splice(index, 1);
+
+    // Also remove related subjects for this level from tutorProfile.subjects
+    const relatedSubjects = await Subject.find({ level_id: education_level_id }).select('_id');
+    const relatedIds = new Set(relatedSubjects.map(s => s._id.toString()));
+    if (Array.isArray(tutorProfile.subjects) && tutorProfile.subjects.length > 0 && relatedIds.size > 0) {
+      tutorProfile.subjects = tutorProfile.subjects.filter(id => !relatedIds.has(id.toString()));
+    }
     await tutorProfile.save();
 
     res.status(200).json({
       success: true,
-      message: "Academic level removed successfully",
-      data: tutorProfile.academic_levels_taught,
+      message: "Academic level and its related subjects removed successfully",
+      data: {
+        academic_levels_taught: tutorProfile.academic_levels_taught,
+        subjects: tutorProfile.subjects
+      },
     });
   } catch (error) {
     console.error("Error removing academic level:", error);
     res.status(500).json({
       success: false,
       message: "Failed to remove academic level",
+      error: error.message,
+    });
+  }
+});
+
+// Remove a specific subject from tutor profile
+const removeTutorSubject = asyncHandler(async (req, res) => {
+  try {
+    const { user_id, subject_id } = req.params;
+
+    const tutorProfile = await TutorProfile.findOne({ user_id });
+    if (!tutorProfile) {
+      res.status(404);
+      throw new Error("Tutor profile not found");
+    }
+
+    if (!subject_id) {
+      res.status(400);
+      throw new Error("Subject ID is required");
+    }
+
+    const beforeCount = (tutorProfile.subjects || []).length;
+    tutorProfile.subjects = (tutorProfile.subjects || []).filter(
+      (id) => id.toString() !== subject_id.toString()
+    );
+    const afterCount = tutorProfile.subjects.length;
+
+    if (beforeCount === afterCount) {
+      return res.status(404).json({ success: false, message: "Subject not found in tutor profile" });
+    }
+
+    await tutorProfile.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Subject removed successfully",
+      data: { subjects: tutorProfile.subjects }
+    });
+  } catch (error) {
+    console.error("Error removing tutor subject:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove subject",
       error: error.message,
     });
   }
@@ -2718,6 +2782,7 @@ module.exports = {
   updateTutorSettings,
   addTutorAcademicLevel,
   removeTutorAcademicLevel,
+  removeTutorSubject,
   sendMeetingLink,
   canCreateSessionForStudent,
   checkPaymentStatus,
