@@ -18,6 +18,8 @@ export default function PaymentResult() {
   useEffect(() => {
     // Payment confirmation is now handled by Stripe webhooks
     // No manual confirmation needed - webhook will update database automatically
+    console.log("success", success);
+    console.log("paymentId", paymentId);
     if (success === "true" && paymentId) {
       console.log("✅ Payment successful - webhook will handle confirmation");
     }
