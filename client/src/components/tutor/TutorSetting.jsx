@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../ui/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -21,15 +22,20 @@ const TutorSetting = () => {
     const { user, getAuthToken, fetchWithAuth } = useAuth();
     const token = getAuthToken();
     const { toast } = useToast();
-    const { subjects, academicLevels } = useSubject();
+    const { subjects, academicLevels, subjectRelatedToAcademicLevels, fetchSubjectRelatedToAcademicLevels } = useSubject();
     const [loading, setLoading] = useState(true);
     const [educationLevels, setEducationLevels] = useState([]);
     const [subjectIds, setSubjectIds] = useState([]);
     const [levels, setLevels] = useState([]);
     const [selectedLevelId, setSelectedLevelId] = useState('');
     const [adding, setAdding] = useState(false);
+    const [selectedSubjects, setSelectedSubjects] = useState([]);
     const [savingId, setSavingId] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [levelToRemove, setLevelToRemove] = useState({ level: null, relatedSubjectNames: [], relatedSubjectCount: 0 });
+    const [confirmSubjectOpen, setConfirmSubjectOpen] = useState(false);
+    const [subjectToRemove, setSubjectToRemove] = useState({ id: null, name: '' });
 
     const levelsById = useMemo(() => {
         const map = new Map();
@@ -51,6 +57,14 @@ const TutorSetting = () => {
         if (!user?._id) return;
         loadData();
     }, [user]);
+
+    // When a level is selected, fetch its related subjects and reset selection
+    useEffect(() => {
+        if (selectedLevelId) {
+            fetchSubjectRelatedToAcademicLevels([selectedLevelId]);
+            setSelectedSubjects([]);
+        }
+    }, [selectedLevelId]);
 
     async function loadData() {
         try {
@@ -111,7 +125,8 @@ const TutorSetting = () => {
                 educationLevelId: selectedLevelId,
                 hourlyRate: levelDoc.hourlyRate || 0,
                 totalSessionsPerMonth: levelDoc.totalSessionsPerMonth || 0,
-                discount: levelDoc.discount || 0
+                discount: levelDoc.discount || 0,
+                subjects: selectedSubjects || []
             };
 
             const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/${user._id}/level`, {
@@ -131,6 +146,10 @@ const TutorSetting = () => {
             });
             
             setSelectedLevelId('');
+            // Merge selected subjects into local subjectIds for immediate feedback
+            if (selectedSubjects && selectedSubjects.length > 0) {
+                setSubjectIds(prev => Array.from(new Set([...(prev || []), ...selectedSubjects])));
+            }
             // Optimistically update the UI
             setLevels(prev => [...prev, {
                 ...body,
@@ -192,8 +211,21 @@ const TutorSetting = () => {
         }
     }
 
-    async function removeLevel(level) {
+    function promptRemove(level) {
+        const subjectsForLevel = (subjects || []).filter(s => String(s.level_id?._id || s.level_id) === String(level.educationLevelId));
+        // Count only subjects that are actually in tutor's profile
+        const tutorSubjectIdSet = new Set((subjectIds || []).map(id => String(id)));
+        const relatedInTutorProfile = subjectsForLevel.filter(s => tutorSubjectIdSet.has(String(s._id)));
+        const names = relatedInTutorProfile.map(s => s.name).filter(Boolean);
+        setLevelToRemove({ level, relatedSubjectNames: names, relatedSubjectCount: names.length });
+        setConfirmOpen(true);
+    }
+
+    async function removeLevel() {
+        if (!levelToRemove?.level) return;
         try {
+            const { level, relatedSubjectNames, relatedSubjectCount } = levelToRemove;
+            setConfirmOpen(false);
             setDeletingId(level.educationLevelId);
             const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/delete/${user._id}/level/${level.educationLevelId}`, {
                 method: 'DELETE',
@@ -205,11 +237,22 @@ const TutorSetting = () => {
             
             toast({ 
                 title: 'Success', 
-                description: `${level.educationLevelName} removed` 
+                description: relatedSubjectCount > 0 
+                    ? `${level.educationLevelName} removed. Also removed subjects: ${relatedSubjectNames.join(', ')}`
+                    : `${level.educationLevelName} removed`
             });
             
             // Optimistically update the UI
             setLevels(prev => prev.filter(l => l.educationLevelId !== level.educationLevelId));
+            // Also remove subjects for this level locally
+            if ((subjects || []).length > 0) {
+                const levelSubjectIds = subjects
+                    .filter(s => String(s.level_id?._id || s.level_id) === String(level.educationLevelId))
+                    .map(s => s._id);
+                if (levelSubjectIds.length > 0) {
+                    setSubjectIds(prev => (prev || []).filter(id => !levelSubjectIds.includes(id)));
+                }
+            }
         } catch (e) {
             // console.error(e);
             toast({
@@ -219,6 +262,7 @@ const TutorSetting = () => {
             });
         } finally {
             setDeletingId(null);
+            setLevelToRemove(null);
         }
         }
 
@@ -251,15 +295,30 @@ const TutorSetting = () => {
                     <CardContent className="p-4 sm:p-6">
                         <div className="flex flex-wrap gap-2 sm:gap-3">
                             {subjectIds.length > 0 ? (
-                                subjectIds.map((subject, index) => (
-                                    <Badge 
-                                        key={index} 
-                                        variant="secondary" 
-                                        className="px-2 sm:px-3 py-1 text-xs sm:text-sm break-words"
-                                    >
-                                        {getSubjectName(subject).name} - {getSubjectName(subject).subject_type.name} - {getSubjectName(subject).level_id.level}
-                                    </Badge>
-                                ))
+                                subjectIds.map((subjectId, index) => {
+                                    const s = getSubjectName(subjectId);
+                                    return (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <Badge 
+                                                variant="secondary" 
+                                                className="px-2 sm:px-3 py-1 text-xs sm:text-sm break-words"
+                                            >
+                                                {s?.name} - {s?.subject_type?.name} - {s?.level_id?.level}
+                                            </Badge>
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                className="h-6 px-2 text-xs"
+                                                onClick={() => {
+                                                    setSubjectToRemove({ id: subjectId, name: s?.name || 'this subject' });
+                                                    setConfirmSubjectOpen(true);
+                                                }}
+                                            >
+                                                <Trash2 className="h-3 w-3" /> 
+                                            </Button>
+                                        </div>
+                                    );
+                                })
                             ) : (
                                 <p className="text-gray-500 text-sm sm:text-base">No subjects assigned yet</p>
                             )}
@@ -321,6 +380,43 @@ const TutorSetting = () => {
                                 )}
                             </Button>
                         </div>
+
+                        {/* Related Subjects for selected level */}
+                        {selectedLevelId && (
+                            <div className="mt-4 sm:mt-6">
+                                <Label className="text-sm sm:text-base font-medium mb-2 block">Select Subjects for this Level</Label>
+                                <div className="max-h-56 overflow-auto border rounded-md p-3 bg-white">
+                                    {(subjectRelatedToAcademicLevels || []).length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {subjectRelatedToAcademicLevels
+                                                .filter(s => String(s.level_id?._id || s.level_id) === String(selectedLevelId))
+                                                .map((subj) => {
+                                                    const id = subj._id;
+                                                    const checked = selectedSubjects.includes(id);
+                                                    return (
+                                                        <label key={id} className="flex items-center gap-2 text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={(e) => {
+                                                                    setSelectedSubjects(prev => {
+                                                                        if (e.target.checked) return Array.from(new Set([...(prev || []), id]));
+                                                                        return (prev || []).filter(sid => sid !== id);
+                                                                    });
+                                                                }}
+                                                            />
+                                                            <span>{subj.name}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-sm">No subjects found for this level.</p>
+                                    )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">Selected subjects will be added to your profile locally after adding the level.</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -376,7 +472,7 @@ const TutorSetting = () => {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => removeLevel(level)}
+                                                        onClick={() => promptRemove(level)}
                                                         disabled={deletingId === level.educationLevelId}
                                                         className="text-xs sm:text-sm px-3 sm:px-4 py-2"
                                                     >
@@ -464,6 +560,71 @@ const TutorSetting = () => {
                         )}
                     </CardContent>
                 </Card>
+                {/* Remove confirmation dialog */}
+                <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Remove education level?</DialogTitle>
+                            <DialogDescription>
+                                {levelToRemove?.relatedSubjectCount > 0
+                                    ? `Removing ${levelToRemove?.level?.educationLevelName} will also remove the following subject(s) from your profile: ${levelToRemove?.relatedSubjectNames.join(', ')}`
+                                    : `This will remove ${levelToRemove?.level?.educationLevelName} from your profile.`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={removeLevel} disabled={!!deletingId}>
+                                {deletingId ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Removing...
+                                    </>
+                                ) : 'Remove'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                {/* Remove subject confirmation dialog */}
+                <Dialog open={confirmSubjectOpen} onOpenChange={setConfirmSubjectOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Remove subject?</DialogTitle>
+                            <DialogDescription>
+                                {`Are you sure you want to remove ${subjectToRemove?.name} from your profile?`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setConfirmSubjectOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={async () => {
+                                    if (!subjectToRemove?.id) return;
+                                    try {
+                                        const res = await fetchWithAuth(`${BASE_URL}/api/tutor/settings/delete/${user._id}/subject/${subjectToRemove.id}`, {
+                                            method: 'DELETE',
+                                            headers: { 'Content-Type': 'application/json' }
+                                        }, token, (newToken) => localStorage.setItem("authToken", newToken));
+                                        const json = await res.json();
+                                        if (!json.success) throw new Error(json.message || 'Failed to remove subject');
+                                        setSubjectIds(prev => (prev || []).filter(id => id !== subjectToRemove.id));
+                                        toast({ title: 'Success', description: `Removed ${subjectToRemove?.name}` });
+                                    } catch (err) {
+                                        toast({ title: 'Error', description: err.message || 'Failed to remove subject', variant: 'destructive' });
+                                    } finally {
+                                        setConfirmSubjectOpen(false);
+                                        setSubjectToRemove({ id: null, name: '' });
+                                    }
+                                }}
+                            >
+                                Remove
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

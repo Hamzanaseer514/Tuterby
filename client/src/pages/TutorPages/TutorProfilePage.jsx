@@ -29,6 +29,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 const TutorProfilePage = () => {
   const location = useLocation();
@@ -49,6 +50,9 @@ const TutorProfilePage = () => {
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const { subjects, academicLevels } = useSubject();
   const token = getAuthToken();
+  const [showHiringDialog, setShowHiringDialog] = useState(false);
+  const [hiringData, setHiringData] = useState({ subject: '', academic_level: '', notes: '' });
+  const { fetchSubjectRelatedToAcademicLevels, subjectRelatedToAcademicLevels } = useSubject();
   useEffect(() => {
     if (!tutorId) {
       setError("No tutor ID provided");
@@ -226,9 +230,80 @@ const TutorProfilePage = () => {
 
 
 
-  const handleBookSession = (tutor) => {
-    // Navigate back to tutor search page to hire the tutor
-    navigate('/student/tutor-search', { state: { tutor } });
+  const handleBookSession = (tutorData) => {
+    // Open hiring dialog here with default academic level and fetch related subjects
+    if (tutorData?.academic_levels_taught && tutorData.academic_levels_taught.length > 0) {
+      const first = tutorData.academic_levels_taught[0];
+      // Resolve to an id string if possible
+      let resolvedLevelId = null;
+      if (first && typeof first === 'object' && first.educationLevel) {
+        resolvedLevelId = first.educationLevel;
+      } else if (typeof first === 'string') {
+        // It might already be an id or a level name
+        const byId = (academicLevels || []).find(l => l._id?.toString() === first.toString());
+        resolvedLevelId = byId ? byId._id : (academicLevels || []).find(l => l.level === first)?._id;
+      }
+      setHiringData(prev => ({ ...prev, academic_level: resolvedLevelId || '', subject: '' }));
+      if (resolvedLevelId) {
+        fetchSubjectRelatedToAcademicLevels([resolvedLevelId]);
+      }
+    }
+    setShowHiringDialog(true);
+  };
+
+  const handleHiringSubmit = async () => {
+    if (!hiringData.subject || !hiringData.academic_level) {
+      toast({ title: 'Error', description: 'Please select subject and academic level', variant: 'destructive' });
+      return;
+    }
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+
+      let academic_level_id = null;
+      if (hiringData.academic_level) {
+        const match = (academicLevels || []).find(l => l.level === hiringData.academic_level || l._id === hiringData.academic_level);
+        if (match) academic_level_id = match._id;
+        else academic_level_id = hiringData.academic_level; // fallback
+      }
+
+      const response = await fetchWithAuth(`${BASE_URL}/api/auth/tutors/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tutor_user_id: tutor?.user_id?._id,
+          student_user_id: user?._id,
+          subject: hiringData.subject,
+          academic_level_id,
+          notes: hiringData.notes || 'Hiring request from student',
+          payment_type: 'hourly'
+        })
+      }, token, (newToken) => localStorage.setItem('authToken', newToken));
+
+      const data = await response.json();
+      const status = response.status;
+      if (status === 400) {
+        toast({ title: 'Warning', description: data.message });
+      } else if (status === 200) {
+        toast({ title: 'Success', description: data.message });
+        setShowHiringDialog(false);
+        // Refresh full tutor details and student profile to reflect all changes without manual reload
+        try {
+          await Promise.all([
+            fetchTutorDetails(),
+            getStudentProfile()
+          ]);
+        } catch (_) {
+          // ignore refresh errors silently
+        }
+      } else {
+        toast({ title: 'Error', description: data.message || 'Failed to send request', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to hire tutor', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderStars = (rating) => {
@@ -293,7 +368,14 @@ const TutorProfilePage = () => {
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Profile</h2>
               <p className="text-gray-600 mb-4">{error || 'Tutor not found'}</p>
-              <Button onClick={() => navigate(-1)}>Go Back</Button>
+              {isParentView ? (
+                <Button onClick={() => navigate(-1)} variant="outline"
+                  size="sm"> <ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+              ) : (
+                <Button onClick={() => navigate('/student/tutor-search')} variant="outline"
+                  size="sm"> <ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+                // <Button onClick={() => navigate('/student/tutor-search')}>Go Back</Button>
+              )}
             </div>
           </div>
         </div>
@@ -303,25 +385,32 @@ const TutorProfilePage = () => {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <div className="space-y-4 sm:space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={() => navigate(-1)}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              {isParentView ? (
+                <Button onClick={() => navigate(-1)} variant="outline"
+                  size="sm"> <ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+              ) : (
+                <Button onClick={() => navigate('/student/tutor-search')} variant="outline"
+                  size="sm"> <ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+              )}
+              {/* <Button
+                onClick={() => navigate('/student/tutor-search')}
                 variant="outline"
                 size="sm"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
-              </Button>
+              </Button> */}
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Tutor Profile</h1>
-                <p className="text-gray-600 mt-1">Learn more about this tutor</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tutor Profile</h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-1">Learn more about this tutor</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               {/* <Button onClick={handleContactTutor} variant="outline">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Contact
@@ -347,7 +436,7 @@ const TutorProfilePage = () => {
                   )}
                 </div>
               ) : (
-                <Button onClick={() => handleBookSession(tutor)}>
+                <Button onClick={() => handleBookSession(tutor)} className="w-full sm:w-auto">
                   <Calendar className="w-4 h-4 mr-2" />
                   Request Tutor
                 </Button>
@@ -356,12 +445,12 @@ const TutorProfilePage = () => {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Profile Info */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               {/* Basic Info */}
               <Card>
                 <CardContent className="p-6">
-                  <div className="flex items-start gap-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                  <div className="flex flex-row items-start gap-4 sm:gap-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                       {tutor.user_id?.photo_url ? (
                         <img
                           src={`${tutor.user_id.photo_url}`}
@@ -374,15 +463,15 @@ const TutorProfilePage = () => {
                     </div>
 
                     <div className="flex-1">
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex flex-col sm:flex-row items-start justify-between mb-4">
                         <div>
-                          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">
                             {tutor.user_id.full_name}
                           </h2>
 
                             <div className="flex items-center gap-1 mb-2 justify-center">
                               {renderStars(tutor.average_rating)}
-                              <span className="text-sm text-gray-600 ml-2">
+                            <span className="text-xs sm:text-sm text-gray-600 ml-2">
                               {tutor.average_rating && (
                                 <>  
 
@@ -393,25 +482,24 @@ const TutorProfilePage = () => {
                             </div>
                         </div>
 
-                        <div className="text-right">
-                          <p className="text-3xl font-bold text-gray-900">
+                        <div className="text-left sm:text-right mt-2 sm:mt-0 w-full sm:w-auto">
+                          <p className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
                             £{tutor.min_hourly_rate} - £{tutor.max_hourly_rate}/hr
                           </p>
                           {tutor.experience_years && (
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs sm:text-sm text-gray-600">
                               {tutor.experience_years} years experience
                             </p>
                           )}
                         </div>
                       </div>
-
-                      {tutor.bio && (
-                        <p className="text-gray-700 leading-relaxed">
+                    </div>
+                  </div>
+                    {tutor.bio && (
+                        <p className="text-gray-700 leading-relaxed break-words">
                           {tutor.bio}
                         </p>
                       )}
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -426,7 +514,7 @@ const TutorProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div className="text-center p-3 bg-blue-50 rounded-lg">
                       <p className="text-2xl font-bold text-blue-600">{tutor.hiring_statistics?.total_requests || 0}</p>
                       <p className="text-sm text-gray-600">Total Requests</p>
@@ -445,7 +533,7 @@ const TutorProfilePage = () => {
                     </div>
                   </div>
                   {tutor.hiring_statistics?.acceptance_rate > 0 && (
-                    <div className="mt-4 text-center">
+                    <div className="mt-3 sm:mt-4 text-center">
                       <p className="text-sm text-gray-600">Acceptance Rate</p>
                       <p className="text-lg font-semibold text-gray-900">{tutor.hiring_statistics.acceptance_rate}%</p>
                     </div>
@@ -463,7 +551,7 @@ const TutorProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                     <div className="text-center p-3 bg-blue-50 rounded-lg">
                       <p className="text-2xl font-bold text-blue-600">{tutor.inquiry_statistics?.total_received || 0}</p>
                       <p className="text-sm text-gray-600">Total Received</p>
@@ -474,7 +562,7 @@ const TutorProfilePage = () => {
                     </div>
                   </div>
                   {tutor.inquiry_statistics?.reply_rate > 0 && (
-                    <div className="text-center mb-4">
+                    <div className="text-center mb-3 sm:mb-4">
                       <p className="text-sm text-gray-600">Reply Rate</p>
                       <p className="text-lg font-semibold text-gray-900">{tutor.inquiry_statistics.reply_rate}%</p>
                     </div>
@@ -516,7 +604,7 @@ const TutorProfilePage = () => {
                   ) : reviews.length > 0 ? (
                     <div className="space-y-4">
                       {/* Average Rating Summary */}
-                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
                           <div className="text-3xl font-bold text-gray-900">
                             {tutor.average_rating > 0 ? tutor.average_rating.toFixed(1) : 'N/A'}
@@ -560,7 +648,7 @@ const TutorProfilePage = () => {
                                     />
                                   ))}
                                 </div>
-                                <span className="text-sm font-medium text-gray-700">
+                                <span className="text-sm font-medium text-gray-700 break-words">
                                   {review.student_name}
                                 </span>
                               </div>
@@ -569,7 +657,7 @@ const TutorProfilePage = () => {
                               </span>
                             </div>
                             {review.review_text && (
-                              <p className="text-sm text-gray-600 mt-2">
+                              <p className="text-sm text-gray-600 mt-2 break-words">
                                 {review.review_text}
                               </p>
                             )}
@@ -605,7 +693,7 @@ const TutorProfilePage = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Current Hiring Status */}
               {tutor.hiring_status?.is_hired && (
                 <Card>
@@ -647,7 +735,7 @@ const TutorProfilePage = () => {
                           const levelName = subjectData?.level_id?.level || 'Unknown Level';
 
                           return (
-                            <Badge key={index} variant="outline">
+                            <Badge key={index} variant="outline" className="text-xs sm:text-sm break-words">
                               {subjectName} - {subjectType} - {levelName}
                             </Badge>
                           );
@@ -659,7 +747,7 @@ const TutorProfilePage = () => {
                       <h4 className="font-medium text-gray-900 mb-2">Academic Levels</h4>
                       <div className="flex flex-wrap gap-2">
                         {tutor.academic_levels_taught?.map((level, index) => (
-                          <Badge key={index} variant="secondary">
+                          <Badge key={index} variant="secondary" className="text-xs sm:text-sm break-words">
                             {level}
                           </Badge>
                         ))}
@@ -759,7 +847,7 @@ const TutorProfilePage = () => {
               {/* Quick Stats */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Stats</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">Quick Stats</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -863,8 +951,125 @@ const TutorProfilePage = () => {
           </div>
         </div>
       </div>
+      {/* Hiring Dialog */}
+      <Dialog open={showHiringDialog} onOpenChange={setShowHiringDialog}>
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Request {tutor?.user_id?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Academic Level Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
+              {(() => {
+                const rawLevels = Array.isArray(tutor?.academic_levels_taught) ? tutor.academic_levels_taught : [];
+                // Normalize to {_id, label}
+                const options = rawLevels.map((lv) => {
+                  if (lv && typeof lv === 'object' && lv.educationLevel) {
+                    const l = getAcademicLevelById(lv.educationLevel);
+                    return { id: lv.educationLevel, label: l?.level || 'Unknown Level' };
+                  }
+                  if (typeof lv === 'string') {
+                    const byId = getAcademicLevelById(lv);
+                    if (byId) return { id: byId._id, label: byId.level };
+                    const byName = (academicLevels || []).find(a => a.level === lv);
+                    if (byName) return { id: byName._id, label: byName.level };
+                    return { id: lv, label: lv };
+                  }
+                  return null;
+                }).filter(Boolean);
+
+                return (
+                  <Select
+                    value={hiringData.academic_level}
+                    onValueChange={(value) => {
+                      setHiringData(prev => ({ ...prev, academic_level: value, subject: '' }));
+                      if (value) fetchSubjectRelatedToAcademicLevels([value]);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select academic level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map((opt, idx) => (
+                        <SelectItem key={idx} value={opt.id}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+            </div>
+
+            {/* Subject Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+              {(() => {
+                const tutorSubjects = Array.isArray(tutor?.subjects) ? tutor.subjects : [];
+                const tutorSubjectIdSet = new Set((tutorSubjects || []).map(s =>
+                  typeof s === 'object' ? (s?._id?.toString?.() || s?.toString?.()) : s?.toString?.()
+                ).filter(Boolean));
+                const filteredByLevel = (subjectRelatedToAcademicLevels || []).filter(s =>
+                  hiringData.academic_level && (s?.level_id?._id?.toString?.() === hiringData.academic_level?.toString?.() || s?.level_id?.toString?.() === hiringData.academic_level?.toString?.())
+                );
+                const subjectOptions = filteredByLevel.filter(s => tutorSubjectIdSet.has(s?._id?.toString?.()));
+                return (
+                  <Select value={hiringData.subject} onValueChange={(value) => setHiringData(prev => ({ ...prev, subject: value }))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjectOptions.map((subject) => (
+                        <SelectItem key={subject._id} value={subject._id}>
+                          {subject.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+              <Input
+                type="text"
+                placeholder="Any specific topics or requirements..."
+                value={hiringData.notes}
+                onChange={(e) => setHiringData(prev => ({ ...prev, notes: e.target.value }))}
+                className="w-full"
+              />
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleHiringSubmit}
+              disabled={!hiringData.subject || !hiringData.academic_level || loading}
+              className="w-full py-3"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                <>
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Hire Tutor
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
+
+// Hiring Dialog UI
+// Insert near the end of the component render (before return closing tags) but we append here after component for patch simplicity
+
 
 export default TutorProfilePage; 

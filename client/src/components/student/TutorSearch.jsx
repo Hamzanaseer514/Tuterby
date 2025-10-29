@@ -70,6 +70,8 @@ const TutorSearch = () => {
     academic_level: '',
     notes: ''
   });
+  // Track pending requests locally so refreshes don't drop the state
+  const [pendingTutorIds, setPendingTutorIds] = useState(new Set());
 
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -247,18 +249,22 @@ const TutorSearch = () => {
       const data = await response.json();
 
       const cleanedTutors = cleanTutorData(data.tutors || []);
+      // Merge local pending state
+      const mergedTutors = cleanedTutors.map(t =>
+        pendingTutorIds.has(t._id) ? { ...t, hire_status: 'pending', is_hired: true } : t
+      );
       
       // Cache the results
       setSearchCache(prev => {
         const newCache = new Map(prev);
         newCache.set(cacheKey, {
-          tutors: cleanedTutors,
+          tutors: mergedTutors,
           totalPages: data.pagination?.total_pages || 1
         });
         return newCache;
       });
 
-      setTutors(cleanedTutors);
+      setTutors(mergedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
       setInitialLoaded(true);
       setCurrentPage(1);
@@ -267,7 +273,7 @@ const TutorSearch = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, searchCache, fetchWithAuth, token, cleanTutorData]);
+  }, [user, searchCache, fetchWithAuth, token, cleanTutorData, pendingTutorIds]);
 
   const searchTutors = useCallback(async () => {
     try {
@@ -346,12 +352,16 @@ const TutorSearch = () => {
       const data = await response.json();
 
       const cleanedTutors = cleanTutorData(data.tutors || []);
+      // Merge local pending state
+      const mergedTutors = cleanedTutors.map(t =>
+        pendingTutorIds.has(t._id) ? { ...t, hire_status: 'pending', is_hired: true } : t
+      );
       
       // Cache the results
       setSearchCache(prev => {
         const newCache = new Map(prev);
         newCache.set(cacheKey, {
-          tutors: cleanedTutors,
+          tutors: mergedTutors,
           totalPages: data.pagination?.total_pages || 1
         });
         // Limit cache size to prevent memory issues
@@ -362,7 +372,7 @@ const TutorSearch = () => {
         return newCache;
       });
 
-      setTutors(cleanedTutors);
+      setTutors(mergedTutors);
       setTotalPages(data.pagination?.total_pages || 1);
     } catch (error) {
       setError(error.message || 'Failed to search tutors');
@@ -374,7 +384,7 @@ const TutorSearch = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, searchQuery, preferredSubjectsOnly, user, searchCache, fetchWithAuth, token, cleanTutorData]);
+  }, [currentPage, filters, searchQuery, preferredSubjectsOnly, user, searchCache, fetchWithAuth, token, cleanTutorData, pendingTutorIds]);
 
   const handleSearchChange = (value) => {
     setSearchInput(value);
@@ -433,6 +443,10 @@ const TutorSearch = () => {
         ...prev,
         academic_level: firstLevel.educationLevel
       }));
+      // Fetch subjects for the default level in dialog
+      if (firstLevel?.educationLevel) {
+        fetchSubjectRelatedToAcademicLevels([firstLevel.educationLevel]);
+      }
     }
     setShowHiringDialog(true);
   };
@@ -496,6 +510,25 @@ const TutorSearch = () => {
               : tutor
           )
         );
+        // Track pending locally
+        setPendingTutorIds(prev => {
+          const next = new Set(prev);
+          next.add(selectedTutor._id);
+          return next;
+        });
+        // Also update any cached entries to keep consistency
+        setSearchCache(prev => {
+          const next = new Map(prev);
+          for (const [key, value] of next.entries()) {
+            if (value && Array.isArray(value.tutors)) {
+              next.set(key, {
+                ...value,
+                tutors: value.tutors.map(t => t._id === selectedTutor._id ? { ...t, hire_status: 'pending', is_hired: true } : t)
+              });
+            }
+          }
+          return next;
+        });
         
         // Skip next automatic search to prevent reload
         skipNextSearchRef.current = true;
@@ -926,7 +959,7 @@ const TutorSearch = () => {
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Hired
                           </Button>
-                        ) : tutor.hire_status === "pending" ? (
+                        ) : (pendingTutorIds.has(tutor._id) || tutor.hire_status === "pending") ? (
                           <Button
                             type="button"
                             size="sm"
@@ -1018,38 +1051,18 @@ const TutorSearch = () => {
 
           {selectedTutor && (
             <div className="space-y-6">
-              {/* Subject Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                {(() => {
-                  const tutorSubjects = Array.isArray(selectedTutor?.subjects) ? selectedTutor.subjects : [];
-                  const subjectOptions = Array.from(new Set([...(tutorSubjects || [])].filter(Boolean)));
-                  return (
-                    <Select value={hiringData.subject} onValueChange={(value) => setHiringData(prev => ({ ...prev, subject: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjectOptions.map((subject, index) => (
-                          <SelectItem key={index} value={subject}>
-                            {getSubjectById(subject)?.name || subject}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  );
-                })()}
-              </div>
-
-              {/* Academic Level Selection */}
-              <div>
+                 {/* Academic Level Selection */}
+                 <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Academic Level</label>
                 {(() => {
                   const tutorLevels = Array.isArray(selectedTutor?.academic_levels_taught) ? selectedTutor.academic_levels_taught : [];
                   return (
                     <Select
                       value={hiringData.academic_level}
-                      onValueChange={(value) => setHiringData(prev => ({ ...prev, academic_level: value }))}
+                      onValueChange={(value) => {
+                        setHiringData(prev => ({ ...prev, academic_level: value, subject: '' }));
+                        if (value) fetchSubjectRelatedToAcademicLevels([value]);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select academic level" />
@@ -1066,6 +1079,37 @@ const TutorSearch = () => {
                 })()}
               </div>
 
+              {/* Subject Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                {(() => {
+                  const tutorSubjects = Array.isArray(selectedTutor?.subjects) ? selectedTutor.subjects : [];
+                  const tutorSubjectIdSet = new Set((tutorSubjects || []).map(s =>
+                    typeof s === 'object' ? (s?._id?.toString?.() || s?.toString?.()) : s?.toString?.()
+                  ).filter(Boolean));
+                  // Filter fetched subjects by selected academic level and intersect with tutor's subjects
+                  const filteredByLevel = (subjectRelatedToAcademicLevels || []).filter(s =>
+                    hiringData.academic_level && (s?.level_id?._id?.toString?.() === hiringData.academic_level?.toString?.() || s?.level_id?.toString?.() === hiringData.academic_level?.toString?.())
+                  );
+                  const subjectOptions = filteredByLevel.filter(s => tutorSubjectIdSet.has(s?._id?.toString?.()));
+                  return (
+                    <Select value={hiringData.subject} onValueChange={(value) => setHiringData(prev => ({ ...prev, subject: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjectOptions.map((subject) => (
+                          <SelectItem key={subject._id} value={subject._id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
+              </div>
+
+           
               {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
