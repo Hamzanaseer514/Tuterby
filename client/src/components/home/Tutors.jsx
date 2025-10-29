@@ -17,7 +17,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Paper
+  Paper,
+  Tooltip
 } from '@mui/material';
 import {
   School,
@@ -37,6 +38,8 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { subjects, academicLevels } = useSubject();
+  const [showAllSubjects, setShowAllSubjects] = useState(false);
+  const [showAllLevels, setShowAllLevels] = useState(false);
 
   const getSubjectById = useCallback((id) => {
     if (!id) return undefined;
@@ -117,6 +120,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
             </Box>
             <Box sx={{ textAlign: 'center', minWidth: 0, width: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5, minWidth: 0 }}>
+                <Tooltip title={tutor.full_name} arrow>
                 <Typography
                   variant="h6"
                   fontWeight={600}
@@ -131,6 +135,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                 >
                   {tutor.full_name}
                 </Typography>
+                </Tooltip>
                 {(tutor.is_background_checked || tutor.is_qualification_verified) && (
                   <CheckCircle sx={{ fontSize: '1rem', color: 'success.main', flexShrink: 0 }} />
                 )}
@@ -179,6 +184,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
             {tutor.qualifications && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, minWidth: 0 }}>
                 <School fontSize="small" color="primary" sx={{ flexShrink: 0 }} />
+                <Tooltip title={tutor.qualifications} arrow>
                 <Typography
                   variant="body2"
                   color="textSecondary"
@@ -194,6 +200,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                 >
                   {tutor.qualifications}
                 </Typography>
+                </Tooltip>
               </Box>
             )}
             {tutor.experience_years > 0 && (
@@ -226,12 +233,12 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
-                // flexWrap: 'wrap', 
+                flexWrap: 'wrap',
                 gap: 0.5,
                 minWidth: 0
               }}>
-                {/* Show 1 subject on xs and sm screens, 2 on larger screens */}
-                {tutor.subjects.slice(0, 2).map((subject, index) => (
+                {/* Show 2 subjects initially on all screens; expand all on click */}
+                {(showAllSubjects ? tutor.subjects : tutor.subjects.slice(0, 2)).map((subject, index) => (
                   <Chip
                     key={index}
                     label={getSubjectById(subject)?.name || subject}
@@ -245,46 +252,26 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                       fontWeight: 500,
                       height: '22px',
                       borderRadius: 1.5,
-                      '&:hover': { backgroundColor: theme.palette.grey[200] },
-                      // Show only first subject on xs and sm screens, both on lg+ screens
-                      display: { xs: index === 0 ? 'flex' : 'none', sm: index === 0 ? 'flex' : 'none', lg: 'flex' }
+                      '&:hover': { backgroundColor: theme.palette.grey[200] }
                     }}
                   />
                 ))}
-                {/* Show + badge when there are more subjects than displayed */}
-                {tutor.subjects.length > 1 && (
-                  <>
-                    {/* For xs and sm screens - show +X where X = remaining subjects after 1 */}
-                    <Chip
-                      label={`+${tutor.subjects.length - 1}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
-                        borderColor: theme.palette.grey[300],
-                        color: theme.palette.grey[600],
-                        height: '22px',
-                        flexShrink: 0,
-                        borderRadius: 1.5,
-                        display: { xs: 'flex', sm: 'flex', lg: 'none' }
-                      }}
-                    />
-                    {/* For lg+ screens - show +X where X = remaining subjects after 2 */}
-                    <Chip
-                      label={`+${tutor.subjects.length - 2}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
-                        borderColor: theme.palette.grey[300],
-                        color: theme.palette.grey[600],
-                        height: '22px',
-                        flexShrink: 0,
-                        borderRadius: 1.5,
-                        display: { xs: 'none', sm: 'none', lg: 'flex' }
-                      }}
-                    />
-                  </>
+                {/* Single + badge with remaining count (only when > 0) */}
+                {!showAllSubjects && tutor.subjects.length - Math.min(2, tutor.subjects.length) > 0 && (
+                  <Chip
+                    label={`+${tutor.subjects.length - Math.min(2, tutor.subjects.length)}`}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setShowAllSubjects(true)}
+                    sx={{
+                      fontSize: { xs: '0.65rem', lg: '0.7rem' },
+                      borderColor: theme.palette.grey[300],
+                      color: theme.palette.grey[600],
+                      height: '22px',
+                      flexShrink: 0,
+                      borderRadius: 1.5
+                    }}
+                  />
                 )}
               </Box>
             </Box>
@@ -298,12 +285,12 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
-                // flexWrap: 'wrap', 
+                flexWrap: 'wrap',
                 gap: 0.5,
                 minWidth: 0
               }}>
-                {/* Show 1 level on xs and sm screens, 2 on larger screens */}
-                {tutor.academic_levels.slice(0, 2).map((level, index) => (
+                {/* Show 2 levels initially on all screens; expand all on click */}
+                {(showAllLevels ? tutor.academic_levels : tutor.academic_levels.slice(0, 2)).map((level, index) => (
                   <Chip
                     key={index}
                     label={`${getAcademicLevelById(level.educationLevel._id)?.level} - ${formatPrice(level.hourlyRate)}`}
@@ -317,46 +304,26 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                       fontWeight: 500,
                       height: '22px',
                       borderRadius: 1.5,
-                      '&:hover': { backgroundColor: theme.palette.grey[200] },
-                      // Show only first level on xs and sm screens, both on lg+ screens
-                      display: { xs: index === 0 ? 'flex' : 'none', sm: index === 0 ? 'flex' : 'none', lg: 'flex' }
+                      '&:hover': { backgroundColor: theme.palette.grey[200] }
                     }}
                   />
                 ))}
-                {/* Show + badge when there are more levels than displayed */}
-                {tutor.academic_levels.length > 1 && (
-                  <>
-                    {/* For xs and sm screens - show +X where X = remaining levels after 1 */}
-                    <Chip
-                      label={`+${tutor.academic_levels.length - 1}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: { xs: '0.65rem', lg: '0.7rem' },
-                        borderColor: theme.palette.grey[300],
-                        color: theme.palette.grey[600],
-                        height: '22px',
-                        flexShrink: 0,
-                        borderRadius: 1.5,
-                        display: { xs: 'flex', sm: 'flex', lg: 'none' }
-                      }}
-                    />
-                    {/* For lg+ screens - show +X where X = remaining levels after 2 */}
+                {/* Single + badge with remaining count (only when > 0) */}
+                {!showAllLevels && tutor.academic_levels.length - Math.min(2, tutor.academic_levels.length) > 0 && (
                   <Chip
-                    label={`+${tutor.academic_levels.length - 2}`}
+                    label={`+${tutor.academic_levels.length - Math.min(2, tutor.academic_levels.length)}`}
                     size="small"
                     variant="outlined"
+                    onClick={() => setShowAllLevels(true)}
                     sx={{
                       fontSize: { xs: '0.65rem', lg: '0.7rem' },
                       borderColor: theme.palette.grey[300],
                       color: theme.palette.grey[600],
                       height: '22px',
-                        flexShrink: 0,
-                        borderRadius: 1.5,
-                        display: { xs: 'none', sm: 'none', lg: 'flex' }
+                      flexShrink: 0,
+                      borderRadius: 1.5
                     }}
                   />
-                  </>
                 )}
               </Box>
             </Box>
@@ -811,7 +778,7 @@ const Tutors = () => {
       {/* Tutors Grid */}
       {filteredTutors.length > 0 ? (
         <>
-          <div className="xl:px-[4rem] lg:px-[1rem] sm:px-[1rem] px-[1rem] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+          <div className="xl:px-[2rem] lg:px-[0.7rem] sm:px-[0.7rem] px-[0.7rem] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
             {filteredTutors.slice(0, visibleCount).map((tutor) => (
               <div key={tutor._id} className="flex">
                 <TutorCard
