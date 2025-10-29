@@ -6,20 +6,21 @@ import React from 'react';
     import useContactFormLogic from '@/hooks/useContactFormLogic';
     import ContactFormHeader from '@/components/contact/ContactFormHeader';
     import ContactFormFields from '@/components/contact/ContactFormFields';
-    import { supabase } from '@/lib/supabaseClient';
     import { cn } from '@/lib/utils';
+    import emailjs from '@emailjs/browser';
 
     const MIN_SUBMISSION_TIME_MS = 3000; 
 
     const ContactForm = ({ className }) => {
       const { toast } = useToast();
+      const [isSubmitting, setIsSubmitting] = React.useState(false);
       const {
         formData,
         handleChange,
         handleCheckboxChange,
         handleSelectChange,
-        selectedLevel,
-        availableSubjects,
+        // selectedLevel,
+        // availableSubjects,
         resetForm,
         handleRobotCheckboxChange,
         mathQuestion,
@@ -80,28 +81,57 @@ import React from 'react';
         }
 
         try {
-          const { error } = await supabase
-            .from('contact_submissions')
-            .insert([
-              { 
+          setIsSubmitting(true);
+
+          // Send email to admin via EmailJS (first, so DB issues don't block email)
+          try {
+            const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+            const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+            const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+            const adminEmail = import.meta.env.VITE_ADMIN_EMAIL; // optional if your EmailJS template defines recipient
+
+            if (!serviceId || !templateId || !publicKey) {
+              console.warn('EmailJS env vars are not configured. Skipping email send.');
+            } else {
+              if (!adminEmail) {
+                console.warn('VITE_ADMIN_EMAIL is not set. Ensure your EmailJS template has a fixed To address or set VITE_ADMIN_EMAIL and use {{to_email}} in the template.');
+              }
+              const now = new Date();
+              const year = now.getFullYear();
+              const time = now.toLocaleString('en-GB', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+
+              const templateParams = {
+                to_email: adminEmail,
+                // match EmailJS template variables
                 name: formData.name,
+                full_name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
-                selected_plan: formData.selectedPlan,
-                level: formData.level,
-                subject: formData.subject,
-                preferred_days: formData.preferredDays,
-                hours_per_week: formData.hoursPerWeek,
                 message: formData.message,
-                tutoring_preference: formData.tutoringPreference,
-                is_not_robot: formData.isNotRobot,
-                math_captcha_answer: formData.mathCaptcha,
-                form_load_timestamp: formData.formLoadTime
-              }
-            ]);
-
-          if (error) {
-            throw error;
+                time,
+                year,
+                // improve deliverability and reply behavior
+                reply_to: formData.email,
+                from_name: 'TutorNearBy',
+                subject: `New Contact Message — ${formData.name}`,
+                title: `New Contact Message — ${formData.name}`
+              };
+              console.log(templateParams);
+              console.log(serviceId);
+              console.log(templateId);
+              console.log(publicKey);
+              console.log(adminEmail);
+              await emailjs.send(serviceId, templateId, templateParams, publicKey);
+            }
+          } catch (emailError) {
+            console.error('EmailJS send error:', emailError);
+            throw emailError; // surface email failure to user
           }
 
           toast({
@@ -112,13 +142,15 @@ import React from 'react';
           resetForm();
 
         } catch (error) {
-          console.error("Error submitting to Supabase:", error);
+          console.error("Submission error:", error);
           toast({
-            title: "Submission Failed",
-            description: "Sorry, there was an error sending your message. Please try again later.",
+            title: "Sorry, we couldn't send your email",
+            description: "Please try again in a moment or contact us directly.",
             variant: "destructive",
           });
           setMathQuestion(generateMathQuestionFunc());
+        } finally {
+          setIsSubmitting(false);
         }
       };
 
@@ -133,14 +165,14 @@ import React from 'react';
                   handleChange={handleChange}
                   handleCheckboxChange={handleCheckboxChange}
                   handleSelectChange={handleSelectChange}
-                  selectedLevel={selectedLevel}
-                  availableSubjects={availableSubjects}
+                  // selectedLevel={selectedLevel}
+                  // availableSubjects={availableSubjects}
                   handleRobotCheckboxChange={handleRobotCheckboxChange}
                   mathQuestion={mathQuestion}
                 />
               </div>
-              <Button type="submit" size="lg" className="w-full flex items-center justify-center mt-auto"> {/* Added mt-auto to push button to bottom */}
-                <Send className="w-5 h-5 mr-2" /> Send Enquiry
+              <Button type="submit" size="lg" className="w-full flex items-center justify-center mt-auto" disabled={isSubmitting}> {/* Added mt-auto to push button to bottom */}
+                <Send className="w-5 h-5 mr-2" /> {isSubmitting ? 'Sending...' : 'Send Enquiry'}
               </Button>
             </form>
           </CardContent>
