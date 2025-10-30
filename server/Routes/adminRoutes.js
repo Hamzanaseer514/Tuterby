@@ -39,7 +39,11 @@ const {
     getAllTutorSessions,
   getAllTutorPayments,
   getAllTutorReviews,
-  getAllHireRequests
+  getAllHireRequests,
+  updateTutorByAdmin,
+  removeTutorLevelByAdmin,
+  updateParentByAdmin,
+  updateStudentByAdmin,
 } = require("../Controllers/adminController");
 
 // Import assignment controller functions
@@ -90,6 +94,10 @@ router.post("/tutors/reject/grouped-documents", rejectGroupedDocuments);
 // New comprehensive admin routes
 router.get("/users", getAllUsers);
 router.get("/tutors/:user_id", getTutorDetails);
+router.put("/tutors/:user_id", updateTutorByAdmin);
+router.delete("/tutors/:user_id/levels/:level_id", removeTutorLevelByAdmin);
+router.put("/parents/:user_id", updateParentByAdmin);
+router.put("/students/:user_id", updateStudentByAdmin);
 router.post("/interviews/complete", completeInterview);
 router.get("/interviews/available-slots", getAvailableInterviewSlots);
 router.put("/applications/notes", updateApplicationNotes);

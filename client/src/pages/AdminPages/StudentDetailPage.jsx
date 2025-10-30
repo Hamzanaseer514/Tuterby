@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../components/admin/components/AdminLayout";
+import { Alert } from "@mui/material";
 import {
   Box,
   Typography,
@@ -22,7 +23,13 @@ import {
   TableCell,
   TableRow,
   TableContainer,
-  TableHead
+  TableHead,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
 } from "@mui/material";
 import {
   Star,
@@ -37,7 +44,8 @@ import {
   School,
   CheckCircle,
   Cancel,
-  MoreVert
+  MoreVert,
+  Edit,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useSubject } from "../../hooks/useSubject";
@@ -98,6 +106,15 @@ const StudentDetailPage = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { subjects, academicLevels } = useSubject();
   const { updateUserInList, refreshUserData } = useAdminDashboard();
+  // Edit details
+  const [editOpen, setEditOpen] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", location: "" });
+  // Edit education
+  const [eduOpen, setEduOpen] = useState(false);
+  const [savingEdu, setSavingEdu] = useState(false);
+  const [levelId, setLevelId] = useState("");
+  const [selSubjects, setSelSubjects] = useState([]);
 
   const getSubjectName = (id) => {
     const subject = subjects.find((s) => s._id === id);
@@ -160,6 +177,87 @@ const StudentDetailPage = () => {
   const academicLevel = user?.academic_level;
   const userSessionsCompleted = user?.sessionsCompleted || 0;
   const userStatus = user?.status || "inactive";
+  const openEditDialog = () => {
+    setEditForm({
+      name: user?.name || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      location: user?.location || "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditChange = (field, value) => setEditForm((p) => ({ ...p, [field]: value }));
+
+  const handleSaveEdit = async () => {
+    try {
+      setSavingEdit(true);
+      const payload = { ...editForm };
+      const res = await fetch(`${BASE_URL}/api/admin/students/${user.id || user.user_id || user._id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setSnackbar({ open: true, message: d.message || 'Failed to update student', severity: 'error' });
+        return;
+      }
+      const updated = { ...user, ...payload };
+      setUser(updated);
+      updateUserInList('students', updated);
+      setSnackbar({ open: true, message: 'Student details updated', severity: 'success' });
+      setEditOpen(false);
+    } catch (_) {
+      setSnackbar({ open: true, message: 'Failed to update student', severity: 'error' });
+    } finally { setSavingEdit(false); }
+  };
+
+  const openEduDialog = () => {
+    setLevelId(user?.academic_level ? String(user.academic_level) : "");
+    setSelSubjects(Array.isArray(user?.subjects) ? user.subjects.map(String) : []);
+    setEduOpen(true);
+  };
+
+  const toggleSubject = (sid) => {
+    const id = String(sid);
+    setSelSubjects((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
+  };
+
+  const filteredSubjects = () => {
+    if (!Array.isArray(subjects) || !levelId) return [];
+    return subjects.filter((s) => String(s?.level_id?._id || s?.level_id) === String(levelId));
+  };
+
+  const handleSaveEdu = async () => {
+    try {
+      if (!levelId) { setSnackbar({ open: true, message: 'Select academic level', severity: 'warning' }); return; }
+      setSavingEdu(true);
+      // Align subjects with the currently selected level on the client
+      const allowed = new Set(filteredSubjects().map((s) => String(s._id)));
+      const aligned = selSubjects.filter((sid) => allowed.has(String(sid)));
+      const payload = { academic_level: levelId, subjects: aligned };
+      const res = await fetch(`${BASE_URL}/api/admin/students/${user.id || user.user_id || user._id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        const deps = d?.dependencies;
+        const depMsg = deps ? ` Update blocked. Links found — Sessions: ${(deps.sessionsWithPrevLevel||0)+(deps.sessionsWithRemovedSubjects||0)}, Payments: ${(deps.paymentsWithPrevLevel||0)+(deps.paymentsWithRemovedSubjects||0)}, Hires: ${(deps.hiresWithPrevLevel||0)+(deps.hiresWithRemovedSubjects||0)}.` : '';
+        setSnackbar({ open: true, message: (d.message || 'Failed to update education') + depMsg, severity: 'error' });
+        // Revert UI selections to persisted state since backend blocked the change
+        setLevelId(user?.academic_level ? String(user.academic_level) : "");
+        setSelSubjects(Array.isArray(user?.subjects) ? user.subjects.map(String) : []);
+        return;
+      }
+      const updated = { ...user, academic_level: levelId, subjects: aligned };
+      setUser(updated);
+      updateUserInList('students', updated);
+      setSnackbar({ open: true, message: 'Education updated', severity: 'success' });
+      setEduOpen(false);
+    } catch (_) {
+      setSnackbar({ open: true, message: 'Failed to update education', severity: 'error' });
+    } finally { setSavingEdu(false); }
+  };
+
 
   const handleToggleActive = async () => {
     try {
@@ -311,6 +409,40 @@ const StudentDetailPage = () => {
               {/* Action Button (Top Right Corner) */}
               <Stack direction="row" spacing={1}>
                 <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={openEditDialog}
+                  sx={{
+                    borderRadius: '9999px',
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    px: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    '&:hover': { borderColor: 'primary.dark', backgroundColor: 'transparent' }
+                  }}
+                  startIcon={<Edit sx={{ color: 'primary.main' }} />}
+                >
+                  Edit Details
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={openEduDialog}
+                  sx={{
+                    borderRadius: '9999px',
+                    borderColor: 'secondary.main',
+                    color: 'secondary.main',
+                    px: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    '&:hover': { borderColor: 'secondary.dark', backgroundColor: 'transparent' }
+                  }}
+                  startIcon={<School sx={{ color: 'secondary.main' }} />}
+                >
+                  Edit Education
+                </Button>
+                <Button
                   variant={userStatus === "active" ? "outlined" : "contained"}
                   color={userStatus === "active" ? "error" : "success"}
                   onClick={handleToggleActive}
@@ -339,6 +471,7 @@ const StudentDetailPage = () => {
                     <TableCell><strong>Email</strong></TableCell>
                     <TableCell><strong>Phone</strong></TableCell>
                     <TableCell><strong>Parent</strong></TableCell>
+                    <TableCell><strong>Location</strong></TableCell>
                     <TableCell><strong>Join Date</strong></TableCell>
                     <TableCell><strong>Last Active</strong></TableCell>
                     <TableCell><strong>Status</strong></TableCell>
@@ -349,6 +482,7 @@ const StudentDetailPage = () => {
                     <TableCell>{userEmail}</TableCell>
                     <TableCell>{userPhone}</TableCell>
                     <TableCell>{userParent.name || "No Parent Linked"}</TableCell>
+                    <TableCell>{userLocation}</TableCell>
                     <TableCell>{formatDate(userJoinDate)}</TableCell>
                     <TableCell>{formatDate(userLastActive)}</TableCell>
                     <TableCell>
@@ -426,15 +560,74 @@ const StudentDetailPage = () => {
           open={snackbar.open}
           autoHideDuration={3000}
           onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          message={snackbar.message}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-          sx={{
-            "& .MuiSnackbarContent-root": {
-              borderRadius: 2,
-              fontWeight: 500
-            }
-          }}
-        />
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          sx={{ mt: 2 }}
+        >
+          <Alert elevation={3} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} severity={snackbar.severity || 'info'} variant="filled" sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Student Details</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField label="Full Name" value={editForm.name} onChange={(e) => handleEditChange('name', e.target.value)} fullWidth />
+            <TextField label="Email" value={editForm.email} onChange={(e) => handleEditChange('email', e.target.value)} type="email" fullWidth />
+            <TextField label="Phone" value={editForm.phone} onChange={(e) => handleEditChange('phone', e.target.value)} fullWidth />
+            <TextField label="Location" value={editForm.location} onChange={(e) => handleEditChange('location', e.target.value)} fullWidth />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={savingEdit}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained" disabled={savingEdit}>
+            {savingEdit ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Education Dialog */}
+      <Dialog open={eduOpen} onClose={() => setEduOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Education</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField select fullWidth size="small" label="Academic Level" value={levelId} onChange={(e) => { setLevelId(e.target.value); setSelSubjects([]); }}>
+              {Array.isArray(academicLevels) && academicLevels.map((lvl) => (
+                <MenuItem key={lvl._id} value={String(lvl._id)}>{lvl.level}</MenuItem>
+              ))}
+            </TextField>
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>Subjects (filtered by level)</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 240, overflowY: 'auto', p: 0.5, border: '1px solid #eee', borderRadius: 1 }}>
+                {filteredSubjects().map((s) => {
+                  const chosen = selSubjects.includes(String(s._id));
+                  return (
+                    <Chip
+                      key={s._id}
+                      label={s.name}
+                      variant={chosen ? 'filled' : 'outlined'}
+                      color={chosen ? 'primary' : 'default'}
+                      onClick={() => toggleSubject(s._id)}
+                      clickable
+                      size="small"
+                    />
+                  );
+                })}
+                {filteredSubjects().length === 0 && (
+                  <Typography variant="body2" color="text.secondary">No subjects for selected level.</Typography>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEduOpen(false)} disabled={savingEdu}>Cancel</Button>
+          <Button onClick={handleSaveEdu} variant="contained" disabled={savingEdu}>
+            {savingEdu ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Box>
     </AdminLayout>
   );

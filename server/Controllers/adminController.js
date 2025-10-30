@@ -3597,3 +3597,298 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
   }
 });
 
+// Admin: Update parent details (basic user fields and optional location in profile)
+exports.updateParentByAdmin = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { name, email, phone, location } = req.body || {};
+
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Update basic user fields
+    if (typeof name === 'string') user.full_name = name;
+    if (typeof email === 'string') user.email = email;
+    if (typeof phone === 'string') user.phone_number = phone;
+
+    // Update parent profile location if provided
+    if (typeof location === 'string') {
+      const parent = await ParentProfile.findOne({ user_id });
+      if (parent) {
+        parent.location = location;
+        await parent.save();
+      }
+    }
+
+    await user.save();
+    return res.status(200).json({ success: true, message: 'Parent updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update parent', error: error.message });
+  }
+});
+
+// Admin: Update student details and education (academic level, subjects)
+exports.updateStudentByAdmin = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { name, email, phone, location, academic_level, subjects } = req.body || {};
+
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const student = await StudentProfile.findOne({ user_id });
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student profile not found" });
+    }
+
+    if (typeof name === 'string') user.full_name = name;
+    if (typeof email === 'string') user.email = email;
+    if (typeof phone === 'string') user.phone_number = phone;
+    if (typeof location === 'string') student.location = location;
+
+    // Dependency checks if level/subjects change
+    const prevLevel = student.academic_level ? String(student.academic_level) : null;
+    const prevSubjects = Array.isArray(student.preferred_subjects) ? student.preferred_subjects.map(String) : [];
+    const nextLevel = academic_level ? String(academic_level) : prevLevel;
+    const nextSubjectsRaw = Array.isArray(subjects) ? subjects.map(String) : prevSubjects;
+
+    // Filter submitted subjects to the selected level
+    let nextSubjects = nextSubjectsRaw;
+    if (academic_level) {
+      const subjectDocs = await Subject.find({ _id: { $in: nextSubjectsRaw } }).select('_id level_id').lean();
+      nextSubjects = subjectDocs
+        .filter((sd) => sd.level_id && String(sd.level_id) === String(nextLevel))
+        .map((sd) => String(sd._id));
+    }
+
+    // Subjects being removed
+    const removedSubjects = prevSubjects.filter((s) => !new Set(nextSubjects).has(String(s)));
+    const levelChanged = prevLevel && nextLevel && prevLevel !== nextLevel;
+
+    if (levelChanged || removedSubjects.length > 0) {
+      const studentProfile = await StudentProfile.findOne({ user_id }).select('_id hired_tutors').lean();
+      const studentId = studentProfile?._id;
+      const deps = {};
+      if (levelChanged) {
+        deps.sessionsWithPrevLevel = await TutoringSession.countDocuments({ student_ids: studentId, academic_level: prevLevel });
+        deps.paymentsWithPrevLevel = await StudentPayment.countDocuments({ student_id: studentId, academic_level: prevLevel });
+        deps.hiresWithPrevLevel = Array.isArray(studentProfile?.hired_tutors)
+          ? studentProfile.hired_tutors.filter((h) => String(h.academic_level_id) === String(prevLevel)).length
+          : 0;
+      }
+      if (removedSubjects.length > 0) {
+        deps.sessionsWithRemovedSubjects = await TutoringSession.countDocuments({ student_ids: studentId, subject: { $in: removedSubjects } });
+        deps.paymentsWithRemovedSubjects = await StudentPayment.countDocuments({ student_id: studentId, subject: { $in: removedSubjects } });
+        deps.hiresWithRemovedSubjects = Array.isArray(studentProfile?.hired_tutors)
+          ? studentProfile.hired_tutors.filter((h) => removedSubjects.map(String).includes(String(h.subject))).length
+          : 0;
+      }
+      const total = Object.values(deps).reduce((a, b) => a + (b || 0), 0);
+      if (total > 0) {
+        return res.status(400).json({ success: false, message: 'Dependencies exist for previous academic level/subjects. Please resolve before updating.', dependencies: deps });
+      }
+    }
+
+    if (academic_level) student.academic_level = nextLevel;
+    if (Array.isArray(subjects)) student.preferred_subjects = nextSubjects;
+
+    await Promise.all([user.save(), student.save()]);
+    return res.status(200).json({ success: true, message: 'Student updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update student', error: error.message });
+  }
+});
+
+// Admin: Remove a single academic level and prune subjects not matching remaining levels
+exports.removeTutorLevelByAdmin = asyncHandler(async (req, res) => {
+  try {
+    const { user_id, level_id } = req.params;
+
+    console.log("level_id", req.params);
+    if (!user_id || !level_id) {
+      return res.status(400).json({ success: false, message: 'user_id and level_id are required' });
+    }
+
+    const tutor = await TutorProfile.findOne({ user_id });
+    if (!tutor) {
+      return res.status(404).json({ success: false, message: 'Tutor profile not found' });
+    }
+
+    // Dependency checks before removal
+    const deps = {};
+    deps.sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id, academic_level: level_id });
+    deps.payments = await StudentPayment.countDocuments({ tutor_id: tutor._id, academic_level: level_id });
+    deps.hires = await StudentProfile.countDocuments({ 'hired_tutors.tutor': tutor._id, 'hired_tutors.academic_level_id': level_id });
+    const totalDeps = (deps.sessions || 0) + (deps.payments || 0) + (deps.hires || 0);
+    if (totalDeps > 0) {
+      return res.status(400).json({ success: false, message: 'Cannot remove academic level due to existing dependencies', dependencies: deps });
+    }
+
+    const beforeCount = Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught.length : 0;
+    tutor.academic_levels_taught = (tutor.academic_levels_taught || []).filter((entry) => {
+      const id = entry?.educationLevel && entry.educationLevel._id ? String(entry.educationLevel._id) : String(entry?.educationLevel);
+      return id !== String(level_id);
+    });
+    const afterCount = tutor.academic_levels_taught.length;
+
+    // Prune subjects that belong to the removed level by keeping only those in remaining levels
+    const remainingLevelIds = new Set(
+      (tutor.academic_levels_taught || []).map((e) => String(e.educationLevel && e.educationLevel._id ? e.educationLevel._id : e.educationLevel))
+    );
+    if (Array.isArray(tutor.subjects) && tutor.subjects.length > 0) {
+      const subjectDocs = await Subject.find({ _id: { $in: tutor.subjects } }).select('_id level_id').lean();
+      const pruned = subjectDocs.filter((sd) => sd.level_id && remainingLevelIds.has(String(sd.level_id))).map((sd) => sd._id);
+      tutor.subjects = pruned;
+    }
+
+    await tutor.save();
+    if (beforeCount === afterCount) {
+      return res.status(404).json({ success: false, message: 'Level not found in tutor profile' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Academic level removed successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to remove academic level', error: error.message });
+  }
+});
+
+// Admin: Update tutor details and/or education (levels, subjects)
+exports.updateTutorByAdmin = asyncHandler(async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const {
+      name,
+      email,
+      phone,
+      location,
+      experience_years,
+      bio,
+      qualifications,
+      academic_levels_taught,
+      subjects
+    } = req.body || {};
+console.log("req.body", req.body);
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const tutor = await TutorProfile.findOne({ user_id });
+    if (!tutor) {
+      return res.status(404).json({ success: false, message: "Tutor profile not found" });
+    }
+
+    // Update basic user fields
+    if (typeof name === 'string') user.full_name = name;
+    if (typeof email === 'string') user.email = email;
+    if (typeof phone === 'string') user.phone_number = phone;
+
+    // Update tutor profile fields
+    if (typeof location === 'string') tutor.location = location;
+    if (typeof experience_years !== 'undefined') {
+      const exp = Number(experience_years);
+      tutor.experience_years = Number.isNaN(exp) ? tutor.experience_years : exp;
+    }
+    if (typeof bio === 'string') tutor.bio = bio;
+    if (typeof qualifications !== 'undefined') {
+      if (Array.isArray(qualifications)) {
+        tutor.qualifications = qualifications.join(', ');
+      } else if (typeof qualifications === 'string') {
+        tutor.qualifications = qualifications;
+      }
+    }
+
+    // Handle academic levels taught if provided
+    let selectedLevelIds = null;
+    if (Array.isArray(academic_levels_taught)) {
+      // Normalize to array of ObjectIds as strings
+      selectedLevelIds = academic_levels_taught.map((lv) => {
+        if (lv && typeof lv === 'object' && (lv.educationLevel || lv._id)) {
+          return String(lv.educationLevel || lv._id);
+        }
+        return String(lv);
+      }).filter(Boolean);
+
+      // Find levels being removed and check dependencies before proceeding
+      const prevLevels = (Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught : []).map((e) => String(e.educationLevel && e.educationLevel._id ? e.educationLevel._id : e.educationLevel));
+      const removedLevels = prevLevels.filter((l) => !new Set(selectedLevelIds).has(l));
+      if (removedLevels.length > 0) {
+        const deps = {};
+        deps.sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id, academic_level: { $in: removedLevels } });
+        deps.payments = await StudentPayment.countDocuments({ tutor_id: tutor._id, academic_level: { $in: removedLevels } });
+        deps.hires = await StudentProfile.countDocuments({ 'hired_tutors.tutor': tutor._id, 'hired_tutors.academic_level_id': { $in: removedLevels } });
+        const total = (deps.sessions||0)+(deps.payments||0)+(deps.hires||0);
+        if (total > 0) {
+          return res.status(400).json({ success: false, message: 'Cannot update levels due to existing dependencies', dependencies: deps });
+        }
+      }
+      console.log("removedLevels", removedLevels);
+      // Build full objects satisfying TutorProfile schema requirements
+      const existingByLevel = new Map(
+        (Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught : [])
+          .map((entry) => [String(entry.educationLevel), entry])
+      );
+
+      const levelDocs = await EducationLevel.find({ _id: { $in: selectedLevelIds } }).lean();
+      const levelDocMap = new Map(levelDocs.map((ld) => [String(ld._id), ld]));
+
+      tutor.academic_levels_taught = selectedLevelIds.map((levelId) => {
+        const prev = existingByLevel.get(levelId);
+        const lvl = levelDocMap.get(levelId);
+        const hourly = prev?.hourlyRate ?? lvl?.hourlyRate ?? 0;
+        const totalSessions = prev?.totalSessionsPerMonth ?? lvl?.totalSessionsPerMonth ?? 0;
+        const discount = prev?.discount ?? lvl?.discount ?? 0;
+        const monthlyRate = Math.max(0, (hourly * totalSessions) - ((hourly * totalSessions) * (discount / 100)));
+        return {
+          educationLevel: levelId,
+          name: lvl?.level || prev?.name || 'Level',
+          hourlyRate: hourly,
+          totalSessionsPerMonth: totalSessions,
+          discount,
+          monthlyRate
+        };
+      });
+    }
+
+    // Handle subjects if provided; optionally filter to selected levels
+    if (Array.isArray(subjects)) {
+      let subjectIds = subjects.map((s) => String(s)).filter(Boolean);
+
+      // If levels were provided in same request, filter subjects to those levels
+      if (selectedLevelIds && selectedLevelIds.length > 0) {
+        const subjectDocs = await Subject.find({ _id: { $in: subjectIds } }).select('_id level_id').lean();
+        const levelSet = new Set(selectedLevelIds.map(String));
+        subjectIds = subjectDocs
+          .filter((sd) => sd.level_id && levelSet.has(String(sd.level_id)))
+          .map((sd) => String(sd._id));
+      }
+
+      // Subjects being removed and their dependencies
+      const prevSubjects = Array.isArray(tutor.subjects) ? tutor.subjects.map(String) : [];
+      const removedSubjects = prevSubjects.filter((s) => !new Set(subjectIds).has(s));
+      if (removedSubjects.length > 0) {
+        const deps = {};
+        deps.sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id, subject: { $in: removedSubjects } });
+        deps.payments = await StudentPayment.countDocuments({ tutor_id: tutor._id, subject: { $in: removedSubjects } });
+        deps.hires = await StudentProfile.countDocuments({ 'hired_tutors.tutor': tutor._id, 'hired_tutors.subject': { $in: removedSubjects } });
+        const total = (deps.sessions||0)+(deps.payments||0)+(deps.hires||0);
+        if (total > 0) {
+          return res.status(400).json({ success: false, message: 'Cannot remove subjects due to existing dependencies', dependencies: deps });
+        }
+      }
+
+      tutor.subjects = subjectIds;
+    }
+
+    await Promise.all([user.save(), tutor.save()]);
+
+    return res.status(200).json({ success: true, message: 'Tutor updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update tutor', error: error.message });
+  }
+});
+

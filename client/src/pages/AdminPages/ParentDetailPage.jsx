@@ -20,6 +20,11 @@ import {
   TableRow,
   Paper,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
 import { BASE_URL } from "../../config";
 import {
@@ -37,6 +42,7 @@ import {
   CheckCircle,
   Cancel,
   MoreVert,
+  Edit,
 } from "@mui/icons-material";
 import { useSubject } from '../../hooks/useSubject';
 import { useAdminDashboard } from "../../contexts/AdminDashboardContext";
@@ -74,6 +80,15 @@ const ParentDetailPage = () => {
   const [userStatus, setUserStatus] = useState(user?.status || "inactive");
   const [isUpdating, setIsUpdating] = useState(false);
   const { updateUserInList, refreshUserData } = useAdminDashboard();
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+  });
   
   // Removed unnecessary refresh on mount - data is already available from navigation state
   useEffect(() => {
@@ -123,10 +138,62 @@ const ParentDetailPage = () => {
   const userName = user?.name || "Unknown User";
   const userEmail = user?.email || "No email provided";
   const userPhone = user?.phone || "No phone provided";
+  const userLocation = user?.location || "No location provided";
   const userJoinDate = user?.joinDate || "Unknown";
   const userLastActive = user?.lastActive || "Unknown";
   const userChildren = user?.children || [];
   const userSessionsBooked = user?.sessionsBooked || 0;
+  const openEditDialog = () => {
+    setEditForm({
+      name: user?.name || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      location: user?.location || "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setSavingEdit(true);
+      const payload = {
+        name: editForm.name,
+        email: editForm.email,
+        phone: editForm.phone,
+        location: editForm.location,
+      };
+      const res = await fetch(`${BASE_URL}/api/admin/parents/${user.id || user.user_id || user._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSnackbar({ open: true, message: data.message || 'Failed to update parent', severity: 'error' });
+        return;
+      }
+      // Optimistic local update
+      const updated = {
+        ...user,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        location: payload.location,
+      };
+      setUser(updated);
+      updateUserInList('parents', updated);
+      setSnackbar({ open: true, message: 'Parent details updated successfully', severity: 'success' });
+      setEditOpen(false);
+    } catch (_) {
+      setSnackbar({ open: true, message: 'Failed to update parent', severity: 'error' });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
 
   const handleToggleActive = async () => {
@@ -234,9 +301,25 @@ const ParentDetailPage = () => {
                   {userName}
                 </Typography>
               </Box>
-              {/* Action Buttons */}
-             {/* Action Button (Top Right Corner) */}
+              {/* Actions */}
              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={openEditDialog}
+                  sx={{
+                    borderRadius: '9999px',
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    px: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    '&:hover': { borderColor: 'primary.dark', backgroundColor: 'transparent' }
+                  }}
+                  startIcon={<Edit sx={{ color: 'primary.main' }} />}
+                >
+                  Edit Details
+                </Button>
                 <Button
                   variant={userStatus === "active" ? "outlined" : "contained"}
                   color={userStatus === "active" ? "error" : "success"}
@@ -269,9 +352,9 @@ const ParentDetailPage = () => {
                     <TableCell>
                       <strong>Phone</strong>
                     </TableCell>
-                    {/* <TableCell>
+                    <TableCell>
                       <strong>Location</strong>
-                    </TableCell> */}
+                    </TableCell>
                     <TableCell>
                       <strong>Joined</strong>
                     </TableCell>
@@ -287,7 +370,7 @@ const ParentDetailPage = () => {
                   <TableRow>
                     <TableCell>{userEmail}</TableCell>
                     <TableCell>{userPhone}</TableCell>
-                    {/* <TableCell>{userLocation}</TableCell> */}
+                    <TableCell>{userLocation}</TableCell>
                     <TableCell>{formatDate(userJoinDate)}</TableCell>
                     <TableCell>{formatDate(userLastActive)}</TableCell>
                     <TableCell>
@@ -407,6 +490,25 @@ const ParentDetailPage = () => {
           message={snackbar.message}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         />
+
+      {/* Edit Parent Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Parent Details</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField label="Full Name" value={editForm.name} onChange={(e) => handleEditChange('name', e.target.value)} fullWidth />
+            <TextField label="Email" value={editForm.email} onChange={(e) => handleEditChange('email', e.target.value)} type="email" fullWidth />
+            <TextField label="Phone" value={editForm.phone} onChange={(e) => handleEditChange('phone', e.target.value)} fullWidth />
+            <TextField label="Location" value={editForm.location} onChange={(e) => handleEditChange('location', e.target.value)} fullWidth />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={savingEdit}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained" disabled={savingEdit}>
+            {savingEdit ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Box>
     </AdminLayout>
   );
