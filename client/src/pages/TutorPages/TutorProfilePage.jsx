@@ -495,7 +495,7 @@ const TutorProfilePage = () => {
                       </div>
                     </div>
                   </div>
-                    {tutor.bio && (
+                      {tutor.bio && (
                         <p className="text-gray-700 leading-relaxed break-words">
                           {tutor.bio}
                         </p>

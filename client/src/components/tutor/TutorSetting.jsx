@@ -299,12 +299,12 @@ const TutorSetting = () => {
                                     const s = getSubjectName(subjectId);
                                     return (
                                         <div key={index} className="flex items-center gap-2">
-                                            <Badge 
-                                                variant="secondary" 
-                                                className="px-2 sm:px-3 py-1 text-xs sm:text-sm break-words"
-                                            >
+                                    <Badge 
+                                        variant="secondary" 
+                                        className="px-2 sm:px-3 py-1 text-xs sm:text-sm break-words"
+                                    >
                                                 {s?.name} - {s?.subject_type?.name} - {s?.level_id?.level}
-                                            </Badge>
+                                    </Badge>
                                             <Button
                                                 variant="destructive"
                                                 size="sm"

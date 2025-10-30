@@ -1370,7 +1370,7 @@ exports.getTutorDetails = async (req, res) => {
       status: tutor.profile_status,
       experience_years : tutor.experience_years,
       TotalSessions:totalSessions,
-    
+      bio: tutor.bio,
       // 🔹 Academic Levels
       academic_levels_taught: tutor.academic_levels_taught || [],
     
