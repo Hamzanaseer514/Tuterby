@@ -80,7 +80,7 @@ const HomePage = () => {
       exit="out"
       variants={pageVariants}
       transition={pageTransition}
-      className="space-y-12 md:space-y-16 lg:space-y-20 xl:space-y-24"
+      className="space-y-4 md:space-y-6 lg:space-y-8 xl:space-y-10"
     >
       <HeroSection />
       <Suspense fallback={<PageLoader />}>
