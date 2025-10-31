@@ -6,6 +6,11 @@ const EducationLevelSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  description: {
+    type: String,
+    trim: true,
+    default: "",
+  },
   hourlyRate: {
     type: Number,
     default: 0,

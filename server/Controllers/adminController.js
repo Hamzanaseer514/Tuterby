@@ -1904,7 +1904,7 @@ exports.getOtpStatus = asyncHandler(async (req, res) => {
 
 exports.addEducationLevel = asyncHandler(async (req, res) => {
 
-  const { level } = req.body;
+  const { level, description } = req.body;
 
 
 
@@ -1934,7 +1934,7 @@ exports.addEducationLevel = asyncHandler(async (req, res) => {
 
 
 
-  const newLevel = await EducationLevel.create({ level });
+  const newLevel = await EducationLevel.create({ level, description });
 
 
 
@@ -2029,7 +2029,7 @@ exports.deleteEducationLevel = asyncHandler(async (req, res) => {
 
 exports.updateEducationLevel = asyncHandler(async (req, res) => {
 
-  const { level } = req.body;
+  const { level, description } = req.body;
 
   const existingLevel = await EducationLevel.findById(req.params.id);
 
@@ -2078,6 +2078,7 @@ exports.updateEducationLevel = asyncHandler(async (req, res) => {
 
 
   existingLevel.level = level;
+  if (description !== undefined) existingLevel.description = description;
 
   const updatedLevel = await existingLevel.save();
 
@@ -2112,6 +2113,8 @@ exports.manageEducationLevel = asyncHandler(async (req, res) => {
     maxSession,
 
     minSession,
+
+    description,
 
   } = req.body;
 
@@ -2158,6 +2161,8 @@ exports.manageEducationLevel = asyncHandler(async (req, res) => {
   if (maxSession !== undefined) existingLevel.maxSession = maxSession;
 
   if (minSession !== undefined) existingLevel.minSession = minSession;
+
+  if (description !== undefined) existingLevel.description = description;
 
   const updatedLevel = await existingLevel.save();
 

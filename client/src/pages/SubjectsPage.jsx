@@ -22,7 +22,7 @@ const SubjectsPage = () => {
   const [expandedLevelId, setExpandedLevelId] = useState(null);
   const location = useLocation();
   const siteUrl = "https://www.tutornearby.co.uk";
-  const { subjects } = useSubject();
+  const { subjects, academicLevels } = useSubject();
 
   useEffect(() => {
     const hash = location.hash.replace("#", "");
@@ -74,6 +74,10 @@ const SubjectsPage = () => {
       acc[levelId] = {
         levelId,
         levelName: subject.level_id?.level || "No Level",
+        // Prefer populated subject.level_id.description; fallback to academicLevels lookup
+        description:
+          subject.level_id?.description ||
+          (academicLevels.find?.((l) => l._id === levelId)?.description || ""),
         types: {},
       };
     }
@@ -306,7 +310,8 @@ const SubjectsPage = () => {
                   level={{
                     id: levelGroup.levelId,
                     levelName: levelGroup.levelName,
-                    description: `Exploredddd ${levelGroup.levelName} subjects grouped by type.`,
+                    // description: `Exploredddd ${levelGroup.levelName} subjects grouped by type.`,
+                    description: levelGroup.description || `Exploredddd ${levelGroup.levelName} subjects grouped by type.`,
                     subjects: (() => {
                       const all = levelGroup.types.flatMap((t) => t.subjects || []);
                       const seen = new Set();
