@@ -82,6 +82,23 @@ const TutorSelfProfilePage = () => {
     return academicLevel ? academicLevel.level : '';
   }
 
+  // Get subjects for a specific academic level
+  const getSubjectsForLevel = (levelId) => {
+    if (!levelId || !subjectsList || subjectsList.length === 0) return [];
+    const levelIdStr = levelId.toString();
+    return subjectsList.filter(subject => {
+      const subjectData = getSubjectName(subject);
+      if (!subjectData || !subjectData.level_id) return false;
+      
+      // Handle both populated (object with _id) and non-populated (direct ID) cases
+      const subjectLevelId = subjectData.level_id._id 
+        ? subjectData.level_id._id.toString() 
+        : subjectData.level_id.toString();
+      
+      return subjectLevelId === levelIdStr;
+    });
+  };
+
   async function loadProfile() {
     try {
       setLoading(true);
@@ -227,25 +244,20 @@ const TutorSelfProfilePage = () => {
           </Card>
 
           <Card className="border-blue-100">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl">Subjects</CardTitle>
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Personal Information</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6">
-              {subjectsList && subjectsList?.length > 0 ? (
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {subjectsList?.map((s, i) => (
-                    <span key={i} className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border rounded bg-white shadow-sm break-words">
-                      {getSubjectName(s)?.name} - {getSubjectName(s)?.subject_type?.name}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600 text-sm sm:text-base">No subjects added.</p>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-6">
-                <div>
-                  <Label className="text-sm sm:text-base font-medium">Experience (years)</Label>
-                  <Input value={profile?.experience_years || 0} disabled className="mt-1 sm:mt-2 text-sm sm:text-base" />
+            <CardContent className="">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-6">
+                  <div>
+                  <Label className="text-sm sm:text-base font-medium">Experience</Label>
+                  <div className="relative mt-1 sm:mt-2">
+                    <Input 
+                      value={`${profile?.experience_years || 0} year${profile?.experience_years !== 1 ? 's' : ''}`} 
+                      disabled 
+                      className="text-sm sm:text-base pr-12" 
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-sm sm:text-base font-medium">Total Sessions</Label>
@@ -282,7 +294,62 @@ const TutorSelfProfilePage = () => {
             )}
           </CardContent>
         </Card>
-
+        <Card className="border-blue-100">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">Subjects & Types </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            {/* {profile?.academic_levels_taught && profile?.academic_levels_taught.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {profile?.academic_levels_taught.map((lvl, i) => {
+                  const levelSubjects = getSubjectsForLevel(lvl.educationLevel);
+                  return (
+                    <div key={i} className="p-3 sm:p-4 border rounded bg-white space-y-2 sm:space-y-3 shadow-sm">
+                      <div className="font-medium text-sm sm:text-base">{getAcademicLevelName(lvl.educationLevel)}</div>
+                      <div className="text-xs sm:text-sm text-gray-600">£{lvl.hourlyRate}/hr ·{lvl.totalSessionsPerMonth} sessions</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Discount: {lvl.discount}%</div>
+                      {typeof lvl.monthlyRate === 'number' && (
+                        <div className="text-xs sm:text-sm text-gray-800 font-medium">Monthly: £{lvl.monthlyRate}</div>
+                      )}
+                      
+                      {levelSubjects.length > 0 && (
+                        <div className="pt-2 sm:pt-3 border-t border-gray-200">
+                          <div className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Subjects:</div>
+                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                            {levelSubjects.map((subject, idx) => {
+                              const subjectData = getSubjectName(subject);
+                              return (
+                                <span 
+                                  key={idx} 
+                                  className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded"
+                                >
+                                  {subjectData?.name || subject} - {subjectData?.subject_type?.name}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-gray-600 text-sm sm:text-base">No levels configured.</p>
+            )} */}
+              {subjectsList && subjectsList?.length > 0 ? (
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {subjectsList?.map((s, i) => (
+                    <span key={i} className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border rounded bg-white shadow-sm break-words">
+                      {getSubjectName(s)?.name} - {getSubjectName(s)?.subject_type?.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-sm sm:text-base">No subjects added.</p>
+              )}
+          </CardContent>
+        </Card>
         <Card className="border-blue-100">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl">Academic Levels</CardTitle>
@@ -290,16 +357,39 @@ const TutorSelfProfilePage = () => {
           <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {profile?.academic_levels_taught && profile?.academic_levels_taught.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {profile?.academic_levels_taught.map((lvl, i) => (
-                  <div key={i} className="p-3 sm:p-4 border rounded bg-white space-y-2 sm:space-y-3 shadow-sm">
-                    <div className="font-medium text-sm sm:text-base">{getAcademicLevelName(lvl.educationLevel)}</div>
-                    <div className="text-xs sm:text-sm text-gray-600">£{lvl.hourlyRate}/hr · {lvl.totalSessionsPerMonth} sessions</div>
-                    <div className="text-xs sm:text-sm text-gray-600">Discount: {lvl.discount}%</div>
-                    {typeof lvl.monthlyRate === 'number' && (
-                      <div className="text-xs sm:text-sm text-gray-800 font-medium">Monthly: £{lvl.monthlyRate}</div>
-                    )}
-                  </div>
-                ))}
+                {profile?.academic_levels_taught.map((lvl, i) => {
+                  const levelSubjects = getSubjectsForLevel(lvl.educationLevel);
+                  return (
+                    <div key={i} className="p-3 sm:p-4 border rounded bg-white space-y-2 sm:space-y-3 shadow-sm">
+                      <div className="font-medium text-sm sm:text-base">{getAcademicLevelName(lvl.educationLevel)}</div>
+                      <div className="text-xs sm:text-sm text-gray-600">£{lvl.hourlyRate}/hr ·{lvl.totalSessionsPerMonth} sessions</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Discount: {lvl.discount}%</div>
+                      {typeof lvl.monthlyRate === 'number' && (
+                        <div className="text-xs sm:text-sm text-gray-800 font-medium">Monthly: £{lvl.monthlyRate}</div>
+                      )}
+                      
+                      {/* Subjects for this level */}
+                      {levelSubjects.length > 0 && (
+                        <div className="pt-2 sm:pt-3 border-t border-gray-200">
+                          <div className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Subjects:</div>
+                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                            {levelSubjects.map((subject, idx) => {
+                              const subjectData = getSubjectName(subject);
+                              return (
+                                <span 
+                                  key={idx} 
+                                  className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded"
+                                >
+                                  {subjectData?.name || subject} 
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-600 text-sm sm:text-base">No levels configured.</p>

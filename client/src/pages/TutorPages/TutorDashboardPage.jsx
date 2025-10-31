@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TutorDashboard from '../../components/tutor/TutorDashboard';
 import SessionManagement from '../../components/tutor/SessionManagement';
 import InquiryManagement from '../../components/tutor/InquiryManagement';
@@ -44,7 +44,25 @@ import { cn } from '../../lib/utils';
 const lastSeenKey = (id) => `tutor_last_seen_${id}`;
 
 const TutorDashboardPage = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading, logout, isTutor, getUserProfile, fetchWithAuth } = useAuth();
+  
+  // Extract tab from URL path
+  const getTabFromUrl = () => {
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    if (pathSegments.length >= 2 && pathSegments[0] === 'tutor-dashboard') {
+      const tab = pathSegments[1];
+      // Check if it's a reserved route (separate page, not a tab)
+      const reservedRoutes = ['create-session'];
+      if (!reservedRoutes.includes(tab)) {
+        return tab;
+      }
+    }
+    return 'dashboard'; // default tab
+  };
+
+  const [activeTab, setActiveTab] = useState(getTabFromUrl());
   const [tutorId, setTutorId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState('');
@@ -55,8 +73,6 @@ const TutorDashboardPage = () => {
   });
   const [badgeCounts, setBadgeCounts] = useState({ inquiries: 0, chat: 0, 'student-requests': 0, sessions: 0, interviews: 0, submissions: 0, assignments: 0, 'payment-history': 0, reviews: 0 });
   const [hasRejectedDocuments, setHasRejectedDocuments] = useState(false);
-  const navigate = useNavigate();
-  const { user, loading, logout, isTutor, getUserProfile, fetchWithAuth } = useAuth();
 
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -123,6 +139,19 @@ const TutorDashboardPage = () => {
       clearInterval(interval);
     };
   }, [user, getUserProfile]);
+
+  // Sync activeTab with URL when location changes
+  useEffect(() => {
+    const tabFromUrl = getTabFromUrl();
+    setActiveTab(tabFromUrl);
+  }, [location.pathname]);
+
+  // Redirect base path to dashboard tab
+  useEffect(() => {
+    if (!loading && user && isTutor() && location.pathname === '/tutor-dashboard') {
+      navigate('/tutor-dashboard/dashboard', { replace: true });
+    }
+  }, [location.pathname, loading, user, navigate, isTutor]);
 
   useEffect(() => {
     if (!loading) {
@@ -509,6 +538,7 @@ const TutorDashboardPage = () => {
                         key={item.id}
                         onClick={() => {
                           setActiveTab(item.id);
+                          navigate(`/tutor-dashboard/${item.id}`);
                           setBadgeCounts(prev => ({ ...prev, [item.id]: 0 }));
                           localStorage.setItem(lastSeenKey(item.id), String(Date.now()));
                           if (item.id === 'interviews') {
@@ -603,8 +633,13 @@ const TutorDashboardPage = () => {
                             key={item.id}
                             onClick={() => {
                               setActiveTab(item.id);
+                              navigate(`/tutor-dashboard/${item.id}`);
                               setBadgeCounts(prev => ({ ...prev, [item.id]: 0 }));
                               localStorage.setItem(lastSeenKey(item.id), String(Date.now()));
+                              if (item.id === 'interviews') {
+                                const status = localStorage.getItem('tutor_last_known_interviews_status') || '';
+                                localStorage.setItem('tutor_last_seen_interviews_status', status);
+                              }
                               fetchCounts();
                               setIsSidebarOpen(false);
                             }}

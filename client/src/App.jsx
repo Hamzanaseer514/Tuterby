@@ -150,25 +150,21 @@ function App() {
                 <UnifiedAdminDashboard />
               </ProtectedRoute>} />
               <Route path="/login" element={<LoginForm />} />
+              {/* Exact route for base tutor-dashboard path */}
               <Route path="/tutor-dashboard" element={<ProtectedRoute allowedRoles={["tutor"]}>
                 <TutorDashboardPage />
               </ProtectedRoute>} />
-              <Route
-                path="/tutor-dashboard/availability"
-                element={<ProtectedRoute allowedRoles={["tutor"]}>
-                  <TutorAvailabilityPage />
-                </ProtectedRoute>}
-              />
               <Route
                 path="/tutor-dashboard/create-session"
                 element={<ProtectedRoute allowedRoles={["tutor"]}>
                   <TutorCreateSessionPage />
                 </ProtectedRoute>}
               />
+              {/* Catch-all route for tutor dashboard tabs - handles availability, reviews, and all other tabs */}
               <Route
-                path="/tutor-dashboard/reviews"
+                path="/tutor-dashboard/*"
                 element={<ProtectedRoute allowedRoles={["tutor"]}>
-                  <TutorReviewsPageForTutor />
+                  <TutorDashboardPage />
                 </ProtectedRoute>}
               />
               <Route
