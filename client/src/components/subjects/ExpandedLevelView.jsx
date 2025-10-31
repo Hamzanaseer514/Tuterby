@@ -1,7 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { X, ListChecks, BookOpen, ExternalLink } from 'lucide-react';
+import {
+  X,
+  ListChecks,
+  BookOpen,
+  ExternalLink,
+  Calculator,
+  Sigma,
+  Atom,
+  FlaskConical,
+  Microscope,
+  Dna,
+  Globe,
+  Languages,
+  Code2,
+  Cpu,
+  Brain,
+  BarChart3,
+  TrendingUp,
+  Landmark,
+  Gavel,
+  Music2,
+  Palette,
+  Book,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 
@@ -9,8 +32,33 @@ const isValidLucideIcon = (IconComponent) => {
   return IconComponent && (typeof IconComponent === 'function' || (typeof IconComponent === 'object' && IconComponent !== null && typeof IconComponent.render === 'function'));
 };
 
+// Map subject name to an appropriate icon
+const getSubjectIconForName = (subjectName) => {
+  const n = (subjectName || '').toLowerCase();
+  if (/psychology|neuro|cognitive/.test(n)) return Brain;
+  if (/programming|coding|python|java|javascript|comput(er|ing)|software|cs|ai|ml|machine\s*learning/.test(n)) return Code2;
+  if (/data\s*science|data\s*analysis|sql|database/.test(n)) return Cpu;
+  if (/math|algebra|calculus|geometry|trigonometry|number|arithmetic/.test(n)) return Calculator;
+  if (/statistics|probab|stat/.test(n)) return Sigma;
+  if (/physics|mechanics|quantum|electromagnet|astronomy|astrophysics|atom/.test(n)) return Atom;
+  if (/chem(istry)?|organic|inorganic|lab/.test(n)) return FlaskConical;
+  if (/biology|life\s*science|anatomy|physiology|genetic/.test(n)) return Dna;
+  if (/microbiology|microscope|cell/.test(n)) return Microscope;
+  if (/geograph|earth|map|geo/.test(n)) return Globe;
+  if (/history|civilization|ancient|world\s*history/.test(n)) return Landmark;
+  if (/economics|finance|accounting|business|management|commerce/.test(n)) return TrendingUp;
+  if (/marketing|brand|advertis|seo|sem|growth/.test(n)) return BarChart3;
+  if (/law|legal|juris|contract/.test(n)) return Gavel;
+  if (/english|literature|reading|writing|grammar|poetry|novel/.test(n)) return BookOpen;
+  if (/language|french|spanish|german|urdu|arabic|mandarin|hindi/.test(n)) return Languages;
+  if (/art|design|drawing|painting|sketch/.test(n)) return Palette;
+  if (/music|song|guitar|piano/.test(n)) return Music2;
+  return Book;
+};
+
 const SubjectChip = ({ subject, isPremiumFeature = false }) => {
-  const IconComponent = subject.icon;
+  // const IconComponent = subject.icon 
+  const IconComponent = subject.icon || getSubjectIconForName(subject.name);
   const linkAriaLabel = `Learn more about ${subject.name} in our blog`;
   
   return (
@@ -21,8 +69,10 @@ const SubjectChip = ({ subject, isPremiumFeature = false }) => {
       className="flex items-center justify-between bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-foreground/80 p-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-primary/20 dark:hover:bg-primary/30 transition-all duration-200 cursor-default"
     >
       <div className="flex items-center">
-          {isValidLucideIcon(IconComponent) && <IconComponent className="w-5 h-5 mr-2 text-primary" />}
-          <span className="text-sm font-medium text-foreground dark:text-slate-200">{subject.name}</span>
+          {isValidLucideIcon(IconComponent) && (
+            <IconComponent className="w-5 h-5 md:w-6 md:h-6 mr-2 text-primary" />
+          )}
+          <span className="text-[15px] md:text-[16px] font-medium text-foreground dark:text-slate-200">{subject.name}</span>
       </div>
       {isPremiumFeature && subject.blogSlug && (
           <Link to={`/blog/${subject.blogSlug}`} title={`Learn more about ${subject.name}`} className="ml-2 p-1 rounded-full hover:bg-primary/20" aria-label={linkAriaLabel}>

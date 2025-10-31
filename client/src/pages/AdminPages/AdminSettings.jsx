@@ -27,6 +27,7 @@ const AdminSettings = () => {
   const [currentLevel, setCurrentLevel] = useState({
     id: null,
     level: "",
+    description: "",
     hourlyRate: 0,
     totalSessionsPerMonth: 0,
     discount: 0,
@@ -423,6 +424,7 @@ const AdminSettings = () => {
     setCurrentLevel({
       id: level._id,
       level: level.level,
+      description: level.description || "",
       hourlyRate: level.hourlyRate || 0,
       totalSessionsPerMonth: level.totalSessionsPerMonth || 0,
       discount: level.discount || 0,
@@ -439,7 +441,9 @@ const AdminSettings = () => {
     setCurrentLevel((prev) => ({
       ...prev,
       [name]:
-        name === "discount"
+        name === "description"
+          ? value.slice(0, 160)
+          : name === "discount"
           ? Math.min(100, Math.max(0, Number(value)))
           : Number(value),
     }));
@@ -461,6 +465,7 @@ const AdminSettings = () => {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            description: currentLevel.description,
             hourlyRate: currentLevel.hourlyRate,
             totalSessionsPerMonth: currentLevel.totalSessionsPerMonth,
             discount: currentLevel.discount,
@@ -925,72 +930,82 @@ const AdminSettings = () => {
               Manage {currentLevel.level}
             </h3>
 
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hourly Rate ($)
+                  Description
                 </label>
-                <input
-                  type="number"
-                  name="hourlyRate"
-                  value={currentLevel.hourlyRate}
+                <textarea
+                  name="description"
+                  value={currentLevel.description}
                   onChange={handleManageInputChange}
-                  min="0"
-                  step="0.01"
+                  rows={2}
+                  maxLength={160}
+                  placeholder="Add a short description for this level"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <div className="text-xs text-gray-500 mt-1 text-right">
+                  {currentLevel.description?.length || 0}/160
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sessions Per Month
-                </label>
-                <input
-                  type="number"
-                  name="totalSessionsPerMonth"
-                  value={currentLevel.totalSessionsPerMonth}
-                  onChange={handleManageInputChange}
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Hourly Rate ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="hourlyRate"
+                    value={currentLevel.hourlyRate}
+                    onChange={handleManageInputChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Discount (%)
-                </label>
-                <input
-                  type="number"
-                  name="discount"
-                  value={currentLevel.discount}
-                  onChange={handleManageInputChange}
-                  min="0"
-                  max="100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sessions Per Month
+                  </label>
+                  <input
+                    type="number"
+                    name="totalSessionsPerMonth"
+                    value={currentLevel.totalSessionsPerMonth}
+                    onChange={handleManageInputChange}
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
 
-              <div className="pt-2 border-t border-gray-200">
-                <p className="text-sm font-medium text-gray-700">
-                  Monthly Rate:
-                </p>
-                <p className="text-xl font-semibold text-blue-600">
-                  ${currentLevel.monthlyRate.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  (Calculated: ${currentLevel.hourlyRate} ×{" "}
-                  {currentLevel.totalSessionsPerMonth} sessions = $
-                  {(
-                    currentLevel.hourlyRate * currentLevel.totalSessionsPerMonth
-                  ).toFixed(2)}
-                  )
-                  {currentLevel.discount > 0 && (
-                    <span> - {currentLevel.discount}% discount</span>
-                  )}
-                </p>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Discount (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="discount"
+                    value={currentLevel.discount}
+                    onChange={handleManageInputChange}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
 
-              <div className="flex gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monthly Rate
+                  </label>
+                  <input
+                    type="text"
+                    value={`$${currentLevel.monthlyRate.toFixed(2)}`}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-700 rounded-md"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Minimum Sessions
@@ -1013,11 +1028,19 @@ const AdminSettings = () => {
                     name="maxSession"
                     value={currentLevel.maxSession}
                     onChange={handleManageInputChange}
-                    min={currentLevel.minSession} // Ensure max can't be less than min
+                    min={currentLevel.minSession}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               </div>
+
+              <p className="text-xs text-gray-500 mt-1">
+                Calculated: ${currentLevel.hourlyRate} × {currentLevel.totalSessionsPerMonth} = $
+                {(currentLevel.hourlyRate * currentLevel.totalSessionsPerMonth).toFixed(2)}
+                {currentLevel.discount > 0 && (
+                  <> - {currentLevel.discount}% = ${currentLevel.monthlyRate.toFixed(2)}</>
+                )}
+              </p>
 
               <div className="flex items-center">
                 <input
