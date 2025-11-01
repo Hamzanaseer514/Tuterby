@@ -311,7 +311,7 @@ const SubjectsPage = () => {
                     id: levelGroup.levelId,
                     levelName: levelGroup.levelName,
                     // description: `Exploredddd ${levelGroup.levelName} subjects grouped by type.`,
-                    description: levelGroup.description || `Exploredddd ${levelGroup.levelName} subjects grouped by type.`,
+                    description: levelGroup.description || `Explored ${levelGroup.levelName} subjects grouped by type.`,
                     subjects: (() => {
                       const all = levelGroup.types.flatMap((t) => t.subjects || []);
                       const seen = new Set();
