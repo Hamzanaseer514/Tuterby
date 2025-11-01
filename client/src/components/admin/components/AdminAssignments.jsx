@@ -29,7 +29,7 @@ import {
 
 const AdminAssignments = () => {
   const { toast } = useToast();
-  const { fetchWithAuth, user } = useAuth();
+  const { fetchWithAuth, user, getAuthToken } = useAuth();
   const { academicLevels, subjects } = useSubject();
   
   const [assignments, setAssignments] = useState([]);
@@ -47,19 +47,38 @@ const AdminAssignments = () => {
     if (user && user.role === 'admin') {
       fetchAllAssignments();
       fetchAllSubmissions();
-    } else {
+    } else if (user && user.role !== 'admin') {
       setLoading(false);
       toast({
         title: "Access Denied",
         description: "Only administrators can access this page",
         variant: "destructive"
       });
+    } else {
+      // User not loaded yet, wait for it
+      setLoading(false);
     }
   }, [user]);
 
   const fetchAllAssignments = async () => {
     try {
       setLoading(true);
+      
+      // Check if we have a token before making the request
+      const token = getAuthToken();
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access this page",
+          variant: "destructive"
+        });
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+        setLoading(false);
+        return;
+      }
+
       const response = await fetchWithAuth(`${BASE_URL}/api/admin/assignments`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -104,6 +123,20 @@ const AdminAssignments = () => {
 
   const fetchAllSubmissions = async () => {
     try {
+      // Check if we have a token before making the request
+      const token = getAuthToken();
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access this page",
+          variant: "destructive"
+        });
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+        return;
+      }
+
       const response = await fetchWithAuth(`${BASE_URL}/api/admin/assignment-submissions`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -113,23 +146,46 @@ const AdminAssignments = () => {
         const data = await response.json();
         setSubmissions(data.submissions || []);
       } else if (response.status === 401) {
+        // After fetchWithAuth tried to refresh, still getting 401 means auth failed
         toast({
           title: "Authentication Error",
-          description: "Please log in again to access admin features",
+          description: "Your session has expired. Please log in again to access admin features",
           variant: "destructive"
         });
+        // Optionally redirect to login after a delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
       } else if (response.status === 403) {
         toast({
           title: "Access Denied",
           description: "You don't have permission to access this page",
           variant: "destructive"
         });
+      } else {
+        // Handle other error statuses
+        const errorData = await response.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to fetch assignment submissions",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      if (error.message === 'Refresh failed') {
+      // This catch will handle errors thrown by fetchWithAuth (like refresh failures)
+      if (error.message === 'Refresh failed' || error.message?.includes('Refresh failed')) {
         toast({
           title: "Session Expired",
           description: "Please log in again to continue",
+          variant: "destructive"
+        });
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to fetch assignment submissions",
           variant: "destructive"
         });
       }
@@ -335,50 +391,52 @@ const AdminAssignments = () => {
                     const status = getAssignmentStatus(assignment);
                     return (
                         <tr key={assignment._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-4">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-xs sm:text-sm font-medium text-gray-900 break-words">
                               {assignment.title}
                             </div>
-                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                            <div className="text-xs sm:text-sm text-gray-500 truncate max-w-xs">
                               {assignment.description}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm text-gray-900">
                             {assignment.tutor_id?.user_id?.full_name || 'N/A'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm text-gray-900">
                             {assignment.student_id?.user_id?.full_name || 'N/A'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm text-gray-900">
                             {(assignment.subject.name)}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs sm:text-sm text-gray-500">
                             {(assignment.academic_level.level)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={status.color}>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <Badge variant={status.color} className="text-xs">
                             {status.label}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                           {formatDate(assignment.createdAt)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleViewDetails(assignment)}
+                            className="text-xs sm:text-sm"
                           >
                             <Eye className="h-3 w-3 mr-1" />
-                            View Details
+                            <span className="hidden sm:inline">View Details</span>
+                            <span className="sm:hidden">View</span>
                           </Button>
                         </td>
                       </tr>
@@ -393,65 +451,66 @@ const AdminAssignments = () => {
 
       {/* Assignment Details Modal */}
       {showDetails && selectedAssignment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedAssignment.title}</h2>
-                  <p className="text-gray-600 mt-1">Assignment Details</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 sm:mb-6">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{selectedAssignment.title}</h2>
+                  <p className="text-sm sm:text-base text-gray-600 mt-1">Assignment Details</p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleCloseDetails}
+                  className="flex-shrink-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Assignment Information</h3>
+                  <h3 className="text-base sm:text-lg font-semibold mb-3">Assignment Information</h3>
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Description:</span>
-                      <p className="text-sm text-gray-900 mt-1">{selectedAssignment.description}</p>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Description:</span>
+                      <p className="text-xs sm:text-sm text-gray-900 mt-1 break-words">{selectedAssignment.description}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Subject:</span>
-                      <p className="text-sm text-gray-900">{(selectedAssignment.subject.name)}</p>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Subject:</span>
+                      <p className="text-xs sm:text-sm text-gray-900">{(selectedAssignment.subject.name)}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Academic Level:</span>
-                      <p className="text-sm text-gray-900">{(selectedAssignment.academic_level.level)}</p>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Academic Level:</span>
+                      <p className="text-xs sm:text-sm text-gray-900">{(selectedAssignment.academic_level.level)}</p>
                     </div>
                    
                     {selectedAssignment.due_date && (
                       <div>
-                        <span className="text-sm font-medium text-gray-500">Due Date:</span>
-                        <p className="text-sm text-gray-900">{formatDate(selectedAssignment.due_date)}</p>
+                        <span className="text-xs sm:text-sm font-medium text-gray-500">Due Date:</span>
+                        <p className="text-xs sm:text-sm text-gray-900">{formatDate(selectedAssignment.due_date)}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Participants</h3>
+                  <h3 className="text-base sm:text-lg font-semibold mb-3">Participants</h3>
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Tutor:</span>
-                      <p className="text-sm text-gray-900">{selectedAssignment.tutor_id?.user_id?.full_name || 'N/A'}</p>
-                      <p className="text-xs text-gray-500">{selectedAssignment.tutor_id?.user_id?.email || 'N/A'}</p>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Tutor:</span>
+                      <p className="text-xs sm:text-sm text-gray-900 break-words">{selectedAssignment.tutor_id?.user_id?.full_name || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 break-words">{selectedAssignment.tutor_id?.user_id?.email || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Student:</span>
-                      <p className="text-sm text-gray-900">{selectedAssignment.student_id?.user_id?.full_name || 'N/A'}</p>
-                      <p className="text-xs text-gray-500">{selectedAssignment.student_id?.user_id?.email || 'N/A'}</p>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Student:</span>
+                      <p className="text-xs sm:text-sm text-gray-900 break-words">{selectedAssignment.student_id?.user_id?.full_name || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 break-words">{selectedAssignment.student_id?.user_id?.email || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Status:</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Status:</span>
                       <div className="mt-1">
-                        <Badge variant={getAssignmentStatus(selectedAssignment).color}>
+                        <Badge variant={getAssignmentStatus(selectedAssignment).color} className="text-xs">
                           {getAssignmentStatus(selectedAssignment).label}
                         </Badge>
                       </div>
@@ -547,6 +606,7 @@ const AdminAssignments = () => {
                 <Button
                   variant="outline"
                   onClick={handleCloseDetails}
+                  className="w-full sm:w-auto"
                 >
                   Close
                 </Button>
