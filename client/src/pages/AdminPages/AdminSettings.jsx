@@ -79,6 +79,14 @@ const AdminSettings = () => {
   const [subjectSortConfig, setSubjectSortConfig] = useState({ key: null, direction: 'asc' });
   const [typeSortConfig, setTypeSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Pagination states
+  const [levelsPage, setLevelsPage] = useState(0);
+  const [levelsRowsPerPage, setLevelsRowsPerPage] = useState(5);
+  const [subjectsPage, setSubjectsPage] = useState(0);
+  const [subjectsRowsPerPage, setSubjectsRowsPerPage] = useState(5);
+  const [typesPage, setTypesPage] = useState(0);
+  const [typesRowsPerPage, setTypesRowsPerPage] = useState(5);
+
   // Deletion dependency states
   const [levelDependencies, setLevelDependencies] = useState({ subjectCount: 0, sampleSubjects: [] });
   const [typeDependencies, setTypeDependencies] = useState({ subjectCount: 0, sampleSubjects: [] });
@@ -159,6 +167,11 @@ const AdminSettings = () => {
     setFilteredLevels(filtered);
   }, [searchTerm, educationLevels, levelSortConfig]);
 
+  // Reset levels page on filter/sort changes
+  useEffect(() => {
+    setLevelsPage(0);
+  }, [searchTerm, levelSortConfig]);
+
   // Sort subjects function
   const sortSubjects = (data, sortConfig) => {
     if (!sortConfig.key) return data;
@@ -217,6 +230,11 @@ const AdminSettings = () => {
 
     setFilteredSubjects(filtered);
   }, [subjectSearchTerm, subjects, subjectSortConfig, educationLevels, subjectTypes]);
+
+  // Reset subjects page on filter/sort changes
+  useEffect(() => {
+    setSubjectsPage(0);
+  }, [subjectSearchTerm, subjectSortConfig, educationLevels, subjectTypes]);
 
   // Calculate monthly rate when hourly rate or sessions change
   useEffect(() => {
@@ -846,6 +864,50 @@ const AdminSettings = () => {
     setFilteredTypes(filtered);
   }, [typeSearchTerm, subjectTypes, typeSortConfig]);
 
+  // Reset types page on filter/sort changes
+  useEffect(() => {
+    setTypesPage(0);
+  }, [typeSearchTerm, typeSortConfig]);
+
+  // Pagination calculations
+  const levelsTotal = filteredLevels.length;
+  const levelsTotalPages = Math.max(1, Math.ceil(levelsTotal / levelsRowsPerPage));
+  const levelsSafePage = Math.min(levelsPage, levelsTotalPages - 1);
+  const levelsStartIndex = levelsSafePage * levelsRowsPerPage;
+  const levelsEndIndex = Math.min(levelsStartIndex + levelsRowsPerPage, levelsTotal);
+  const paginatedLevels = filteredLevels.slice(levelsStartIndex, levelsEndIndex);
+
+  const subjectsTotal = filteredSubjects.length;
+  const subjectsTotalPages = Math.max(1, Math.ceil(subjectsTotal / subjectsRowsPerPage));
+  const subjectsSafePage = Math.min(subjectsPage, subjectsTotalPages - 1);
+  const subjectsStartIndex = subjectsSafePage * subjectsRowsPerPage;
+  const subjectsEndIndex = Math.min(subjectsStartIndex + subjectsRowsPerPage, subjectsTotal);
+  const paginatedSubjects = filteredSubjects.slice(subjectsStartIndex, subjectsEndIndex);
+
+  const typesTotal = filteredTypes.length;
+  const typesTotalPages = Math.max(1, Math.ceil(typesTotal / typesRowsPerPage));
+  const typesSafePage = Math.min(typesPage, typesTotalPages - 1);
+  const typesStartIndex = typesSafePage * typesRowsPerPage;
+  const typesEndIndex = Math.min(typesStartIndex + typesRowsPerPage, typesTotal);
+  const paginatedTypes = filteredTypes.slice(typesStartIndex, typesEndIndex);
+
+  // Pagination handlers
+  const handleLevelsRowsChange = (e) => {
+    const value = parseInt(e.target.value, 10) || 10;
+    setLevelsRowsPerPage(value);
+    setLevelsPage(0);
+  };
+  const handleSubjectsRowsChange = (e) => {
+    const value = parseInt(e.target.value, 10) || 10;
+    setSubjectsRowsPerPage(value);
+    setSubjectsPage(0);
+  };
+  const handleTypesRowsChange = (e) => {
+    const value = parseInt(e.target.value, 10) || 10;
+    setTypesRowsPerPage(value);
+    setTypesPage(0);
+  };
+
   // Sort handlers
   const handleLevelSort = (key) => {
     setLevelSortConfig(prev => ({
@@ -1153,7 +1215,7 @@ const AdminSettings = () => {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="w-full max-w-none px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">System Settings</h1>
@@ -1311,7 +1373,8 @@ const AdminSettings = () => {
                     : "No education levels added yet"}
                 </div>
               ) : (
-                <div className="overflow-y-auto max-h-64">
+                <>
+                <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
@@ -1364,7 +1427,7 @@ const AdminSettings = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredLevels.map((level) => (
+                      {paginatedLevels.map((level) => (
                         <tr key={level._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                             {level.level}
@@ -1405,6 +1468,42 @@ const AdminSettings = () => {
                     </tbody>
                   </table>
                 </div>
+                {/* Levels pagination */}
+                <div className="flex items-center justify-between px-4 py-2 border-t text-sm text-gray-700">
+                  <div>
+                    Showing {levelsTotal ? levelsStartIndex + 1 : 0}-{levelsEndIndex} of {levelsTotal}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={levelsRowsPerPage}
+                      onChange={handleLevelsRowsChange}
+                      className="px-2 py-1 border border-gray-300 rounded-md bg-white"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <button
+                      onClick={() => setLevelsPage(p => Math.max(0, p - 1))}
+                      disabled={levelsSafePage === 0}
+                      className={`px-2 py-1 border rounded-md ${levelsSafePage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    >
+                      Prev
+                    </button>
+                    <span>
+                      {levelsSafePage + 1} / {levelsTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setLevelsPage(p => Math.min(levelsTotalPages - 1, p + 1))}
+                      disabled={levelsSafePage + 1 >= levelsTotalPages}
+                      className={`px-2 py-1 border rounded-md ${levelsSafePage + 1 >= levelsTotalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+                </>
               )}
             </div>
           </div>
@@ -1523,7 +1622,8 @@ const AdminSettings = () => {
                     : "No subjects added yet"}
                 </div>
               ) : (
-                <div className="overflow-y-auto max-h-64">
+                <>
+                <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
@@ -1565,7 +1665,7 @@ const AdminSettings = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredSubjects.map((subject) => (
+                      {paginatedSubjects.map((subject) => (
                         <tr key={subject._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                             {subject.name}
@@ -1600,6 +1700,42 @@ const AdminSettings = () => {
                     </tbody>
                   </table>
                 </div>
+                {/* Subjects pagination */}
+                <div className="flex items-center justify-between px-4 py-2 border-t text-sm text-gray-700">
+                  <div>
+                    Showing {subjectsTotal ? subjectsStartIndex + 1 : 0}-{subjectsEndIndex} of {subjectsTotal}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={subjectsRowsPerPage}
+                      onChange={handleSubjectsRowsChange}
+                      className="px-2 py-1 border border-gray-300 rounded-md bg-white"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <button
+                      onClick={() => setSubjectsPage(p => Math.max(0, p - 1))}
+                      disabled={subjectsSafePage === 0}
+                      className={`px-2 py-1 border rounded-md ${subjectsSafePage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    >
+                      Prev
+                    </button>
+                    <span>
+                      {subjectsSafePage + 1} / {subjectsTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setSubjectsPage(p => Math.min(subjectsTotalPages - 1, p + 1))}
+                      disabled={subjectsSafePage + 1 >= subjectsTotalPages}
+                      className={`px-2 py-1 border rounded-md ${subjectsSafePage + 1 >= subjectsTotalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+                </>
               )}
             </div>
           </div>
@@ -1681,7 +1817,8 @@ const AdminSettings = () => {
                     : "No subject types added yet"}
                 </div>
               ) : (
-                <div className="overflow-y-auto max-h-64">
+                <>
+                <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
@@ -1700,7 +1837,7 @@ const AdminSettings = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredTypes.map((type) => (
+                      {paginatedTypes.map((type) => (
                         <tr key={type._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                             {type.name}
@@ -1724,6 +1861,42 @@ const AdminSettings = () => {
                     </tbody>
                   </table>
                 </div>
+                {/* Types pagination */}
+                <div className="flex items-center justify-between px-4 py-2 border-t text-sm text-gray-700">
+                  <div>
+                    Showing {typesTotal ? typesStartIndex + 1 : 0}-{typesEndIndex} of {typesTotal}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={typesRowsPerPage}
+                      onChange={handleTypesRowsChange}
+                      className="px-2 py-1 border border-gray-300 rounded-md bg-white"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <button
+                      onClick={() => setTypesPage(p => Math.max(0, p - 1))}
+                      disabled={typesSafePage === 0}
+                      className={`px-2 py-1 border rounded-md ${typesSafePage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    >
+                      Prev
+                    </button>
+                    <span>
+                      {typesSafePage + 1} / {typesTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setTypesPage(p => Math.min(typesTotalPages - 1, p + 1))}
+                      disabled={typesSafePage + 1 >= typesTotalPages}
+                      className={`px-2 py-1 border rounded-md ${typesSafePage + 1 >= typesTotalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+                </>
               )}
             </div>
           </div>
