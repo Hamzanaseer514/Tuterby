@@ -15,6 +15,7 @@ const { getStudentDashboard, updateStudentProfile,
   getStudentPayments,
   processStudentPayment,
   checkStudentPaymentStatus,
+  deleteMyHireRequest,
   rateTutor,
   getTutorReviews,
   getStudentTutorReview,
@@ -69,6 +70,7 @@ router.post("/tutors/sessions", protect, hireTutor);
 router.post("/student/:userId/help-request", protect, requestAdditionalHelp);
 router.get("/student/:userId/help-requests", protect, getStudentHelpRequests);
 router.get("/student/:userId/hired-tutors", protect, getHiredTutors);
+router.delete("/student/hire/:hire_record_id", protect, deleteMyHireRequest);
 
 // Payment routes
 router.get("/student/payments/:userId", protect, getStudentPayments);

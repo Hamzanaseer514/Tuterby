@@ -37,8 +37,12 @@ import {
   LinearProgress,
   Menu,
   TablePagination,
+  List,
+  ListItem,
+  ListItemText,
   CircularProgress,
 } from '@mui/material';
+import { User, } from 'lucide-react';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoIcon from '@mui/icons-material/Info';
 import PersonIcon from '@mui/icons-material/Person';
@@ -53,6 +57,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import {
   Search,
   Visibility,
+  Edit,
+  Delete,
   Star,
   Schedule,
   Payment,
@@ -75,7 +81,7 @@ import {
   People
 } from '@mui/icons-material';
 import AdminLayout from '../../components/admin/components/AdminLayout';
-import { getAllTutorSessions } from '../../services/adminService';
+import { getAllTutorSessions, updateTutorSession, deleteTutorSession } from '../../services/adminService';
 import { BASE_URL } from '../../config';
 
 const TutorSessionsPage = () => {
@@ -113,6 +119,14 @@ const TutorSessionsPage = () => {
   });
   const [selectedSession, setSelectedSession] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetSession, setDeleteTargetSession] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [linkWarningOpen, setLinkWarningOpen] = useState(false);
+  const [linkWarningData, setLinkWarningData] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [tablePage, setTablePage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -136,6 +150,73 @@ const TutorSessionsPage = () => {
       setError(error.message || 'Failed to load sessions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Edit / Delete handlers for admin
+  const openEditDialog = (session) => {
+    setEditForm({
+      status: session.status || '',
+      notes: session.notes || '',
+      meeting_link: session.meeting_link || '',
+      session_date: session.session_date ? new Date(session.session_date).toISOString().slice(0,16) : ''
+    });
+    setSelectedSession(session);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!selectedSession) return;
+    setIsSavingEdit(true);
+    try {
+      const payload = {
+        status: editForm.status,
+        notes: editForm.notes,
+        meeting_link: editForm.meeting_link,
+        session_date: editForm.session_date ? new Date(editForm.session_date).toISOString() : undefined
+      };
+      const res = await updateTutorSession(selectedSession._id, payload);
+      if (res && res.success) {
+        loadSessions();
+        setEditDialogOpen(false);
+        setSelectedSession(null);
+      } else {
+        alert((res && res.message) || 'Failed to update session');
+      }
+    } catch (err) {
+      const message = err?.data?.message || err?.message || 'Failed to update session';
+      const links = err?.data?.links || null;
+      setLinkWarningData({ message, links });
+      setLinkWarningOpen(true);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const openDeleteConfirm = (session) => {
+    setDeleteTargetSession(session);
+    setDeleteConfirmOpen(true);
+  };
+
+  const performDeleteSession = async () => {
+    if (!deleteTargetSession) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteTutorSession(deleteTargetSession._id);
+      if (res && res.success) {
+        setDeleteConfirmOpen(false);
+        setDeleteTargetSession(null);
+        loadSessions();
+      } else {
+        alert((res && res.message) || 'Failed to delete session');
+      }
+    } catch (err) {
+      const message = err?.data?.message || err?.message || 'Failed to delete session';
+      const links = err?.data?.links || null;
+      setLinkWarningData({ message, links });
+      setLinkWarningOpen(true);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -643,7 +724,7 @@ const TutorSessionsPage = () => {
                                 mb={2}
                                 sx={{ flexDirection: { xs: 'column', sm: 'row' } }}
                               >
-                                <Box
+                                {/* <Box
                                   component="img"
                                   src={student.photo_url || ''}
                                   alt={student.full_name}
@@ -655,7 +736,24 @@ const TutorSessionsPage = () => {
                                     mr: { xs: 0, sm: 2 },
                                     mb: { xs: 2, sm: 0 },
                                   }}
-                                />
+                                /> */}
+                                <div className="w-14 h-14 mr-4 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
+                                  {student?.photo_url ? (
+                                    <img
+                                      src={student.photo_url}
+                                      alt="Profile"
+                                      className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                                  )}
+                                  {!student?.photo_url && (
+                                    <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                                      <User className="h-8 w-8" />
+                                    </div>
+                                  )}
+                                </div>
                                 <Box sx={{ flex: 1 }}>
                                   <Typography fontWeight="600" variant="subtitle1">
                                     {student.full_name}
@@ -749,10 +847,10 @@ const TutorSessionsPage = () => {
                                         color="textSecondary"
                                         display="block"
                                       >
-                                        {studentPayment.payment_method} •{' '}
+                                        {/* {studentPayment.payment_method} •{' '}
                                         {studentPayment.payment_date
                                           ? formatDate(studentPayment.payment_date)
-                                          : 'Not Paid'}
+                                          : 'Not Paid'} */}
                                       </Typography>
                                     </>
                                   ) : (
@@ -851,7 +949,7 @@ const TutorSessionsPage = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Try adjusting your filters or search terms
               </Typography>
-          
+
             </Box>
           ) : (
             sessions.slice(tablePage * rowsPerPage, tablePage * rowsPerPage + rowsPerPage).map((session) => (
@@ -985,7 +1083,7 @@ const TutorSessionsPage = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Try adjusting your filters or search terms
                     </Typography>
-                  
+
                   </Box>
                 </TableCell>
               </TableRow>
@@ -1097,6 +1195,24 @@ const TutorSessionsPage = () => {
                         <Visibility fontSize="small" />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title="Edit Session">
+                      <IconButton
+                        size="small"
+                        onClick={() => openEditDialog(session)}
+                        sx={{ ml: 1, bgcolor: 'info.main', color: 'white', '&:hover': { bgcolor: 'info.dark' } }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Session">
+                      <IconButton
+                        size="small"
+                        onClick={() => openDeleteConfirm(session)}
+                        sx={{ ml: 1, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
@@ -1109,289 +1225,397 @@ const TutorSessionsPage = () => {
 
   return (
     // <AdminLayout tabValue="tutor-sessions">
-      <Box sx={{ p: isMobile ? 1 : 3 }}>
-        {/* Header */}
-        <Box sx={{
-          background: "linear-gradient(90deg, #6a11cb 0%, #2575fc 100%)", // purple → blue
-          // background: "gradient-text", // purple → blue
-          color: "white", // make all text/icons readable
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          p: 3,
-          borderRadius: 2,
-          mb: 4,
-          //             }}sx={{
-          //   mb: 4,
-          //   display: 'flex',
-          //   flexDirection: isMobile ? 'column' : 'row',
-          //   alignItems: isMobile ? 'flex-start' : 'center',
-          //   justifyContent: 'space-between',
-          //   gap: 2
-          // }}>
-        }}>
-          <Box>
-            <Typography variant="h4" fontWeight="700" sx={{
-              mb: 0.5,
-              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
-            }}>
-              Session Management
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-              Monitor and manage all tutoring sessions
-            </Typography>
-          </Box>
-
-          {!isMobile && (
-            <Button
-              variant="contained"
-              startIcon={<Refresh />}
-              onClick={loadSessions}
-              sx={{ borderRadius: '8px', textTransform: 'none' }}
-            >
-            </Button>
-          )}
+    <Box sx={{ p: isMobile ? 1 : 3 }}>
+      {/* Header */}
+      <Box sx={{
+        background: "linear-gradient(90deg, #6a11cb 0%, #2575fc 100%)", // purple → blue
+        // background: "gradient-text", // purple → blue
+        color: "white", // make all text/icons readable
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        p: 3,
+        borderRadius: 2,
+        mb: 4,
+        //             }}sx={{
+        //   mb: 4,
+        //   display: 'flex',
+        //   flexDirection: isMobile ? 'column' : 'row',
+        //   alignItems: isMobile ? 'flex-start' : 'center',
+        //   justifyContent: 'space-between',
+        //   gap: 2
+        // }}>
+      }}>
+        <Box>
+          <Typography variant="h4" fontWeight="700" sx={{
+            mb: 0.5,
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
+          }}>
+            Session Management
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+            Monitor and manage all tutoring sessions
+          </Typography>
         </Box>
 
-       {/* Stats Overview */}
-{/* Stats Overview */}
-<Box
-  sx={{
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'stretch', // Ensures all cards have same height
-    gap: 2,
-    mb: 4,
-  }}
->
-  {[
-    {
-      title: 'Total Sessions',
-      value: stats.total_sessions,
-      icon: <BookOnline sx={{ opacity: 0.2, fontSize: { xs: 22, sm: 26 } }} />,
-      gradient: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-      color: 'white',
-      trend: '+12% this month',
-      trendIcon: <TrendingUp sx={{ fontSize: 14, mr: 0.5 }} />,
-    },
-    {
-      title: 'Total Revenue',
-      value: formatCurrency(stats.total_revenue),
-      icon: <MonetizationOn color="primary" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
-      bg: 'white',
-    },
-    {
-      title: 'Completed',
-      value: stats.completed_sessions,
-      icon: <CheckCircle color="success" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
-      progress: (stats.completed_sessions / stats.total_sessions) * 100,
-    },
-    {
-      title: 'Avg Rating',
-      value: `${stats.average_rating.toFixed(1)}/5`,
-      icon: <Star color="warning" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
-      rating: true,
-    },
-  ].map((card, i) => (
-    <Card
-      key={i}
-      sx={{
-        flex: '1 1 calc(25% - 16px)', // 4 per row on large screens
-        minWidth: { xs: '100%', sm: '48%', md: '23%' },
-        borderRadius: '12px',
-        background: card.gradient || card.bg || 'white',
-        color: card.color || 'inherit',
-        display: 'flex',
-        flexDirection: 'column', // Ensures content aligns vertically
-        justifyContent: 'space-between',
-      }}
-    >
-      <CardContent
+        {!isMobile && (
+          <Button
+            variant="contained"
+            startIcon={<Refresh />}
+            onClick={loadSessions}
+            sx={{ borderRadius: '8px', textTransform: 'none' }}
+          >
+          </Button>
+        )}
+      </Box>
+
+      {/* Stats Overview */}
+      {/* Stats Overview */}
+      <Box
         sx={{
-          flexGrow: 1, // Makes all cards equal height
           display: 'flex',
-          flexDirection: 'column',
+          flexWrap: 'wrap',
           justifyContent: 'space-between',
-          p: { xs: 1.5, sm: 2 },
+          alignItems: 'stretch', // Ensures all cards have same height
+          gap: 2,
+          mb: 4,
         }}
       >
-        {/* Top Section */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h5"
-              fontWeight="700"
-              sx={{
-                fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' },
-                lineHeight: 1.2,
-              }}
-            >
-              {card.value}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                opacity: 0.8,
-                mt: { xs: 0.5, sm: 1 },
-                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
-              }}
-            >
-              {card.title}
-            </Typography>
-          </Box>
-          {card.icon}
-        </Box>
-
-        {/* Middle Section (optional) */}
-        {card.trend && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: { xs: 1, sm: 2 } }}>
-            {card.trendIcon}
-            <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-              {card.trend}
-            </Typography>
-          </Box>
-        )}
-
-        {card.progress !== undefined && (
-          <LinearProgress
-            variant="determinate"
-            value={card.progress}
-            color="success"
+        {[
+          {
+            title: 'Total Sessions',
+            value: stats.total_sessions,
+            icon: <BookOnline sx={{ opacity: 0.2, fontSize: { xs: 22, sm: 26 } }} />,
+            gradient: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+            color: 'white',
+            trend: '+12% this month',
+            trendIcon: <TrendingUp sx={{ fontSize: 14, mr: 0.5 }} />,
+          },
+          {
+            title: 'Total Revenue',
+            value: formatCurrency(stats.total_revenue),
+            icon: <MonetizationOn color="primary" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
+            bg: 'white',
+          },
+          {
+            title: 'Completed',
+            value: stats.completed_sessions,
+            icon: <CheckCircle color="success" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
+            progress: (stats.completed_sessions / stats.total_sessions) * 100,
+          },
+          {
+            title: 'Avg Rating',
+            value: `${stats.average_rating.toFixed(1)}/5`,
+            icon: <Star color="warning" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
+            rating: true,
+          },
+        ].map((card, i) => (
+          <Card
+            key={i}
             sx={{
-              mt: { xs: 1, sm: 2 },
-              height: { xs: 4, sm: 6 },
-              borderRadius: 3,
+              flex: '1 1 calc(25% - 16px)', // 4 per row on large screens
+              minWidth: { xs: '100%', sm: '48%', md: '23%' },
+              borderRadius: '12px',
+              background: card.gradient || card.bg || 'white',
+              color: card.color || 'inherit',
+              display: 'flex',
+              flexDirection: 'column', // Ensures content aligns vertically
+              justifyContent: 'space-between',
             }}
-          />
-        )}
-
-        {/* Bottom Section (optional rating) */}
-        {card.rating && (
-          <Box sx={{ mt: { xs: 1, sm: 1.5 } }}>{renderStars(stats.average_rating)}</Box>
-        )}
-      </CardContent>
-    </Card>
-  ))}
-</Box>
-
-        {/* Tabs and Filters */}
-        <Card sx={{ mb: 3, borderRadius: '12px' }}>
-          <CardContent sx={{ p: 0 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }}>
-              <Tabs
-                value={activeTab}
-                onChange={handleTabChange}
-                aria-label="session tabs"
-                variant={isMobile ? "scrollable" : "standard"}
-                scrollButtons="auto"
-                allowScrollButtonsMobile
+          >
+            <CardContent
+              sx={{
+                flexGrow: 1, // Makes all cards equal height
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                p: { xs: 1.5, sm: 2 },
+              }}
+            >
+              {/* Top Section */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
               >
-                <Tab label="All Sessions" />
-                <Tab label="Pending" />
-                <Tab label="Confirmed" />
-                <Tab label="Completed" />
-                <Tab label="Cancelled" />
-                <Tab label="In Progress" />
-              </Tabs>
-            </Box>
+                <Box>
+                  <Typography
+                    variant="h5"
+                    fontWeight="700"
+                    sx={{
+                      fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' },
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {card.value}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      opacity: 0.8,
+                      mt: { xs: 0.5, sm: 1 },
+                      fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+                    }}
+                  >
+                    {card.title}
+                  </Typography>
+                </Box>
+                {card.icon}
+              </Box>
+
+              {/* Middle Section (optional) */}
+              {card.trend && (
+                <Box sx={{ display: 'flex', alignItems: 'center', mt: { xs: 1, sm: 2 } }}>
+                  {card.trendIcon}
+                  <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                    {card.trend}
+                  </Typography>
+                </Box>
+              )}
+
+              {card.progress !== undefined && (
+                <LinearProgress
+                  variant="determinate"
+                  value={card.progress}
+                  color="success"
+                  sx={{
+                    mt: { xs: 1, sm: 2 },
+                    height: { xs: 4, sm: 6 },
+                    borderRadius: 3,
+                  }}
+                />
+              )}
+
+              {/* Bottom Section (optional rating) */}
+              {card.rating && (
+                <Box sx={{ mt: { xs: 1, sm: 1.5 } }}>{renderStars(stats.average_rating)}</Box>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+
+      {/* Tabs and Filters */}
+      <Card sx={{ mb: 3, borderRadius: '12px' }}>
+        <CardContent sx={{ p: 0 }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }}>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              aria-label="session tabs"
+              variant={isMobile ? "scrollable" : "standard"}
+              scrollButtons="auto"
+              allowScrollButtonsMobile
+            >
+              <Tab label="All Sessions" />
+              <Tab label="Pending" />
+              <Tab label="Confirmed" />
+              <Tab label="Completed" />
+              <Tab label="Cancelled" />
+              <Tab label="In Progress" />
+            </Tabs>
+          </Box>
+
+          <Box sx={{
+            p: 2,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            alignItems: 'center',
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
+            <TextField
+              size="small"
+              placeholder="Search sessions..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+              }}
+              sx={{ width: isMobile ? '100%' : 600 }}
+            />
+
+            <TextField
+              size="small"
+              type="date"
+              label="Date"
+              value={filters.start_date}
+              onChange={(e) => {
+                const v = e.target.value;
+                setFilters(prev => ({
+                  ...prev,
+                  start_date: v,
+                  end_date: v,
+                  page: 1
+                }));
+              }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: isMobile ? '100%' : 250 }}
+            />
 
             <Box sx={{
-              p: 2,
               display: 'flex',
-              flexWrap: 'wrap',
-              gap: 2,
-              alignItems: 'center',
-              flexDirection: isMobile ? 'column' : 'row'
+              gap: 1,
+              ml: isMobile ? 0 : 'auto',
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-end'
             }}>
-              <TextField
-                size="small"
-                placeholder="Search sessions..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-                sx={{ width: isMobile ? '100%' : 600 }}
-              />
-
-              <TextField
-                size="small"
-                type="date"
-                label="Date"
-                value={filters.start_date}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setFilters(prev => ({
-                    ...prev,
-                    start_date: v,
-                    end_date: v,
-                    page: 1
-                  }));
-                }}
-                InputLabelProps={{ shrink: true }}
-                sx={{ width: isMobile ? '100%' : 250 }}
-              />
-
-              <Box sx={{
-                display: 'flex',
-                gap: 1,
-                ml: isMobile ? 0 : 'auto',
-                width: isMobile ? '100%' : 'auto',
-                justifyContent: isMobile ? 'space-between' : 'flex-end'
-              }}>
-                <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                  {pagination.total_items} results
-                </Typography>
-                <Button
-                  variant="text"
-                  onClick={() => setFilters({ page: 1, limit: 20, search: '', status: '', tutor_id: '', start_date: '', end_date: '' })}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Clear All
-                </Button>
-              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                {pagination.total_items} results
+              </Typography>
+              <Button
+                variant="text"
+                onClick={() => setFilters({ page: 1, limit: 20, search: '', status: '', tutor_id: '', start_date: '', end_date: '' })}
+                sx={{ textTransform: 'none' }}
+              >
+                Clear All
+              </Button>
             </Box>
-          </CardContent>
-        </Card>
+          </Box>
+        </CardContent>
+      </Card>
 
-        {/* Sessions Table */}
-        <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <ResponsiveSessionTable />
-        </Card>
+      {/* Sessions Table */}
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <ResponsiveSessionTable />
+      </Card>
 
-        {/* Pagination */}
-        {!isMobile && pagination.total_pages > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              Showing {((filters.page - 1) * filters.limit) + 1} to {Math.min(filters.page * filters.limit, pagination.total_items)} of {pagination.total_items} entries
-            </Typography>
-            <Pagination
-              count={pagination.total_pages}
-              page={pagination.current_page}
-              onChange={handlePageChange}
-              color="primary"
+      {/* Pagination */}
+      {!isMobile && pagination.total_pages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Showing {((filters.page - 1) * filters.limit) + 1} to {Math.min(filters.page * filters.limit, pagination.total_items)} of {pagination.total_items} entries
+          </Typography>
+          <Pagination
+            count={pagination.total_pages}
+            page={pagination.current_page}
+            onChange={handlePageChange}
+            color="primary"
+          />
+        </Box>
+      )}
+
+
+      {/* Session Details Modal */}
+      <SessionDetailsModal
+        session={selectedSession}
+        open={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedSession(null);
+        }}
+      />
+
+      {/* Edit Session Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit Session</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <FormControl size="small">
+              <InputLabel id="status-label">Status</InputLabel>
+              <Select
+                labelId="status-label"
+                value={editForm.status || ''}
+                label="Status"
+                onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+              >
+                <MenuItem value="pending">pending</MenuItem>
+                <MenuItem value="confirmed">confirmed</MenuItem>
+                <MenuItem value="in_progress">in_progress</MenuItem>
+                <MenuItem value="completed">completed</MenuItem>
+                <MenuItem value="cancelled">cancelled</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Meeting link"
+              size="small"
+              value={editForm.meeting_link || ''}
+              onChange={(e) => setEditForm(prev => ({ ...prev, meeting_link: e.target.value }))}
+              fullWidth
+            />
+
+            <TextField
+              label="Session date & time"
+              type="datetime-local"
+              size="small"
+              value={editForm.session_date || ''}
+              onChange={(e) => setEditForm(prev => ({ ...prev, session_date: e.target.value }))}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              label="Notes"
+              size="small"
+              multiline
+              minRows={3}
+              value={editForm.notes || ''}
+              onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+              fullWidth
             />
           </Box>
-        )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleEditSave} disabled={isSavingEdit}>{isSavingEdit ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
 
+      {/* Link / Blocking Warning Dialog */}
+      <Dialog open={linkWarningOpen} onClose={() => setLinkWarningOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Action blocked</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body1">{linkWarningData?.message || 'This action cannot be completed.'}</Typography>
 
-        {/* Session Details Modal */}
-        <SessionDetailsModal
-          session={selectedSession}
-          open={showDetailsModal}
-          onClose={() => {
-            setShowDetailsModal(false);
-            setSelectedSession(null);
-          }}
-        />
-      </Box>
+          {linkWarningData?.links && Object.keys(linkWarningData.links).length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              {Object.entries(linkWarningData.links).map(([key, items]) => (
+                <Box key={key} sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ textTransform: 'capitalize', mb: 1 }}>{key}</Typography>
+                  <List dense>
+                    {Array.isArray(items) && items.map((item, idx) => {
+                      const id = item.id || item._id || item.payment_id || idx;
+                      let secondary = '';
+                      if (item.session_date) secondary = `Date: ${new Date(item.session_date).toLocaleString()}`;
+                      else if (item.payment_status) secondary = `Status: ${item.payment_status}`;
+                      else secondary = JSON.stringify(item);
+                      return (
+                        <ListItem key={String(id)}>
+                          <ListItemText primary={String(id)} secondary={secondary} />
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLinkWarningOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Session</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this session? This action cannot be undone.</Typography>
+          {deleteTargetSession && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2">{deleteTargetSession.session_title}</Typography>
+              <Typography variant="body2" color="text.secondary">{formatDate(deleteTargetSession.session_date)} • {deleteTargetSession.session_time}</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={performDeleteSession} disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
     // </AdminLayout>
   );
 };

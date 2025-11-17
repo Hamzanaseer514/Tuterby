@@ -52,8 +52,8 @@ const getRejectedDocuments = asyncHandler(async (req, res) => {
     // Check if user is partially active (equivalent to partially approved)
     const user = await User.findById(tutorProfile.user_id);
     if (user.is_verified !== "partial_active") {
-      return res.status(400).json({ 
-        message: "Only partially approved tutors can re-upload documents" 
+      return res.status(400).json({
+        message: "Only partially approved tutors can re-upload documents"
       });
     }
 
@@ -64,11 +64,11 @@ const getRejectedDocuments = asyncHandler(async (req, res) => {
 
     // Get all document types to show which ones are missing
     const allDocumentTypes = ['ID Proof', 'Address Proof', 'Degree', 'Certificate', 'Reference Letter'];
-    
+
     const documentStatus = await Promise.all(allDocumentTypes.map(async type => {
       const existingDoc = allDocuments.find(doc => doc.document_type === type);
       let status = 'missing';
-      
+
       if (existingDoc) {
         if (existingDoc.verification_status === 'Rejected') {
           status = 'rejected';
@@ -78,7 +78,7 @@ const getRejectedDocuments = asyncHandler(async (req, res) => {
           status = 'approved';
         }
       }
-      
+
       return {
         document_type: type,
         status: status,
@@ -127,8 +127,8 @@ const reuploadDocument = asyncHandler(async (req, res) => {
     // Check if user is partially active (equivalent to partially approved)
     const user = await User.findById(tutorProfile.user_id);
     if (user.is_verified !== "partial_active") {
-      return res.status(400).json({ 
-        message: "Only partially approved tutors can re-upload documents" 
+      return res.status(400).json({
+        message: "Only partially approved tutors can re-upload documents"
       });
     }
 
@@ -727,8 +727,8 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         typeof session_date === "string"
           ? new Date(session_date + ":00Z")
           : session_date
-          ? new Date(session_date)
-          : null;
+            ? new Date(session_date)
+            : null;
       const isTryingToChangeDate =
         !!incomingDate &&
         session.session_date &&
@@ -760,26 +760,33 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       ? new Date(sessionDateExactUTC.getTime() + effectiveDuration * 60 * 60 * 1000)
       : null;
 
-    // Conflict check
+    // Conflict check: allow back-to-back sessions (end == start) by using strict comparisons
     if (
       (status === "in_progress" || status === "pending" || status === "confirmed" || approve_proposed)
     ) {
+      // Determine the candidate session start/end times (use existing session values as fallback)
+      const candidateStart = sessionDateExactUTC ? sessionDateExactUTC : new Date(session.session_date);
+      const candidateEnd = new Date(candidateStart.getTime() + effectiveDuration * 60 * 60 * 1000);
+
       const conflictingSession = await TutoringSession.findOne({
         tutor_id: session.tutor_id,
         status: { $in: ["in_progress", "pending", "confirmed"] },
         _id: { $ne: session_id },
-        $or: [
-          {
-            session_date: newSessionEndTime ? { $lte: newSessionEndTime } : session.session_date,
-            $expr: {
+        $expr: {
+          $and: [
+            // existing.session_date < candidateEnd
+            { $lt: ["$session_date", candidateEnd] },
+            // existing.session_end > candidateStart  -> existing.session_date + duration > candidateStart
+            {
               $gt: [
                 { $add: ["$session_date", { $multiply: ["$duration_hours", 60 * 60 * 1000] }] },
-                sessionDateExactUTC || session.session_date,
+                candidateStart,
               ],
             },
-          },
-        ],
+          ],
+        },
       });
+
       if (conflictingSession) {
         return res.status(400).json({
           success: false,
@@ -1643,9 +1650,78 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
     }
   }
 
+  // If tutor is attempting to reject, ensure the student does NOT have a valid active payment
+  if (action === 'reject') {
+    try {
+      const now = new Date();
+      const activePayment = await StudentPayment.findOne({
+        student_id: studentProfile._id,
+        tutor_id: tutorProfile._id,
+        subject: hireRecord.subject,
+        academic_level: hireRecord.academic_level_id,
+        payment_status: 'paid',
+        academic_level_paid: true,
+        validity_status: 'active',
+        validity_end_date: { $gt: now },
+        sessions_remaining: { $gt: 0 }
+      }).lean();
+
+      if (activePayment) {
+        // Prevent reject when an active payment exists
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot reject hire request: student has an active/paid package for this subject and level.',
+          links: {
+            payments: [
+              {
+                id: activePayment._id,
+                payment_status: activePayment.payment_status,
+                validity_status: activePayment.validity_status,
+                sessions_remaining: activePayment.sessions_remaining
+              }
+            ]
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error checking active payments before reject:', err);
+      // If check fails, allow operation to continue (do not block) but log
+    }
+  }
+
+  // Capture previous status so we can act on status transitions
+  const prevHireStatus = hireRecord.status;
+
   // Update the status
   hireRecord.status = action === "accept" ? "accepted" : "rejected";
   await studentProfile.save();
+
+  // If the tutor had previously accepted and now rejects the request,
+  // mark related StudentPayment records as not paid for academic level
+  // and mark them expired/disabled per your request.
+  if (prevHireStatus === 'accepted' && action === 'reject') {
+    try {
+      await StudentPayment.updateMany(
+        {
+          student_id: studentProfile._id,
+          tutor_id: tutorProfile._id,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+        },
+        {
+          $set: {
+            academic_level_paid: false,
+            is_active: false,
+            validity_status: 'expired',
+            payment_status: 'cancelled',
+          },
+        }
+      );
+    } catch (err) {
+      console.error('Error updating payments after hire rejection:', err);
+      // Do not fail the main operation — we log and continue
+    }
+  }
 
   // If tutor accepts the request, create a payment record
   if (action === "accept") {
@@ -1658,7 +1734,31 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
         academic_level: hireRecord.academic_level_id,
       });
 
-      if (!existingPayment) {
+      if (existingPayment) {
+        // If a payment already exists for this student/tutor/subject/level,
+        // mark it as requiring action (pending) — keep record but mark academic level unpaid
+        try {
+          await StudentPayment.findByIdAndUpdate(
+            existingPayment._id,
+            {
+              $set: {
+                academic_level_paid: false,
+                is_active: true,
+                validity_status: 'pending',
+                payment_status: 'pending',
+                validity_start_date: new Date(),
+                validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                request_date: new Date(),
+                sessions_remaining: existingPayment.total_sessions_per_month,
+              },
+            },
+            { new: true }
+          );
+        } catch (uErr) {
+          console.error('Error updating existing payment on hire accept:', uErr);
+        }
+      } else {
+        // No existing payment — create a new pending payment record
         // Get the subject and academic level details for better notes
         const subjectData = await Subject.findById(hireRecord.subject);
         const academicLevelData = await EducationLevel.findById(
@@ -1674,62 +1774,62 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
 
         if (!tutorAcademicLevel) {
           console.error("Tutor academic level not found for payment creation");
-          return;
+          // Do not throw — just skip creating payment
+        } else {
+          // Calculate payment details based on tutor's settings
+          const baseAmount =
+            tutorAcademicLevel.hourlyRate || tutorProfile.hourly_rate || 25;
+          const discount = tutorAcademicLevel.discount || 0;
+          const totalSessions = tutorAcademicLevel.totalSessionsPerMonth || 1;
+
+          // Calculate validity period (30 days from now)
+          const validityStartDate = new Date();
+          const request_date = new Date();
+          const validityEndDate = new Date(
+            validityStartDate.getTime() + 30 * 24 * 60 * 60 * 1000
+          ); // 30 days
+
+          // Create comprehensive payment record
+          const paymentRecord = new StudentPayment({
+            student_id: studentProfile._id,
+            tutor_id: tutorProfile._id,
+            subject: hireRecord.subject,
+            academic_level: hireRecord.academic_level_id,
+            request_date: request_date,
+            // Payment Type and Amount
+            payment_type: "monthly", // Default to monthly package
+            base_amount: baseAmount,
+            discount_percentage: discount,
+
+            // Monthly Package Details
+            monthly_amount: tutorAcademicLevel.monthlyRate,
+
+            // Validity and Sessions
+            validity_start_date: validityStartDate,
+            validity_end_date: validityEndDate,
+            sessions_remaining: tutorAcademicLevel.totalSessionsPerMonth,
+            total_sessions_per_month: tutorAcademicLevel.totalSessionsPerMonth,
+
+            // Request Details
+            payment_status: "pending",
+            request_notes: `Monthly package for ${subjectData?.name || "Subject"} - ${academicLevelData?.level || "Level"}. ${totalSessions} sessions per month.`,
+
+            // Additional Details
+            currency: "GBP",
+          });
+console.log("Creating new payment record for accepted hire request:", paymentRecord);
+          await paymentRecord.save();
         }
-
-        // Calculate payment details based on tutor's settings
-        const baseAmount =
-          tutorAcademicLevel.hourlyRate || tutorProfile.hourly_rate || 25;
-        const discount = tutorAcademicLevel.discount || 0;
-        const totalSessions = tutorAcademicLevel.totalSessionsPerMonth || 1;
-
-        // Calculate validity period (30 days from now)
-        const validityStartDate = new Date();
-        const validityEndDate = new Date(
-          validityStartDate.getTime() + 30 * 24 * 60 * 60 * 1000
-        ); // 30 days
-
-        // Create comprehensive payment record
-        const paymentRecord = new StudentPayment({
-          student_id: studentProfile._id,
-          tutor_id: tutorProfile._id,
-          subject: hireRecord.subject,
-          academic_level: hireRecord.academic_level_id,
-
-          // Payment Type and Amount
-          payment_type: "monthly", // Default to monthly package
-          base_amount: baseAmount,
-          discount_percentage: discount,
-
-          // Monthly Package Details
-          monthly_amount: tutorAcademicLevel.monthlyRate,
-
-          // Validity and Sessions
-          validity_start_date: validityStartDate,
-          validity_end_date: validityEndDate,
-          sessions_remaining: tutorAcademicLevel.totalSessionsPerMonth,
-          total_sessions_per_month: tutorAcademicLevel.totalSessionsPerMonth,
-
-          // Request Details
-          payment_status: "pending",
-          request_notes: `Monthly package for ${subjectData?.name || "Subject"
-            } - ${academicLevelData?.level || "Level"
-            }. ${totalSessions} sessions per month.`,
-
-          // Additional Details
-          currency: "GBP",
-        });
-
-        await paymentRecord.save();
       }
     } catch (paymentError) {
       console.error(
-        "Error creating payment record for accepted hire request:",
+        "Error creating/updating payment record for accepted hire request:",
         paymentError
       );
       // Don't fail the hire acceptance if payment record creation fails
     }
   }
+
 
   return res.status(200).json({
     success: true,
@@ -1766,7 +1866,7 @@ const canCreateSessionForStudent = async (
     const now = new Date();
     const isValidDate = payment.validity_end_date > now;
     const hasSessionsRemaining = payment.sessions_remaining > 0;
-    
+
     return isValidDate && hasSessionsRemaining;
   } catch (error) {
     console.error("Error checking payment status:", error);
@@ -1859,9 +1959,9 @@ const getStudentPaymentStatus = asyncHandler(async (req, res) => {
       student_id: studentProfile._id,
       tutor_id: tutorProfile._id,
     })
-    .populate('subject', 'name')
-    .populate('academic_level', 'level')
-    .sort({ createdAt: -1 });
+      .populate('subject', 'name')
+      .populate('academic_level', 'level')
+      .sort({ createdAt: -1 });
 
     // Process payment statuses
     const now = new Date();
@@ -1890,7 +1990,7 @@ const getStudentPaymentStatus = asyncHandler(async (req, res) => {
     });
 
     // Check if student has any unpaid requests for this tutor
-    const hasUnpaidRequests = payments.some(payment => 
+    const hasUnpaidRequests = payments.some(payment =>
       payment.payment_status !== 'paid'
     );
 
@@ -1980,8 +2080,8 @@ const getTutorMessages = asyncHandler(async (req, res) => {
 const getUnansweredMessagesCount = asyncHandler(async (req, res) => {
   const tutorId = req.user._id; // Logged-in tutor
 
-  const unansweredCount = await Message.countDocuments({ 
-    tutorId, 
+  const unansweredCount = await Message.countDocuments({
+    tutorId,
     status: 'unanswered',
     response: { $exists: false }
   });
@@ -2266,7 +2366,7 @@ const updateTutorSettings = asyncHandler(async (req, res) => {
         // Calculate monthly rate with proper rounding to avoid floating-point precision issues
         const gross = hourlyRate * totalSessionsPerMonth;
         const discountAmount = (gross * discount) / 100;
-        tutorProfile.academic_levels_taught[levelIndex].monthlyRate = 
+        tutorProfile.academic_levels_taught[levelIndex].monthlyRate =
           Math.round((gross - discountAmount) * 100) / 100; // Round to 2 decimal places
       } else {
         res.status(404);
@@ -2636,7 +2736,7 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
               ]
             }
           },
-         
+
           totalSessionsRemaining: { $sum: "$sessions_remaining" }
         },
       },
@@ -2686,7 +2786,7 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
       success: true,
       data: {
         payments: payments.map((payment) => {
-         
+
           return {
             _id: payment._id,
             student_name:
@@ -2708,7 +2808,7 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
             sessions_remaining: payment.sessions_remaining,
             validity_start_date: payment.validity_start_date,
             validity_end_date: payment.validity_end_date,
-            
+
             // Renewal tracking
             is_renewal: payment.is_renewal || false,
             original_payment_id: payment.original_payment_id || null
@@ -2730,7 +2830,7 @@ const getTutorPaymentHistory = asyncHandler(async (req, res) => {
           activePayments: stats.activePayments,
           expiredPayments: stats.expiredPayments,
           totalSessionsRemaining: stats.totalSessionsRemaining,
-        
+
         },
         monthlyBreakdown: monthlyBreakdown.map((item) => ({
           month: item._id.month,
