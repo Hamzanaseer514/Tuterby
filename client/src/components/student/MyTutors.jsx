@@ -22,8 +22,10 @@ import {
   MessageCircle,
   BookOpen,
   Award,
-  MessageSquare
+  MessageSquare,
+  Trash
 } from 'lucide-react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
 import { useSubject } from '../../hooks/useSubject';
 import TutorReviewModal from './TutorReviewModal';
 
@@ -36,11 +38,14 @@ const MyTutors = () => {
 
   const { subjects, academicLevels } = useSubject();
   const navigate = useNavigate();
-  
+
   // Review modal state
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [tutorPaymentStatus, setTutorPaymentStatus] = useState({});
+  // Delete confirmation dialog state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Height constants for consistent sizing
   const CARD_HEIGHT = 'h-[390px]'; // Fixed height for tutor cards
@@ -72,7 +77,7 @@ const MyTutors = () => {
 
       const data = await response.json();
       setHiredTutors(data.tutors || []);
-      
+
       // Check payment status for each tutor
       await checkPaymentStatusForTutors(data.tutors || []);
     } catch (error) {
@@ -100,11 +105,16 @@ const MyTutors = () => {
       if (response.ok) {
         const data = await response.json();
         const paymentStatusMap = {};
-        
+
         data.payment_statuses.forEach(status => {
-          paymentStatusMap[status.tutor_id] = status.is_paid;
+          // normalize key to string to avoid mismatches between ObjectId and string keys
+          try {
+            paymentStatusMap[String(status.tutor_id)] = !!status.is_paid;
+          } catch (e) {
+            paymentStatusMap[status.tutor_id] = !!status.is_paid;
+          }
         });
-        
+
         setTutorPaymentStatus(paymentStatusMap);
       }
     } catch (error) {
@@ -114,7 +124,7 @@ const MyTutors = () => {
 
   const getSubjectName = (subjectId) => {
     const subject = subjects.find(s => s._id === subjectId);
-    return subject ? subject: '';
+    return subject ? subject : '';
   }
 
   const getHiringStatusBadge = (status) => {
@@ -123,9 +133,9 @@ const MyTutors = () => {
       'accepted': { variant: 'default', text: 'Hired', color: 'bg-green-100 text-green-800' },
       'rejected': { variant: 'destructive', text: 'Request Rejected', color: 'bg-red-100 text-red-800' }
     };
-    
+
     const config = statusConfig[status] || { variant: 'outline', text: status, color: 'bg-gray-100 text-gray-800' };
-    
+
     return (
       <Badge variant={config.variant} className={config.color}>
         {config.text}
@@ -135,7 +145,7 @@ const MyTutors = () => {
 
   const renderStars = (rating) => {
     if (!rating || rating === 0) return null;
-    
+
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
@@ -168,6 +178,47 @@ const MyTutors = () => {
     fetchHiredTutors();
   };
 
+  const handleDeleteRequest = async (hireId) => {
+    // show confirmation dialog instead of native confirm
+    setDeleteTarget(hireId);
+    setDeleteConfirmOpen(true);
+  };
+
+  // perform the actual delete after user confirms
+  const performDeleteRequest = async () => {
+    const hireId = deleteTarget;
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+    try {
+      const token = getAuthToken();
+      const response = await fetchWithAuth(
+        `${BASE_URL}/api/auth/student/hire/${hireId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        },
+        token,
+        (newToken) => localStorage.setItem('authToken', newToken)
+      );
+
+      let body = {};
+      try { body = await response.json(); } catch (e) { body = {}; }
+
+      if (!response.ok) {
+        const msg = body.message || body.error || 'Failed to delete hire request';
+        toast({ title: 'Error', description: msg });
+        return;
+      }
+
+      toast({ title: 'Success', description: body.message || 'Hire request deleted' });
+      // remove from UI list (hiredTutor._id is tutor id in current response)
+      setHiredTutors(prev => prev.filter(h => String(h._id) !== String(hireId)));
+    } catch (err) {
+      console.error('Delete hire request failed', err);
+      toast({ title: 'Error', description: err.message || 'Failed to delete hire request' });
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -194,7 +245,7 @@ const MyTutors = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Tutors</h1>
           <p className="text-gray-600">
-            {hiredTutors.length > 0 
+            {hiredTutors.length > 0
               ? `You have ${hiredTutors.length} tutor request${hiredTutors.length > 1 ? 's' : ''}`
               : "You haven't sent any tutor requests yet"
             }
@@ -205,28 +256,28 @@ const MyTutors = () => {
           <Card>
             <CardContent className="p-8 text-center">
               <div className="text-gray-400 mb-4">
-              {user.photo_url ? (
-              <img
-                src={`${user.photo_url}`}
-                alt={user.full_name || "Student"}
-                className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
-              />
-            ) : (
-              <Avatar className="h-10 w-10 flex-shrink-0">
-                <div className="h-full w-full bg-blue-100 flex items-center justify-center rounded-full">
-                  <User className="h-5 w-5 text-blue-600" />
-                </div>
-              </Avatar>
-            )}              </div>
+                {user.photo_url ? (
+                  <img
+                    src={`${user.photo_url}`}
+                    alt={user.full_name || "Student"}
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+                  />
+                ) : (
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    <div className="h-full w-full bg-blue-100 flex items-center justify-center rounded-full">
+                      <User className="h-5 w-5 text-blue-600" />
+                    </div>
+                  </Avatar>
+                )}              </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Tutor Requests</h3>
               <p className="text-gray-600 mb-4">
                 You haven't sent any tutor requests yet. Start by searching for tutors in your area.
               </p>
               <Link to="/student/tutor-search">
-              <Button>
-                <BookOpen className="w-4 h-4 mr-2" />
-                Find Tutors
-              </Button>
+                <Button>
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Find Tutors
+                </Button>
               </Link>
             </CardContent>
           </Card>
@@ -262,7 +313,7 @@ const MyTutors = () => {
                       {getHiringStatusBadge(hiredTutor.hireStatus)}
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4 flex-1 flex flex-col">
                     {/* Basic Info with fixed height */}
                     <div className={`${BASIC_INFO_HEIGHT} space-y-2 overflow-hidden`}>
@@ -284,24 +335,24 @@ const MyTutors = () => {
                           return <span className="font-semibold text-sm">£{hiredTutor.hourly_rate || 'N/A'}/hr</span>;
                         })()}
                       </div>
-                      
+
                       {hiredTutor.experience && (
                         <div className="flex items-center justify-between">
                           <span className="text-gray-600 text-sm">Experience:</span>
                           <span className="font-semibold text-sm">{hiredTutor.experience} years</span>
                         </div>
                       )}
-                      
 
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-600 text-sm">Rating:</span>
-                          <div className="flex items-center gap-1">
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 text-sm">Rating:</span>
+                        <div className="flex items-center gap-1">
                           {hiredTutor.rating && (
                             <>
-                            {renderStars(hiredTutor.rating)}
-                            </> )}
-                          </div>
+                              {renderStars(hiredTutor.rating)}
+                            </>)}
                         </div>
+                      </div>
                     </div>
 
                     {/* Subjects with fixed height and overflow handling */}
@@ -333,26 +384,57 @@ const MyTutors = () => {
 
                     {/* Action Buttons with fixed height */}
                     <div className={`flex gap-2 pt-2 ${BUTTONS_HEIGHT} items-center`}>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1 h-10"
                         onClick={() => handleViewTutor(hiredTutor._id)}
                       >
                         <User className="w-4 h-4 mr-2" />
-                        View Profile
+                        Profile
                       </Button>
-                      
-                      {hiredTutor.hireStatus === 'accepted' && tutorPaymentStatus[hiredTutor._id] && (
-                        <Button 
-                          size="sm" 
+
+                      {(() => {
+                        const statusLower = String(hiredTutor.hireStatus || '').toLowerCase();
+                        const isPaid = !!tutorPaymentStatus[String(hiredTutor._id)];
+                        return (
+                          hiredTutor.hireStatus === 'accepted' && isPaid
+                        );
+                      })() && (
+                          <Button
+                            size="sm"
+                            className="flex-1 h-10"
+                            onClick={() => handleOpenReviewModal(hiredTutor)}
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Rate 
+                          </Button>
+                        )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1 h-10"
+                        onClick={() => handleDeleteRequest(hiredTutor._id)}
+                      >
+                        <Trash className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                      {/* Delete button: show when payment not made/invalid or when request is pending/rejected */}
+                      {/* {(() => {
+                        const statusLower = String(hiredTutor.hireStatus || '').toLowerCase();
+                        const isPaid = !!tutorPaymentStatus[String(hiredTutor._id)];
+                        return (!isPaid || statusLower === 'pending' || statusLower === 'rejected');
+                      })() && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           className="flex-1 h-10"
-                          onClick={() => handleOpenReviewModal(hiredTutor)}
+                          onClick={() => handleDeleteRequest(hiredTutor._id)}
                         >
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Rate & Review
+                          <Trash className="w-4 h-4 mr-2" />
+                          Delete
                         </Button>
-                      )}
+                      )} */}
                     </div>
                   </CardContent>
                 </Card>
@@ -361,8 +443,21 @@ const MyTutors = () => {
           </div>
         )}
       </div>
-      
+
       {/* Review Modal */}
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Hire Request</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this hire request? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={performDeleteRequest}>Delete</Button>
+        </DialogActions>
+      </Dialog>
       {selectedTutor && (
         <TutorReviewModal
           tutor={selectedTutor}

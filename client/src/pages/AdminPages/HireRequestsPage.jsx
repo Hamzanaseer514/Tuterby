@@ -33,12 +33,14 @@ import {
   DialogContent,
   DialogActions,
   Tabs,
-  Tab,
+  Tab, 
   LinearProgress,
   Menu,
   TablePagination,
   CircularProgress,
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoIcon from '@mui/icons-material/Info';
 import PersonIcon from '@mui/icons-material/Person';
@@ -80,6 +82,9 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 import { BASE_URL } from '../../config';
+import { updateHireRequest, deleteHireRequest } from '../../services/adminService';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const HireRequestsPage = () => {
   const theme = useTheme();
@@ -104,7 +109,7 @@ const HireRequestsPage = () => {
     current_page: 1,
     total_pages: 0,
     total_items: 0,
-    items_per_page: 50,
+    items_per_page: 15,
     has_next: false,
     has_prev: false
   });
@@ -117,6 +122,12 @@ const HireRequestsPage = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editStatus, setEditStatus] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMsg, setSnackMsg] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState('info');
 
   const token = localStorage.getItem('authToken');
 
@@ -210,6 +221,92 @@ const HireRequestsPage = () => {
     setDetailDialogOpen(true);
   };
 
+  const openEditDialog = (request) => {
+    setSelectedRequest(request);
+    setEditStatus(request.status || (request.hire_for_this_tutor && request.hire_for_this_tutor.status) || 'pending');
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedRequest) return;
+    const studentId = selectedRequest._id || selectedRequest.student?._id || selectedRequest.student_profile_id;
+    const hireId = (selectedRequest.hire_for_this_tutor && selectedRequest.hire_for_this_tutor._id) || selectedRequest.hire_record_id || selectedRequest.hireId || (selectedRequest.hire && selectedRequest.hire._id);
+    if (!studentId || !hireId) {
+      setError('Missing identifiers to perform update');
+      setSnackMsg('Missing identifiers to perform update');
+      setSnackSeverity('error');
+      setSnackOpen(true);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await updateHireRequest(studentId, hireId, { status: editStatus });
+      // Refresh list
+      await fetchHireRequests();
+      setEditDialogOpen(false);
+      setDetailDialogOpen(false);
+      setSnackMsg('Hire request updated');
+      setSnackSeverity('success');
+      setSnackOpen(true);
+    } catch (err) {
+      let msg = err?.message || 'Failed to update hire request';
+      try {
+        const parsed = JSON.parse(msg);
+        msg = parsed.message || msg;
+      } catch (_) {}
+      setError(msg);
+      setSnackMsg(msg);
+      setSnackSeverity('error');
+      setSnackOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openDeleteConfirm = (request) => {
+    setSelectedRequest(request);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedRequest) return;
+    const studentId = selectedRequest._id || selectedRequest.student?._id || selectedRequest.student_profile_id;
+    const hireId = (selectedRequest.hire_for_this_tutor && selectedRequest.hire_for_this_tutor._id) || selectedRequest.hire_record_id || selectedRequest.hireId || (selectedRequest.hire && selectedRequest.hire._id);
+    if (!studentId || !hireId) {
+      setError('Missing identifiers to perform delete');
+      setSnackMsg('Missing identifiers to perform delete');
+      setSnackSeverity('error');
+      setSnackOpen(true);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await deleteHireRequest(studentId, hireId);
+      await fetchHireRequests();
+      setDeleteConfirmOpen(false);
+      setDetailDialogOpen(false);
+      setSnackMsg('Hire request deleted');
+      setSnackSeverity('success');
+      setSnackOpen(true);
+    } catch (err) {
+      let msg = err?.message || 'Failed to delete hire request';
+      try {
+        const parsed = JSON.parse(msg);
+        msg = parsed.message || msg;
+      } catch (_) {}
+      setError(msg);
+      setSnackMsg(msg);
+      setSnackSeverity('error');
+      setSnackOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSnackClose = () => setSnackOpen(false);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
@@ -273,6 +370,7 @@ const HireRequestsPage = () => {
             flexDirection: { xs: 'column', sm: 'row' },
             gap: { xs: 1, sm: 0 }
           }}>
+            {console.log("r",request.tutor)}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
               <Avatar
                 src={request.student?.photo_url}
@@ -584,15 +682,35 @@ const HireRequestsPage = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewDetails(request);
-                        }}
-                      >
-                        <Visibility />
-                      </IconButton>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewDetails(request);
+                          }}
+                        >
+                          <Visibility />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditDialog(request);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteConfirm(request);
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
@@ -1264,6 +1382,47 @@ const HireRequestsPage = () => {
     </Button>
   </DialogActions>
 </Dialog>
+
+      {/* Edit Hire Request Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Edit Hire Request</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+            <InputLabel id="edit-status-label">Status</InputLabel>
+            <Select
+              labelId="edit-status-label"
+              value={editStatus}
+              label="Status"
+              onChange={(e) => setEditStatus(e.target.value)}
+            >
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="accepted">Accepted</MenuItem>
+              <MenuItem value="rejected">Rejected</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setEditDialogOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained">Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Hire Request</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this hire request? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setDeleteConfirmOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+      <Snackbar open={snackOpen} autoHideDuration={4000} onClose={handleSnackClose}>
+        <MuiAlert elevation={6} variant="filled" onClose={handleSnackClose} severity={snackSeverity}>
+          {snackMsg}
+        </MuiAlert>
+      </Snackbar>
       </Box>
     // </AdminLayout>
   );

@@ -38,8 +38,14 @@ const {
   fetchSubjectRelatedToAcademicLevels,
     getAllTutorSessions,
   getAllTutorPayments,
+    updateTutorSession,
+    deleteTutorSession,
+  updateTutorPayment,
+  deleteTutorPayment,
   getAllTutorReviews,
   getAllHireRequests,
+  updateHireRequest,
+  deleteHireRequest,
   updateTutorByAdmin,
   removeTutorLevelByAdmin,
   updateParentByAdmin,
@@ -104,8 +110,17 @@ router.put("/applications/notes", updateApplicationNotes);
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/tutor-sessions", getAllTutorSessions);
 router.get("/tutor-payments", getAllTutorPayments);
+// Admin edit and delete session endpoints
+router.put("/tutor-sessions/:sessionId", protect, adminOnly, updateTutorSession);
+router.delete("/tutor-sessions/:sessionId", protect, adminOnly, deleteTutorSession);
+// Admin edit and delete payment endpoints
+router.put("/tutor-payments/:paymentId", protect, adminOnly, updateTutorPayment);
+router.delete("/tutor-payments/:paymentId", protect, adminOnly, deleteTutorPayment);
 router.get("/tutor-reviews", getAllTutorReviews);
 router.get("/hire-requests", getAllHireRequests);
+// Admin edit and delete hire request
+router.put("/hire-requests/:student_profile_id/:hire_record_id", protect, adminOnly, updateHireRequest);
+router.delete("/hire-requests/:student_profile_id/:hire_record_id", protect, adminOnly, deleteHireRequest);
 
 // Assignment management routes
 router.get("/assignments", protect, adminOnly, getAllAssignments);

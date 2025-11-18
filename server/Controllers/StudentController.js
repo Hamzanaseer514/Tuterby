@@ -55,6 +55,123 @@ exports.getStudentProfile = asyncHandler(async (req, res) => {
 });
 
 
+// Student: Delete a hire request (only allowed when there's no active/valid paid package)
+exports.deleteMyHireRequest = asyncHandler(async (req, res) => {
+    try {
+        const { hire_record_id } = req.params;
+        if (!hire_record_id) {
+            return res.status(400).json({ success: false, message: 'hire_record_id is required' });
+        }
+
+        // Find student profile for logged-in user
+        const student = await Student.findOne({ user_id: req.user._id });
+        if (!student) return res.status(404).json({ success: false, message: 'Student profile not found' });
+
+            // Try to find hire record by subdocument id first, then fall back to matching tutor id
+            let hireRecord = student.hired_tutors.id(hire_record_id);
+            if (!hireRecord) {
+                // attempt to match by tutor id (frontend may supply tutor._id)
+                const found = (student.hired_tutors || []).find(h => String(h.tutor) === String(hire_record_id));
+                if (found) {
+                    hireRecord = found;
+                }
+            }
+
+            if (!hireRecord) return res.status(404).json({ success: false, message: 'Hire record not found' });
+
+        // Check for an active/valid paid StudentPayment that would block deletion
+        try {
+            const now = new Date();
+            const activePayment = await StudentPayment.findOne({
+                student_id: student._id,
+                tutor_id: hireRecord.tutor,
+                subject: hireRecord.subject,
+                academic_level: hireRecord.academic_level_id,
+                payment_status: 'paid',
+                academic_level_paid: true,
+                validity_status: 'active',
+                validity_end_date: { $gt: now },
+                sessions_remaining: { $gt: 0 }
+            }).lean();
+
+            if (activePayment) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot delete hire request: an active/paid package exists for this tutor, subject and level.',
+                    links: {
+                        payments: [
+                            {
+                                id: activePayment._id,
+                                payment_status: activePayment.payment_status,
+                                validity_status: activePayment.validity_status,
+                                sessions_remaining: activePayment.sessions_remaining
+                            }
+                        ]
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Error checking active payments before student delete:', err);
+            // continue but log; do not block deletion on internal check failure
+        }
+
+        // No blocking active payment -> expire/cancel related StudentPayment records (pending/unpaid)
+        try {
+            const updateResult = await StudentPayment.updateMany(
+                {
+                    student_id: student._id,
+                    tutor_id: hireRecord.tutor,
+                    subject: hireRecord.subject,
+                    academic_level: hireRecord.academic_level_id,
+                },
+                {
+                    $set: {
+                        academic_level_paid: false,
+                        is_active: false,
+                        validity_status: 'expired',
+                        payment_status: 'cancelled',
+                    },
+                }
+            );
+
+            // Remove hire record from student profile. Accept either hire subdoc _id or tutor id as the identifier.
+            student.hired_tutors = (student.hired_tutors || []).filter(h => {
+                const subId = String(h._id);
+                const tutorId = String(h.tutor);
+                const target = String(hire_record_id);
+                return subId !== target && tutorId !== target;
+            });
+            await student.save();
+
+            return res.status(200).json({
+                success: true,
+                message: 'Hire request deleted',
+                hire_record_id,
+                paymentsUpdated: updateResult?.modifiedCount ?? updateResult?.nModified ?? 0,
+            });
+        } catch (err) {
+            console.error('Error cancelling payments during student hire deletion:', err);
+            // Still attempt removal even if payment update fails; accept either subdoc id or tutor id
+            student.hired_tutors = (student.hired_tutors || []).filter(h => {
+                const subId = String(h._id);
+                const tutorId = String(h.tutor);
+                const target = String(hire_record_id);
+                return subId !== target && tutorId !== target;
+            });
+            await student.save();
+            return res.status(200).json({
+                success: true,
+                message: 'Hire request deleted (payments update failed)',
+                hire_record_id,
+            });
+        }
+    } catch (err) {
+        console.error('Error deleting student hire request:', err);
+        return res.status(500).json({ success: false, message: 'Failed to delete hire request', error: err.message });
+    }
+});
+
+
 
 // Student Dashboard Controllers
 

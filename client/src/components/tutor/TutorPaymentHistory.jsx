@@ -514,7 +514,7 @@ const TutorPaymentHistory = () => {
                       </td>
 
                       <td className="py-3 px-4 text-gray-900">
-                        {formatDate(payment.payment_date)}
+                        {formatDate(payment.validity_start_date)}
                       </td>
 
                     </tr>
@@ -784,7 +784,7 @@ const TutorPaymentHistory = () => {
                   <div>
                     <label className="text-sm font-medium text-gray-700">Payment Date</label>
                     <p className="text-sm text-gray-900">
-                      {formatDate(selectedPayment.payment_date)}
+                      {formatDate(selectedPayment.validity_start_date)}
                     </p>
                   </div>
                 </div>
