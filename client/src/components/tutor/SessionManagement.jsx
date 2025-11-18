@@ -66,6 +66,10 @@ const SessionManagement = () => {
   const [showUpdateSessionModal, setShowUpdateSessionModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTargetSession, setDeleteTargetSession] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { academicLevels, subjects } = useSubject();
   const [tutorAcademicLevels, setTutorAcademicLevels] = useState([]);
   const [updateSessionForm, setUpdateSessionForm] = useState({
@@ -448,26 +452,37 @@ const SessionManagement = () => {
     }
   };
 
-  const deleteSession = async (sessionId) => {
-
-
+  // Open confirmation dialog for deletion
+  const confirmDeleteSession = (sessionId) => {
+    const session = sessions.find(s => (s._id === sessionId || s._id?.toString() === sessionId));
+    setDeleteTargetSession(session || { _id: sessionId, subject: '', academic_level: '' });
+    setShowDeleteConfirm(true);
+  };
+  // Perform the deletion after confirmation
+  const performDeleteSession = async (sessionId) => {
     try {
-      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/delete/${sessionId}`, {
+      setIsDeleting(true);
+      const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/delete/${deleteTargetSession._id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-      }, authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
-      );
+      }, authToken, (newToken) => localStorage.setItem("authToken", newToken));
+
       const responseData = await response.json();
       if (!response.ok) {
         throw new Error(responseData.message || 'Failed to delete session');
       }
+
       toast.success('Session deleted successfully');
+      setShowDeleteConfirm(false);
+      setDeleteTargetSession(null);
       // Refresh sessions after deletion
       fetchSessions();
     } catch (err) {
       toast.error(err.message || 'Failed to delete session. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -706,15 +721,15 @@ const SessionManagement = () => {
                             <span className="hidden sm:inline">Reject</span>
                           </Button>
                         )}
-                        {/* <Button
+                        <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => deleteSession(session._id)}
+                          onClick={() => confirmDeleteSession(session._id)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs sm:text-sm px-2 sm:px-3"
                         >
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           <span className="hidden sm:inline">Delete</span>
-                        </Button> */}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -771,35 +786,95 @@ const SessionManagement = () => {
                   <h5 className="text-sm sm:text-base font-semibold mb-3 text-gray-800">Student Information</h5>
                   <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {selectedSession.student_ids && selectedSession.student_ids.map((student, index) => {
-                      const resp = Array.isArray(selectedSession.student_responses)
+                      const studentResponse = Array.isArray(selectedSession.student_responses)
                         ? selectedSession.student_responses.find(r => {
                           const sid = r?.student_id?._id || r?.student_id;
                           return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
                         })
                         : null;
-                      const status = resp?.status || 'pending';
-                      const badgeClass = status === 'confirmed'
-                        ? 'bg-green-100 text-green-700'
-                        : status === 'declined'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700';
+                      const studentRating = Array.isArray(selectedSession.student_ratings)
+                        ? selectedSession.student_ratings.find(r => {
+                          const sid = r?.student_id?._id || r?.student_id;
+                          return sid && sid.toString() === (student?._id?.toString?.() || student?._id);
+                        })
+                        : null;
+
                       return (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <p className="font-medium text-gray-900 text-sm sm:text-base">
-                            {student.user_id?.full_name || 'Student Name'} 
-                          </p>
+                        <div key={index} className="bg-white p-3 sm:p-4 rounded-lg border">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                            <h5 className="font-semibold text-gray-900 text-sm sm:text-base">
+                              {student.user_id?.full_name || 'Student Name'}
+                            </h5>
+                            <Badge className={`${
+                              studentResponse?.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                studentResponse?.status === 'declined' ? 'bg-red-100 text-red-700' :
+                                  'bg-yellow-100 text-yellow-700'
+                            } text-xs sm:text-sm flex-shrink-0`}>
+                              {studentResponse?.status || 'pending'}
+                            </Badge>
+                          </div>
 
-                          <div className="mt-2">
-                            <Badge className={`${badgeClass} text-xs sm:text-sm`}>Response: {status}</Badge>
-                            {/* <Badge className={`${badgeClass} text-xs sm:text-sm`}>Response: {ra}</Badge> */}
-
+                          <div className="space-y-2 text-xs sm:text-sm">
+                            {studentResponse?.note && (
+                              <p className="text-gray-600">
+                                <span className="font-medium">Note:</span> {studentResponse.note}
+                              </p>
+                            )}
+                            {studentResponse?.responded_at && (
+                              <p className="text-gray-500 text-xs">
+                                Responded: {new Date(studentResponse.responded_at).toLocaleString()}
+                              </p>
+                            )}
+                            {studentRating && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 fill-current" />
+                                <span className="font-medium">{studentRating.rating}/5</span>
+                                {studentRating.feedback && (
+                                  <span className="text-gray-600">• {studentRating.feedback}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-
+ 
+ 
+   {/* Meeting Link Section */}
+                {selectedSession.meeting_link && (
+                  <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
+                    <h4 className="text-base sm:text-lg font-semibold text-green-900 mb-3">Meeting Link</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs sm:text-sm font-medium text-green-700">Current Link</Label>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                          <Input
+                            value={selectedSession.meeting_link}
+                            readOnly
+                            className="bg-white text-xs sm:text-sm"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigator.clipboard.writeText(selectedSession.meeting_link)}
+                            className="text-xs sm:text-sm flex-shrink-0"
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                      </div>
+                      {selectedSession.meeting_link_sent_at && (
+                        <p className="text-xs sm:text-sm text-green-700">
+                          Sent to confirmed students on: {new Date(selectedSession.meeting_link_sent_at).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Session Details */}
                 <div>
                   <h5 className="text-sm sm:text-base font-semibold mb-3 text-gray-800">Session Details</h5>
@@ -878,17 +953,17 @@ const SessionManagement = () => {
                       Edit Session
                     </Button>
                   )}
-                  {/* <Button
+                  <Button
                     variant="outline"
                     onClick={() => {
                       setShowSessionModal(false);
-                      deleteSession(selectedSession._id);
+                      confirmDeleteSession(selectedSession._id);
                     }}
                     className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-sm sm:text-base"
                   >
                     <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Delete Session
-                  </Button> */}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1259,6 +1334,29 @@ const SessionManagement = () => {
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setShowRejectModal(false)}>Cancel</Button>
                 <Button onClick={() => rejectReschedule(selectedSession)} className="bg-red-600 hover:bg-red-700">Reject</Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && deleteTargetSession && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Confirm Delete</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-700 mb-4">
+                Are you sure you want to delete this session?
+                This action cannot be undone. {deleteTargetSession.subject ? `Subject: ${getSubjectById(deleteTargetSession.subject)?.name || deleteTargetSession.subject}` : ''}
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                <Button onClick={() => performDeleteSession(deleteTargetSession._id)} className="bg-red-600 hover:bg-red-700" disabled={isDeleting}>
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
               </div>
             </div>
           </div>

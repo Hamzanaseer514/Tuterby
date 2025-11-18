@@ -86,8 +86,11 @@ const StatCard = React.memo(({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Show skeleton if loading OR if we don't have data yet
-  if (loading || !hasData) {
+  // Show skeleton only when loading while we already have data (refreshing).
+  // If there is no data available yet (hasData === false) we render the
+  // card with zero/empty values so the dashboard doesn't display grey
+  // loading lines when the server returned no data or is down.
+  if (loading && hasData) {
     return (
       <Grid item xs={12} sm={6} lg={3}>
         <Card elevation={0} sx={{ 

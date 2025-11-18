@@ -168,7 +168,7 @@ const StudentHireRequests = () => {
       const data = await res.json();
       setRequests(Array.isArray(data.requests) ? data.requests : []);
     } catch (e) {
-      setError(e.message || 'Failed to load requests');
+      // setError(e.message || 'Failed to load requests');
     } finally {
       setLoading(false);
     }
@@ -209,11 +209,27 @@ const StudentHireRequests = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_profile_id: studentProfileId, action }),
       }, token, (newToken) => localStorage.setItem("authToken", newToken));
+      // If server responded with non-OK, try to extract the JSON message and throw so it is handled below
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const parsed = JSON.parse(text);
+          throw new Error(parsed.message || text);
+        } catch (_) {
+          throw new Error(text || `Request failed: ${res.status}`);
+        }
+      }
       toast({ title: `Request ${action}ed` });
       await res.json();
       await fetchRequests();
     } catch (e) {
-      toast({ title: 'Action failed', description: e.message, variant: 'destructive' });
+      // If error message is JSON string, try to parse and surface its message field
+      let errMsg = e.message || 'Action failed';
+      try {
+        const parsed = JSON.parse(errMsg);
+        errMsg = parsed.message || errMsg;
+      } catch (_) {}
+      toast({ title: 'Action failed', description: errMsg, variant: 'destructive' });
     } finally {
       setRespondingId(null);
     }

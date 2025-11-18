@@ -297,11 +297,11 @@ const StudentAssignments = () => {
       const data = await getStudentAssignments(user._id);
       setAssignments(data);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch assignments",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to fetch assignments",
+      //   variant: "destructive"
+      // });
     } finally {
       setLoading(false);
     }

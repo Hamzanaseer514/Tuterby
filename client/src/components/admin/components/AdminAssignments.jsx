@@ -12,7 +12,11 @@ import {
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../ui/dialog';
+import { Textarea } from '../../ui/textarea';
+import { adminEditAssignment, adminDeleteAssignment } from '../../../services/assignmentService';
 import {
   FileText,
   Calendar,
@@ -31,7 +35,7 @@ const AdminAssignments = () => {
   const { toast } = useToast();
   const { fetchWithAuth, user, getAuthToken } = useAuth();
   const { academicLevels, subjects } = useSubject();
-  
+
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +67,7 @@ const AdminAssignments = () => {
   const fetchAllAssignments = async () => {
     try {
       setLoading(true);
-      
+
       // Check if we have a token before making the request
       const token = getAuthToken();
       if (!token) {
@@ -110,11 +114,11 @@ const AdminAssignments = () => {
           variant: "destructive"
         });
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch assignments",
-          variant: "destructive"
-        });
+        // toast({
+        //   title: "Error",
+        //   description: "Failed to fetch assignments",
+        //   variant: "destructive"
+        // });
       }
     } finally {
       setLoading(false);
@@ -165,11 +169,11 @@ const AdminAssignments = () => {
       } else {
         // Handle other error statuses
         const errorData = await response.json().catch(() => ({}));
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to fetch assignment submissions",
-          variant: "destructive"
-        });
+        // toast({
+        //   title: "Error",
+        //   description: errorData.message || "Failed to fetch assignment submissions",
+        //   variant: "destructive"
+        // });
       }
     } catch (error) {
       // This catch will handle errors thrown by fetchWithAuth (like refresh failures)
@@ -183,11 +187,11 @@ const AdminAssignments = () => {
           window.location.href = '/login';
         }, 2000);
       } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to fetch assignment submissions",
-          variant: "destructive"
-        });
+        // toast({
+        //   title: "Error",
+        //   description: error.message || "Failed to fetch assignment submissions",
+        //   variant: "destructive"
+        // });
       }
     }
   };
@@ -215,11 +219,11 @@ const AdminAssignments = () => {
       }
       return { status: 'submitted', color: 'secondary', label: 'Submitted' };
     }
-    
+
     if (assignment.due_date && new Date(assignment.due_date) < new Date()) {
       return { status: 'overdue', color: 'destructive', label: 'Overdue' };
     }
-    
+
     return { status: 'pending', color: 'outline', label: 'Pending' };
   };
 
@@ -228,24 +232,97 @@ const AdminAssignments = () => {
     setShowDetails(true);
   };
 
+  // Admin edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', description: '', due_date: '', file: null });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const openEditDialog = (assignment) => {
+    setSelectedAssignment(assignment);
+    setEditForm({
+      title: assignment.title || '',
+      description: assignment.description || '',
+      due_date: assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : '',
+      file: null,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const submitAdminEdit = async (e) => {
+    e.preventDefault();
+    if (!selectedAssignment) return;
+    setEditSubmitting(true);
+    try {
+      console.log('Submitting admin edit for assignment:', selectedAssignment._id);
+      const res = await adminEditAssignment(selectedAssignment._id, {
+        title: editForm.title,
+        description: editForm.description,
+        due_date: editForm.due_date || undefined,
+        file: editForm.file || undefined,
+      });
+      console.log('Admin edit response:', res);
+      toast({ title: 'Updated', description: 'Assignment updated successfully' });
+      setEditDialogOpen(false);
+      setSelectedAssignment(null);
+      fetchAllAssignments();
+      fetchAllSubmissions();
+    } catch (err) {
+      toast({ title: 'Error', description: err.message || 'Failed to update assignment', variant: 'destructive' });
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleEditFileChange = (e) => {
+    const file = e.target.files[0];
+    setEditForm(prev => ({ ...prev, file }));
+  };
+
+  // Admin delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState(null);
+
+  const openDeleteDialog = (assignmentId) => {
+    setDeletingAssignmentId(assignmentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmAdminDelete = async () => {
+    if (!deletingAssignmentId) return;
+    try {
+      await adminDeleteAssignment(deletingAssignmentId);
+      toast({ title: 'Deleted', description: 'Assignment deleted' });
+      setDeleteDialogOpen(false);
+      setDeletingAssignmentId(null);
+      fetchAllAssignments();
+      fetchAllSubmissions();
+    } catch (err) {
+      toast({ title: 'Error', description: err.message || 'Failed to delete assignment', variant: 'destructive' });
+    }
+  };
+
   const handleCloseDetails = () => {
     setShowDetails(false);
     setSelectedAssignment(null);
   };
 
   const filteredAssignments = assignments.filter(assignment => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       assignment.tutor_id?.user_id?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       assignment.student_id?.user_id?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || 
+    const matchesStatus = statusFilter === 'all' ||
       getAssignmentStatus(assignment).status === statusFilter;
 
-    const matchesSubject = subjectFilter === 'all' || 
+    const matchesSubject = subjectFilter === 'all' ||
       assignment.subject._id === subjectFilter;
 
-    const matchesLevel = levelFilter === 'all' || 
+    const matchesLevel = levelFilter === 'all' ||
       assignment.academic_level._id === levelFilter;
 
     return matchesSearch && matchesStatus && matchesSubject && matchesLevel;
@@ -281,6 +358,68 @@ const AdminAssignments = () => {
 
   return (
     <div className="space-y-6">
+
+      {/* Admin Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Assignment (Admin)</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitAdminEdit} className="p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Title</Label>
+                <Input value={editForm.title} onChange={(e) => handleEditFormChange('title', e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Due Date</Label>
+                <Input type="datetime-local" value={editForm.due_date} onChange={(e) => handleEditFormChange('due_date', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Description</Label>
+              <Textarea value={editForm.description} onChange={(e) => handleEditFormChange('description', e.target.value)} rows={4} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 items-center">
+              <div>
+                <Label className="text-sm font-medium">Replace File (optional)</Label>
+                <Input type="file" onChange={handleEditFileChange} accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" />
+              </div>
+              <div className="text-sm text-gray-600">
+                {selectedAssignment?.file_url ? (
+                  <div className="flex items-center justify-end gap-2">
+                    <a href={selectedAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Current file</a>
+                  </div>
+                ) : (
+                  <div className="flex justify-end">No existing file</div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setSelectedAssignment(null); }}>Cancel</Button>
+                <Button type="submit" disabled={editSubmitting}>{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p>Are you sure you want to delete this assignment? This will remove all related student submissions.</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmAdminDelete}>Delete</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Assignment Management</h2>
@@ -304,7 +443,7 @@ const AdminAssignments = () => {
                 className="pl-10"
               />
             </div>
-            
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Status" />
@@ -390,15 +529,15 @@ const AdminAssignments = () => {
                   {filteredAssignments.map((assignment) => {
                     const status = getAssignmentStatus(assignment);
                     return (
-                        <tr key={assignment._id} className="hover:bg-gray-50">
+                      <tr key={assignment._id} className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-4">
                           <div>
                             <div className="text-xs sm:text-sm font-medium text-gray-900 break-words">
                               {assignment.title}
                             </div>
-                            <div className="text-xs sm:text-sm text-gray-500 truncate max-w-xs">
+                            {/* <div className="text-xs sm:text-sm text-gray-500 truncate max-w-xs">
                               {assignment.description}
-                            </div>
+                            </div> */}
                           </div>
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -438,6 +577,22 @@ const AdminAssignments = () => {
                             <span className="hidden sm:inline">View Details</span>
                             <span className="sm:hidden">View</span>
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => openEditDialog(assignment)}
+                            className="ml-2 text-xs sm:text-sm"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => openDeleteDialog(assignment._id)}
+                            className="ml-2 text-xs sm:text-sm"
+                          >
+                            Delete
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -454,7 +609,7 @@ const AdminAssignments = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-2 sm:mb-6">
                 <div className="flex-1 min-w-0">
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{selectedAssignment.title}</h2>
                   <p className="text-sm sm:text-base text-gray-600 mt-1">Assignment Details</p>
@@ -468,14 +623,17 @@ const AdminAssignments = () => {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+              { selectedAssignment.description && (
+              <div className="mb-6">
+                <span className="text-xs sm:text-sm font-medium text-gray-500">Description:</span>
+                <p className="text-xs sm:text-sm text-gray-900 mt-1 break-words">{selectedAssignment.description}</p>
+              </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-4 sm:mb-6">
+
                 <div>
                   <h3 className="text-base sm:text-lg font-semibold mb-3">Assignment Information</h3>
                   <div className="space-y-3">
-                    <div>
-                      <span className="text-xs sm:text-sm font-medium text-gray-500">Description:</span>
-                      <p className="text-xs sm:text-sm text-gray-900 mt-1 break-words">{selectedAssignment.description}</p>
-                    </div>
                     <div>
                       <span className="text-xs sm:text-sm font-medium text-gray-500">Subject:</span>
                       <p className="text-xs sm:text-sm text-gray-900">{(selectedAssignment.subject.name)}</p>
@@ -484,7 +642,7 @@ const AdminAssignments = () => {
                       <span className="text-xs sm:text-sm font-medium text-gray-500">Academic Level:</span>
                       <p className="text-xs sm:text-sm text-gray-900">{(selectedAssignment.academic_level.level)}</p>
                     </div>
-                   
+
                     {selectedAssignment.due_date && (
                       <div>
                         <span className="text-xs sm:text-sm font-medium text-gray-500">Due Date:</span>
@@ -557,7 +715,7 @@ const AdminAssignments = () => {
                             Submitted: {formatDate(submission.submitted_at)}
                           </span>
                         </div>
-                        
+
                         {submission.submission_text && (
                           <div className="mb-3">
                             <span className="text-sm font-medium text-gray-500">Submission Text:</span>
@@ -566,7 +724,7 @@ const AdminAssignments = () => {
                             </p>
                           </div>
                         )}
-                        
+
                         {submission.submission_file_url && (
                           <div className="flex items-center gap-3 p-3 bg-white rounded border">
                             <FileText className="h-5 w-5 text-blue-600" />
@@ -584,7 +742,7 @@ const AdminAssignments = () => {
                             </Button>
                           </div>
                         )}
-                        
+
                         {submission.status === 'graded' && (
                           <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
                             <div className="flex items-center gap-2">

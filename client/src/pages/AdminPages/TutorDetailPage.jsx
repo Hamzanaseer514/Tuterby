@@ -26,7 +26,7 @@ import {
   CardContent,
   List,
   ListItem,
-    ListItemIcon,
+  ListItemIcon,
   ListItemText,
   Accordion,
   AccordionSummary,
@@ -88,7 +88,7 @@ const TutorDetailPage = () => {
   const { tabValue } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const handleTabChange = (newTabValue) => {
     if (newTabValue === 'dashboard') {
       navigate('/admin');
@@ -135,7 +135,7 @@ const TutorDetailPage = () => {
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [rejectModal, setRejectModal] = useState({ open: false, groupType: "", reason: "" });
-const { subjects, academicLevels } = useSubject();
+  const { subjects, academicLevels } = useSubject();
 
   // Edit details dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -227,8 +227,8 @@ const { subjects, academicLevels } = useSubject();
   const openEditEducation = () => {
     const levelIds = Array.isArray(localUser?.academic_levels_taught)
       ? localUser.academic_levels_taught
-          .map((lv) => (lv?.educationLevel?._id || lv?.educationLevel || lv?._id || lv))
-          .filter(Boolean)
+        .map((lv) => (lv?.educationLevel?._id || lv?.educationLevel || lv?._id || lv))
+        .filter(Boolean)
       : [];
     const subjectIds = Array.isArray(localUser?.subjects)
       ? localUser.subjects.map((s) => (s?._id || s)).filter(Boolean)
@@ -326,13 +326,13 @@ const { subjects, academicLevels } = useSubject();
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const deps = data?.dependencies;
-        const depMsg = deps ? ` Update blocked. Links found — Sessions: ${deps.sessions||0}, Payments: ${deps.payments||0}, Hires: ${deps.hires||0}.` : '';
+        const depMsg = deps ? ` Update blocked. Links found — Sessions: ${deps.sessions || 0}, Payments: ${deps.payments || 0}, Hires: ${deps.hires || 0}.` : '';
         setSnackbar({ open: true, message: (data.message || 'Failed to update education info') + depMsg, severity: 'error' });
         // Rebuild selections from current persisted profile to reflect no change
         const levelIds = Array.isArray(localUser?.academic_levels_taught)
           ? localUser.academic_levels_taught
-              .map((lv) => (lv?.educationLevel?._id || lv?.educationLevel || lv?._id || lv))
-              .filter(Boolean)
+            .map((lv) => (lv?.educationLevel?._id || lv?.educationLevel || lv?._id || lv))
+            .filter(Boolean)
           : [];
         const subjectIds = Array.isArray(localUser?.subjects)
           ? localUser.subjects.map((s) => (s?._id || s)).filter(Boolean)
@@ -356,7 +356,7 @@ const { subjects, academicLevels } = useSubject();
       try {
         const fresh = await getTutorDetails(user.id);
         setLocalUser(fresh);
-      } catch {}
+      } catch { }
       setSnackbar({ open: true, message: 'Education information updated', severity: 'success' });
       setEditEduOpen(false);
     } catch (_) {
@@ -376,7 +376,7 @@ const { subjects, academicLevels } = useSubject();
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const deps = data?.dependencies;
-        const depMsg = deps ? ` Cannot remove. Linked records — Sessions: ${deps.sessions||0}, Payments: ${deps.payments||0}, Hires: ${deps.hires||0}.` : '';
+        const depMsg = deps ? ` Cannot remove. Linked records — Sessions: ${deps.sessions || 0}, Payments: ${deps.payments || 0}, Hires: ${deps.hires || 0}.` : '';
         setSnackbar({ open: true, message: (data.message || 'Failed to remove level') + depMsg, severity: 'error' });
         return;
       }
@@ -408,7 +408,7 @@ const { subjects, academicLevels } = useSubject();
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const deps = data?.dependencies;
-        const depMsg = deps ? ` Cannot remove. Linked records — Sessions: ${deps.sessions||0}, Payments: ${deps.payments||0}, Hires: ${deps.hires||0}.` : '';
+        const depMsg = deps ? ` Cannot remove. Linked records — Sessions: ${deps.sessions || 0}, Payments: ${deps.payments || 0}, Hires: ${deps.hires || 0}.` : '';
         setSnackbar({ open: true, message: (data.message || 'Failed to remove level') + depMsg, severity: 'error' });
         return;
       }
@@ -431,17 +431,17 @@ const { subjects, academicLevels } = useSubject();
     }
   };
 
-const getSubjectName = (id) => {
-  const subject = subjects.find((s) => s._id === id);
-  return subject ? subject : "";
-};
-const getAcademicLevel = (level) => {
-  const matchedLevel = academicLevels.find(l => l._id === level);
-  if(matchedLevel){
-    return matchedLevel;
+  const getSubjectName = (id) => {
+    const subject = subjects.find((s) => s._id === id);
+    return subject ? subject : "";
+  };
+  const getAcademicLevel = (level) => {
+    const matchedLevel = academicLevels.find(l => l._id === level);
+    if (matchedLevel) {
+      return matchedLevel;
+    }
+    return null;
   }
-  return null;
-}
   const formatDateTimeLabel = (slot) => {
     try {
       if (!slot) return "";
@@ -508,7 +508,7 @@ const getAcademicLevel = (level) => {
       try {
         const fresh = await getTutorDetails(user.id);
         setLocalUser(fresh);
-      } catch {}
+      } catch { }
     }, 10000); // refresh every 10s
     return () => clearInterval(intervalId);
   }, [user?.id]);
@@ -527,12 +527,12 @@ const getAcademicLevel = (level) => {
         interviewSlots: Array.isArray(prev?.interviewSlots)
           ? prev.interviewSlots.map((s) => ({ ...s, is_interview: newValue }))
           : [
-              {
-                date: new Date().toISOString(),
-                time: "",
-                is_interview: newValue,
-              },
-            ],
+            {
+              date: new Date().toISOString(),
+              time: "",
+              is_interview: newValue,
+            },
+          ],
       }));
       toast.success("Interview toggle updated successfully!");
     } catch (error) {
@@ -665,7 +665,7 @@ const getAcademicLevel = (level) => {
         documents: localUser?.documents || [],
       };
       setLocalUser(updatedUser);
-      
+
       // Update the user in the admin dashboard context
       updateUserInList('tutors', updatedUser);
     } else {
@@ -685,7 +685,7 @@ const getAcademicLevel = (level) => {
         documents: localUser?.documents || [],
       };
       setLocalUser(updatedUser);
-      
+
       // Update the user in the admin dashboard context
       updateUserInList('tutors', updatedUser);
     } else {
@@ -708,7 +708,7 @@ const getAcademicLevel = (level) => {
         })),
       };
       setLocalUser(updatedUser);
-      
+
       // Update the user in the admin dashboard context
       updateUserInList('tutors', updatedUser);
     } else {
@@ -894,13 +894,13 @@ const getAcademicLevel = (level) => {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {userStatus && (
-            <Chip
-              label={userStatus}
-              color={getStatusColor(userStatus)}
-              variant={userStatus === "unverified" ? "outlined" : "filled"}
-            />
-          )}
+            {userStatus && (
+              <Chip
+                label={userStatus}
+                color={getStatusColor(userStatus)}
+                variant={userStatus === "unverified" ? "outlined" : "filled"}
+              />
+            )}
           </Box>
         </Box>
 
@@ -913,31 +913,31 @@ const getAcademicLevel = (level) => {
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
                         {/* <Avatar sx={{ width: 80, height: 80, background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)", fontSize: "2rem", fontWeight: "bold", mr: 2 }}> */}
-                          {/* {userName.charAt(0)} */}
-                          <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
-                      {localUser?.photo_url ? (
-                        <img
-                          src={localUser.photo_url}
-                          alt="Profile"
-                          className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
-                      )}
-                      {!localUser?.photo_url && (
-                        <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
-                          <User className="h-12 w-12" />
+                        {/* {userName.charAt(0)} */}
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
+                          {localUser?.photo_url ? (
+                            <img
+                              src={localUser.photo_url}
+                              alt="Profile"
+                              className="h-full w-full object-cover rounded-full transition-opacity duration-300 opacity-100"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 animate-pulse bg-gray-300 dark:bg-gray-600" />
+                          )}
+                          {!localUser?.photo_url && (
+                            <div className="relative z-10 text-white flex items-center justify-center w-full h-full">
+                              <User className="h-12 w-12" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
                         {/* </Avatar> */}
                         <Box>
-                          <Typography variant="h5" fontWeight="bold" style={{marginLeft:"19px"}}>
+                          <Typography variant="h5" fontWeight="bold" style={{ marginLeft: "19px" }}>
                             {userName}
                           </Typography>
                           {userRating && (
-                            <Box sx={{ display: "flex", alignItems: "center" }} style={{marginLeft:"19px"}}>
+                            <Box sx={{ display: "flex", alignItems: "center" }} style={{ marginLeft: "19px" }}>
                               <Star color="warning" fontSize="small" />
                               <Typography variant="body2" sx={{ ml: 0.5, fontWeight: "medium" }}>
                                 {userRating.toFixed(1)}/5
@@ -952,27 +952,27 @@ const getAcademicLevel = (level) => {
                   <Grid item xs={12} sm={12} md={9}>
                     <Box>
                       <div className="flex items-center justify-between">
-                      <Typography variant="h6" gutterBottom>
-                        Tutor Details
-                      </Typography>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={openEditDialog}
-                        sx={{
-                          mb: 2,
-                          borderRadius: '10000px',
-                          borderColor: 'primary.main',
-                          color: 'primary.main',
-                          px: 1.5,
-                          // py:2,
-                          '&:hover': { borderColor: 'primary.dark', backgroundColor: 'transparent' }
-                        }}
-                        startIcon={<Edit sx={{ color: 'primary.main' }} />}
-                      >
-                        Edit Details
-                      </Button>
-            </div>
+                        <Typography variant="h6" gutterBottom>
+                          Tutor Details
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={openEditDialog}
+                          sx={{
+                            mb: 2,
+                            borderRadius: '10000px',
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            px: 1.5,
+                            // py:2,
+                            '&:hover': { borderColor: 'primary.dark', backgroundColor: 'transparent' }
+                          }}
+                          startIcon={<Edit sx={{ color: 'primary.main' }} />}
+                        >
+                          Edit Details
+                        </Button>
+                      </div>
                       <TableContainer component={Paper}>
                         <Table size="small">
                           <TableHead>
@@ -1051,27 +1051,27 @@ const getAcademicLevel = (level) => {
                     </Box>
                     <Box sx={{ mt: 4 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="h6" gutterBottom>
-                        Education Information
-                      </Typography>
+                        <Typography variant="h6" gutterBottom>
+                          Education Information
+                        </Typography>
                         {/* <Button variant="outlined" size="small" onClick={openEditEducation}>Edit Education</Button> */}
                         <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={openEditEducation}
-                        sx={{
-                          mb: 2,
-                          borderRadius: '10000px',
-                          borderColor: 'primary.main',
-                          color: 'primary.main',
-                          px: 1.5,
-                          // py:2,
-                          '&:hover': { borderColor: 'primary.dark', backgroundColor: 'transparent' }
-                        }}
-                        startIcon={<Edit sx={{ color: 'primary.main' }} />}
-                      >
-                        Edit Education
-                      </Button>
+                          variant="outlined"
+                          size="small"
+                          onClick={openEditEducation}
+                          sx={{
+                            mb: 2,
+                            borderRadius: '10000px',
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            px: 1.5,
+                            // py:2,
+                            '&:hover': { borderColor: 'primary.dark', backgroundColor: 'transparent' }
+                          }}
+                          startIcon={<Edit sx={{ color: 'primary.main' }} />}
+                        >
+                          Edit Education
+                        </Button>
                       </Box>
 
                       <TableContainer component={Paper}>
@@ -1089,7 +1089,7 @@ const getAcademicLevel = (level) => {
                               <TableCell>1</TableCell>
                               <TableCell>
                                 {Array.isArray(localUser?.academic_levels_taught) &&
-                                localUser.academic_levels_taught.length > 0 ? (
+                                  localUser.academic_levels_taught.length > 0 ? (
                                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                                     {localUser.academic_levels_taught.map((level, idx) => (
                                       <Chip
@@ -1124,8 +1124,8 @@ const getAcademicLevel = (level) => {
                                 )}
                               </TableCell>
                               <TableCell>
-  {localUser?.TotalSessions !== undefined ? localUser.TotalSessions : "N/A"}
-</TableCell>
+                                {localUser?.TotalSessions !== undefined ? localUser.TotalSessions : "N/A"}
+                              </TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -1166,8 +1166,8 @@ const getAcademicLevel = (level) => {
                                   getDocStatus(doc) === "Approved"
                                     ? "success"
                                     : getDocStatus(doc) === "Rejected"
-                                    ? "error"
-                                    : "action"
+                                      ? "error"
+                                      : "action"
                                 }
                               />
                             </ListItemIcon>
@@ -1310,8 +1310,8 @@ const getAcademicLevel = (level) => {
                       <Alert severity="error" sx={{ mb: 2 }}>Interview Failed.</Alert>
                     )}
                     {localUser.againInterview === true && localUser.interviewStatus === "Pending" && (
-                        <Alert severity="warning" sx={{ mb: 2 }}>Re-interview requested.</Alert>
-                   
+                      <Alert severity="warning" sx={{ mb: 2 }}>Re-interview requested.</Alert>
+
                     )}
 
                     <Box>
@@ -1436,7 +1436,7 @@ const getAcademicLevel = (level) => {
                           </Box>
                           <Box sx={{ mt: 2 }}>
                             {schedulingStatus === "success" && (
-                              <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }} onClose={() => {setSchedulingStatus(null); setSuccessMessage("");}}>
+                              <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }} onClose={() => { setSchedulingStatus(null); setSuccessMessage(""); }}>
                                 {successMessage}
                               </Alert>
                             )}
@@ -1577,11 +1577,11 @@ const getAcademicLevel = (level) => {
                         )}
                       </div>
                     ) : (
-                    <Card sx={{ p: 4, textAlign: "center", backgroundColor: "#f8f9fa" }}>
-                      <CloudDownload sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
-                      <Typography variant="h6" color="text.secondary">Document Not Available</Typography>
-                      <Typography variant="body2" color="text.secondary">The document file could not be loaded or is not accessible.</Typography>
-                    </Card>
+                      <Card sx={{ p: 4, textAlign: "center", backgroundColor: "#f8f9fa" }}>
+                        <CloudDownload sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
+                        <Typography variant="h6" color="text.secondary">Document Not Available</Typography>
+                        <Typography variant="body2" color="text.secondary">The document file could not be loaded or is not accessible.</Typography>
+                      </Card>
                     );
                   })()}
                 </div>
@@ -1590,7 +1590,7 @@ const getAcademicLevel = (level) => {
                     const rawUrl = selectedDocument.url || selectedDocument.file_url;
                     return rawUrl ? (
                       <Button variant="outlined" startIcon={<CloudDownload />} onClick={() => window.open(resolveUrl(rawUrl), "_blank")}>
-                      Download
+                        Download
                       </Button>
                     ) : null;
                   })()}
@@ -1734,4 +1734,4 @@ const getAcademicLevel = (level) => {
 
 export default TutorDetailPage;
 
- 
+

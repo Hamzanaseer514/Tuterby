@@ -28,6 +28,12 @@ const uploadSubmission = multer({ storage: memoryStorage });
 // Tutor creates an assignment for a student
 router.post('/tutor/:user_id/assignments', protect, upload.single('file'), createAssignment);
 
+// Tutor edits an assignment
+router.put('/tutor/:user_id/assignments/:assignment_id', protect, upload.single('file'), require('../Controllers/assignmentController').editAssignment);
+
+// Tutor deletes an assignment (also removes submissions)
+router.delete('/tutor/:user_id/assignments/:assignment_id', protect, require('../Controllers/assignmentController').deleteAssignment);
+
 // Tutor lists their assignments
 router.get('/tutor/:user_id/assignments', protect, getTutorAssignments);
 
@@ -51,6 +57,9 @@ router.get('/tutor/:user_id/submissions', protect, getTutorSubmissions);
 
 // Tutor grades a submission
 router.put('/grade/:submission_id', protect, gradeSubmission);
+
+// Tutor deletes a submission
+router.delete('/tutor/:user_id/submissions/:submission_id', protect, require('../Controllers/assignmentController').deleteSubmission);
 
 // New assignment creation flow APIs
 router.get('/tutor/:user_id/academic-levels', protect, getTutorAcademicLevels);

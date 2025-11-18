@@ -27,15 +27,28 @@ const apiCall = async (endpoint, options = {}) => {
 
 
     if (!response.ok) {
-      const errorText = await response.text();
-      //console.error('API Error Response:', errorText);
-      
+      // Try to parse JSON error body when available
+      let parsedError = null;
+      try {
+        parsedError = await response.json();
+      } catch (e) {
+        // not JSON
+      }
+
       if (response.status === 401) {
         // Redirect to login if unauthorized
         window.location.href = '/login';
         throw new Error('Unauthorized - Please login again');
       }
-      
+
+      if (parsedError) {
+        const err = new Error(parsedError.message || 'API Error');
+        err.status = response.status;
+        err.data = parsedError;
+        throw err;
+      }
+
+      const errorText = await response.text();
       throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
@@ -344,6 +357,57 @@ export const getAllTutorPayments = async (filters = {}) => {
   }
 };
 
+// Update a hire request (admin)
+export const updateHireRequest = async (studentProfileId, hireRecordId, payload = {}) => {
+  if (!studentProfileId || !hireRecordId) throw new Error('studentProfileId and hireRecordId are required');
+  return apiCall(`/hire-requests/${studentProfileId}/${hireRecordId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+// Delete a hire request (admin)
+export const deleteHireRequest = async (studentProfileId, hireRecordId) => {
+  if (!studentProfileId || !hireRecordId) throw new Error('studentProfileId and hireRecordId are required');
+  return apiCall(`/hire-requests/${studentProfileId}/${hireRecordId}`, {
+    method: 'DELETE'
+  });
+};
+
+// Delete a tutor payment by ID
+export const deleteTutorPayment = async (paymentId) => {
+  if (!paymentId) throw new Error('paymentId is required');
+  return apiCall(`/tutor-payments/${paymentId}`, {
+    method: 'DELETE'
+  });
+};
+
+// Update a tutor payment by ID - payload may contain any updatable fields (payment_status, validity_status, base_amount, sessions_remaining, etc.)
+export const updateTutorPayment = async (paymentId, payload = {}) => {
+  if (!paymentId) throw new Error('paymentId is required');
+  return apiCall(`/tutor-payments/${paymentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+};
+
+// Update a tutor session by ID (admin)
+export const updateTutorSession = async (sessionId, payload = {}) => {
+  if (!sessionId) throw new Error('sessionId is required');
+  return apiCall(`/tutor-sessions/${sessionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+};
+
+// Delete a tutor session by ID (admin)
+export const deleteTutorSession = async (sessionId) => {
+  if (!sessionId) throw new Error('sessionId is required');
+  return apiCall(`/tutor-sessions/${sessionId}`, {
+    method: 'DELETE'
+  });
+};
+
 // Tutor Reviews Management - Always fetch fresh data
 export const getAllTutorReviews = async (filters = {}) => {
   try {
@@ -364,6 +428,12 @@ export const getAllTutorReviews = async (filters = {}) => {
     //console.error('Error fetching tutor reviews:', error);
     throw error;
   }
+};
+
+// Delete a tutor review (admin)
+export const deleteTutorReview = async (reviewId) => {
+  if (!reviewId) throw new Error('reviewId is required');
+  return apiCall(`/tutor-reviews/${reviewId}`, { method: 'DELETE' });
 };
 
 // Removed cache management functions - Admin dashboard needs real-time data

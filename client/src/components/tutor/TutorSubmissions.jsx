@@ -33,6 +33,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { getTutorSubmissions, gradeSubmission } from '../../services/assignmentService';
+import { deleteSubmission } from '../../services/assignmentService';
 import { useSubject } from '../../hooks/useSubject';
 
 // Submission Details Modal Component
@@ -216,6 +217,9 @@ const TutorSubmissions = () => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingSubmissionId, setDeletingSubmissionId] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,11 +243,11 @@ const TutorSubmissions = () => {
       const data = await getTutorSubmissions(user._id);
       setSubmissions(data);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch submissions",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to fetch submissions",
+      //   variant: "destructive"
+      // });
     } finally {
       setLoading(false);
     }
@@ -389,6 +393,27 @@ const TutorSubmissions = () => {
     });
     setShowGradeModal(true);
     setShowDetailsModal(false); // Close details modal
+  };
+
+  const openDeleteSubmissionDialog = (submissionId) => {
+    setDeletingSubmissionId(submissionId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteSubmission = async () => {
+    if (!deletingSubmissionId) return;
+    setDeleteSubmitting(true);
+    try {
+      await deleteSubmission(user._id, deletingSubmissionId);
+      toast({ title: 'Deleted', description: 'Submission deleted' });
+      setSubmissions(prev => prev.filter(s => s._id !== deletingSubmissionId));
+      setShowDeleteDialog(false);
+      setDeletingSubmissionId(null);
+    } catch (err) {
+      toast({ title: 'Error', description: err.message || 'Failed to delete submission', variant: 'destructive' });
+    } finally {
+      setDeleteSubmitting(false);
+    }
   };
 
   const handleViewDetails = (submission) => {
@@ -695,15 +720,28 @@ const TutorSubmissions = () => {
                       </div>
                     )}
                   </div>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewDetails(submission)}
-                  >
-                    <Info className="h-4 w-4 mr-1" />
-                    View Details
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewDetails(submission)}
+                    >
+                      <Info className="h-4 w-4 mr-1" />
+                      View Details
+                    </Button>
+                    {submission.status === 'graded' ? (
+                      <Button size="sm" onClick={() => handleGradeSubmission(submission)}>
+                        Edit Evaluation
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => handleGradeSubmission(submission)}>
+                        Grade Submission
+                      </Button>
+                    )}
+                    <Button size="sm" variant="destructive" onClick={() => openDeleteSubmissionDialog(submission._id)}>
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -748,6 +786,23 @@ const TutorSubmissions = () => {
                 onGradeSubmission={handleGradeSubmission}
                 grading={grading}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+          onClick={() => { setShowDeleteDialog(false); setDeletingSubmissionId(null); }}
+        >
+          <div className="w-full max-w-md bg-white rounded-lg p-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-medium mb-2">Confirm Delete</h3>
+            <p className="text-sm text-gray-600">Are you sure you want to delete this submission? This action cannot be undone.</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => { setShowDeleteDialog(false); setDeletingSubmissionId(null); }}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmDeleteSubmission} disabled={deleteSubmitting}>{deleteSubmitting ? 'Deleting...' : 'Delete'}</Button>
             </div>
           </div>
         </div>

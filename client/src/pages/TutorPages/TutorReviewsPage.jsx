@@ -145,42 +145,42 @@ const TutorReviewsPage = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center">
-                <div className="text-red-600 dark:text-red-400 mb-3 sm:mb-0">
-                  <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="sm:ml-3 flex-1">
-                  <h3 className="text-sm sm:text-base font-medium text-red-800 dark:text-red-200">
-                    Error Loading Reviews
-                  </h3>
-                  <p className="mt-1 text-xs sm:text-sm text-red-700 dark:text-red-300">
-                    {error}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <Button
-                  onClick={() => fetchReviews(1)}
-                  variant="outline"
-                  className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  Try Again
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+  //       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+  //         <div className="max-w-4xl mx-auto">
+  //           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 sm:p-6">
+  //             <div className="flex flex-col sm:flex-row sm:items-center">
+  //               <div className="text-red-600 dark:text-red-400 mb-3 sm:mb-0">
+  //                 <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  //                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  //                 </svg>
+  //               </div>
+  //               <div className="sm:ml-3 flex-1">
+  //                 <h3 className="text-sm sm:text-base font-medium text-red-800 dark:text-red-200">
+  //                   Error Loading Reviews
+  //                 </h3>
+  //                 <p className="mt-1 text-xs sm:text-sm text-red-700 dark:text-red-300">
+  //                   {error}
+  //                 </p>
+  //               </div>
+  //             </div>
+  //             <div className="mt-4">
+  //               <Button
+  //                 onClick={() => fetchReviews(1)}
+  //                 variant="outline"
+  //                 className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50"
+  //               >
+  //                 Try Again
+  //               </Button>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

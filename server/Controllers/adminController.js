@@ -1439,6 +1439,324 @@ exports.getTutorDetails = async (req, res) => {
 
 };
 
+// Admin: Update a specific hire request on a student's profile
+exports.updateHireRequest = asyncHandler(async (req, res) => {
+  try {
+    const { student_profile_id, hire_record_id } = req.params;
+    // status may be 'accepted'|'rejected' or 'accept'|'reject'
+    const { status, subject, academic_level_id } = req.body || {};
+
+    if (!student_profile_id || !hire_record_id) {
+      return res.status(400).json({ message: 'Missing parameters' });
+    }
+
+    const student = await StudentProfile.findById(student_profile_id);
+    if (!student) return res.status(404).json({ message: 'Student profile not found' });
+
+    const hireRecord = student.hired_tutors.id(hire_record_id);
+    if (!hireRecord) return res.status(404).json({ message: 'Hire record not found' });
+
+    // Normalize action: map incoming status to 'accept'|'reject'
+    let action = null;
+    const normalizedStatus = status ? String(status).toLowerCase() : null;
+    if (normalizedStatus) {
+      if (normalizedStatus === 'accept' || normalizedStatus === 'accepted') action = 'accept';
+      else if (normalizedStatus === 'reject' || normalizedStatus === 'rejected') action = 'reject';
+    }
+
+    // If status is provided but it's not an accept/reject action (e.g. 'pending'),
+    // treat this as a simple field update and save the provided status along with
+    // any subject/academic level changes. However, do NOT allow setting to
+    // 'pending' when an active payment exists (same blocking rule as reject).
+    if (!action) {
+      // fetch tutor profile early for payment checks
+      const tutorProfile = await TutorProfile.findById(hireRecord.tutor);
+
+      // If admin is trying to set status to 'pending', block if there's an active payment
+      if (status && String(status).toLowerCase() === 'pending') {
+        try {
+          const now = new Date();
+          const activePayment = await StudentPayment.findOne({
+            student_id: student._id,
+            tutor_id: tutorProfile?._id,
+            subject: hireRecord.subject,
+            academic_level: hireRecord.academic_level_id,
+            payment_status: 'paid',
+            academic_level_paid: true,
+            validity_status: 'active',
+            validity_end_date: { $gt: now },
+            sessions_remaining: { $gt: 0 }
+          }).lean();
+
+          if (activePayment) {
+            return res.status(400).json({
+              success: false,
+              message: 'Cannot set status to pending: student has an active/paid package for this subject and level.',
+              links: {
+                payments: [
+                  {
+                    id: activePayment._id,
+                    payment_status: activePayment.payment_status,
+                    validity_status: activePayment.validity_status,
+                    sessions_remaining: activePayment.sessions_remaining
+                  }
+                ]
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error checking active payments before admin set-pending:', err);
+          // continue but log
+        }
+      }
+
+      if (status) hireRecord.status = status; // allow other non accept/reject states
+      if (subject) hireRecord.subject = subject;
+      if (academic_level_id) hireRecord.academic_level_id = academic_level_id;
+      hireRecord.updated_at = new Date();
+      await student.save();
+      return res.status(200).json({ success: true, message: 'Hire request updated', hireRecord });
+    }
+
+    // Find tutor profile referenced in the hire record
+    const tutorProfile = await TutorProfile.findById(hireRecord.tutor);
+    if (!tutorProfile) {
+      return res.status(404).json({ message: 'Associated tutor profile not found' });
+    }
+
+    // If admin is attempting to reject, ensure the student does NOT have a valid active payment
+    if (action === 'reject') {
+      try {
+        const now = new Date();
+        const activePayment = await StudentPayment.findOne({
+          student_id: student._id,
+          tutor_id: tutorProfile._id,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+          payment_status: 'paid',
+          academic_level_paid: true,
+          validity_status: 'active',
+          validity_end_date: { $gt: now },
+          sessions_remaining: { $gt: 0 }
+        }).lean();
+
+        if (activePayment) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot reject hire request: student has an active/paid package for this subject and level. ',
+            links: {
+              payments: [
+                {
+                  id: activePayment._id,
+                  payment_status: activePayment.payment_status,
+                  validity_status: activePayment.validity_status,
+                  sessions_remaining: activePayment.sessions_remaining
+                }
+              ]
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error checking active payments before admin reject:', err);
+        // continue but log
+      }
+    }
+
+    // Capture previous status
+    const prevHireStatus = hireRecord.status;
+
+    // Apply status update
+    hireRecord.status = action === 'accept' ? 'accepted' : 'rejected';
+    if (subject) hireRecord.subject = subject;
+    if (academic_level_id) hireRecord.academic_level_id = academic_level_id;
+    hireRecord.updated_at = new Date();
+
+    await student.save();
+
+    // If previously accepted and now rejected -> expire/cancel related payments
+    if (prevHireStatus === 'accepted' && action === 'reject') {
+      try {
+        await StudentPayment.updateMany(
+          {
+            student_id: student._id,
+            tutor_id: tutorProfile._id,
+            subject: hireRecord.subject,
+            academic_level: hireRecord.academic_level_id,
+          },
+          {
+            $set: {
+              academic_level_paid: false,
+              is_active: false,
+              validity_status: 'expired',
+              payment_status: 'cancelled',
+            },
+          }
+        );
+      } catch (err) {
+        console.error('Error updating payments after admin hire rejection:', err);
+      }
+    }
+
+    // If accepted, create or mark a pending StudentPayment record
+    if (action === 'accept') {
+      try {
+        const existingPayment = await StudentPayment.findOne({
+          student_id: student._id,
+          tutor_id: tutorProfile._id,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+        });
+
+        if (existingPayment) {
+          try {
+            await StudentPayment.findByIdAndUpdate(
+              existingPayment._id,
+              {
+                $set: {
+                  academic_level_paid: false,
+                  is_active: true,
+                  validity_status: 'pending',
+                  payment_status: 'pending',
+                  validity_start_date: new Date(),
+                  validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                  request_date: new Date(),
+                  sessions_remaining: existingPayment.total_sessions_per_month,
+                },
+              },
+              { new: true }
+            );
+          } catch (uErr) {
+            console.error('Error updating existing payment on admin hire accept:', uErr);
+          }
+        } else {
+          const subjectData = await Subject.findById(hireRecord.subject);
+          const academicLevelData = await EducationLevel.findById(hireRecord.academic_level_id);
+
+          const tutorAcademicLevel = (tutorProfile.academic_levels_taught || []).find(
+            (level) => String(level.educationLevel) === String(hireRecord.academic_level_id)
+          );
+
+          if (!tutorAcademicLevel) {
+            console.error('Tutor academic level not found for payment creation (admin)');
+          } else {
+            const baseAmount = tutorAcademicLevel.hourlyRate || tutorProfile.hourly_rate || 25;
+            const discount = tutorAcademicLevel.discount || 0;
+            const totalSessions = tutorAcademicLevel.totalSessionsPerMonth || 1;
+
+            const validityStartDate = new Date();
+            const validityEndDate = new Date(
+              validityStartDate.getTime() + 30 * 24 * 60 * 60 * 1000
+            );
+
+            const paymentRecord = new StudentPayment({
+              student_id: student._id,
+              tutor_id: tutorProfile._id,
+              subject: hireRecord.subject,
+              academic_level: hireRecord.academic_level_id,
+              payment_type: 'monthly',
+              base_amount: baseAmount,
+              discount_percentage: discount,
+              monthly_amount: tutorAcademicLevel.monthlyRate,
+              validity_start_date: validityStartDate,
+              validity_end_date: validityEndDate,
+              sessions_remaining: tutorAcademicLevel.totalSessionsPerMonth,
+              total_sessions_per_month: tutorAcademicLevel.totalSessionsPerMonth,
+              payment_status: 'pending',
+              request_notes: `Monthly package for ${subjectData?.name || 'Subject'} - ${academicLevelData?.level || 'Level'}. ${totalSessions} sessions per month.`,
+              currency: 'GBP',
+            });
+
+            await paymentRecord.save();
+          }
+        }
+      } catch (paymentError) {
+        console.error('Error creating/updating payment record for admin accepted hire request:', paymentError);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Request ${action}ed successfully`,
+      student_profile_id,
+      hire_record_id: hireRecord._id,
+      status: hireRecord.status,
+    });
+  } catch (err) {
+    console.error('Error updating hire request:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update hire request', error: err.message });
+  }
+});
+
+// Admin: Delete a specific hire request from a student's profile
+exports.deleteHireRequest = asyncHandler(async (req, res) => {
+  try {
+    const { student_profile_id, hire_record_id } = req.params;
+
+    if (!student_profile_id || !hire_record_id) {
+      return res.status(400).json({ message: 'Missing parameters' });
+    }
+
+    const student = await StudentProfile.findById(student_profile_id);
+    if (!student) return res.status(404).json({ message: 'Student profile not found' });
+
+    const hireRecord = student.hired_tutors.id(hire_record_id);
+    if (!hireRecord) return res.status(404).json({ message: 'Hire record not found' });
+
+    // Allow deletion only if status is 'rejected' or 'pending'
+    const currentStatus = hireRecord.status ? String(hireRecord.status).toLowerCase() : '';
+    if (!['rejected', 'pending'].includes(currentStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete hire request unless status is 'rejected' or 'pending'. Current status: ${hireRecord.status}`,
+      });
+    }
+
+    // Expire/cancel related StudentPayment records for this student/tutor/subject/level
+    try {
+      const updateResult = await StudentPayment.updateMany(
+        {
+          student_id: student._id,
+          tutor_id: hireRecord.tutor,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+        },
+        {
+          $set: {
+            academic_level_paid: false,
+            is_active: false,
+            validity_status: 'expired',
+            payment_status: 'cancelled',
+          },
+        }
+      );
+
+      // Remove hire record from student profile
+      student.hired_tutors = (student.hired_tutors || []).filter(h => String(h._id) !== String(hire_record_id));
+      await student.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Hire request deleted',
+        hire_record_id,
+        paymentsUpdated: updateResult?.modifiedCount ?? updateResult?.nModified ?? 0,
+      });
+    } catch (err) {
+      console.error('Error cancelling payments during hire deletion:', err);
+      // Still attempt removal even if payment update fails
+      student.hired_tutors = (student.hired_tutors || []).filter(h => String(h._id) !== String(hire_record_id));
+      await student.save();
+      return res.status(200).json({
+        success: true,
+        message: 'Hire request deleted (payments update failed)',
+        hire_record_id,
+      });
+    }
+  } catch (err) {
+    console.error('Error deleting hire request:', err);
+    return res.status(500).json({ success: false, message: 'Failed to delete hire request', error: err.message });
+  }
+});
+
 
 
 // Toggle or set a user's active status (admin only)
@@ -3130,6 +3448,270 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
   }
 });
 
+// Update a tutor payment by ID (admin)
+exports.updateTutorPayment = asyncHandler(async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      return res.status(400).json({ success: false, message: 'Invalid paymentId' });
+    }
+
+    const allowedFields = [
+      'payment_status',
+      'validity_status',
+      'base_amount',
+      'sessions_remaining',
+      'payment_method',
+      'payment_type',
+      'validity_start_date',
+      'validity_end_date',
+      'is_active'
+    ];
+
+    const updates = {};
+    Object.keys(req.body || {}).forEach(key => {
+      if (allowedFields.includes(key)) {
+        updates[key] = req.body[key];
+      }
+    });
+
+    // Parse dates if provided
+    if (updates.validity_start_date) updates.validity_start_date = new Date(updates.validity_start_date);
+    if (updates.validity_end_date) updates.validity_end_date = new Date(updates.validity_end_date);
+    if (typeof updates.base_amount !== 'undefined') updates.base_amount = Number(updates.base_amount);
+    if (typeof updates.sessions_remaining !== 'undefined') updates.sessions_remaining = Number(updates.sessions_remaining);
+
+    // Before updating, check whether this payment is linked to any tutoring sessions or used as an original_payment (renewal)
+    const linkedSessions = await TutoringSession.find({ 'student_payments.payment_id': paymentId })
+      .select('_id session_date tutor_id status')
+      .lean();
+
+    const linkedRenewals = await StudentPayment.find({ original_payment_id: paymentId })
+      .select('_id student_id tutor_id payment_status')
+      .lean();
+
+    if ((linkedSessions && linkedSessions.length > 0) || (linkedRenewals && linkedRenewals.length > 0)) {
+      // Build a helpful response listing where the payment is linked
+      const links = {};
+      if (linkedSessions && linkedSessions.length > 0) {
+        links.sessions = linkedSessions.map(s => ({ id: s._id, session_date: s.session_date, tutor_id: s.tutor_id, status: s.status }));
+      }
+      if (linkedRenewals && linkedRenewals.length > 0) {
+        links.renewals = linkedRenewals.map(r => ({ id: r._id, student_id: r.student_id, tutor_id: r.tutor_id, payment_status: r.payment_status }));
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'Payment is linked to other records and cannot be updated. See links for details.',
+        links
+      });
+    }
+
+    const updated = await StudentPayment.findByIdAndUpdate(paymentId, { $set: updates }, { new: true }).lean();
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    res.status(200).json({ success: true, payment: updated });
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
+// Delete a tutor payment by ID (admin)
+exports.deleteTutorPayment = asyncHandler(async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      return res.status(400).json({ success: false, message: 'Invalid paymentId' });
+    }
+
+    // First load the payment so we can check contextual dependencies (student, tutor, subject, level)
+    const payment = await StudentPayment.findById(paymentId).lean();
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    // Check references before deleting
+    const linkedSessions = await TutoringSession.find({ 'student_payments.payment_id': paymentId })
+      .select('_id session_date tutor_id status')
+      .lean();
+
+    const linkedRenewals = await StudentPayment.find({ original_payment_id: paymentId })
+      .select('_id student_id tutor_id payment_status')
+      .lean();
+
+    // Additional: check whether the student has a hire request for this tutor / subject / academic level
+    // Hire requests are stored on StudentProfile.hired_tutors
+    let hireConflicts = [];
+    try {
+      if (payment.student_id) {
+        const studentProfile = await StudentProfile.findOne({_id: payment.student_id }).select('hired_tutors').lean();
+        if (studentProfile && Array.isArray(studentProfile.hired_tutors)) {
+          // Match tutor, subject and academic level
+          hireConflicts = studentProfile.hired_tutors.filter(ht => {
+            try {
+              const sameTutor = ht.tutor && String(ht.tutor) === String(payment.tutor_id);
+              const sameSubject = ht.subject && payment.subject && String(ht.subject) === String(payment.subject);
+              const sameLevel = ht.academic_level_id && payment.academic_level && String(ht.academic_level_id) === String(payment.academic_level);
+              // Consider active/pending/accepted requests as blocking (not rejected)
+              const blockingStatus = ht.status && ['pending', 'accepted'].includes(String(ht.status));
+              return sameTutor && sameSubject && sameLevel && blockingStatus;
+            } catch (e) {
+              return false;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Swallow profile lookup errors but keep going with other checks
+      console.error('Error checking hire requests for payment delete:', e);
+    }
+
+    if ((linkedSessions && linkedSessions.length > 0) || (linkedRenewals && linkedRenewals.length > 0) || (hireConflicts && hireConflicts.length > 0)) {
+      const links = {};
+      if (linkedSessions && linkedSessions.length > 0) {
+        links.sessions = linkedSessions.map(s => ({ id: s._id, session_date: s.session_date, tutor_id: s.tutor_id, status: s.status }));
+      }
+      if (linkedRenewals && linkedRenewals.length > 0) {
+        links.renewals = linkedRenewals.map(r => ({ id: r._id, student_id: r.student_id, tutor_id: r.tutor_id, payment_status: r.payment_status }));
+      }
+      if (hireConflicts && hireConflicts.length > 0) {
+        try {
+          // Resolve subject names and academic level names in batch to avoid per-item queries
+          const subjectIds = [...new Set(hireConflicts.map(h => h.subject).filter(Boolean).map(String))];
+          const levelIds = [...new Set(hireConflicts.map(h => h.academic_level_id).filter(Boolean).map(String))];
+
+          const [subjectDocs, levelDocs] = await Promise.all([
+            subjectIds.length ? Subject.find({ _id: { $in: subjectIds } }).select('name').lean() : [],
+            levelIds.length ? EducationLevel.find({ _id: { $in: levelIds } }).select('level').lean() : []
+          ]);
+
+          const subjectMap = {};
+          (subjectDocs || []).forEach(s => { subjectMap[String(s._id)] = s.name; });
+          const levelMap = {};
+          (levelDocs || []).forEach(l => { levelMap[String(l._id)] = l.level; });
+
+          links.hireRequests = hireConflicts.map(h => ({
+            tutor: h.tutor,
+            subject_id: h.subject || null,
+            subject_name: subjectMap[String(h.subject)] || null,
+            academic_level_id: h.academic_level_id || null,
+            academic_level_name: levelMap[String(h.academic_level_id)] || null,
+            status: h.status,
+            hired_at: h.hired_at
+          }));
+        } catch (e) {
+          // Fallback to original minimal info if lookup fails
+          console.error('Error resolving subject/level names for hireConflicts:', e);
+          links.hireRequests = hireConflicts.map(h => ({ tutor: h.tutor, subject: h.subject, academic_level_id: h.academic_level_id, status: h.status, hired_at: h.hired_at }));
+        }
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'Payment is linked to other records and cannot be deleted. Resolve related hire requests/sessions/renewals first. See links for details.',
+        links
+      });
+    }
+
+    const deleted = await StudentPayment.findByIdAndDelete(paymentId).lean();
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Payment deleted', paymentId: deleted._id });
+  } catch (error) {
+    console.error('Error deleting payment:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
+// Update a tutoring session by ID (admin)
+exports.updateTutorSession = asyncHandler(async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ success: false, message: 'Invalid sessionId' });
+    }
+
+    const session = await TutoringSession.findById(sessionId).lean();
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+
+    // Block edits if session is currently in progress
+    if (session.status === 'in_progress') {
+      return res.status(400).json({ success: false, message: 'Session is currently in progress and cannot be edited.' });
+    }
+
+    const allowedFields = [
+      'status',
+      'notes',
+      'meeting_link',
+      'session_date',
+      'duration_hours',
+      'hourly_rate',
+      'total_earnings'
+    ];
+
+    const updates = {};
+    Object.keys(req.body || {}).forEach(key => {
+      if (allowedFields.includes(key)) updates[key] = req.body[key];
+    });
+
+    if (updates.session_date) updates.session_date = new Date(updates.session_date);
+    if (typeof updates.duration_hours !== 'undefined') updates.duration_hours = Number(updates.duration_hours);
+    if (typeof updates.hourly_rate !== 'undefined') updates.hourly_rate = Number(updates.hourly_rate);
+    if (typeof updates.total_earnings !== 'undefined') updates.total_earnings = Number(updates.total_earnings);
+
+    const updated = await TutoringSession.findByIdAndUpdate(sessionId, { $set: updates }, { new: true }).lean();
+    return res.status(200).json({ success: true, session: updated });
+  } catch (error) {
+    console.error('Error updating session:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
+// Delete a tutoring session by ID (admin)
+exports.deleteTutorSession = asyncHandler(async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ success: false, message: 'Invalid sessionId' });
+    }
+
+    const session = await TutoringSession.findById(sessionId).lean();
+    if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
+
+    // Block deletes if session is in progress
+    if (session.status === 'in_progress') {
+      return res.status(400).json({ success: false, message: 'Session is currently in progress and cannot be deleted.' });
+    }
+
+    // If session references payments, return links instead of deleting
+    const paymentIds = (session.student_payments || []).map(sp => sp.payment_id).filter(Boolean);
+    let linkedPayments = [];
+    if (paymentIds.length > 0) {
+      linkedPayments = await StudentPayment.find({ _id: { $in: paymentIds } }).select('_id student_id tutor_id payment_status').lean();
+    }
+
+    if (linkedPayments.length > 0) {
+      return res.status(400).json({ success: false, message: 'Session references payments and cannot be deleted. See links for details.', links: { payments: linkedPayments } });
+    }
+
+    const deleted = await TutoringSession.findByIdAndDelete(sessionId).lean();
+    if (!deleted) return res.status(404).json({ success: false, message: 'Session not found' });
+    return res.status(200).json({ success: true, message: 'Session deleted', sessionId: deleted._id });
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
 // Get all tutor reviews for admin
 exports.getAllTutorReviews = asyncHandler(async (req, res) => {
   try {
@@ -3374,6 +3956,47 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
   }
 });
 
+// Admin: delete a tutor review
+exports.deleteTutorReview = asyncHandler(async (req, res) => {
+  try {
+    const { review_id } = req.params;
+    if (!review_id || !mongoose.Types.ObjectId.isValid(review_id)) {
+      return res.status(400).json({ success: false, message: 'Invalid review id' });
+    }
+
+    const review = await TutorReview.findById(review_id).lean();
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+
+    // Remove the review
+    await TutorReview.deleteOne({ _id: review_id });
+
+    // Optionally, you may want to update the tutor's average rating/count here.
+    // We'll attempt a safe recalculation: compute average from remaining reviews
+    try {
+      const agg = await TutorReview.aggregate([
+        { $match: { tutor_id: review.tutor_id } },
+        { $group: { _id: '$tutor_id', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+      ]);
+      if (agg && agg.length > 0) {
+        const avg = agg[0].avgRating || 0;
+        const count = agg[0].count || 0;
+        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: avg, review_count: count }).catch(() => {});
+      } else {
+        // No reviews left
+        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: 0, review_count: 0 }).catch(() => {});
+      }
+    } catch (err) {
+      // Non-fatal
+      console.error('Failed to recalc tutor rating after review delete:', err && err.message);
+    }
+
+    return res.status(200).json({ success: true, message: 'Review deleted', review_id });
+  } catch (error) {
+    console.error('Error deleting tutor review:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete review', error: error.message });
+  }
+});
+
 // Get all hire requests with student-tutor matching and status
 exports.getAllHireRequests = asyncHandler(async (req, res) => {
   try {
@@ -3469,6 +4092,8 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
       {
         $project: {
           _id: 1,
+          hire_record_id: '$hired_tutors._id',
+          hire_for_this_tutor: '$hired_tutors',
           student: {
             id: '$user_id',
             name: { $arrayElemAt: ['$student_user.full_name', 0] },

@@ -38,8 +38,16 @@ const {
   fetchSubjectRelatedToAcademicLevels,
     getAllTutorSessions,
   getAllTutorPayments,
+    updateTutorSession,
+    deleteTutorSession,
+  updateTutorPayment,
+  deleteTutorPayment,
   getAllTutorReviews,
+  // Add delete handler for reviews
+  deleteTutorReview,
   getAllHireRequests,
+  updateHireRequest,
+  deleteHireRequest,
   updateTutorByAdmin,
   removeTutorLevelByAdmin,
   updateParentByAdmin,
@@ -50,6 +58,8 @@ const {
 const {
   getAllAssignments,
   getAllSubmissions
+  , adminEditAssignment,
+  adminDeleteAssignment
 } = require("../Controllers/assignmentController");
 
 
@@ -104,12 +114,33 @@ router.put("/applications/notes", updateApplicationNotes);
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/tutor-sessions", getAllTutorSessions);
 router.get("/tutor-payments", getAllTutorPayments);
+// Admin edit and delete session endpoints
+router.put("/tutor-sessions/:sessionId", protect, adminOnly, updateTutorSession);
+router.delete("/tutor-sessions/:sessionId", protect, adminOnly, deleteTutorSession);
+// Admin edit and delete payment endpoints
+router.put("/tutor-payments/:paymentId", protect, adminOnly, updateTutorPayment);
+router.delete("/tutor-payments/:paymentId", protect, adminOnly, deleteTutorPayment);
 router.get("/tutor-reviews", getAllTutorReviews);
+// Admin delete a tutor review
+router.delete('/tutor-reviews/:review_id', protect, adminOnly, require('../Controllers/adminController').deleteTutorReview);
 router.get("/hire-requests", getAllHireRequests);
+// Admin edit and delete hire request
+router.put("/hire-requests/:student_profile_id/:hire_record_id", protect, adminOnly, updateHireRequest);
+router.delete("/hire-requests/:student_profile_id/:hire_record_id", protect, adminOnly, deleteHireRequest);
 
 // Assignment management routes
 router.get("/assignments", protect, adminOnly, getAllAssignments);
 router.get("/assignment-submissions", protect, adminOnly, getAllSubmissions);
+// Multer for optional file uploads when admin edits assignment
+const multer = require('multer');
+const memoryStorage = multer.memoryStorage();
+const upload = multer({ storage: memoryStorage });
+
+// Admin edit assignment
+router.put('/assignments/:assignment_id', protect, adminOnly, upload.single('file'), adminEditAssignment);
+
+// Admin delete assignment
+router.delete('/assignments/:assignment_id', protect, adminOnly, adminDeleteAssignment);
 
 // User management
 router.put("/users/:user_id/status", require("../Controllers/adminController").updateUserStatus);
