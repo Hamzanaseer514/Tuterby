@@ -3956,6 +3956,47 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
   }
 });
 
+// Admin: delete a tutor review
+exports.deleteTutorReview = asyncHandler(async (req, res) => {
+  try {
+    const { review_id } = req.params;
+    if (!review_id || !mongoose.Types.ObjectId.isValid(review_id)) {
+      return res.status(400).json({ success: false, message: 'Invalid review id' });
+    }
+
+    const review = await TutorReview.findById(review_id).lean();
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+
+    // Remove the review
+    await TutorReview.deleteOne({ _id: review_id });
+
+    // Optionally, you may want to update the tutor's average rating/count here.
+    // We'll attempt a safe recalculation: compute average from remaining reviews
+    try {
+      const agg = await TutorReview.aggregate([
+        { $match: { tutor_id: review.tutor_id } },
+        { $group: { _id: '$tutor_id', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+      ]);
+      if (agg && agg.length > 0) {
+        const avg = agg[0].avgRating || 0;
+        const count = agg[0].count || 0;
+        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: avg, review_count: count }).catch(() => {});
+      } else {
+        // No reviews left
+        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: 0, review_count: 0 }).catch(() => {});
+      }
+    } catch (err) {
+      // Non-fatal
+      console.error('Failed to recalc tutor rating after review delete:', err && err.message);
+    }
+
+    return res.status(200).json({ success: true, message: 'Review deleted', review_id });
+  } catch (error) {
+    console.error('Error deleting tutor review:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete review', error: error.message });
+  }
+});
+
 // Get all hire requests with student-tutor matching and status
 exports.getAllHireRequests = asyncHandler(async (req, res) => {
   try {

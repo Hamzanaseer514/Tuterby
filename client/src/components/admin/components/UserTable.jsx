@@ -536,7 +536,13 @@ const UserTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading ? (
+            {(
+              /* Show loading spinner only when we don't have a users array yet
+                 This prevents continuous flicker when `users` is an empty array
+                 (e.g., server down or no-data responses). If `users` is [] we
+                 show the normal "No ... found" UI instead of the spinner. */
+              loading && (users === undefined || users === null)
+            ) ? (
               <TableRow>
                 <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>

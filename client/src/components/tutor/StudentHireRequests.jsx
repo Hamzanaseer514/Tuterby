@@ -168,7 +168,7 @@ const StudentHireRequests = () => {
       const data = await res.json();
       setRequests(Array.isArray(data.requests) ? data.requests : []);
     } catch (e) {
-      setError(e.message || 'Failed to load requests');
+      // setError(e.message || 'Failed to load requests');
     } finally {
       setLoading(false);
     }

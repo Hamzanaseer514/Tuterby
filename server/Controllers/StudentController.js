@@ -131,16 +131,13 @@ exports.deleteMyHireRequest = asyncHandler(async (req, res) => {
                         validity_status: 'expired',
                         payment_status: 'cancelled',
                     },
-                }
-            );
-
+                });
             // Remove hire record from student profile. Accept either hire subdoc _id or tutor id as the identifier.
             student.hired_tutors = (student.hired_tutors || []).filter(h => {
                 const subId = String(h._id);
                 const tutorId = String(h.tutor);
                 const target = String(hire_record_id);
-                return subId !== target && tutorId !== target;
-            });
+                return subId !== target && tutorId !== target;});
             await student.save();
 
             return res.status(200).json({

@@ -11,8 +11,10 @@ import {
   FunnelIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { TrashIcon } from '@heroicons/react/24/outline';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
-import { getAllTutorReviews } from '../../services/adminService';
+import { getAllTutorReviews, deleteTutorReview } from '../../services/adminService';
 import AdminLayout from '../../components/admin/components/AdminLayout';
 import { BASE_URL } from "../../config";
 
@@ -27,6 +29,8 @@ const TutorReviewsPage = () => {
   const [totalReviews, setTotalReviews] = useState(0);
   const [showTutorList, setShowTutorList] = useState(true);
   const [tutorsWithReviews, setTutorsWithReviews] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingReview, setDeletingReview] = useState(null);
 
   const reviewsPerPage = 50; // Increased from 10 for better performance
 
@@ -43,7 +47,7 @@ const TutorReviewsPage = () => {
 
       const response = await getAllTutorReviews(filters);
       
-      if (response.success) {
+      if (response && response.success) {
         setReviews(response.reviews);
         setCurrentPage(response.pagination.current_page);
         setTotalPages(response.pagination.total_pages);
@@ -75,10 +79,24 @@ const TutorReviewsPage = () => {
 
           setTutorsWithReviews(tutorsArray);
         }
+      } else {
+        // If server responded but no success flag, treat as empty result
+        setReviews([]);
+        setTutorsWithReviews([]);
+        setTotalReviews(0);
+        setTotalPages(0);
+        setCurrentPage(1);
       }
     } catch (err) {
-      setError('Failed to fetch reviews');
+      // When fetch fails (server down/unreachable), do not show a fatal error banner.
+      // Instead show the page and display the normal "No Reviews Found" empty state.
+      // Keep a console log for debugging.
       //console.error('Error fetching reviews:', err);
+      setReviews([]);
+      setTutorsWithReviews([]);
+      setTotalReviews(0);
+      setTotalPages(0);
+      setCurrentPage(1);
     } finally {
       setLoading(false);
     }
@@ -116,6 +134,36 @@ const TutorReviewsPage = () => {
 
   const handlePageChange = (newPage) => {
     fetchReviews(newPage, searchTerm, selectedTutor?.tutor._id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingReview) return;
+    try {
+      await deleteTutorReview(deletingReview._id);
+      // Remove from local lists
+      setReviews((prev) => prev.filter((r) => r._id !== deletingReview._id));
+      setTutorsWithReviews((prev) => {
+        return prev
+          .map((t) => {
+            const newReviews = (t.reviews || []).filter((r) => r._id !== deletingReview._id);
+            return { ...t, reviews: newReviews, totalReviews: newReviews.length };
+          })
+          .filter((t) => (t.reviews || []).length > 0);
+      });
+      setTotalReviews((p) => Math.max(0, p - 1));
+      if (selectedTutor) {
+        setSelectedTutor((prev) => {
+          if (!prev) return prev;
+          const newArr = (prev.reviews || []).filter((r) => r._id !== deletingReview._id);
+          return { ...prev, reviews: newArr, totalReviews: newArr.length };
+        });
+      }
+    } catch (err) {
+      alert(err?.message || 'Failed to delete review');
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingReview(null);
+    }
   };
 
   const renderStars = (rating) => {
@@ -223,6 +271,19 @@ const TutorReviewsPage = () => {
               </p>
             </div>
           )}
+        </div>
+        <div className="mt-3 flex items-center justify-end space-x-2">
+          <button
+            onClick={() => {
+              setDeletingReview(review);
+              setDeleteDialogOpen(true);
+            }}
+            title="Delete review"
+            className="inline-flex items-center px-3 py-1.5 border border-red-300 bg-red-50 text-red-700 rounded-md text-sm hover:bg-red-100"
+          >
+            <TrashIcon className="h-4 w-4 mr-1" />
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -420,6 +481,31 @@ const TutorReviewsPage = () => {
             )}
           </div>
         )}
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="w-full max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Review</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 text-sm text-gray-700">
+              Are you sure you want to delete this review{deletingReview ? ` by ${deletingReview.reviewer?.name || deletingReview.student?.name || ''}` : ''}? This action cannot be undone.
+            </div>
+            <DialogFooter>
+              <button
+                onClick={() => { setDeleteDialogOpen(false); setDeletingReview(null); }}
+                className="px-3 py-2 border rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="ml-2 px-3 py-2 bg-red-600 text-white rounded-md"
+              >
+                Delete
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     // </AdminLayout>
   );

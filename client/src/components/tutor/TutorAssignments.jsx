@@ -38,7 +38,8 @@ import {
   SortDesc,
   X
 } from 'lucide-react';
-import { createAssignment, getTutorAssignments } from '../../services/assignmentService';
+import { createAssignment, getTutorAssignments, editAssignment, deleteAssignment } from '../../services/assignmentService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
 const TutorAssignments = () => {
   const { toast } = useToast();
@@ -302,6 +303,121 @@ const TutorAssignments = () => {
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     return `${dayName}, ${day} ${month} ${year}, ${hours}:${minutes}`;
+  };
+
+  const handleDeleteAssignment = async (assignmentId) => {
+    // Open confirmation dialog instead
+    setDeletingAssignmentId(assignmentId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [editForm, setEditForm] = useState({
+    academic_level: '',
+    subject: '',
+    student_user_id: '',
+    title: '',
+    description: '',
+    due_date: '',
+    file: null,
+  });
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const openEditDialog = (assignment) => {
+    setEditingAssignment(assignment);
+    setEditForm({
+      academic_level: assignment.academic_level?._id || '',
+      subject: assignment.subject?._id || '',
+      student_user_id: assignment.student_id?._id || '',
+      title: assignment.title || '',
+      description: assignment.description || '',
+      due_date: assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : '',
+      file: null,
+    });
+
+    // preload subjects and students lists for the assignment's level/subject
+    if (assignment.academic_level?._id) {
+      fetchSubjectsForLevel(assignment.academic_level._id);
+    }
+    if (assignment.academic_level?._id && assignment.subject?._id) {
+      fetchStudentsForAssignment(assignment.academic_level._id, assignment.subject._id);
+    }
+    setEditDialogOpen(true);
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+    if (field === 'academic_level' && value) {
+      fetchSubjectsForLevel(value);
+      setEditForm(prev => ({ ...prev, subject: '', student_user_id: '' }));
+    }
+    if (field === 'subject' && value && editForm.academic_level) {
+      fetchStudentsForAssignment(editForm.academic_level, value);
+      setEditForm(prev => ({ ...prev, student_user_id: '' }));
+    }
+  };
+
+  const handleEditFileChange = (e) => {
+    const file = e.target.files[0];
+    setEditForm(prev => ({ ...prev, file }));
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    if (!editingAssignment) return;
+    try {
+      await editAssignment(user._id, editingAssignment._id, {
+        title: editForm.title,
+        description: editForm.description,
+        due_date: editForm.due_date || undefined,
+        subject: editForm.subject || undefined,
+        academic_level: editForm.academic_level || undefined,
+        student_user_id: editForm.student_user_id || undefined,
+        file: editForm.file || undefined,
+      });
+      toast({ title: 'Updated', description: 'Assignment updated successfully' });
+      setEditDialogOpen(false);
+      setEditingAssignment(null);
+      fetchAssignments();
+      fetchSubmittedAssignments();
+    } catch (err) {
+      toast({ title: 'Error', description: err.message || 'Failed to update assignment', variant: 'destructive' });
+    }
+  };
+
+  const handleEditAssignment = (assignment) => {
+    openEditDialog(assignment);
+  };
+
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+
+  const handleViewDetails = (assignment) => {
+    setSelectedAssignment(assignment);
+    setShowDetails(true);
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!deletingAssignmentId) return;
+    setDeleteSubmitting(true);
+    try {
+      const res = await deleteAssignment(user._id, deletingAssignmentId);
+      toast({ title: 'Deleted', description: res.message || 'Assignment deleted' });
+      setAssignments(prev => prev.filter(a => a._id !== deletingAssignmentId));
+      setSubmittedAssignments(prev => prev.filter(a => a._id !== deletingAssignmentId));
+      setDeleteDialogOpen(false);
+      setDeletingAssignmentId(null);
+    } catch (err) {
+      toast({ title: 'Error', description: err.message || 'Failed to delete assignment', variant: 'destructive' });
+    } finally {
+      setDeleteSubmitting(false);
+    }
   };
 
   const getSubjectName = (subjectId) => {
@@ -871,15 +987,15 @@ const TutorAssignments = () => {
                           )}
                         </div>
                         {assignment.description && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Description:</span>
-                          <p className="text-gray-600">{assignment.description}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Description:</span>
+                            <p className="text-gray-600">{assignment.description}</p>
                           </div>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <Badge variant="secondary">
-                         Created At: {formatOnlyDate(assignment.createdAt)}
+                          Created At: {formatOnlyDate(assignment.createdAt)}
                         </Badge>
                         {assignment.has_submission ? (
                           <div className="flex  gap-1">
@@ -939,6 +1055,18 @@ const TutorAssignments = () => {
                         </Button>
                       </div>
                     )}
+                    <div className="flex items-center gap-2 mt-4">
+                      <Button size="sm" variant="outline" onClick={() => handleViewDetails(assignment)}>
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      <Button size="sm" onClick={() => handleEditAssignment(assignment)}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDeleteAssignment(assignment._1d || assignment._id)}>
+                        Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -987,24 +1115,24 @@ const TutorAssignments = () => {
                           )}
                         </div>
                         {assignment.description && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Description:</span>
-                          <p className="text-gray-600">{assignment.description}</p>
-                        </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Description:</span>
+                            <p className="text-gray-600">{assignment.description}</p>
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                      <div className="flex  gap-2">
+                        <div className="flex  gap-2">
 
-                        <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
-                          {assignment.is_graded ? 'Graded' : 'Pending Evaluation'}
-                        </Badge>
-                        {assignment.grade && (
-                          <Badge variant="outline" className="text-green-600">
-                            Grade: {assignment.grade}/100
+                          <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
+                            {assignment.is_graded ? 'Graded' : 'Pending Evaluation'}
                           </Badge>
-                        )}
-</div>
+                          {assignment.grade && (
+                            <Badge variant="outline" className="text-green-600">
+                              Grade: {assignment.grade}/100
+                            </Badge>
+                          )}
+                        </div>
                         {assignment.is_late && (
                           <Badge variant="destructive" className="text-xs">
                             Late Submission
@@ -1041,14 +1169,18 @@ const TutorAssignments = () => {
                         <FileText className="h-4 w-4 text-blue-600" />
                         <span className="text-sm text-blue-600">Student has submitted this assignment</span>
                       </div>
-                      {/* <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>{} }
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Submission
-                      </Button> */}
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleViewDetails(assignment)}>
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                        <Button size="sm" onClick={() => handleEditAssignment(assignment)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteAssignment(assignment._id)}>
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1057,6 +1189,174 @@ const TutorAssignments = () => {
           )
         )}
       </div>
+      {/* Edit Assignment Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Assignment</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitEdit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Student</Label>
+                <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                  {(() => {
+                    const id = editForm.student_user_id || editingAssignment?.student_id?._id;
+                    const s = availableStudents.find(x => x._id === id);
+                    return s?.user_id?.full_name || editingAssignment?.student_id?.user_id?.full_name || '—';
+                  })()}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Academic Level</Label>
+                <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                  {getLevelName(editForm.academic_level) || (editingAssignment?.academic_level?.level) || '—'} -                   {getSubjectName(editForm.subject) || (editingAssignment?.subject?.name) || '—'}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Title</Label>
+                <Input value={editForm.title} onChange={(e) => handleEditFormChange('title', e.target.value)} />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Due Date</Label>
+                <Input type="datetime-local" value={editForm.due_date} onChange={(e) => handleEditFormChange('due_date', e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">Description</Label>
+              <Textarea value={editForm.description} onChange={(e) => handleEditFormChange('description', e.target.value)} rows={4} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <div>
+                <Label className="text-sm font-medium">Assignment File (optional)</Label>
+                <Input type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" onChange={handleEditFileChange} />
+              </div>
+              <div className="text-sm text-gray-600">
+                {editingAssignment?.file_url ? (
+                  <div className="flex items-center justify-end gap-2">
+                    <a href={editingAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Current file</a>
+                    <span className="text-xs text-gray-500">(upload to replace)</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-end">No existing file</div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingAssignment(null); }}>Cancel</Button>
+                <Button type="submit">Save Changes</Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Assignment Details Dialog */}
+      {showDetails && selectedAssignment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-2 sm:mb-6">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{selectedAssignment.title}</h2>
+                  <p className="text-sm sm:text-base text-gray-600 mt-1">Assignment Details</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowDetails(false); setSelectedAssignment(null); }}
+                  className="flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-4 sm:mb-6">
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold mb-3">Assignment Information</h3>
+                  <div className="space-y-3">
+                    {selectedAssignment.description && (
+                      <div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-500">Description:</span>
+                        <p className="text-xs sm:text-sm text-gray-900 mt-1 break-words">{selectedAssignment.description}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Subject:</span>
+                      <p className="text-xs sm:text-sm text-gray-900">{selectedAssignment.subject?.name || selectedAssignment.subject}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Academic Level:</span>
+                      <p className="text-xs sm:text-sm text-gray-900">{selectedAssignment.academic_level?.level || selectedAssignment.academic_level}</p>
+                    </div>
+                    {selectedAssignment.due_date && (
+                      <div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-500">Due Date:</span>
+                        <p className="text-xs sm:text-sm text-gray-900">{formatDate(selectedAssignment.due_date)}</p>
+                      </div>
+                    )}
+                    {selectedAssignment.file_url && (
+                      <div className="mt-2">
+                        <a href={selectedAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Open attachment</a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold mb-3">Participants</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Tutor:</span>
+                      <p className="text-xs sm:text-sm text-gray-900 break-words">{selectedAssignment.tutor_id?.user_id?.full_name || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 break-words">{selectedAssignment.tutor_id?.user_id?.email || ''}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Student:</span>
+                      <p className="text-xs sm:text-sm text-gray-900 break-words">{selectedAssignment.student_id?.user_id?.full_name || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 break-words">{selectedAssignment.student_id?.user_id?.email || ''}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => { setShowDetails(false); setSelectedAssignment(null); }} className="w-full sm:w-auto">Close</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p>Are you sure you want to delete this assignment? This will remove all related student submissions.</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeletingAssignmentId(null); }}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDeleteAssignment} disabled={deleteSubmitting}>
+                {deleteSubmitting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

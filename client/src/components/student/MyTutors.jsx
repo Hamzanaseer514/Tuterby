@@ -82,6 +82,7 @@ const MyTutors = () => {
       await checkPaymentStatusForTutors(data.tutors || []);
     } catch (error) {
       setError(error.message);
+
     } finally {
       setLoading(false);
     }
@@ -206,16 +207,16 @@ const MyTutors = () => {
 
       if (!response.ok) {
         const msg = body.message || body.error || 'Failed to delete hire request';
-        toast({ title: 'Error', description: msg });
+        toast({ title: 'Error', description: msg , variant: 'destructive' });
         return;
       }
 
-      toast({ title: 'Success', description: body.message || 'Hire request deleted' });
+      toast({ title: 'Success', description: body.message || 'Hire request deleted', variant: 'default' });
       // remove from UI list (hiredTutor._id is tutor id in current response)
       setHiredTutors(prev => prev.filter(h => String(h._id) !== String(hireId)));
     } catch (err) {
       console.error('Delete hire request failed', err);
-      toast({ title: 'Error', description: err.message || 'Failed to delete hire request' });
+      toast({ title: 'Error', description: err.message || 'Failed to delete hire request', variant: 'destructive' });
     }
   };
 

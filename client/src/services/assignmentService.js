@@ -2,6 +2,7 @@
 import { BASE_URL } from '@/config';
 
 const API_BASE_URL = `${BASE_URL}/api/assignments`;
+const ADMIN_API_BASE_URL = `${BASE_URL}/api/admin`;
 
 // Helper function to get auth token
 export const getAuthToken = () => {
@@ -87,6 +88,99 @@ export const createAssignment = async (tutorUserId, assignmentData) => {
 // Tutor: Get all assignments created by tutor
 export const getTutorAssignments = async (tutorUserId) => {
   return apiCall(`/tutor/${tutorUserId}/assignments`);
+};
+
+// Tutor: Edit assignment
+export const editAssignment = async (tutorUserId, assignmentId, data) => {
+  const formData = new FormData();
+  if (data.title !== undefined) formData.append('title', data.title);
+  if (data.description !== undefined) formData.append('description', data.description);
+  if (data.due_date !== undefined) formData.append('due_date', data.due_date);
+  if (data.subject !== undefined) formData.append('subject', data.subject);
+  if (data.academic_level !== undefined) formData.append('academic_level', data.academic_level);
+  if (data.student_user_id !== undefined) formData.append('student_user_id', data.student_user_id);
+  if (data.file) formData.append('file', data.file);
+
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/tutor/${tutorUserId}/assignments/${assignmentId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+  }
+
+  return response.json();
+};
+
+// Tutor: Delete assignment (also deletes related submissions)
+export const deleteAssignment = async (tutorUserId, assignmentId) => {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/tutor/${tutorUserId}/assignments/${assignmentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+  }
+
+  return response.json();
+};
+
+// Admin: Edit assignment
+export const adminEditAssignment = async (assignmentId, data) => {
+  const formData = new FormData();
+  if (data.title !== undefined) formData.append('title', data.title);
+  if (data.description !== undefined) formData.append('description', data.description);
+  if (data.due_date !== undefined) formData.append('due_date', data.due_date);
+  if (data.subject !== undefined) formData.append('subject', data.subject);
+  if (data.academic_level !== undefined) formData.append('academic_level', data.academic_level);
+  if (data.tutor_profile_id !== undefined) formData.append('tutor_profile_id', data.tutor_profile_id);
+  if (data.student_profile_id !== undefined) formData.append('student_profile_id', data.student_profile_id);
+  if (data.file) formData.append('file', data.file);
+
+  const token = getAuthToken();
+  const response = await fetch(`${ADMIN_API_BASE_URL}/assignments/${assignmentId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+  }
+
+  return response.json();
+};
+
+// Admin: Delete assignment
+export const adminDeleteAssignment = async (assignmentId) => {
+  const token = getAuthToken();
+  const response = await fetch(`${ADMIN_API_BASE_URL}/assignments/${assignmentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+  }
+
+  return response.json();
 };
 
 // Student: Get all assignments assigned to student
@@ -176,4 +270,22 @@ export const gradeSubmission = async (submissionId, gradeData) => {
     method: 'PUT',
     body: JSON.stringify(gradeData),
   });
+};
+
+// Tutor: Delete a submission
+export const deleteSubmission = async (tutorUserId, submissionId) => {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/tutor/${tutorUserId}/submissions/${submissionId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+  }
+
+  return response.json();
 };

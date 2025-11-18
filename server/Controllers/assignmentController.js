@@ -397,6 +397,26 @@ exports.gradeSubmission = asyncHandler(async (req, res) => {
   return res.status(200).json(submission);
 });
 
+// Tutor: Delete a submission (tutor can remove a student's submission for their assignment)
+exports.deleteSubmission = asyncHandler(async (req, res) => {
+  const { user_id, submission_id } = req.params;
+
+  const tutorProfile = await TutorProfile.findOne({ user_id });
+  if (!tutorProfile) return res.status(404).json({ message: 'Tutor profile not found' });
+
+  const submission = await AssignmentSubmission.findById(submission_id);
+  if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+  // Ensure this submission belongs to the tutor
+  if (submission.tutor_id.toString() !== tutorProfile._id.toString()) {
+    return res.status(403).json({ message: 'You are not authorized to delete this submission' });
+  }
+
+  await AssignmentSubmission.findByIdAndDelete(submission_id);
+
+  return res.status(200).json({ success: true, message: 'Submission deleted successfully' });
+});
+
 // Get assignment file URL (S3 presigned URL)
 exports.downloadAssignment = asyncHandler(async (req, res) => {
   const { assignment_id } = req.params;
@@ -463,6 +483,79 @@ exports.getAllSubmissions = asyncHandler(async (req, res) => {
     success: true,
     submissions: submissionsWithUrls,
     total: submissionsWithUrls.length
+  });
+});
+
+// Admin: Edit any assignment (admin can override checks)
+exports.adminEditAssignment = asyncHandler(async (req, res) => {
+  const { assignment_id } = req.params;
+
+  const assignment = await Assignment.findById(assignment_id);
+  if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+  // Update allowed fields
+  const { title, description, due_date, subject, academic_level, tutor_profile_id, student_profile_id } = req.body || {};
+  if (title !== undefined) assignment.title = title;
+  if (description !== undefined) assignment.description = description;
+  if (due_date !== undefined) assignment.due_date = due_date ? new Date(due_date) : null;
+
+  // If tutor_profile_id provided, validate and set
+  if (tutor_profile_id !== undefined) {
+    const tutorProfile = await TutorProfile.findById(tutor_profile_id);
+    if (!tutorProfile) return res.status(404).json({ message: 'Tutor profile not found' });
+    assignment.tutor_id = tutorProfile._id;
+  }
+
+  // If student_profile_id provided, validate and set
+  if (student_profile_id !== undefined) {
+    const studentProfile = await StudentProfile.findById(student_profile_id);
+    if (!studentProfile) return res.status(404).json({ message: 'Student profile not found' });
+    assignment.student_id = studentProfile._id;
+  }
+
+  if (subject !== undefined) assignment.subject = subject;
+  if (academic_level !== undefined) assignment.academic_level = academic_level;
+
+  // Handle file replacement if provided
+  if (req.file) {
+    try {
+      const s3Key = await uploadToS3(req.file, 'assignments');
+      assignment.file_url = s3Key;
+      assignment.file_name = req.file.originalname;
+      assignment.file_mime_type = req.file.mimetype;
+    } catch (err) {
+      console.error('Failed to upload assignment file (admin):', err);
+      return res.status(500).json({ message: 'Failed to upload file' });
+    }
+  }
+
+  await assignment.save();
+
+  const assignmentObj = assignment.toObject();
+  if (assignmentObj.file_url) {
+    assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
+  }
+
+  return res.status(200).json({ success: true, assignment: assignmentObj });
+});
+
+// Admin: Delete any assignment and its submissions
+exports.adminDeleteAssignment = asyncHandler(async (req, res) => {
+  const { assignment_id } = req.params;
+
+  const assignment = await Assignment.findById(assignment_id);
+  if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+  // Delete related submissions
+  const deleteResult = await AssignmentSubmission.deleteMany({ assignment_id: assignment._id });
+
+  // Delete the assignment itself
+  await Assignment.findByIdAndDelete(assignment._id);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Assignment deleted successfully by admin',
+    submissionsDeleted: deleteResult.deletedCount || 0,
   });
 });
 
@@ -657,6 +750,119 @@ exports.getSubmittedAssignments = asyncHandler(async (req, res) => {
     success: true,
     assignments: submittedAssignments,
     total: submittedAssignments.length
+  });
+});
+
+// Tutor: Edit an assignment (title, description, due_date, subject, academic_level, student, optional file)
+exports.editAssignment = asyncHandler(async (req, res) => {
+  const { user_id, assignment_id } = req.params;
+
+  const tutorProfile = await TutorProfile.findOne({ user_id });
+  if (!tutorProfile) return res.status(404).json({ message: 'Tutor profile not found' });
+
+  const assignment = await Assignment.findById(assignment_id);
+  if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+  if (assignment.tutor_id.toString() !== tutorProfile._id.toString()) {
+    return res.status(403).json({ message: 'You are not authorized to edit this assignment' });
+  }
+
+  // Update allowed fields
+  const { title, description, due_date, subject, academic_level, student_user_id } = req.body || {};
+  if (title !== undefined) assignment.title = title;
+  if (description !== undefined) assignment.description = description;
+  if (due_date !== undefined) assignment.due_date = due_date ? new Date(due_date) : null;
+
+  // If subject/academic_level/student change, validate and apply
+  if (subject !== undefined) assignment.subject = subject;
+  if (academic_level !== undefined) assignment.academic_level = academic_level;
+
+  if (student_user_id !== undefined) {
+    // Expecting student_user_id to be a StudentProfile._id
+    const studentProfile = await StudentProfile.findById(student_user_id);
+    if (!studentProfile) return res.status(404).json({ message: 'Student profile not found' });
+
+    // If subject/academic_level changed or student changed, ensure student has active payment
+    const checkSubject = subject !== undefined ? subject : assignment.subject;
+    const checkLevel = academic_level !== undefined ? academic_level : assignment.academic_level;
+
+    const allowed = await hasActivePayment(
+      tutorProfile._id,
+      studentProfile._id,
+      checkSubject,
+      checkLevel
+    );
+
+    if (!allowed) {
+      return res.status(403).json({ message: 'Student does not have active paid access for the chosen subject/level' });
+    }
+
+    assignment.student_id = studentProfile._id;
+  } else {
+    // If student not changed but subject/level changed, still ensure current student has active payment
+    if (subject !== undefined || academic_level !== undefined) {
+      const studentProfile = await StudentProfile.findById(assignment.student_id);
+      if (studentProfile) {
+        const allowed = await hasActivePayment(
+          tutorProfile._id,
+          studentProfile._id,
+          subject !== undefined ? subject : assignment.subject,
+          academic_level !== undefined ? academic_level : assignment.academic_level
+        );
+        if (!allowed) {
+          return res.status(403).json({ message: 'Current student does not have active paid access for the chosen subject/level' });
+        }
+      }
+    }
+  }
+
+  // Handle file replacement if provided
+  if (req.file) {
+    try {
+      const s3Key = await uploadToS3(req.file, 'assignments');
+      assignment.file_url = s3Key;
+      assignment.file_name = req.file.originalname;
+      assignment.file_mime_type = req.file.mimetype;
+    } catch (err) {
+      console.error('Failed to upload assignment file:', err);
+      return res.status(500).json({ message: 'Failed to upload file' });
+    }
+  }
+
+  await assignment.save();
+
+  const assignmentObj = assignment.toObject();
+  if (assignmentObj.file_url) {
+    assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
+  }
+
+  return res.status(200).json({ success: true, assignment: assignmentObj });
+});
+
+// Tutor: Delete an assignment and its submissions (if any)
+exports.deleteAssignment = asyncHandler(async (req, res) => {
+  const { user_id, assignment_id } = req.params;
+
+  const tutorProfile = await TutorProfile.findOne({ user_id });
+  if (!tutorProfile) return res.status(404).json({ message: 'Tutor profile not found' });
+
+  const assignment = await Assignment.findById(assignment_id);
+  if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+  if (assignment.tutor_id.toString() !== tutorProfile._id.toString()) {
+    return res.status(403).json({ message: 'You are not authorized to delete this assignment' });
+  }
+
+  // Delete related submissions
+  const deleteResult = await AssignmentSubmission.deleteMany({ assignment_id: assignment._id });
+
+  // Delete the assignment itself
+  await Assignment.findByIdAndDelete(assignment._id);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Assignment deleted successfully',
+    submissionsDeleted: deleteResult.deletedCount || 0,
   });
 });
 

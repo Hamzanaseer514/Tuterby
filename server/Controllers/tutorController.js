@@ -426,24 +426,74 @@ const createSession = asyncHandler(async (req, res) => {
   }
 
   // Academic level validation (per tutor)
-  const tutor_total_sessions = await TutoringSession.countDocuments({
-    tutor_id: tutor._id,
-    status: "completed",
+  // Academic level validation (per tutor)
+  const allowed_session = tutor.academic_levels_taught.find((level) => {
+    // normalize both sides to string to be safe if academic_level is an object or id
+    try {
+      return (
+        (level.educationLevel && level.educationLevel.toString()) ===
+        (academic_level && academic_level.toString())
+      );
+    } catch (err) {
+      return false;
+    }
   });
 
-  const allowed_session = tutor.academic_levels_taught.find(
-    (level) => level.educationLevel.toString() === academic_level.toString()
-  );
-  if (allowed_session) {
-    if (tutor_total_sessions >= allowed_session.totalSessionsPerMonth) {
-      return res.status(400).json({
-        message: `You have reached the maximum number ${allowed_session.totalSessionsPerMonth} of sessions for this academic level for this month`,
-      });
-    }
-  } else {
+  if (!allowed_session) {
     return res.status(401).json({
       message:
         "This Academic Level is not selected by you. Please add this academic level to your profile.",
+    });
+  }
+
+  // Determine the academic level id to use in the query
+  const resolveToId = (val) => {
+    if (!val) return null;
+    if (typeof val === "object") {
+      if (val._id) return val._id;
+      // Mongoose ObjectId has _bsontype === 'ObjectID'
+      if (val._bsontype === "ObjectID") return val;
+    }
+    return val;
+  };
+
+  const levelId = resolveToId(allowed_session.educationLevel || academic_level);
+  const subjectId = resolveToId(subject);
+
+  // Count completed sessions for this tutor + academic level (and subject if provided) for THE CURRENT MONTH
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const sessionQuery = {
+    tutor_id: tutor._id,
+    status: "completed",
+    completed_at: { $gte: startOfMonth, $lt: startOfNextMonth },
+  };
+
+  if (levelId) {
+    try {
+      sessionQuery.academic_level = mongoose.Types.ObjectId(levelId);
+    } catch (err) {
+      sessionQuery.academic_level = levelId;
+    }
+  }
+
+  if (subjectId) {
+    try {
+      sessionQuery.subject = mongoose.Types.ObjectId(subjectId);
+    } catch (err) {
+      sessionQuery.subject = subjectId;
+    }
+  }
+
+  const tutor_total_sessions_for_level = await TutoringSession.countDocuments(sessionQuery);
+  console.log("Tutor total sessions for level this month:", tutor_total_sessions_for_level);
+  console.log("Allowed sessions per month:", allowed_session.totalSessionsPerMonth);
+
+  if (tutor_total_sessions_for_level >= (allowed_session.totalSessionsPerMonth || 0)) {
+    return res.status(400).json({
+      message: `You have reached the maximum number ${allowed_session.totalSessionsPerMonth} of sessions for this academic level for this month`,
     });
   }
 
@@ -2181,8 +2231,8 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
       .lean();
 
     // Transform the data to include min-max hourly rates and other required fields
-    const transformedTutors = await Promise.all(verifiedTutors.map(async (tutor) => {
-      const user = tutor.user_id;
+    const transformedTutors = await Promise.all((verifiedTutors || []).filter(Boolean).map(async (tutor) => {
+      const user = tutor.user_id || {};
 
       // Calculate min and max hourly rates
       let minHourlyRate = Infinity;
@@ -2205,14 +2255,14 @@ const getVerifiedTutors = asyncHandler(async (req, res) => {
       if (maxHourlyRate === 0) maxHourlyRate = 0;
 
       // Resolve photo URL
-      const resolvedPhotoUrl = user?.photo_url ? await s3KeyToUrl(user.photo_url) : user?.photo_url;
+      const resolvedPhotoUrl = user.photo_url ? await s3KeyToUrl(user.photo_url) : user.photo_url;
 
       return {
         _id: tutor._id,
-        user_id: tutor.user_id._id,
-        full_name: user.full_name,
-        photo_url: resolvedPhotoUrl,
-        email: user.email,
+        user_id: user._id || (tutor.user_id?._id) || null,
+        full_name: user.full_name || "",
+        photo_url: resolvedPhotoUrl || null,
+        email: user.email || null,
         bio: tutor.bio,
         qualifications: tutor.qualifications,
         experience_years: tutor.experience_years,

@@ -430,6 +430,12 @@ export const getAllTutorReviews = async (filters = {}) => {
   }
 };
 
+// Delete a tutor review (admin)
+export const deleteTutorReview = async (reviewId) => {
+  if (!reviewId) throw new Error('reviewId is required');
+  return apiCall(`/tutor-reviews/${reviewId}`, { method: 'DELETE' });
+};
+
 // Removed cache management functions - Admin dashboard needs real-time data
 
 
