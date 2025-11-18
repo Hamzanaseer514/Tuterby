@@ -269,6 +269,33 @@ const SessionManagement = () => {
 
 
 
+  // Helper function to convert UTC date to local datetime-local format
+  const convertUTCToLocalDateTime = (utcDateString) => {
+    if (!utcDateString) return '';
+    const date = new Date(utcDateString);
+    if (isNaN(date.getTime())) return '';
+    
+    // Get local date components
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    // Return in datetime-local format (YYYY-MM-DDTHH:mm)
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  // Helper function to convert local datetime-local format to UTC ISO string
+  const convertLocalDateTimeToUTC = (localDateTimeString) => {
+    if (!localDateTimeString) return null;
+    // Parse the local datetime string and convert to UTC
+    const localDate = new Date(localDateTimeString);
+    if (isNaN(localDate.getTime())) return null;
+    // Return ISO string in UTC
+    return localDate.toISOString();
+  };
+
   const openUpdateSessionModal = (session) => {
     setSelectedSession(session);
 
@@ -322,7 +349,7 @@ const SessionManagement = () => {
       full_name: [studentName],
       subject: session.subject,
       academic_level: session.academic_level || '',
-      session_date: new Date(session.session_date).toISOString().slice(0, 16),
+      session_date: convertUTCToLocalDateTime(session.session_date),
       duration_hours: session.duration_hours,
       hourly_rate: session.hourly_rate || 25,
       status: session.status,
@@ -337,6 +364,9 @@ const SessionManagement = () => {
   const handleUpdateSession = async (e) => {
     e.preventDefault();
     try {
+      // Convert local datetime to UTC before sending to backend
+      const sessionDateUTC = convertLocalDateTimeToUTC(updateSessionForm.session_date);
+      
       const response = await fetchWithAuth(`${BASE_URL}/api/tutor/sessions/update/${selectedSession._id}`, {
         method: 'PUT',
         headers: {
@@ -344,6 +374,7 @@ const SessionManagement = () => {
         },
         body: JSON.stringify({
           ...updateSessionForm,
+          session_date: sessionDateUTC || updateSessionForm.session_date,
           total_earnings: updateSessionForm.duration_hours * updateSessionForm.hourly_rate
         }),
       }, authToken, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
@@ -477,13 +508,21 @@ const SessionManagement = () => {
   };
 
   const formatDate = (dateString) => {
-    const [datePart, timePart] = dateString.split('T');
-    const time = timePart.slice(0, 5); // HH:MM
-    const [year, month, day] = datePart.split('-');
-    return `${day}-${month}-${year} ${time}`;
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    // Convert UTC to local time
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
-  // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 09:29"
+  // "2025-08-15T09:29:00.000+00:00" → "15-08-2025 14:29" (if UTC+5 timezone)
 
 
 
@@ -1102,6 +1141,35 @@ const SessionManagement = () => {
                           </p>
                         </div>
                       </div>
+
+                      {/* Stream Key */}
+                      {selectedSession.youtube_stream_key && (
+                        <div>
+                          <Label className="text-xs sm:text-sm font-medium text-gray-700">Stream Key</Label>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                            <Input
+                              value={selectedSession.youtube_stream_key}
+                              readOnly
+                              className="bg-gray-50 text-xs sm:text-sm font-mono"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                navigator.clipboard.writeText(selectedSession.youtube_stream_key);
+                                toast.success('Stream key copied to clipboard');
+                              }}
+                              className="text-xs sm:text-sm flex-shrink-0"
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Use this key in your streaming software (OBS, etc.)
+                          </p>
+                        </div>
+                      )}
 
                     
                     </div>
