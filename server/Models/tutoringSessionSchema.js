@@ -112,6 +112,16 @@ const tutoringSessionSchema = new mongoose.Schema({
   meeting_link_sent_at: {
     type: Date
   },
+  // YouTube streaming key for the session
+  youtube_stream_key: {
+    type: String,
+    default: ''
+  },
+  // YouTube video URL after session completion
+  youtube_video_url: {
+    type: String,
+    default: ''
+  },
   completed_at: {
     type: Date
   }

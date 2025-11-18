@@ -133,27 +133,38 @@ const ChatAdminDashboard = () => {
 
   return (
     // <AdminLayout tabValue="chat">
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+      <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
+        <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom 
+            fontWeight="bold"
+            sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
+          >
             Message Center
           </Typography>
-          <Typography variant="subtitle1" color="textSecondary">
+          <Typography 
+            variant="subtitle1" 
+            color="textSecondary"
+            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, display: { xs: 'none', sm: 'block' } }}
+          >
             Monitor and manage all tutor-student communications
           </Typography>
         </Box>
 
-        <Paper sx={{ p: 3, mb: 4, borderRadius: 2, boxShadow: theme.shadows[3] }}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: theme.shadows[3] }}>
           <TextField
             fullWidth
             variant="outlined"
             placeholder="Search by name, email, or message..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            size={isMobile ? "small" : "medium"}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search color="primary" />
+                  <Search color="primary" sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }} />
                 </InputAdornment>
               ),
             }}
@@ -176,8 +187,8 @@ const ChatAdminDashboard = () => {
               <Paper 
                 key={group.id} 
                 sx={{ 
-                  mb: 2, 
-                  p: 2, 
+                  mb: { xs: 1.5, sm: 2 }, 
+                  p: { xs: 1.5, sm: 2 }, 
                   borderRadius: 2,
                   cursor: 'pointer',
                   '&:hover': {
@@ -186,63 +197,125 @@ const ChatAdminDashboard = () => {
                 }}
                 onClick={() => handleOpenChat(group)}
               >
-                <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Box display="flex" alignItems="center" flex={1}>
+                <Box 
+                  display="flex" 
+                  alignItems="center" 
+                  justifyContent="space-between"
+                  flexDirection={{ xs: 'column', sm: 'row' }}
+                  gap={{ xs: 2, sm: 0 }}
+                >
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    flex={1}
+                    width="100%"
+                    flexDirection={{ xs: 'column', sm: 'row' }}
+                    gap={{ xs: 1, sm: 0 }}
+                  >
                     {/* Student Info */}
-                    <Box display="flex" alignItems="center" mr={2}>
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      mr={{ xs: 0, sm: 2 }}
+                      width={{ xs: '100%', sm: 'auto' }}
+                      justifyContent={{ xs: 'flex-start', sm: 'flex-start' }}
+                    >
                       <Tooltip title={group.student.email}>
-                        {/* <Avatar src={`https://i.pravatar.cc/150?u=${group.student.email}`} /> */}
                         <Avatar
-                                  src={`${BASE_URL}${group.student.photo_url}`}
-                                  alt={group.student.full_name}
-                                  sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
-                                />
+                          src={`${BASE_URL}${group.student.photo_url}`}
+                          alt={group.student.full_name}
+                          sx={{ 
+                            width: { xs: 40, sm: 50 }, 
+                            height: { xs: 40, sm: 50 }, 
+                            mr: { xs: 1, sm: 2 }
+                          }}
+                        />
                       </Tooltip>
-                      <Box ml={2}>
-                        <Typography variant="subtitle1" fontWeight="medium">
+                      <Box>
+                        <Typography 
+                          variant="subtitle1" 
+                          fontWeight="medium"
+                          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                        >
                           {group.student.full_name}
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
+                        <Typography 
+                          variant="caption" 
+                          color="textSecondary"
+                          sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                        >
                           {isMobile ? group.student.email.split("@")[0] + "..." : group.student.email}
                         </Typography>
                       </Box>
                     </Box>
 
                     {/* Tutor Info */}
-                    <Box display="flex" alignItems="center" flex={1} justifyContent="flex-end">
-                      <Box mr={2} textAlign="right">
-                        <Typography variant="subtitle1" fontWeight="medium">
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      flex={1} 
+                      justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
+                      width={{ xs: '100%', sm: 'auto' }}
+                    >
+                      <Box 
+                        mr={{ xs: 1, sm: 2 }} 
+                        textAlign={{ xs: 'left', sm: 'right' }}
+                      >
+                        <Typography 
+                          variant="subtitle1" 
+                          fontWeight="medium"
+                          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                        >
                           {group.tutor.full_name}
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
+                        <Typography 
+                          variant="caption" 
+                          color="textSecondary"
+                          sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                        >
                           {isMobile ? group.tutor.email.split("@")[0] + "..." : group.tutor.email}
                         </Typography>
                       </Box>
                       <Tooltip title={group.tutor.email}>
-                        {/* <Avatar src={`https://i.pravatar.cc/150?u=${group.tutor.email}`} /> */}
                         <Avatar
-                                  src={`${BASE_URL}${group.tutor.photo_url}`}
-                                  alt={group.tutor.full_name}
-                                  sx={{ width: 50, height: 50, mr: { xs: 0, sm: 2 }, mb: { xs: 2, sm: 0 } }}
-                                />
+                          src={`${BASE_URL}${group.tutor.photo_url}`}
+                          alt={group.tutor.full_name}
+                          sx={{ 
+                            width: { xs: 40, sm: 50 }, 
+                            height: { xs: 40, sm: 50 }
+                          }}
+                        />
                       </Tooltip>
                     </Box>
                   </Box>
 
                   {/* Stats */}
-                  <Box ml={2} display="flex">
+                  <Box 
+                    ml={{ xs: 0, sm: 2 }} 
+                    display="flex" 
+                    width={{ xs: '100%', sm: 'auto' }}
+                    justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
+                    gap={1}
+                  >
                     <Chip
                       label={getStatusSummary(group.chats).answered}
                       size="small"
                       color="success"
                       icon={<CheckCircle fontSize="small" />}
-                      sx={{ mr: 1 }}
+                      sx={{ 
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                        height: { xs: 22, sm: 24 }
+                      }}
                     />
                     <Chip
                       label={getStatusSummary(group.chats).unanswered}
                       size="small"
                       color="warning"
                       icon={<PendingActions fontSize="small" />}
+                      sx={{ 
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                        height: { xs: 22, sm: 24 }
+                      }}
                     />
                   </Box>
                 </Box>
@@ -265,12 +338,32 @@ const ChatAdminDashboard = () => {
             }
           }}
         >
-          <DialogTitle sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h6">
+          <DialogTitle 
+            sx={{ 
+              borderBottom: `1px solid ${theme.palette.divider}`,
+              p: { xs: 1.5, sm: 2 }
+            }}
+          >
+            <Box 
+              display="flex" 
+              justifyContent="space-between" 
+              alignItems="center"
+              flexWrap="wrap"
+              gap={1}
+            >
+              <Typography 
+                variant="h6"
+                sx={{ 
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  wordBreak: 'break-word'
+                }}
+              >
                 {selectedChat?.student.full_name} ↔ {selectedChat?.tutor.full_name}
               </Typography>
-              <IconButton onClick={handleCloseChat}>
+              <IconButton 
+                onClick={handleCloseChat}
+                size={isMobile ? "small" : "medium"}
+              >
                 <Close />
               </IconButton>
             </Box>
@@ -281,37 +374,72 @@ const ChatAdminDashboard = () => {
                 {/* Chat Header */}
                 <Box 
                   sx={{ 
-                    p: 2, 
+                    p: { xs: 1.5, sm: 2 }, 
                     borderBottom: `1px solid ${theme.palette.divider}`,
                     display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    gap: { xs: 2, sm: 0 }
                   }}
                 >
-                  <Box display="flex" alignItems="center">
+                  <Box 
+                    display="flex" 
+                    alignItems="center"
+                    width={{ xs: '100%', sm: 'auto' }}
+                  >
                     <Avatar 
                       src={`${BASE_URL}${selectedChat.student.photo_url}`}
-                      sx={{ mr: 2 }} 
+                      sx={{ 
+                        mr: { xs: 1, sm: 2 },
+                        width: { xs: 40, sm: 48 },
+                        height: { xs: 40, sm: 48 }
+                      }} 
                     />
                     <Box>
-                      <Typography variant="subtitle1" fontWeight="medium">
+                      <Typography 
+                        variant="subtitle1" 
+                        fontWeight="medium"
+                        sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                      >
                         {selectedChat.student.full_name}
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography 
+                        variant="caption" 
+                        color="textSecondary"
+                        sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                      >
                         {selectedChat.student.email}
                       </Typography>
                     </Box>
                   </Box>
-                  <Box display="flex" alignItems="center">
+                  <Box 
+                    display="flex" 
+                    alignItems="center"
+                    width={{ xs: '100%', sm: 'auto' }}
+                    justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
+                  >
                     <Avatar 
                       src={`${BASE_URL}${selectedChat.tutor.photo_url}`}
-                      sx={{ mr: 2 }} 
+                      sx={{ 
+                        mr: { xs: 1, sm: 2 },
+                        width: { xs: 40, sm: 48 },
+                        height: { xs: 40, sm: 48 }
+                      }} 
                     />
-                    <Box textAlign="right">
-                      <Typography variant="subtitle1" fontWeight="medium">
+                    <Box textAlign={{ xs: 'left', sm: 'right' }}>
+                      <Typography 
+                        variant="subtitle1" 
+                        fontWeight="medium"
+                        sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                      >
                         {selectedChat.tutor.full_name}
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography 
+                        variant="caption" 
+                        color="textSecondary"
+                        sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                      >
                         {selectedChat.tutor.email}
                       </Typography>
                     </Box>
@@ -323,7 +451,7 @@ const ChatAdminDashboard = () => {
                   sx={{ 
                     flex: 1, 
                     overflowY: 'auto', 
-                    p: 2,
+                    p: { xs: 1, sm: 2 },
                     background: theme.palette.grey[50]
                   }}
                 >
@@ -332,21 +460,24 @@ const ChatAdminDashboard = () => {
                       {/* Student Message */}
                       <Box 
                         sx={{ 
-                          mb: 2,
+                          mb: { xs: 1.5, sm: 2 },
                           display: 'flex',
                           justifyContent: 'flex-start'
                         }}
                       >
                         <Box 
                           sx={{
-                            maxWidth: '70%',
-                            p: 2,
+                            maxWidth: { xs: '85%', sm: '70%' },
+                            p: { xs: 1.5, sm: 2 },
                             backgroundColor: 'white',
                             borderRadius: '18px 18px 18px 0',
                             boxShadow: theme.shadows[1]
                           }}
                         >
-                          <Typography variant="body2">
+                          <Typography 
+                            variant="body2"
+                            sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                          >
                             {chat.message}
                           </Typography>
                           <Typography 
@@ -355,6 +486,7 @@ const ChatAdminDashboard = () => {
                             display="block"
                             textAlign="right"
                             mt={1}
+                            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                           >
                             {format(new Date(chat.createdAt), 'hh:mm a')}
                           </Typography>
@@ -365,22 +497,25 @@ const ChatAdminDashboard = () => {
                       {chat.response && (
                         <Box 
                           sx={{ 
-                            mb: 2,
+                            mb: { xs: 1.5, sm: 2 },
                             display: 'flex',
                             justifyContent: 'flex-end'
                           }}
                         >
                           <Box 
                             sx={{
-                              maxWidth: '70%',
-                              p: 2,
+                              maxWidth: { xs: '85%', sm: '70%' },
+                              p: { xs: 1.5, sm: 2 },
                               backgroundColor: theme.palette.primary.light,
                               color: 'white',
                               borderRadius: '18px 18px 0 18px',
                               boxShadow: theme.shadows[1]
                             }}
                           >
-                            <Typography variant="body2">
+                            <Typography 
+                              variant="body2"
+                              sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                            >
                               {chat.response}
                             </Typography>
                             <Typography 
@@ -389,7 +524,10 @@ const ChatAdminDashboard = () => {
                               display="block"
                               textAlign="right"
                               mt={1}
-                              sx={{ opacity: 0.8 }}
+                              sx={{ 
+                                opacity: 0.8,
+                                fontSize: { xs: '0.65rem', sm: '0.75rem' }
+                              }}
                             >
                               {format(new Date(chat.updatedAt), 'hh:mm a')}
                             </Typography>
