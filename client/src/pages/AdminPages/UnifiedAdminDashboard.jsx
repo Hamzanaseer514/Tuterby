@@ -84,6 +84,7 @@ const StatCard = React.memo(({
   hasData = false
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Show skeleton if loading OR if we don't have data yet
   if (loading || !hasData) {
@@ -189,16 +190,16 @@ const StatCard = React.memo(({
         {showDot && (
           <Box sx={{ position: 'absolute', top: 10, right: 10, width: 10, height: 10, bgcolor: 'error.main', borderRadius: '50%' }} />
         )}
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center',
-            mb: 2,
-            gap: 2
+            mb: { xs: 1.5, sm: 2 },
+            gap: { xs: 1.5, sm: 2 }
           }}>
             <Box sx={{
-              width: 48,
-              height: 48,
+              width: { xs: 40, sm: 44, md: 48 },
+              height: { xs: 40, sm: 44, md: 48 },
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
@@ -207,15 +208,18 @@ const StatCard = React.memo(({
               color: theme.palette[color].main,
               flexShrink: 0
             }}>
-              <Icon fontSize="medium" />
+              <Icon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }} />
             </Box>
             
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography 
                 variant="subtitle2" 
                 color="text.secondary" 
                 fontWeight="500"
-                sx={{ mb: 0.5 }}
+                sx={{ 
+                  mb: 0.5,
+                  fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' }
+                }}
               >
                 {title}
               </Typography>
@@ -223,22 +227,34 @@ const StatCard = React.memo(({
                 variant="h4" 
                 fontWeight="700" 
                 color="text.primary"
-                sx={{ lineHeight: 1.2 }}
+                sx={{ 
+                  lineHeight: 1.2,
+                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' }
+                }}
               >
                 {value}
               </Typography>
             </Box>
           </Box>
           
-          <Divider sx={{ my: 1.5 }} />
+          <Divider sx={{ my: { xs: 1, sm: 1.5 } }} />
           
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: { xs: 0.5, sm: 1 }
           }}>
             {secondaryValue && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ 
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                  wordBreak: 'break-word'
+                }}
+              >
                 {secondaryValue}
               </Typography>
             )}
@@ -246,10 +262,10 @@ const StatCard = React.memo(({
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center',
-              ml: 'auto'
+              ml: secondaryValue ? 'auto' : 0
             }}>
               <TrendIcon sx={{ 
-                fontSize: 16, 
+                fontSize: { xs: 14, sm: 16 }, 
                 color: trendColor,
                 mr: 0.5 
               }} />
@@ -257,6 +273,7 @@ const StatCard = React.memo(({
                 variant="body2" 
                 fontWeight="500"
                 color={trendColor}
+                sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}
               >
                 {trendValue}
               </Typography>
@@ -572,19 +589,34 @@ const UnifiedAdminDashboard = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
-          <Box sx={{ p: isMobile ? 2 : 3 }}>
+          <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
             <Box sx={{ 
-              mb: 4,
+              mb: { xs: 2, sm: 3, md: 4 },
               display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              justifyContent: 'space-between'
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              justifyContent: 'space-between',
+              gap: { xs: 2, sm: 0 }
             }}>
-              <Box>
-                <Typography variant="h5" fontWeight="700" sx={{ mb: 0.5 }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography 
+                  variant="h5" 
+                  fontWeight="700" 
+                  sx={{ 
+                    mb: 0.5,
+                    fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
+                  }}
+                >
                   Dashboard Overview
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    display: { xs: 'none', sm: 'block' }
+                  }}
+                >
                   {new Date().toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
@@ -593,17 +625,40 @@ const UnifiedAdminDashboard = () => {
                   })}
                 </Typography>
                 {lastRefreshTime && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mt: 0.5, 
+                      display: 'block',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }}
+                  >
                     Last updated: {lastRefreshTime.toLocaleTimeString()}
                   </Typography>
                 )}
               </Box>
               
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: { xs: 1, sm: 2 },
+                width: { xs: '100%', sm: 'auto' },
+                justifyContent: { xs: 'flex-start', sm: 'flex-end' }
+              }}>
                 {isRefreshing && (
-                  <Typography variant="caption" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Refresh sx={{ fontSize: 14, animation: 'spin 1s linear infinite' }} />
-                    Refreshing...
+                  <Typography 
+                    variant="caption" 
+                    color="primary" 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 0.5,
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }}
+                  >
+                    <Refresh sx={{ fontSize: { xs: 12, sm: 14 }, animation: 'spin 1s linear infinite' }} />
+                    <span className="hidden sm:inline">Refreshing...</span>
                   </Typography>
                 )}
                 <Button
@@ -615,8 +670,11 @@ const UnifiedAdminDashboard = () => {
                     borderRadius: '8px',
                     textTransform: 'none',
                     fontWeight: '500',
-                    px: 3,
-                    mt: isMobile ? 2 : 0
+                    px: { xs: 2, sm: 3 },
+                    py: { xs: 0.75, sm: 1 },
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    width: { xs: '100%', sm: 'auto' },
+                    mt: { xs: 0, sm: 0 }
                   }}
                 >
                   Refresh
@@ -625,7 +683,7 @@ const UnifiedAdminDashboard = () => {
             </Box>
 
             {/* Stats Cards Section */}
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
               {statCards.map((card, index) => (
                 <StatCard
                   key={index}

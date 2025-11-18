@@ -318,78 +318,224 @@ const TutorPayments = () => {
                     </Box>
                 </DashboardHeader>
 
+{/* Stats Cards - Responsive Flex Layout */}
+<Box 
+  sx={{ 
+    display: 'flex',
+    flexDirection: { xs: 'column', sm: 'row' },
+    flexWrap: 'wrap',
+    gap: { xs: 2, sm: 3 },
+    mb: 4,
+    width: '100%'
+  }}
+>
+  {/* Total Revenue Card */}
+  <Box 
+    sx={{ 
+      flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 12px)', md: '1 1 calc(25% - 18px)' },
+      minWidth: { xs: '100%', sm: 'auto' }
+    }}
+  >
+    <StatsCard gradient={cardGradients[0]}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        <Box 
+          display="flex" 
+          alignItems="flex-start"
+          flexWrap={{ xs: 'wrap', sm: 'nowrap' }}
+          gap={{ xs: 1.5, sm: 2 }}
+        >
+          <AttachMoney 
+            sx={{ 
+              fontSize: { xs: 32, sm: 36, md: 40 }, 
+              opacity: 0.8, 
+              mr: { xs: 0, sm: 2 },
+              flexShrink: 0
+            }} 
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="h5" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+                lineHeight: 1.2,
+                wordBreak: 'break-word'
+              }}
+            >
+              {formatCurrency(totalRevenue)}
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                opacity: 0.95
+              }}
+            >
+              Total Revenue
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </StatsCard>
+  </Box>
 
-                {/* Stats Cards - Fixed with proper gradient prop */}
-                <Grid container spacing={3} mb={4}>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatsCard gradient={cardGradients[0]}>
-                            <CardContent>
-                                <Box display="flex" alignItems="flex-start">
-                                    <AttachMoney sx={{ fontSize: 40, opacity: 0.8, mr: 2 }} />
-                                    <Box>
-                                        <Typography variant="h5" fontWeight="bold" gutterBottom>
-                                            {formatCurrency(totalRevenue)}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            Total Revenue
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </StatsCard>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatsCard gradient={cardGradients[1]}>
-                            <CardContent>
-                                <Box display="flex" alignItems="flex-start">
-                                    <AccountBalance sx={{ fontSize: 40, opacity: 0.8, mr: 2 }} />
-                                    <Box>
-                                        <Typography variant="h5" fontWeight="bold" gutterBottom>
-                                            {completedPayments}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            Completed Payments
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </StatsCard>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatsCard gradient={cardGradients[2]}>
-                            <CardContent>
-                                <Box display="flex" alignItems="flex-start">
-                                    <Payment sx={{ fontSize: 40, opacity: 0.8, mr: 2 }} />
-                                    <Box>
-                                        <Typography variant="h5" fontWeight="bold" gutterBottom>
-                                            {pendingPayments}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            Pending Payments
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </StatsCard>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatsCard gradient={cardGradients[3]}>
-                            <CardContent>
-                                <Box display="flex" alignItems="flex-start">
-                                    <TrendingUp sx={{ fontSize: 40, opacity: 0.8, mr: 2 }} />
-                                    <Box>
-                                        <Typography variant="h5" fontWeight="bold" gutterBottom>
-                                            {filteredPayments.length}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            Total Transactions
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </StatsCard>
-                    </Grid>
-                </Grid>
+  {/* Completed Payments Card */}
+  <Box 
+    sx={{ 
+      flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 12px)', md: '1 1 calc(25% - 18px)' },
+      minWidth: { xs: '100%', sm: 'auto' }
+    }}
+  >
+    <StatsCard gradient={cardGradients[1]}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        <Box 
+          display="flex" 
+          alignItems="flex-start"
+          flexWrap={{ xs: 'wrap', sm: 'nowrap' }}
+          gap={{ xs: 1.5, sm: 2 }}
+        >
+          <AccountBalance 
+            sx={{ 
+              fontSize: { xs: 32, sm: 36, md: 40 }, 
+              opacity: 0.8, 
+              mr: { xs: 0, sm: 2 },
+              flexShrink: 0
+            }} 
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="h5" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+                lineHeight: 1.2,
+                wordBreak: 'break-word'
+              }}
+            >
+              {completedPayments}
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                opacity: 0.95
+              }}
+            >
+              Completed Payments
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </StatsCard>
+  </Box>
+
+  {/* Pending Payments Card */}
+  <Box 
+    sx={{ 
+      flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 12px)', md: '1 1 calc(25% - 18px)' },
+      minWidth: { xs: '100%', sm: 'auto' }
+    }}
+  >
+    <StatsCard gradient={cardGradients[2]}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        <Box 
+          display="flex" 
+          alignItems="flex-start"
+          flexWrap={{ xs: 'wrap', sm: 'nowrap' }}
+          gap={{ xs: 1.5, sm: 2 }}
+        >
+          <Payment 
+            sx={{ 
+              fontSize: { xs: 32, sm: 36, md: 40 }, 
+              opacity: 0.8, 
+              mr: { xs: 0, sm: 2 },
+              flexShrink: 0
+            }} 
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="h5" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+                lineHeight: 1.2,
+                wordBreak: 'break-word'
+              }}
+            >
+              {pendingPayments}
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                opacity: 0.95
+              }}
+            >
+              Pending Payments
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </StatsCard>
+  </Box>
+
+  {/* Total Transactions Card */}
+  <Box 
+    sx={{ 
+      flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 12px)', md: '1 1 calc(25% - 18px)' },
+      minWidth: { xs: '100%', sm: 'auto' }
+    }}
+  >
+    <StatsCard gradient={cardGradients[3]}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        <Box 
+          display="flex" 
+          alignItems="flex-start"
+          flexWrap={{ xs: 'wrap', sm: 'nowrap' }}
+          gap={{ xs: 1.5, sm: 2 }}
+        >
+          <TrendingUp 
+            sx={{ 
+              fontSize: { xs: 32, sm: 36, md: 40 }, 
+              opacity: 0.8, 
+              mr: { xs: 0, sm: 2 },
+              flexShrink: 0
+            }} 
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="h5" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+                lineHeight: 1.2,
+                wordBreak: 'break-word'
+              }}
+            >
+              {filteredPayments.length}
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                opacity: 0.95
+              }}
+            >
+              Total Transactions
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </StatsCard>
+  </Box>
+</Box>
+
+
+
                 {/* Filters */}
                 <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
                     <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">

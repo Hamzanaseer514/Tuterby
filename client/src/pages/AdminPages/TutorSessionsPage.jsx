@@ -1153,132 +1153,133 @@ const TutorSessionsPage = () => {
           )}
         </Box>
 
-        {/* Stats Overview */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid item xs={6} sm={4} md={2.4}>
-            <Card sx={{
-              borderRadius: '12px',
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden',
-              height: '100%'
-            }}>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight="700" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                      {stats.total_sessions}
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      Total Sessions
-                    </Typography>
-                  </Box>
-                  <BookOnline sx={{
-                    fontSize: { xs: 20, sm: 25 },
-                    opacity: 0.2,
-                    position: 'absolute',
-                    right: 12,
-                    top: 12
-                  }} />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                  <TrendingUp sx={{ fontSize: 14, mr: 0.5 }} />
-                  <Typography variant="caption">+12% this month</Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+       {/* Stats Overview */}
+{/* Stats Overview */}
+<Box
+  sx={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'stretch', // Ensures all cards have same height
+    gap: 2,
+    mb: 4,
+  }}
+>
+  {[
+    {
+      title: 'Total Sessions',
+      value: stats.total_sessions,
+      icon: <BookOnline sx={{ opacity: 0.2, fontSize: { xs: 22, sm: 26 } }} />,
+      gradient: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+      color: 'white',
+      trend: '+12% this month',
+      trendIcon: <TrendingUp sx={{ fontSize: 14, mr: 0.5 }} />,
+    },
+    {
+      title: 'Total Revenue',
+      value: formatCurrency(stats.total_revenue),
+      icon: <MonetizationOn color="primary" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
+      bg: 'white',
+    },
+    {
+      title: 'Completed',
+      value: stats.completed_sessions,
+      icon: <CheckCircle color="success" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
+      progress: (stats.completed_sessions / stats.total_sessions) * 100,
+    },
+    {
+      title: 'Avg Rating',
+      value: `${stats.average_rating.toFixed(1)}/5`,
+      icon: <Star color="warning" sx={{ opacity: 0.3, fontSize: { xs: 22, sm: 26 } }} />,
+      rating: true,
+    },
+  ].map((card, i) => (
+    <Card
+      key={i}
+      sx={{
+        flex: '1 1 calc(25% - 16px)', // 4 per row on large screens
+        minWidth: { xs: '100%', sm: '48%', md: '23%' },
+        borderRadius: '12px',
+        background: card.gradient || card.bg || 'white',
+        color: card.color || 'inherit',
+        display: 'flex',
+        flexDirection: 'column', // Ensures content aligns vertically
+        justifyContent: 'space-between',
+      }}
+    >
+      <CardContent
+        sx={{
+          flexGrow: 1, // Makes all cards equal height
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          p: { xs: 1.5, sm: 2 },
+        }}
+      >
+        {/* Top Section */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h5"
+              fontWeight="700"
+              sx={{
+                fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' },
+                lineHeight: 1.2,
+              }}
+            >
+              {card.value}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                opacity: 0.8,
+                mt: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' },
+              }}
+            >
+              {card.title}
+            </Typography>
+          </Box>
+          {card.icon}
+        </Box>
 
-          <Grid item xs={6} sm={4} md={2.4}>
-            <Card sx={{ borderRadius: '12px', height: '100%' }}>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight="700" color="primary" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                      {formatCurrency(stats.total_revenue)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      Total Revenue
-                    </Typography>
-                  </Box>
-                  <MonetizationOn color="primary" sx={{ fontSize: { xs: 20, sm: 25 }, opacity: 0.3 }} />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                  <TrendingUp sx={{ fontSize: 14, color: 'success.main', mr: 0.5 }} />
-                  <Typography variant="caption" color="success.main">+8% this month</Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+        {/* Middle Section (optional) */}
+        {card.trend && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: { xs: 1, sm: 2 } }}>
+            {card.trendIcon}
+            <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+              {card.trend}
+            </Typography>
+          </Box>
+        )}
 
-          <Grid item xs={6} sm={4} md={2.4}>
-            <Card sx={{ borderRadius: '12px', height: '100%' }}>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight="700" color="success.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                      {stats.completed_sessions}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      Completed
-                    </Typography>
-                  </Box>
-                  <CheckCircle color="success" sx={{ fontSize: { xs: 20, sm: 25 }, opacity: 0.3 }} />
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(stats.completed_sessions / stats.total_sessions) * 100}
-                  sx={{ mt: 2, height: 6, borderRadius: 3 }}
-                  color="success"
-                />
-              </CardContent>
-            </Card>
-          </Grid>
+        {card.progress !== undefined && (
+          <LinearProgress
+            variant="determinate"
+            value={card.progress}
+            color="success"
+            sx={{
+              mt: { xs: 1, sm: 2 },
+              height: { xs: 4, sm: 6 },
+              borderRadius: 3,
+            }}
+          />
+        )}
 
-          <Grid item xs={6} sm={4} md={2.4}>
-            <Card sx={{ borderRadius: '12px', height: '100%' }}>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight="700" color="warning.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                      {stats.pending_sessions}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      Pending
-                    </Typography>
-                  </Box>
-                  <Pending color="warning" sx={{ fontSize: { xs: 20, sm: 25 }, opacity: 0.3 }} />
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(stats.pending_sessions / stats.total_sessions) * 100}
-                  sx={{ mt: 2, height: 6, borderRadius: 3 }}
-                  color="warning"
-                />
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={6} sm={4} md={2.4}>
-            <Card sx={{ borderRadius: '12px', height: '100%' }}>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight="700" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                      {stats.average_rating.toFixed(1)}/5
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      Avg Rating
-                    </Typography>
-                  </Box>
-                  <Star color="warning" sx={{ fontSize: { xs: 20, sm: 25 }, opacity: 0.3 }} />
-                </Box>
-                {renderStars(stats.average_rating)}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+        {/* Bottom Section (optional rating) */}
+        {card.rating && (
+          <Box sx={{ mt: { xs: 1, sm: 1.5 } }}>{renderStars(stats.average_rating)}</Box>
+        )}
+      </CardContent>
+    </Card>
+  ))}
+</Box>
 
         {/* Tabs and Filters */}
         <Card sx={{ mb: 3, borderRadius: '12px' }}>

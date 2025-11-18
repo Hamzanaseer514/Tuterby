@@ -355,41 +355,43 @@ const AdminLayout = ({ children, tabValue = 'tutors', userCounts = { tutors: 0, 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow-sm z-10">
-          <div className="flex items-center justify-between h-16 px-4">
-            <div className="flex items-center">
+          <div className="flex items-center justify-between h-14 sm:h-16 px-2 sm:px-4">
+            <div className="flex items-center min-w-0 flex-1">
               <button 
-                className="md:hidden text-gray-500 hover:text-gray-600 mr-2"
+                className="md:hidden text-gray-500 hover:text-gray-600 mr-2 flex-shrink-0"
                 onClick={() => setMobileOpen(true)}
+                aria-label="Open menu"
               >
-                <MenuIcon className="h-6 w-6" />
+                <MenuIcon className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
               {!expanded && (
                 <button 
                   onClick={() => setExpanded(true)}
-                  className="hidden md:block text-gray-500 hover:text-gray-600 mr-2"
+                  className="hidden md:block text-gray-500 hover:text-gray-600 mr-2 flex-shrink-0"
+                  aria-label="Expand sidebar"
                 >
                   <MenuIcon className="h-6 w-6" />
                 </button>
               )}
-              <h1 className="text-lg font-bold text-gray-800">
+              <h1 className="text-base sm:text-lg font-bold text-gray-800 truncate">
                 {tabValue === 'dashboard' ? 'Dashboard' : 
                  `${tabValue.charAt(0).toUpperCase() + tabValue.slice(1)} Management`}
               </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
 
               <button className="flex items-center text-gray-600 hover:text-gray-900">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-2">
-                  <UserCircleIcon className="h-5 w-5" />
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 sm:mr-2">
+                  <UserCircleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                {expanded && <span className="text-sm font-medium">Admin</span>}
+                <span className="hidden sm:inline text-sm font-medium">Admin</span>
               </button>
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-2 sm:p-4 md:p-6">
           {children}
         </main>
       </div>

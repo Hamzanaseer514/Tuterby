@@ -51,12 +51,12 @@ const SearchAndFilterBar = ({
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", md: "row" }, // responsive
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: { xs: "stretch", md: "center" },
-          gap: 2,
-          mb: 3,
-          p: 2,
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2, sm: 3 },
+          p: { xs: 1.5, sm: 2 },
           backgroundColor: "rgba(248, 249, 250, 0.8)",
           borderRadius: 2,
           border: "1px solid #e0e0e0",
@@ -73,7 +73,10 @@ const SearchAndFilterBar = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search sx={{ color: "action.active" }} />
+                  <Search sx={{ 
+                    color: "action.active",
+                    fontSize: { xs: '1.125rem', sm: '1.25rem' }
+                  }} />
                 </InputAdornment>
               ),
               endAdornment: searchTerm && (
@@ -81,25 +84,34 @@ const SearchAndFilterBar = ({
                   <IconButton
                     size="small"
                     onClick={onClearSearch}
-                    sx={{ color: "action.active" }}
+                    sx={{ 
+                      color: "action.active",
+                      padding: { xs: '4px', sm: '8px' }
+                    }}
                   >
-                    <Clear />
+                    <Clear sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
                   </IconButton>
                 </InputAdornment>
               ),
             }}
             sx={{
-              minWidth: { xs: "100%", md: 400 }, // responsive
+              minWidth: { xs: "100%", sm: 300, md: 400 },
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
                 backgroundColor: "white",
+                fontSize: { xs: '0.875rem', sm: '1rem' }
               },
             }}
           />
         </Zoom>
 
         {/* ⚙️ Actions */}
-        <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+        <Box sx={{ 
+          display: "flex", 
+          gap: 1, 
+          justifyContent: { xs: "flex-start", sm: "flex-end" },
+          width: { xs: "100%", sm: "auto" }
+        }}>
           {/* <IconButton onClick={handleFilterClick}>
             <FilterList />
           </IconButton> */}
@@ -107,8 +119,14 @@ const SearchAndFilterBar = ({
             <Sort />
           </IconButton> */}
           {onRefresh && (
-            <IconButton onClick={onRefresh}>
-              <Refresh />
+            <IconButton 
+              onClick={onRefresh}
+              sx={{
+                padding: { xs: '8px', sm: '12px' }
+              }}
+              aria-label="Refresh"
+            >
+              <Refresh sx={{ fontSize: { xs: '1.125rem', sm: '1.25rem' } }} />
             </IconButton>
           )}
          

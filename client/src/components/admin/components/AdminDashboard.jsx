@@ -216,21 +216,51 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
     //   }}
     //   onTabChange={handleTabChange}
     // >
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
         <Fade in timeout={800}>
           <Box>
             {/* Header Section */}
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <DashboardIcon sx={{ mr: 2, color: 'primary.main', fontSize: 40 }} />
-                  <Typography variant="h4" fontWeight="bold" color="primary">
+            <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' }, 
+                justifyContent: 'space-between', 
+                mb: 2,
+                gap: { xs: 2, sm: 0 }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                  width: { xs: '100%', sm: 'auto' }
+                }}>
+                  <DashboardIcon sx={{ 
+                    mr: { xs: 1, sm: 2 }, 
+                    color: 'primary.main', 
+                    fontSize: { xs: 32, sm: 40 },
+                    flexShrink: 0
+                  }} />
+                  <Typography 
+                    variant="h4" 
+                    fontWeight="bold" 
+                    color="primary"
+                    sx={{
+                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
+                      wordBreak: 'break-word'
+                    }}
+                  >
                     User Management - {(uiState.tabValue || 'tutors').charAt(0).toUpperCase() + (uiState.tabValue || 'tutors').slice(1)}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 1,
+                  width: { xs: '100%', sm: 'auto' },
+                  justifyContent: { xs: 'flex-start', sm: 'flex-end' }
+                }}>
                   <Zoom in timeout={400}>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
                       <Box
                         component="button"
                         onClick={handleRequestReload}
@@ -239,8 +269,8 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
-                          px: 1.75,
-                          py: 1.25,
+                          px: { xs: 1.5, sm: 1.75 },
+                          py: { xs: 1, sm: 1.25 },
                           border: '1px solid',
                           borderColor: 'divider',
                           borderRadius: 2,
@@ -248,6 +278,8 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                           boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease',
+                          width: { xs: '100%', sm: 'auto' },
+                          justifyContent: { xs: 'center', sm: 'flex-start' },
                           '&:hover': {
                             bgcolor: 'background.default',
                             transform: 'translateY(-1px)'
@@ -258,8 +290,8 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                           }
                         }}
                       >
-                        <Refresh sx={{ fontSize: 20 }} />
-                        <Typography variant="body2" fontWeight="medium">
+                        <Refresh sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                        <Typography variant="body2" fontWeight="medium" sx={{ display: { xs: 'block', sm: 'block' } }}>
                           Refresh
                         </Typography>
                       </Box>
@@ -269,7 +301,14 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
                 </Box>
               </Box>
               
-              <Typography variant="body1" color="text.secondary">
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ 
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
                 Manage {uiState.tabValue || 'tutors'}, verify documents, and handle user accounts.
               </Typography>
             </Box>
@@ -280,13 +319,15 @@ const AdminDashboard = ({ tabValue = 'tutors' }) => {
             <Paper 
               elevation={0} 
               sx={{ 
-                p: 3, 
-                mb: 3, 
+                p: { xs: 2, sm: 3 }, 
+                mb: { xs: 2, sm: 3 }, 
                 borderRadius: 3,
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: 'divider',
-                boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
+                boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
+                width: '100%',
+                overflow: 'hidden'
               }}
             >
               {/* Search and Filter Bar */}

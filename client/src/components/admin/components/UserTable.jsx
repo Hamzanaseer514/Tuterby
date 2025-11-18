@@ -23,7 +23,9 @@ import {
   TextField,
   InputAdornment,
   Badge,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Visibility,
@@ -90,8 +92,8 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           transition: 'all 0.2s ease'
         }}
       >
-        <TableCell>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
             <Badge
               overlap="circular"
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -113,15 +115,35 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
               </div>
               
             </Badge>
-            <Box style={{ marginLeft: "10px" }}>
-              <Typography fontWeight="medium" variant="body1">
+            <Box sx={{ marginLeft: { xs: "8px", sm: "10px" }, minWidth: 0, flex: 1 }}>
+              <Typography 
+                fontWeight="medium" 
+                variant="body1"
+                sx={{ 
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  wordBreak: 'break-word'
+                }}
+              >
                 {user.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ 
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  wordBreak: 'break-word',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
                 {user.email}
               </Typography>
               {tabValue === 'tutors' && (
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                >
                   {user.location || 'Location not specified'}
                 </Typography>
               )}
@@ -131,7 +153,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
 
         {tabValue === 'tutors' && (
           <>
-            <TableCell>
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {Array.isArray(user.subjects) && user.subjects.length > 0 ? (
                   user.subjects.slice(0, 3).map((subject, index) => (
@@ -141,14 +163,19 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                       size="small"
                       variant="outlined"
                       sx={{
-                        fontSize: '0.7rem',
+                        fontSize: { xs: '0.65rem', sm: '0.7rem' },
                         borderColor: 'primary.main',
-                        color: 'primary.main'
+                        color: 'primary.main',
+                        height: { xs: 20, sm: 24 }
                       }}
                     />
                   ))
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
                     No subjects
                   </Typography>
                 )}
@@ -157,35 +184,43 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                     <Chip
                       label={`+${user.subjects.length - 3}`}
                       size="small"
-                      sx={{ fontSize: '0.7rem' }}
+                      sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: { xs: 20, sm: 24 } }}
                     />
                   </Tooltip>
                 )}
               </Box>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip
                   label={user.status}
                   color={statusColors[user.status]}
                   size="small"
                   variant={user.status === 'inactive' ? 'outlined' : 'filled'}
-                  sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}
+                  sx={{ 
+                    fontWeight: 'medium', 
+                    textTransform: 'capitalize',
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    height: { xs: 22, sm: 24 }
+                  }}
                 />
               </Box>
             </TableCell>
-            <TableCell>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" fontWeight="medium">
-
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography 
+                  variant="body2" 
+                  fontWeight="medium"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                >
                   {user.documents?.filter(d => d.verified === "Approved").length || 0}/{user.documents?.length || 0}
                 </Typography>
                 {user.documents?.every(d => d.verified === "Approved") ? (
-                  <CheckCircle color="success" fontSize="small" />
+                  <CheckCircle color="success" fontSize="small" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
                 ) : user.documents?.some(d => d.verified === "Rejected") ? (
-                  <Cancel color="error" fontSize="small" />
+                  <Cancel color="error" fontSize="small" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
                 ) : (
-                  <Pending color="warning" fontSize="small" />
+                  <Pending color="warning" fontSize="small" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
                 )}
               </Box>
             </TableCell>
@@ -194,7 +229,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
 
         {tabValue === 'students' && (
           <>
-            <TableCell>
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {user.subjects?.length > 0 ? (
                   user.subjects.slice(0, 3).map((subject, index) => (
@@ -204,14 +239,19 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                       size="small"
                       variant="outlined"
                       sx={{
-                        fontSize: '0.7rem',
+                        fontSize: { xs: '0.65rem', sm: '0.7rem' },
                         borderColor: 'success.main',
-                        color: 'success.main'
+                        color: 'success.main',
+                        height: { xs: 20, sm: 24 }
                       }}
                     />
                   ))
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
                     No subjects
                   </Typography>
                 )}
@@ -220,24 +260,32 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                     <Chip
                       label={`+${user.subjects.length - 3}`}
                       size="small"
-                      sx={{ fontSize: '0.7rem' }}
+                      sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: { xs: 20, sm: 24 } }}
                     />
                   </Tooltip>
                 )}
               </Box>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" fontWeight="medium">
+                <Typography 
+                  variant="body2" 
+                  fontWeight="medium"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                >
                   {user.sessionsCompleted || 0}
                 </Typography>
-                <School color="primary" fontSize="small" />
+                <School color="primary" fontSize="small" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
               </Box>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 {/* <AcademicCap color="warning" fontSize="small" /> */}
-                <Typography variant="body2" fontWeight="medium">
+                <Typography 
+                  variant="body2" 
+                  fontWeight="medium"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                >
                   {user.academic_level ? `${getAcademicLevel(user.academic_level).level}` : 'N/A'}
                 </Typography>
               </Box>
@@ -247,7 +295,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
 
         {tabValue === 'parents' && (
           <>
-            <TableCell>
+            <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {user.children?.length > 0 ? (
                   user.children.slice(0, 3).map(child => (
@@ -257,15 +305,20 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                       size="small"
                       variant="outlined"
                       sx={{
-                        fontSize: '0.7rem',
+                        fontSize: { xs: '0.65rem', sm: '0.7rem' },
                         borderColor: 'info.main',
-                        color: 'info.main'
+                        color: 'info.main',
+                        height: { xs: 20, sm: 24 }
                       }}
                     />
                   ))
 
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
                     No children
                   </Typography>
                 )}
@@ -280,7 +333,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                     <Chip
                       label={`+${user.children.length - 3}`}
                       size="small"
-                      sx={{ fontSize: '0.7rem' }}
+                      sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: { xs: 20, sm: 24 } }}
                     />
                   </Tooltip>
 
@@ -291,7 +344,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
           </>
         )}
 
-        <TableCell>
+        <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Tooltip title="View Details">
               <IconButton
@@ -299,6 +352,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                 size="small"
                 sx={{
                   color: 'primary.main',
+                  padding: { xs: '4px', sm: '8px' },
                   '&:hover': {
                     backgroundColor: 'rgba(25, 118, 210, 0.1)',
                     transform: 'scale(1.1)'
@@ -306,7 +360,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   transition: 'all 0.2s ease'
                 }}
               >
-                <Visibility fontSize="small" />
+                <Visibility fontSize="small" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
               </IconButton>
             </Tooltip>
             {/* <Tooltip title="More Actions">
@@ -429,6 +483,9 @@ const UserTable = ({
     return [...baseHeaders, 'Actions'];
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   return (
     <Box sx={{ width: '100%' }}>
 
@@ -441,12 +498,22 @@ const UserTable = ({
           borderRadius: 3,
           border: '1px solid',
           borderColor: 'divider',
-          overflow: 'hidden',
+          overflow: 'auto',
           bgcolor: 'background.paper',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
+          boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
+          '&::-webkit-scrollbar': {
+            height: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.05)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+          }
         }}
       >
-        <Table>
+        <Table sx={{ minWidth: isMobile ? 800 : 'auto' }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'background.default' }}>
               {getTableHeaders().map((header) => (
@@ -457,8 +524,10 @@ const UserTable = ({
                     color: 'text.primary',
                     borderBottom: '2px solid',
                     borderColor: 'divider',
-                    py: 1.5,
-                    letterSpacing: 0.2
+                    py: { xs: 1, sm: 1.5 },
+                    px: { xs: 1, sm: 2 },
+                    letterSpacing: 0.2,
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
                   }}
                 >
                   {header}
@@ -539,10 +608,22 @@ const UserTable = ({
         onRowsPerPageChange={onChangeRowsPerPage}
         sx={{
           '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
-            fontWeight: 'medium'
+            fontWeight: 'medium',
+            fontSize: { xs: '0.75rem', sm: '0.875rem' }
+          },
+          '.MuiTablePagination-toolbar': {
+            flexWrap: 'wrap',
+            gap: { xs: 1, sm: 0 }
+          },
+          '.MuiTablePagination-spacer': {
+            display: { xs: 'none', sm: 'flex' }
           },
           mt: 1
         }}
+        labelRowsPerPage={isMobile ? 'Rows:' : 'Rows per page:'}
+        labelDisplayedRows={({ from, to, count }) => 
+          isMobile ? `${from}-${to} of ${count}` : `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
+        }
       />
 
 

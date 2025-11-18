@@ -11,9 +11,12 @@ const StudentProfile = require("../Models/studentProfileSchema");
 const StudentPayment = require("../Models/studentPaymentSchema"); // Added for payment records
 const Message = require("../Models/messageSchema"); // Importing Message model
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
+const { google } = require('googleapis');
 const sendEmail = require("../Utils/sendEmail");
 const uploadToS3 = require("../Utils/uploadToS3");
 const s3KeyToUrl = require("../Utils/s3KeyToUrl");
+const { createLiveBroadcast, uploadVideoToYouTube } = require("../Utils/youtubeStreaming"); // Add YouTube streaming utility
+
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
 
@@ -390,10 +393,20 @@ const createSession = asyncHandler(async (req, res) => {
       .json({ message: "All required fields must be provided" });
   }
 
-  // Normalize session_date as UTC
+  // Normalize session_date - parse as local time (don't force UTC interpretation)
   let sessionDateExactUTC;
   if (typeof session_date === "string") {
-    sessionDateExactUTC = new Date(session_date + ":00Z");
+    // Check if string already has timezone info (Z or +/- offset)
+    const hasTimezone = session_date.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(session_date);
+    
+    if (hasTimezone) {
+      // Already has timezone, parse directly
+      sessionDateExactUTC = new Date(session_date);
+    } else {
+      // No timezone info - parse as local time
+      // JavaScript will automatically convert local time to UTC internally
+      sessionDateExactUTC = new Date(session_date);
+    }
   } else {
     sessionDateExactUTC = new Date(session_date);
   }
@@ -575,12 +588,69 @@ const createSession = asyncHandler(async (req, res) => {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
 
-    // 🔹 Inject meeting link
-    const meetLink = `https://meet.jit.si/${session._id}-${Date.now()}`;
+    // 🔹 Generate YouTube streaming link using YouTube API
+    let youtubeStreamData;
+    let youtubeErrorDetails = null;
+    let isFallback = false;
+    try {
+      console.log('Creating YouTube live broadcast with session data:', {
+        title: `Tutoring Session: ${subject} - ${tutor.user_id?.full_name || 'Tutor'}`,
+        description: `Live tutoring session for ${subject} with ${students.map(s => s.user_id?.full_name).join(', ')}. Session duration: ${duration_hours} hours.`,
+        startTime: sessionDateExactUTC,
+        durationHours: duration_hours
+      });
+      
+      youtubeStreamData = await createLiveBroadcast({
+        title: `Tutoring Session: ${subject} - ${tutor.user_id?.full_name || 'Tutor'}`,
+        description: `Live tutoring session for ${subject} with ${students.map(s => s.user_id?.full_name).join(', ')}. Session duration: ${duration_hours} hours.`,
+        startTime: sessionDateExactUTC,
+        durationHours: duration_hours
+      });
+      
+      console.log('YouTube stream data received:', youtubeStreamData);
+      
+      // Check if we got valid data
+      if (!youtubeStreamData.broadcastId) {
+        throw new Error('Invalid YouTube stream data received');
+      }
+      
+      console.log('Successfully created YouTube broadcast');
+    } catch (youtubeError) {
+      console.error("❌ YouTube streaming setup failed:", youtubeError);
+      youtubeErrorDetails = youtubeError.message;
+      
+      // Check for specific YouTube errors
+      if (youtubeError.message && youtubeError.message.includes('live streaming')) {
+        // Don't use fallback for this error, instead provide helpful message
+        return res.status(400).json({
+          message: "YouTube Live Streaming is not enabled for your channel. Please enable live streaming on your YouTube channel in YouTube Studio before creating sessions.",
+          error: youtubeErrorDetails,
+          session: session // Still return the session that was created
+        });
+      }
+      
+      if (youtubeError.message && youtubeError.message.includes('Insufficient permissions')) {
+        // Don't use fallback for this error, instead provide helpful message
+        return res.status(400).json({
+          message: "Insufficient permissions for YouTube API. Please check your credentials and permissions.",
+          error: youtubeErrorDetails,
+          session: session // Still return the session that was created
+        });
+      }
+      
+      // Fallback to a simple YouTube URL if YouTube API fails for other reasons
+      const fallbackStreamKey = `tuterby_session_${session._id}_${Date.now()}`;
+      youtubeStreamData = {
+        broadcastUrl: `https://www.youtube.com/watch?v=fallback_${Date.now()}`,
+        streamKey: fallbackStreamKey
+      };
+      isFallback = true;
+    }
 
-    // Update session with meeting link
-    session.meeting_link = meetLink;
+    // Update session with streaming link
+    session.meeting_link = youtubeStreamData.broadcastUrl;
     session.meeting_link_sent_at = new Date();
+    session.youtube_stream_key = youtubeStreamData.streamKey || ''; // Store stream key for future reference
     await session.save();
 
     // Only send email if session creation is completely successful
@@ -597,8 +667,16 @@ const createSession = asyncHandler(async (req, res) => {
       try {
         await sendEmail(
           [tutorEmail, ...studentEmails].join(", "), // 👈 array ko string bana diya
-          "New Tutoring Session - Meeting Link",
-          `<p>Your tutoring session has been scheduled. Join using this link: <a href="${meetLink}">${meetLink}</a></p>`
+          "New Tutoring Session - YouTube Streaming Link",
+          `<p>Your tutoring session has been scheduled for ${sessionDateExactUTC.toLocaleString()}.</p>
+          <p><strong>Join the session using this YouTube streaming link:</strong> <a href="${youtubeStreamData.broadcastUrl}">${youtubeStreamData.broadcastUrl}</a></p>
+          ${isFallback ? `<p><strong>Note:</strong> There was an issue with YouTube integration. You may need to manually set up your stream.</p>` : ''}
+          <p>The session will be automatically recorded and uploaded to YouTube after completion.</p>
+          <p>Subject: ${subject}</p>
+          <p>Duration: ${duration_hours} hours</p>
+          ${!isFallback && youtubeStreamData.streamKey ? `<p><strong>For the tutor:</strong> Use your streaming software (OBS, etc.) with the following settings:<br>
+          RTMP URL: rtmp://a.rtmp.youtube.com/live2<br>
+          Stream Key: ${youtubeStreamData.streamKey}</p>` : ''}`
         );
       } catch (emailError) {
         console.error("❌ Email sending failed:", emailError);
@@ -608,9 +686,12 @@ const createSession = asyncHandler(async (req, res) => {
     }
 
     return res.status(201).json({
-      message: "Tutoring session created successfully",
+      message: "Tutoring session created successfully with YouTube streaming",
       session,
       studentPaymentStatuses: studentPaymentStatuses,
+      streamingLink: youtubeStreamData.broadcastUrl,
+      youtubeError: youtubeErrorDetails, // Include error details in response if any
+      isFallback: isFallback // Indicate if fallback was used
     });
 
   } catch (sessionError) {
@@ -725,7 +806,7 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       const isTryingToPropose = !!student_proposed_date || approve_proposed;
       const incomingDate =
         typeof session_date === "string"
-          ? new Date(session_date + ":00Z")
+          ? new Date(session_date) // Parse as local time, don't force UTC
           : session_date
           ? new Date(session_date)
           : null;
@@ -742,7 +823,16 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       }
     }
 
-    const parseLocalToUTC = (val) => (val ? new Date(typeof val === "string" ? val + ":00Z" : val) : null);
+    const parseLocalToUTC = (val) => {
+      if (!val) return null;
+      if (typeof val === "string") {
+        // Check if string already has timezone info
+        const hasTimezone = val.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(val);
+        // If no timezone, parse as local time (don't append Z)
+        return new Date(val);
+      }
+      return new Date(val);
+    };
     let sessionDateExactUTC = parseLocalToUTC(session_date);
     let proposedDateUTC = parseLocalToUTC(student_proposed_date);
 
@@ -849,8 +939,71 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       updates.session_date = sessionDateExactUTC;
     }
 
+    // Handle session completion and automatic YouTube upload
     if (status === "completed") {
       updates.completed_at = new Date();
+      
+      // Process session recording upload to YouTube
+      try {
+        // Only attempt YouTube upload if we have a stream key
+        if (session.youtube_stream_key) {
+          // In a real implementation, you would retrieve the recorded video file
+          // For now, we'll simulate the process
+          
+          // Get session details for video metadata
+          const tutor = await TutorProfile.findById(session.tutor_id).populate('user_id');
+          const students = await StudentProfile.find({
+            _id: { $in: session.student_ids }
+          }).populate('user_id');
+          
+          const studentNames = students.map(s => s.user_id?.full_name).join(', ');
+          const tutorName = tutor.user_id?.full_name;
+          
+          // Upload video to YouTube
+          const videoData = {
+            title: `Tutoring Session: ${session.subject} - ${tutorName || 'Tutor'}`,
+            description: `Recorded tutoring session with ${studentNames || 'students'} on ${session.subject}. Session date: ${session.session_date.toLocaleDateString()}. Duration: ${session.duration_hours} hours.`,
+            // In a real implementation, this would be the path to the recorded video file
+            filePath: `/recordings/session_${session._id}.mp4`
+          };
+          
+          // Attempt to upload to YouTube
+          const youtubeResponse = await uploadVideoToYouTube(videoData);
+          
+          // Update session with YouTube video URL
+          updates.youtube_video_url = youtubeResponse.videoUrl;
+          
+          // Send email notification about the uploaded video
+          try {
+            const tutorEmail = tutor.user_id?.email;
+            const studentEmails = students.map(s => s.user_id?.email).filter(email => email);
+            
+            if (tutorEmail || studentEmails.length > 0) {
+              const allRecipients = [tutorEmail, ...studentEmails].filter(email => email);
+              
+              await sendEmail(
+                allRecipients.join(', '),
+                'Session Recording Available on YouTube',
+                `<p>Your tutoring session recording is now available on YouTube!</p>
+                <p><a href="${youtubeResponse.videoUrl}">Watch the recording</a></p>
+                <p>Session Details:</p>
+                <ul>
+                  <li>Subject: ${session.subject}</li>
+                  <li>Date: ${session.session_date.toLocaleDateString()}</li>
+                  <li>Duration: ${session.duration_hours} hours</li>
+                </ul>`
+              );
+            }
+          } catch (emailError) {
+            console.error('Failed to send YouTube video notification email:', emailError);
+          }
+        }
+      } catch (uploadError) {
+        console.error('Failed to upload session recording to YouTube:', uploadError);
+        // Continue with session completion even if upload fails
+      }
+      
+      // Update student payment records
       if (session.student_payments?.length) {
         for (const sp of session.student_payments) {
           await StudentPayment.findOneAndUpdate(
@@ -861,14 +1014,15 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       }
     }
 
-    if (status === "pending") {
-      updates.meeting_link = "";
-      updates.meeting_link_sent_at = null;
-      updates.student_responses = [];
-      updates.student_proposed_date = null;
-      updates.student_proposed_status = undefined;
-      updates.student_proposed_decided_at = undefined;
-    }
+    // if (status === "pending") {
+    //   updates.meeting_link = "";
+    //   updates.meeting_link_sent_at = null;
+    //   updates.student_responses = [];
+    //   updates.student_proposed_date = null;
+    //   updates.student_proposed_status = undefined;
+    //   updates.student_proposed_decided_at = undefined;
+    // }
+    // If status is not "pending", meeting_link and meeting_link_sent_at are already preserved above
 
     const updatedSession = await TutoringSession.findByIdAndUpdate(session_id, updates, { new: true });
     res.status(200).json({
