@@ -3829,18 +3829,25 @@ exports.createRenewalPayment = asyncHandler(async (req, res) => {
         }
 
 
-        // Check if payment is actually expired
+        // Allow renewal when payment is expired OR when sessions are exhausted
+        const isExpired = expiredPayment.validity_status === 'expired';
+        const sessionsExhausted = typeof expiredPayment.sessions_remaining === 'number' && expiredPayment.sessions_remaining <= 0;
 
-        if (expiredPayment.validity_status !== 'expired') {
-
+        if (!isExpired && !sessionsExhausted) {
             return res.status(400).json({
-
                 success: false,
-
-                message: 'Payment is not expired'
-
+                message: 'Payment is not eligible for renewal (not expired and sessions remain)'
             });
+        }
 
+        // Prevent creating duplicate renewals
+        const existingRenewal = await StudentPayment.findOne({ original_payment_id: expiredPayment._id });
+        if (existingRenewal) {
+            return res.status(400).json({
+                success: false,
+                message: 'A renewal already exists for this payment',
+                payment: { _id: existingRenewal._id }
+            });
         }
 
         const subjectData = await Subject.findById(expiredPayment.subject);

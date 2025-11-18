@@ -132,8 +132,8 @@ const StudentPaymentPage = () => {
             setLoading(true);
             const token = getAuthToken();
             //console.log("payment", payment);
-            // If it's an expired payment, create renewal first
-            if (payment.status === 'completed' && payment.validity_status === 'expired') {
+            // If it's an expired payment or sessions exhausted, create renewal first
+            if (payment.status === 'completed' && (payment.validity_status === 'expired' || payment.sessions_remaining === 0)) {
                 const renewalResponse = await fetchWithAuth(`${BASE_URL}/api/auth/student/payments/${payment._id}/renew`, {
                     method: "POST",
                     headers: {
@@ -501,6 +501,16 @@ const StudentPaymentPage = () => {
                                                 </div>
                                             )}
 
+                                            {payment.sessions_remaining === 0 && (
+                                                <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-100 text-red-700 flex items-start gap-3">
+                                                    <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                                    <div className="text-sm">
+                                                        <div className="font-medium">No sessions remaining</div>
+                                                        <div className="text-xs">You've used all sessions for this package. Renew to continue booking sessions.</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="flex gap-2">
                                                 {payment.status === 'pending' && (
                                                     <Button
@@ -519,6 +529,17 @@ const StudentPaymentPage = () => {
                                                         Academic Level Access Granted
                                                     </Button>
                                                 )}
+                                                {payment.status === 'completed' && payment.sessions_remaining === 0 && !payment.has_renewal && (
+                                                    <Button
+                                                        onClick={() => handlePayment(payment)}
+                                                        disabled={loading}
+                                                        className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700"
+                                                    >
+                                                        <CreditCard className="w-4 h-4" />
+                                                        Renew Payment
+                                                    </Button>
+                                                )}
+
                                                 {payment.status === 'completed' && payment.validity_status === 'expired' && !payment.has_renewal && (
                                                     <Button
                                                         onClick={() => handlePayment(payment)}

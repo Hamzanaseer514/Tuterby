@@ -157,27 +157,39 @@ studentPaymentSchema.index({ payment_type: 1, payment_status: 1 });
 
 // Enhanced isValid method for session validation with validity status
 studentPaymentSchema.methods.isValid = function() {
-  const now = new Date();
-  const isExpired = this.validity_end_date <= now.getTime();
-  
-  // Update validity_status if expired
-  if (isExpired && this.validity_status === 'active') {
+  const now = Date.now();
+
+  // Check expiry by date
+  const isExpiredByDate = this.validity_end_date ? (new Date(this.validity_end_date).getTime() <= now) : false;
+  // Check expiry by sessions exhausted
+  const isExhausted = typeof this.sessions_remaining === 'number' && this.sessions_remaining <= 0;
+
+  // If expired by date or exhausted by sessions, ensure status fields reflect that
+  if ((isExpiredByDate || isExhausted) && this.validity_status === 'active') {
     this.validity_status = 'expired';
     this.is_active = false;
-    this.save(); // Save the updated status
+    this.academic_level_paid = false;
+    // Mark payment as expired when exhausted
+    if (isExhausted) this.validity_status = 'expired';
+    // Persist changes (fire-and-forget to avoid blocking callers)
+    try {
+      this.save();
+    } catch (err) {
+      // ignore save errors here; higher-level code can handle consistency
+    }
   }
-  
-  return this.is_active && 
-         this.payment_status === 'paid' && 
+
+  return this.is_active &&
+         this.payment_status === 'paid' &&
          this.validity_status === 'active' &&
-         !isExpired &&
+         !isExpiredByDate &&
          this.sessions_remaining > 0;
 };
 
 // Method to check if payment is expired
 studentPaymentSchema.methods.isExpired = function() {
-  const now = new Date();
-  return this.validity_end_date <= now.getTime();
+  const now = Date.now();
+  return this.validity_end_date ? (new Date(this.validity_end_date).getTime() <= now) : false;
 };
 
 // Method to get payment status with validity
@@ -192,5 +204,23 @@ studentPaymentSchema.methods.getPaymentStatus = function() {
   
   return 'active';
 };
+
+// Ensure payments with zero sessions are marked expired/inactive on save
+studentPaymentSchema.pre('save', function(next) {
+  try {
+    if (typeof this.sessions_remaining === 'number' && this.sessions_remaining <= 0) {
+      this.validity_status = 'expired';
+      this.is_active = false;
+      this.academic_level_paid = false;
+      // Optionally set validity_end_date to now if not already expired
+      if (!this.validity_end_date || new Date(this.validity_end_date).getTime() > Date.now()) {
+        this.validity_end_date = new Date();
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+  next();
+});
 
 module.exports = mongoose.model('StudentPayment', studentPaymentSchema);
