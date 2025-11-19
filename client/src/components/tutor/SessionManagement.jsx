@@ -721,7 +721,7 @@ const SessionManagement = () => {
                             <span className="hidden sm:inline">Reject</span>
                           </Button>
                         )}
-                        <Button
+                        {/* <Button
                           size="sm"
                           variant="outline"
                           onClick={() => confirmDeleteSession(session._id)}
@@ -729,7 +729,7 @@ const SessionManagement = () => {
                         >
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           <span className="hidden sm:inline">Delete</span>
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </div>
@@ -953,7 +953,7 @@ const SessionManagement = () => {
                       Edit Session
                     </Button>
                   )}
-                  <Button
+                  {/* <Button
                     variant="outline"
                     onClick={() => {
                       setShowSessionModal(false);
@@ -963,7 +963,7 @@ const SessionManagement = () => {
                   >
                     <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Delete Session
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             </div>
@@ -1352,12 +1352,12 @@ const SessionManagement = () => {
                 Are you sure you want to delete this session?
                 This action cannot be undone. {deleteTargetSession.subject ? `Subject: ${getSubjectById(deleteTargetSession.subject)?.name || deleteTargetSession.subject}` : ''}
               </p>
-              <div className="flex gap-2 justify-end">
+              {/* <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
                 <Button onClick={() => performDeleteSession(deleteTargetSession._id)} className="bg-red-600 hover:bg-red-700" disabled={isDeleting}>
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </Button>
-              </div>
+              </div> */}
             </div>
           </div>
         )}

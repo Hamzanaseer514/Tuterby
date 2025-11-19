@@ -712,9 +712,9 @@ const TutorDashboard = () => {
                       <p className="font-medium text-gray-900 dark:text-white">
                         {student.user_id?.full_name || 'Student Name'}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {/* <p className="text-sm text-gray-600 dark:text-gray-400">
                         {student.user_id?.email || 'Email not available'}
-                      </p>
+                      </p> */}
                     </div>
                   ))}
                   <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">

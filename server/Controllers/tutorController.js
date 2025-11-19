@@ -1060,13 +1060,26 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
         // Continue with session completion even if upload fails
       }
       
-      // Update student payment records
+      // Update student payment records: decrement sessions_remaining and expire payment when it reaches 0
       if (session.student_payments?.length) {
         for (const sp of session.student_payments) {
-          await StudentPayment.findOneAndUpdate(
-            { _id: sp.payment_id, sessions_remaining: { $gt: 0 } },
-            { $inc: { sessions_remaining: -1 } }
-          );
+          try {
+            const updatedPayment = await StudentPayment.findOneAndUpdate(
+              { _id: sp.payment_id, sessions_remaining: { $gt: 0 } },
+              { $inc: { sessions_remaining: -1 } },
+              { new: true }
+            );
+
+            if (updatedPayment && typeof updatedPayment.sessions_remaining === 'number' && updatedPayment.sessions_remaining <= 0) {
+              // Mark payment as expired/invalid when no sessions remain
+              await StudentPayment.updateOne(
+                { _id: updatedPayment._id },
+                { $set: { validity_status: 'expired', is_active: false, academic_level_paid: false } }
+              );
+            }
+          } catch (err) {
+            console.error('Error updating student payment sessions:', err);
+          }
         }
       }
     }
