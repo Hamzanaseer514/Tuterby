@@ -2,8 +2,10 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 const router = express.Router();
-const https = require("https");
-const fetch = require("node-fetch"); 
+
+const fetch = global.fetch;
+// const https = require("https");
+// const fetch = require("node-fetch"); 
 
 // Validate required environment variables
 const requiredEnvVars = [
