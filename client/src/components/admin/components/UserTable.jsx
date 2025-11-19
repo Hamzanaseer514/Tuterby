@@ -70,12 +70,22 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
     }
   };
   const { subjects, academicLevels } = useSubject();
+  // subjects may be loaded asynchronously by `useSubject()` and IDs may be strings
+  // or objects depending on the backend shape. Make lookup robust and return
+  // a string name (or empty string) so rendering is stable.
+  const getSubjectName = (idOrObj) => {
+    try {
+      if (!subjects || !Array.isArray(subjects) || subjects.length === 0) return '';
 
-  const getSubjectName = (id) => {
+      const id = idOrObj && idOrObj._id ? String(idOrObj._id) : String(idOrObj || '');
+      if (!id) return '';
 
-    const subject = subjects.find(s => s._id === id);
-    return subject ? subject : '';
-  }
+      const subj = subjects.find(s => String(s._id) === id || String(s._id) === String(id));
+      return subj && subj.name ? subj.name : '';
+    } catch (err) {
+      return '';
+    }
+  };
   const getAcademicLevel = (level) => {
     const matchedLevel = academicLevels.find(l => l._id === level.toString());
     return matchedLevel ? matchedLevel : '';
@@ -156,20 +166,23 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
             <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {Array.isArray(user.subjects) && user.subjects.length > 0 ? (
-                  user.subjects.slice(0, 3).map((subject, index) => (
-                    <Chip
-                      key={subject._id || `subject-${index}`}
-                      label={getSubjectName(subject._id).name}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                        height: { xs: 20, sm: 24 }
-                      }}
-                    />
-                  ))
+                  user.subjects.slice(0, 3).map((subject, index) => {
+                    const name = getSubjectName(subject);
+                    return (
+                      <Chip
+                        key={(subject && subject._id) ? String(subject._id) : `subject-${index}`}
+                        label={name || 'Unknown Subject'}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                          borderColor: 'primary.main',
+                          color: 'primary.main',
+                          height: { xs: 20, sm: 24 }
+                        }}
+                      />
+                    );
+                  })
                 ) : (
                   <Typography 
                     variant="body2" 
@@ -180,7 +193,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   </Typography>
                 )}
                 {user.subjects?.length > 3 && (
-                  <Tooltip title={user.subjects.slice(3).join(', ')}>
+                  <Tooltip title={user.subjects.slice(3).map(s => getSubjectName(s) || (s && (s.name || s)) || '').filter(Boolean).join(', ')}>
                     <Chip
                       label={`+${user.subjects.length - 3}`}
                       size="small"
@@ -234,8 +247,8 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                 {user.subjects?.length > 0 ? (
                   user.subjects.slice(0, 3).map((subject, index) => (
                     <Chip
-                      key={subject._id || `subject-${index}`}
-                      label={getSubjectName(subject).name}
+                      key={(subject && subject._id) ? String(subject._id) : `subject-${index}`}
+                      label={getSubjectName(subject) || 'Unknown Subject'}
                       size="small"
                       variant="outlined"
                       sx={{
@@ -256,7 +269,7 @@ const UserTableRow = ({ user, tabValue, statusColors, onViewUser, onMenuClick, i
                   </Typography>
                 )}
                 {user.subjects?.length > 3 && (
-                  <Tooltip title={user.subjects.slice(3).join(', ')}>
+                  <Tooltip title={user.subjects.slice(3).map(s => getSubjectName(s) || (s && (s.name || s)) || '').filter(Boolean).join(', ')}>
                     <Chip
                       label={`+${user.subjects.length - 3}`}
                       size="small"
@@ -410,10 +423,22 @@ const UserTable = ({
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedMenuUser, setSelectedMenuUser] = useState(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [showSpinner, setShowSpinner] = useState(false);
 
   useEffect(() => {
     setLocalSearchTerm(searchTerm);
   }, [searchTerm]);
+
+  // Debounced spinner: only show spinner if loading persists for >150ms
+  useEffect(() => {
+    let t;
+    if (loading) {
+      t = setTimeout(() => setShowSpinner(true), 150);
+    } else {
+      setShowSpinner(false);
+    }
+    return () => clearTimeout(t);
+  }, [loading]);
 
   const handleViewUser = (user) => {
     navigate(`/admin/user-detail/${tabValue}`, {
@@ -537,11 +562,11 @@ const UserTable = ({
           </TableHead>
           <TableBody>
             {(
-              /* Show loading spinner only when we don't have a users array yet
-                 This prevents continuous flicker when `users` is an empty array
-                 (e.g., server down or no-data responses). If `users` is [] we
-                 show the normal "No ... found" UI instead of the spinner. */
-              loading && (users === undefined || users === null)
+              /* Show loading spinner when the debounced `showSpinner` flag is true.
+                 Parent should set `loading` while fetching. Using the debounced
+                 flag avoids flicker and ensures a loader appears for real network
+                 loads even if `users` is temporarily an empty array. */
+              showSpinner
             ) ? (
               <TableRow>
                 <TableCell colSpan={getTableHeaders().length} sx={{ textAlign: 'center', py: 6 }}>

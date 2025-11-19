@@ -17,6 +17,9 @@ const TutoringSession = require("../Models/tutoringSessionSchema");
 
 const TutorReview = require("../Models/tutorReviewSchema");
 
+const Assignment = require("../Models/assignmentSchema");
+const AssignmentSubmission = require("../Models/assignmentSubmissionSchema");
+
 const {
 
   EducationLevel,
@@ -1921,6 +1924,10 @@ exports.updateApplicationNotes = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
 
   try {
+    // Calculate previous calendar month's start and end
+    const now = new Date();
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     const [
       tutors,
       students,
@@ -1947,18 +1954,24 @@ exports.getDashboardStats = async (req, res) => {
           }
         }
       ]),
-      TutoringSession.aggregate([
-        { $match: { status: "completed" } },
-        { $group: { _id: null, total: { $sum: "$total_earnings" } } }
+      // Revenue: sum of paid StudentPayment amounts (prefer monthly_amount if present, otherwise base_amount)
+      StudentPayment.aggregate([
+        { $match: { payment_status: 'paid' } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ["$monthly_amount", "$base_amount"] } } } }
       ]),
-      TutoringSession.aggregate([
+      StudentPayment.aggregate([
         {
-          $match: {
-            status: "completed",
-            completed_at: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+          $addFields: {
+            effectivePaymentDate: { $ifNull: ["$payment_date", "$validity_start_date", "$createdAt"] }
           }
         },
-        { $group: { _id: null, total: { $sum: "$total_earnings" } } }
+        {
+          $match: {
+            payment_status: 'paid',
+            effectivePaymentDate: { $gte: prevMonthStart, $lte: prevMonthEnd }
+          }
+        },
+        { $group: { _id: null, total: { $sum: { $ifNull: ["$monthly_amount", "$base_amount"] } } } }
       ]),
     ]);
 
@@ -1999,6 +2012,31 @@ exports.getDashboardStats = async (req, res) => {
       acc[p._id] = p.count;
       return acc;
     }, {});
+    // Additional aggregated totals for dashboard
+    // We'll fetch both total payment transactions and paid transactions
+    const [hireReqAgg, paymentsTotalCount, paymentsPaidCount, assignmentsCount, assignmentSubmissionsCount, subjectsCount, academicLevelsCount, tutorReviewsCount] = await Promise.all([
+      // totalHireRequests: count only accepted hired_tutors entries across StudentProfile
+      StudentProfile.aggregate([
+        { $unwind: { path: '$hired_tutors', preserveNullAndEmptyArrays: false } },
+        { $match: { 'hired_tutors.status': 'accepted' } },
+        { $count: 'count' },
+      ]),
+      // totalPayments: total transactions (all) and paid transactions
+      StudentPayment.countDocuments({}),
+      StudentPayment.countDocuments({ payment_status: 'paid' }),
+      // totalAssignments: count assignment documents
+      Assignment.countDocuments({}),
+      // totalAssignmentSubmissions: count assignment submission documents
+      AssignmentSubmission.countDocuments({}),
+      // totalSubjects: count subject documents
+      Subject.countDocuments({}),
+      // totalAcademicLevels: count education levels
+      EducationLevel.countDocuments({}),
+      // totalTutorReviews: count tutor review documents
+      TutorReview.countDocuments({}),
+    ]);
+
+    const totalHireRequests = (hireReqAgg && hireReqAgg.length > 0) ? hireReqAgg[0].count : 0;
     
     const stats = {
       tutors: {
@@ -2023,6 +2061,17 @@ exports.getDashboardStats = async (req, res) => {
         total: revenueAgg[0]?.total || 0,
         lastMonth: lastMonthRevenueAgg[0]?.total || 0,
       },
+      // appended totals
+      totalHireRequests,
+      totalPayments: {
+        total: paymentsTotalCount,
+        paid: paymentsPaidCount,
+      },
+      totalAssignments: assignmentsCount,
+      totalAssignmentSubmissions: assignmentSubmissionsCount,
+      totalSubjects: subjectsCount,
+      totalAcademicLevels: academicLevelsCount,
+      totalTutorReviews: tutorReviewsCount,
     };
    
     res.status(200).json(stats);

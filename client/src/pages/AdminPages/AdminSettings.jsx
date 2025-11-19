@@ -365,9 +365,17 @@ const AdminSettings = () => {
     setLevelInput(level.level);
     setEditingId(level._id);
     setIsEditing(true);
-    document
-      .getElementById("levelInput")
-      ?.scrollIntoView({ behavior: "smooth" });
+    const container = document.getElementById("levelInput");
+    const focusable = container?.querySelector('input, select, textarea, button');
+    if (focusable) {
+      try {
+        focusable.focus({ preventScroll: true });
+      } catch (e) {
+        focusable.focus();
+      }
+    } else {
+      container?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   const confirmDelete = (level) => {
@@ -671,13 +679,25 @@ const AdminSettings = () => {
 
   const handleEditSubject = (subject) => {
     setSubjectInput(subject.name);
-    setSelectedLevel(subject.level_id); // Handle both cases
-    setSelectedType(subject.subject_type || "");
+    // Normalize level id: subject.level_id may be an object { _id, ... } or a plain id string
+    const levelId = subject?.level_id?._id || subject?.level_id || subject?.level || "";
+    setSelectedLevel(levelId);
+    // Normalize subject type id: may be object or id string
+    const typeId = subject?.subject_type?._id || subject?.subject_type || "";
+    setSelectedType(typeId);
     setEditingSubjectId(subject._id);
     setIsEditingSubject(true);
-    document
-      .getElementById("subjectInput")
-      ?.scrollIntoView({ behavior: "smooth" });
+    const container = document.getElementById("subjectInput");
+    const focusable = container?.querySelector('input, select, textarea, button');
+    if (focusable) {
+      try {
+        focusable.focus({ preventScroll: true });
+      } catch (e) {
+        focusable.focus();
+      }
+    } else {
+      container?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   const confirmSubjectDelete = (subject) => {
@@ -772,9 +792,17 @@ const AdminSettings = () => {
     setSubjectTypeInput(type.name);
     setEditingTypeId(type._id);
     setIsEditingType(true);
-    document
-      .getElementById("typeInput")
-      ?.scrollIntoView({ behavior: "smooth" });
+    const container = document.getElementById("typeInput");
+    const focusable = container?.querySelector('input, select, textarea, button');
+    if (focusable) {
+      try {
+        focusable.focus({ preventScroll: true });
+      } catch (e) {
+        focusable.focus();
+      }
+    } else {
+      container?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   // Delete subject type

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { getAllUsers, getDashboardStats } from '../services/adminService';
 
 const AdminDashboardContext = createContext();
@@ -49,9 +49,16 @@ export const AdminDashboardProvider = ({ children }) => {
     setDashboardState(prev => ({ ...prev, ...updates }));
   }, []);
 
+  // Keep a ref of users to avoid recreating callbacks when dashboardState.users changes
+  const usersRef = useRef(dashboardState.users);
+  React.useEffect(() => {
+    usersRef.current = dashboardState.users;
+  }, [dashboardState.users]);
+
   const loadUsers = useCallback(async (userType, forceReload = false, showLoading = false) => {
     // IMMEDIATE LOADING - Load data instantly without loading spinner
-    if (!forceReload && dashboardState.users[userType] && dashboardState.users[userType].length > 0) {
+    const cached = usersRef.current || {};
+    if (!forceReload && cached[userType] && cached[userType].length > 0) {
       // Data exists - no loading needed
       return;
     }
@@ -88,7 +95,7 @@ export const AdminDashboardProvider = ({ children }) => {
         error: error.message
       }));
     }
-  }, [dashboardState.users]);
+  }, []);
 
   const loadDashboardData = useCallback(async () => {
     setDashboardState(prev => ({ ...prev, error: null }));

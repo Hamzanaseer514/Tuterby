@@ -24,18 +24,26 @@ import {
   ArrowUpward,
   ArrowDownward,
   Refresh
+  ,
+  Assignment as AssignmentIcon,
+  ReceiptLong as ReceiptLongIcon,
+  MenuBook as MenuBookIcon,
+  Category as CategoryIcon,
+  Layers as LayersIcon,
+  RateReview as RateReviewIcon,
+  UploadFile as UploadFileIcon
 } from '@mui/icons-material';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
-  PieChart, 
-  Pie, 
+  PieChart,
+  Pie,
   Cell
 } from 'recharts';
 import AdminLayout from '../../components/admin/components/AdminLayout';
@@ -69,32 +77,36 @@ if (typeof document !== 'undefined') {
 
 const statKey = (k) => `admin_last_seen_${k}`;
 
-const StatCard = React.memo(({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
-  trendValue, 
-  loading, 
+const StatCard = React.memo(({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  trendValue,
+  loading,
   color = 'primary',
   onClick,
   secondaryValue,
   showDot = false,
-  onSeen = () => {},
+  onSeen = () => { },
   hasData = false
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   // Show skeleton only when loading while we already have data (refreshing).
   // If there is no data available yet (hasData === false) we render the
   // card with zero/empty values so the dashboard doesn't display grey
   // loading lines when the server returned no data or is down.
   if (loading && hasData) {
     return (
-      <Grid item xs={12} sm={6} lg={3}>
-        <Card elevation={0} sx={{ 
-          height: '100%',
+      <Grid item xs={12} sm={6} lg={3} sx={{ display: 'flex', flexBasis: { xs: '100%', sm: '50%', lg: '25%' }, minWidth: 0 }}>
+        <Card elevation={0} sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: { xs: 140, sm: 160, md: 180 },
           borderRadius: '12px',
           background: theme.palette.background.paper,
           boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
@@ -107,74 +119,125 @@ const StatCard = React.memo(({
             background: alpha(theme.palette[color].main, 0.02)
           }
         }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ 
-              display: 'flex', 
+          <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 }, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+            <Box sx={{
+              display: 'flex',
               alignItems: 'center',
-              mb: 2,
-              gap: 2
+              mb: { xs: 1.5, sm: 2 },
+              gap: { xs: 1.5, sm: 2 }
             }}>
               <Box sx={{
-                width: 48,
-                height: 48,
+                width: { xs: 44, sm: 48, md: 52 },
+                height: { xs: 44, sm: 48, md: 52 },
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: alpha(theme.palette[color].main, 0.1),
                 color: theme.palette[color].main,
-                flexShrink: 0
+                flexShrink: 0,
+                aspectRatio: '1 / 1' // Ensures perfect square
               }}>
-                <Icon fontSize="medium" />
+                <Icon sx={{
+                  fontSize: {
+                    xs: '1.25rem',
+                    sm: '1.375rem',
+                    md: '1.5rem'
+                  }
+                }} />
               </Box>
-              
-              <Box sx={{ flex: 1 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  color="text.secondary" 
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
                   fontWeight="500"
-                  sx={{ mb: 0.5 }}
+                  sx={{
+                    mb: 0.5,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' }
+                  }}
                 >
                   {title}
                 </Typography>
-                <Skeleton variant="text" width="60%" height={32} />
+                <Skeleton
+                  variant="text"
+                  sx={{
+                    width: '60%',
+                    height: {
+                      xs: 28,
+                      sm: 32,
+                      md: 36
+                    }
+                  }}
+                />
               </Box>
             </Box>
-            
-            <Divider sx={{ my: 1.5 }} />
-            
-            <Box sx={{ 
-              display: 'flex', 
+
+            <Divider sx={{ my: { xs: 1, sm: 1.5 } }} />
+
+            <Box sx={{
+              display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: { xs: 0.5, sm: 1 }
             }}>
-              <Skeleton variant="text" width="40%" height={20} />
-              <Box sx={{ 
-                display: 'flex', 
+              <Skeleton
+                variant="text"
+                sx={{
+                  width: '40%',
+                  height: {
+                    xs: 18,
+                    sm: 20
+                  }
+                }}
+              />
+              <Box sx={{
+                display: 'flex',
                 alignItems: 'center',
                 ml: 'auto'
               }}>
-                <Skeleton variant="circular" width={16} height={16} sx={{ mr: 0.5 }} />
-                <Skeleton variant="text" width={50} height={20} />
+                <Skeleton
+                  variant="circular"
+                  sx={{
+                    width: { xs: 14, sm: 16 },
+                    height: { xs: 14, sm: 16 },
+                    mr: 0.5
+                  }}
+                />
+                <Skeleton
+                  variant="text"
+                  sx={{
+                    width: 50,
+                    height: {
+                      xs: 18,
+                      sm: 20
+                    }
+                  }}
+                />
               </Box>
             </Box>
           </CardContent>
         </Card>
       </Grid>
     );
-  }
+  } // <- This closing brace was missing
 
   const TrendIcon = trend === 'up' ? ArrowUpward : ArrowDownward;
   const trendColor = trend === 'up' ? theme.palette.success.main : theme.palette.error.main;
 
   return (
-    <Grid item xs={12} sm={6} lg={3}>
-      <Card 
+    <Grid item xs={12} sm={6} lg={3} sx={{ display: 'flex', flexBasis: { xs: '100%', sm: '100%', md: '40%', lg: '30%' }, minWidth: 0 }}>
+      <Card
         component="div"
         elevation={0}
         onClick={onClick}
-        sx={{ 
-          height: '100%',
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: { xs: 140, sm: 160, md: 180 },
           borderRadius: '12px',
           background: theme.palette.background.paper,
           boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
@@ -191,69 +254,88 @@ const StatCard = React.memo(({
         }}
       >
         {showDot && (
-          <Box sx={{ position: 'absolute', top: 10, right: 10, width: 10, height: 10, bgcolor: 'error.main', borderRadius: '50%' }} />
+          <Box sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            width: 10,
+            height: 10,
+            bgcolor: 'error.main',
+            borderRadius: '50%'
+          }} />
         )}
-        <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
-          <Box sx={{ 
-            display: 'flex', 
+        <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 }, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+          <Box sx={{
+            display: 'flex',
             alignItems: 'center',
             mb: { xs: 1.5, sm: 2 },
             gap: { xs: 1.5, sm: 2 }
           }}>
             <Box sx={{
-              width: { xs: 40, sm: 44, md: 48 },
-              height: { xs: 40, sm: 44, md: 48 },
+              width: { xs: 44, sm: 48, md: 52 },
+              height: { xs: 44, sm: 48, md: 52 },
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: alpha(theme.palette[color].main, 0.1),
               color: theme.palette[color].main,
-              flexShrink: 0
+              flexShrink: 0,
+              aspectRatio: '1 / 1' // Ensures perfect square
             }}>
-              <Icon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' } }} />
+              <Icon sx={{
+                fontSize: {
+                  xs: '1.25rem',
+                  sm: '1.375rem',
+                  md: '1.5rem'
+                }
+              }} />
             </Box>
-            
+
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography 
-                variant="subtitle2" 
-                color="text.secondary" 
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
                 fontWeight="500"
-                sx={{ 
+                sx={{
                   mb: 0.5,
                   fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' }
                 }}
               >
                 {title}
               </Typography>
-              <Typography 
-                variant="h4" 
-                fontWeight="700" 
+              <Typography
+                variant="h4"
+                fontWeight="700"
                 color="text.primary"
-                sx={{ 
+                sx={{
                   lineHeight: 1.2,
-                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' }
+                  fontSize: {
+                    xs: '1.5rem',
+                    sm: '1.75rem',
+                    md: '2.125rem'
+                  }
                 }}
               >
                 {value}
               </Typography>
             </Box>
           </Box>
-          
+
           <Divider sx={{ my: { xs: 1, sm: 1.5 } }} />
-          
-          <Box sx={{ 
-            display: 'flex', 
+
+          <Box sx={{
+            display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: { xs: 0.5, sm: 1 }
           }}>
             {secondaryValue && (
-              <Typography 
-                variant="caption" 
+              <Typography
+                variant="caption"
                 color="text.secondary"
-                sx={{ 
+                sx={{
                   fontSize: { xs: '0.65rem', sm: '0.75rem' },
                   wordBreak: 'break-word'
                 }}
@@ -261,19 +343,19 @@ const StatCard = React.memo(({
                 {secondaryValue}
               </Typography>
             )}
-            
-            <Box sx={{ 
-              display: 'flex', 
+
+            <Box sx={{
+              display: 'flex',
               alignItems: 'center',
               ml: secondaryValue ? 'auto' : 0
             }}>
-              <TrendIcon sx={{ 
-                fontSize: { xs: 14, sm: 16 }, 
+              <TrendIcon sx={{
+                fontSize: { xs: 14, sm: 16 },
                 color: trendColor,
-                mr: 0.5 
+                mr: 0.5
               }} />
-              <Typography 
-                variant="body2" 
+              <Typography
+                variant="body2"
                 fontWeight="500"
                 color={trendColor}
                 sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}
@@ -291,7 +373,7 @@ const StatCard = React.memo(({
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <Card elevation={3} sx={{ 
+      <Card elevation={3} sx={{
         background: 'rgba(255, 255, 255, 0.95)',
         padding: '8px 12px',
         borderRadius: '8px',
@@ -299,7 +381,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       }}>
         <Typography variant="subtitle2" fontWeight={600}>{label}</Typography>
         {payload.map((entry, index) => (
-          <Typography key={index} variant="body2" sx={{ 
+          <Typography key={index} variant="body2" sx={{
             color: entry.color,
             mt: 0.5
           }}>
@@ -317,7 +399,7 @@ const UnifiedAdminDashboard = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Determine active tab from URL
   const getTabFromPath = (pathname, search) => {
     if (pathname === '/admin' || pathname === '/admin/') return 'dashboard';
@@ -335,7 +417,7 @@ const UnifiedAdminDashboard = () => {
     if (pathname === '/admin/settings') return 'settings';
     return 'dashboard';
   };
-  
+
   const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname, location.search));
   const [dashboardState, setDashboardState] = useState(() => {
     // Load from sessionStorage for instant display
@@ -410,7 +492,7 @@ const UnifiedAdminDashboard = () => {
     setIsRefreshing(true);
     try {
       const statsData = await getDashboardStats();
-      
+
       setDashboardState(prev => ({
         ...prev,
         stats: statsData,
@@ -418,7 +500,7 @@ const UnifiedAdminDashboard = () => {
       }));
       computeFlags(statsData);
       setLastRefreshTime(new Date());
-      
+
       // Save to sessionStorage for instant loading next time
       sessionStorage.setItem('adminDashboardStats', JSON.stringify({
         stats: statsData,
@@ -452,7 +534,7 @@ const UnifiedAdminDashboard = () => {
   const inactiveTutors = dashboardState.stats.tutors?.inactive || 0;
   const inactiveStudents = dashboardState.stats.students?.inactive || 0;
   const inactiveParents = dashboardState.stats.parents?.inactive || 0;
-  
+console.log(dashboardState.stats);
   const statCards = useMemo(() => {
     const tutorsVerified = dashboardState.stats.tutors?.verified || 0;
     const tutorsTotal = dashboardState.stats.tutors?.total || 0;
@@ -544,6 +626,76 @@ const UnifiedAdminDashboard = () => {
         secondaryValue: `$${revenueLastMonth.toLocaleString()} last month`,
         onClick: () => handleTabChange('tutor-payments'),
       },
+      {
+        title: 'Hire Requests',
+        value: dashboardState.stats.totalHireRequests || 0,
+        icon: AssignmentIcon,
+        color: 'info',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalHireRequests || 0} total`,
+        onClick: () => handleTabChange('hire-requests'),
+      },
+      {
+        title: 'Payments (paid)',
+        value: dashboardState.stats.totalPayments?.paid || 0,
+        icon: ReceiptLongIcon,
+        color: 'success',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalPayments?.total || 0} total`,
+        onClick: () => handleTabChange('tutor-payments'),
+      },
+      {
+        title: 'Tutor Reviews',
+        value: dashboardState.stats.totalTutorReviews || 0,
+        icon: RateReviewIcon,
+        color: 'secondary',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalTutorReviews || 0} reviews`,
+        onClick: () => handleTabChange('tutor-reviews'),
+      },
+      {
+        title: 'Assignment Submissions',
+        value: dashboardState.stats.totalAssignmentSubmissions || 0,
+        icon: UploadFileIcon,
+        color: 'info',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalAssignmentSubmissions || 0} submissions`,
+        onClick: () => handleTabChange('assignments'),
+      },
+      {
+        title: 'Assignments',
+        value: dashboardState.stats.totalAssignments || 0,
+        icon: MenuBookIcon,
+        color: 'primary',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalAssignments || 0} total`,
+        onClick: () => handleTabChange('assignments'),
+      },
+      {
+        title: 'Subjects',
+        value: dashboardState.stats.totalSubjects || 0,
+        icon: CategoryIcon,
+        color: 'secondary',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalSubjects || 0} total`,
+        onClick: () => handleTabChange('settings'),
+      },
+      {
+        title: 'Academic Levels',
+        value: dashboardState.stats.totalAcademicLevels || 0,
+        icon: LayersIcon,
+        color: 'primary',
+        trend: 'up',
+        trendValue: '+0%',
+        secondaryValue: `${dashboardState.stats.totalAcademicLevels || 0} total`,
+        onClick: () => handleTabChange('settings'),
+      },
     ];
   }, [
     dashboardState.stats.tutors?.verified,
@@ -555,6 +707,13 @@ const UnifiedAdminDashboard = () => {
     dashboardState.stats.sessions?.pending,
     dashboardState.stats.revenue?.total,
     dashboardState.stats.revenue?.lastMonth,
+    dashboardState.stats.totalHireRequests,
+    dashboardState.stats.totalPaymentsMade,
+    dashboardState.stats.totalAssignments,
+    dashboardState.stats.totalAssignmentSubmissions,
+    dashboardState.stats.totalSubjects,
+    dashboardState.stats.totalAcademicLevels,
+    dashboardState.stats.totalTutorReviews,
     newFlags.tutors,
     newFlags.students,
     newFlags.parents
@@ -562,7 +721,7 @@ const UnifiedAdminDashboard = () => {
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
-    
+
     // Update URL without page reload
     const pathMap = {
       'dashboard': '/admin',
@@ -577,12 +736,12 @@ const UnifiedAdminDashboard = () => {
       'assignments': '/admin/assignments',
       'settings': '/admin/settings'
     };
-    
+
     const newPath = pathMap[newTab] || '/admin';
     const [newPathname, newSearch] = newPath.split('?');
     const currentSearch = location.search || '';
     const expectedSearch = newSearch ? `?${newSearch}` : '';
-    
+
     if (location.pathname !== newPathname || currentSearch !== expectedSearch) {
       navigate(newPath, { replace: true });
     }
@@ -593,7 +752,7 @@ const UnifiedAdminDashboard = () => {
       case 'dashboard':
         return (
           <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Box sx={{ 
+            <Box sx={{
               mb: { xs: 2, sm: 3, md: 4 },
               display: 'flex',
               flexDirection: { xs: 'column', sm: 'row' },
@@ -602,37 +761,37 @@ const UnifiedAdminDashboard = () => {
               gap: { xs: 2, sm: 0 }
             }}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography 
-                  variant="h5" 
-                  fontWeight="700" 
-                  sx={{ 
+                <Typography
+                  variant="h5"
+                  fontWeight="700"
+                  sx={{
                     mb: 0.5,
                     fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
                   }}
                 >
                   Dashboard Overview
                 </Typography>
-                <Typography 
-                  variant="body2" 
+                <Typography
+                  variant="body2"
                   color="text.secondary"
-                  sx={{ 
+                  sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     display: { xs: 'none', sm: 'block' }
                   }}
                 >
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </Typography>
                 {lastRefreshTime && (
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary" 
-                    sx={{ 
-                      mt: 0.5, 
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      mt: 0.5,
                       display: 'block',
                       fontSize: { xs: '0.7rem', sm: '0.75rem' }
                     }}
@@ -641,21 +800,21 @@ const UnifiedAdminDashboard = () => {
                   </Typography>
                 )}
               </Box>
-              
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: { xs: 1, sm: 2 },
                 width: { xs: '100%', sm: 'auto' },
                 justifyContent: { xs: 'flex-start', sm: 'flex-end' }
               }}>
                 {isRefreshing && (
-                  <Typography 
-                    variant="caption" 
-                    color="primary" 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                  <Typography
+                    variant="caption"
+                    color="primary"
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: 0.5,
                       fontSize: { xs: '0.7rem', sm: '0.75rem' }
                     }}
@@ -686,7 +845,7 @@ const UnifiedAdminDashboard = () => {
             </Box>
 
             {/* Stats Cards Section */}
-            <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+            <Grid container spacing={{ xs: 1, sm: 1, md: 2 }} alignItems="stretch" alignContent="stretch">
               {statCards.map((card, index) => (
                 <StatCard
                   key={index}
