@@ -18,6 +18,7 @@ const TutorReview = require("../Models/tutorReviewSchema"); // Added for tutor r
 
 const { EducationLevel, Subject } = require("../Models/LookupSchema");
 
+const ChangeLog = require("../Models/Logs");
 const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 
 
@@ -56,117 +57,129 @@ exports.getStudentProfile = asyncHandler(async (req, res) => {
 
 
 // Student: Delete a hire request (only allowed when there's no active/valid paid package)
+// Student: Delete a hire request (only allowed when there's no active/valid paid package)
 exports.deleteMyHireRequest = asyncHandler(async (req, res) => {
-    try {
-        const { hire_record_id } = req.params;
-        if (!hire_record_id) {
-            return res.status(400).json({ success: false, message: 'hire_record_id is required' });
-        }
+  try {
+    const { hire_record_id } = req.params;
+    const actor = req.user ? req.user._id : null;
 
-        // Find student profile for logged-in user
-        const student = await Student.findOne({ user_id: req.user._id });
-        if (!student) return res.status(404).json({ success: false, message: 'Student profile not found' });
-
-            // Try to find hire record by subdocument id first, then fall back to matching tutor id
-            let hireRecord = student.hired_tutors.id(hire_record_id);
-            if (!hireRecord) {
-                // attempt to match by tutor id (frontend may supply tutor._id)
-                const found = (student.hired_tutors || []).find(h => String(h.tutor) === String(hire_record_id));
-                if (found) {
-                    hireRecord = found;
-                }
-            }
-
-            if (!hireRecord) return res.status(404).json({ success: false, message: 'Hire record not found' });
-
-        // Check for an active/valid paid StudentPayment that would block deletion
-        try {
-            const now = new Date();
-            const activePayment = await StudentPayment.findOne({
-                student_id: student._id,
-                tutor_id: hireRecord.tutor,
-                subject: hireRecord.subject,
-                academic_level: hireRecord.academic_level_id,
-                payment_status: 'paid',
-                academic_level_paid: true,
-                validity_status: 'active',
-                validity_end_date: { $gt: now },
-                sessions_remaining: { $gt: 0 }
-            }).lean();
-
-            if (activePayment) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Cannot delete hire request: an active/paid package exists for this tutor, subject and level.',
-                    links: {
-                        payments: [
-                            {
-                                id: activePayment._id,
-                                payment_status: activePayment.payment_status,
-                                validity_status: activePayment.validity_status,
-                                sessions_remaining: activePayment.sessions_remaining
-                            }
-                        ]
-                    }
-                });
-            }
-        } catch (err) {
-            console.error('Error checking active payments before student delete:', err);
-            // continue but log; do not block deletion on internal check failure
-        }
-
-        // No blocking active payment -> expire/cancel related StudentPayment records (pending/unpaid)
-        try {
-            const updateResult = await StudentPayment.updateMany(
-                {
-                    student_id: student._id,
-                    tutor_id: hireRecord.tutor,
-                    subject: hireRecord.subject,
-                    academic_level: hireRecord.academic_level_id,
-                },
-                {
-                    $set: {
-                        academic_level_paid: false,
-                        is_active: false,
-                        validity_status: 'expired',
-                        payment_status: 'cancelled',
-                    },
-                });
-            // Remove hire record from student profile. Accept either hire subdoc _id or tutor id as the identifier.
-            student.hired_tutors = (student.hired_tutors || []).filter(h => {
-                const subId = String(h._id);
-                const tutorId = String(h.tutor);
-                const target = String(hire_record_id);
-                return subId !== target && tutorId !== target;});
-            await student.save();
-
-            return res.status(200).json({
-                success: true,
-                message: 'Hire request deleted',
-                hire_record_id,
-                paymentsUpdated: updateResult?.modifiedCount ?? updateResult?.nModified ?? 0,
-            });
-        } catch (err) {
-            console.error('Error cancelling payments during student hire deletion:', err);
-            // Still attempt removal even if payment update fails; accept either subdoc id or tutor id
-            student.hired_tutors = (student.hired_tutors || []).filter(h => {
-                const subId = String(h._id);
-                const tutorId = String(h.tutor);
-                const target = String(hire_record_id);
-                return subId !== target && tutorId !== target;
-            });
-            await student.save();
-            return res.status(200).json({
-                success: true,
-                message: 'Hire request deleted (payments update failed)',
-                hire_record_id,
-            });
-        }
-    } catch (err) {
-        console.error('Error deleting student hire request:', err);
-        return res.status(500).json({ success: false, message: 'Failed to delete hire request', error: err.message });
+    if (!hire_record_id) {
+      return res.status(400).json({ success: false, message: 'hire_record_id is required' });
     }
+
+    // Find student profile for logged-in user
+    const student = await Student.findOne({ user_id: actor });
+    if (!student) return res.status(404).json({ success: false, message: 'Student profile not found' });
+
+    // Try to find hire record by subdocument id first, then fall back to tutor id
+    let hireRecord = student.hired_tutors.id(hire_record_id);
+    if (!hireRecord) {
+      const found = (student.hired_tutors || []).find(h => String(h.tutor) === String(hire_record_id));
+      if (found) hireRecord = found;
+    }
+    if (!hireRecord) return res.status(404).json({ success: false, message: 'Hire record not found' });
+
+    // BEFORE snapshot for logging
+    const beforeHire = hireRecord.toObject ? hireRecord.toObject() : JSON.parse(JSON.stringify(hireRecord));
+
+    // Check for an active/valid paid StudentPayment that blocks deletion
+    try {
+      const now = new Date();
+      const activePayment = await StudentPayment.findOne({
+        student_id: student._id,
+        tutor_id: hireRecord.tutor,
+        subject: hireRecord.subject,
+        academic_level: hireRecord.academic_level_id,
+        payment_status: 'paid',
+        academic_level_paid: true,
+        validity_status: 'active',
+        validity_end_date: { $gt: now },
+        sessions_remaining: { $gt: 0 }
+      }).lean();
+
+      if (activePayment) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete hire request: an active/paid package exists for this tutor, subject and level.',
+          links: {
+            payments: [
+              {
+                id: activePayment._id,
+                payment_status: activePayment.payment_status,
+                validity_status: activePayment.validity_status,
+                sessions_remaining: activePayment.sessions_remaining
+              }
+            ]
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error checking active payments before student delete:', err);
+    }
+
+    // Expire/cancel related pending/unpaid StudentPayment records
+    let paymentsUpdated = 0;
+    try {
+      const updateResult = await StudentPayment.updateMany(
+        {
+          student_id: student._id,
+          tutor_id: hireRecord.tutor,
+          subject: hireRecord.subject,
+          academic_level: hireRecord.academic_level_id,
+        },
+        {
+          $set: {
+            academic_level_paid: false,
+            is_active: false,
+            validity_status: 'expired',
+            payment_status: 'cancelled',
+          },
+        }
+      );
+      paymentsUpdated = updateResult?.modifiedCount ?? updateResult?.nModified ?? 0;
+    } catch (err) {
+      console.error('Error cancelling payments during student hire deletion:', err);
+    }
+
+    // Remove hire record from student profile
+    student.hired_tutors = (student.hired_tutors || []).filter(h => {
+      const subId = String(h._id);
+      const tutorId = String(h.tutor);
+      const target = String(hire_record_id);
+      return subId !== target && tutorId !== target;
+    });
+
+    student._changedBy = actor;
+    await student.save();
+
+    // Log deletion
+    try {
+      await ChangeLog.create({
+        table: 'student_hired_tutors',
+        action: 'delete',
+        actualJson: beforeHire,
+        documentKey: { student_profile_id: String(student._id), hire_record_id: String(beforeHire._id) },
+        changedBy: actor,
+        meta: { note: 'Student deleted hire request via deleteMyHireRequest' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for student hire deletion:', logErr);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Hire request deleted',
+      hire_record_id,
+      paymentsUpdated,
+    });
+
+  } catch (err) {
+    console.error('Error deleting student hire request:', err);
+    return res.status(500).json({ success: false, message: 'Failed to delete hire request', error: err.message });
+  }
 });
+
+
 
 
 
@@ -542,201 +555,128 @@ exports.getStudentSessions = asyncHandler(async (req, res) => {
 
 
 
+// Update a student's profile (user + student subdocument)
 exports.updateStudentProfile = asyncHandler(async (req, res) => {
-
-    try {
-
-        const {
-
-            full_name,
-
-            phone_number,
-
-            // photo_url,
-
-            age,
-
-            academic_level,
-
-            learning_goals,
-
-            preferred_subjects,
-
-            availability,
-
-        } = req.body;
-
-
-
-        const { user_id } = req.params;
-
-        if (!user_id) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message: "User ID is required"
-
-            });
-
-        }
-
-
-
-        // ✅ Fetch user without invalid enum issues
-
-        const user = await User.findById(user_id).lean(); // lean() removes mongoose doc wrapping
-
-        if (!user) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "User not found"
-
-            });
-
-        }
-
-
-
-        if (user.role !== 'student') {
-
-            return res.status(403).json({
-
-                success: false,
-
-                message: "User is not a student"
-
-            });
-
-        }
-
-
-
-        // ✅ Prepare update object only with allowed fields
-
-        const userUpdates = {};
-
-        if (phone_number) {
-
-            const existingUser = await User.findOne({ phone_number });
-
-            if (existingUser && existingUser._id.toString() !== user_id) {
-
-                return res.status(400).json({ success: false, message: "Phone number already in use" });
-
-            }
-
-            userUpdates.phone_number = phone_number;
-
-        }
-
-        if (full_name) userUpdates.full_name = full_name;
-
-        // if (photo_url) userUpdates.photo_url = photo_url;
-
-        if (age) userUpdates.age = age;
-
-
-
-        // ✅ Update without touching is_verified
-
-        await User.updateOne(
-
-            { _id: user_id },
-
-            { $set: userUpdates },
-
-            { runValidators: true }
-
-        );
-
-
-
-        // Update student profile
-
-        const studentProfile = await Student.findOne({ user_id });
-
-        if (!studentProfile) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Student profile not found"
-
-            });
-
-        }
-
-
-
-        if (academic_level) studentProfile.academic_level = academic_level;
-
-        if (learning_goals) studentProfile.learning_goals = learning_goals;
-
-        if (Array.isArray(preferred_subjects) && preferred_subjects.length > 0) {
-
-            studentProfile.preferred_subjects = preferred_subjects;
-
-        }
-
-        if (Array.isArray(availability) && availability.length > 0) {
-
-            studentProfile.availability = availability;
-
-        }
-
-
-
-        await studentProfile.save();
-
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Student profile updated successfully",
-
-            user: userUpdates,
-
-            student: {
-
-                academic_level: studentProfile.academic_level,
-
-                learning_goals: studentProfile.learning_goals,
-
-                preferred_subjects: studentProfile.preferred_subjects,
-
-                availability: studentProfile.availability,
-
-            },
-
-        });
-
-
-
-    } catch (error) {
-
-        console.error("Error updating student profile:", error);
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: "Internal server error while updating student profile",
-
-            error: error.message
-
-        });
-
+  try {
+    const {
+      full_name,
+      phone_number,
+      // photo_url,
+      age,
+      academic_level,
+      learning_goals,
+      preferred_subjects,
+      availability,
+    } = req.body;
+
+    const { user_id } = req.params;
+    const actor = req.user ? req.user._id : null;
+
+    if (!user_id) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
     }
 
+    // Fetch user
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (user.role !== 'student') {
+      return res.status(403).json({ success: false, message: "User is not a student" });
+    }
+
+    // BEFORE snapshot for logging
+    const beforeUser = user.toObject();
+
+    // Update allowed user fields
+    if (phone_number) {
+      const existingUser = await User.findOne({ phone_number });
+      if (existingUser && existingUser._id.toString() !== user_id) {
+        return res.status(400).json({ success: false, message: "Phone number already in use" });
+      }
+      user.phone_number = phone_number;
+    }
+    if (full_name) user.full_name = full_name;
+    // if (photo_url) user.photo_url = photo_url;
+    if (age) user.age = age;
+
+    await user.save();
+
+    // Update student profile
+    const studentProfile = await Student.findOne({ user_id });
+    if (!studentProfile) {
+      return res.status(404).json({ success: false, message: "Student profile not found" });
+    }
+
+    // BEFORE snapshot for logging
+    const beforeStudent = studentProfile.toObject();
+
+    if (academic_level) studentProfile.academic_level = academic_level;
+    if (learning_goals) studentProfile.learning_goals = learning_goals;
+    if (Array.isArray(preferred_subjects) && preferred_subjects.length > 0) {
+      studentProfile.preferred_subjects = preferred_subjects;
+    }
+    if (Array.isArray(availability) && availability.length > 0) {
+      studentProfile.availability = availability;
+    }
+
+    studentProfile._changedBy = actor;
+    await studentProfile.save();
+
+    // Log changes for user
+    try {
+      await ChangeLog.create({
+        table: 'users',
+        action: 'update',
+        actualJson: beforeUser,
+        documentKey: { user_id: String(user._id) },
+        changedBy: actor,
+        meta: { note: 'Student user profile updated via updateStudentProfile' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for user update:', logErr);
+    }
+
+    // Log changes for student profile
+    try {
+      await ChangeLog.create({
+        table: 'students',
+        action: 'update',
+        actualJson: beforeStudent,
+        documentKey: { user_id: String(studentProfile.user_id) },
+        changedBy: actor,
+        meta: { note: 'Student profile updated via updateStudentProfile' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for student profile update:', logErr);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Student profile updated successfully",
+      user: {
+        full_name: user.full_name,
+        phone_number: user.phone_number,
+        age: user.age,
+      },
+      student: {
+        academic_level: studentProfile.academic_level,
+        learning_goals: studentProfile.learning_goals,
+        preferred_subjects: studentProfile.preferred_subjects,
+        availability: studentProfile.availability,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating student profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while updating student profile",
+      error: error.message
+    });
+  }
 });
+
+
 
 
 

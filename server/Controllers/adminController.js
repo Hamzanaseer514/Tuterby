@@ -20,6 +20,7 @@ const TutorReview = require("../Models/tutorReviewSchema");
 const Assignment = require("../Models/assignmentSchema");
 const AssignmentSubmission = require("../Models/assignmentSubmissionSchema");
 
+const ChangeLog = require("../Models/Logs");
 const {
 
   EducationLevel,
@@ -35,10 +36,10 @@ const Rules = require("../Models/Rules");
 const mongoose = require("mongoose");
 
 const sendEmail = require("../Utils/sendEmail");
-const { 
-  generateTutorApprovalEmail, 
-  generateTutorRejectionEmail, 
-  generateTutorPartialApprovalEmail 
+const {
+  generateTutorApprovalEmail,
+  generateTutorRejectionEmail,
+  generateTutorPartialApprovalEmail
 } = require("../Utils/tutorEmailTemplates");
 const s3KeyToUrl = require("../Utils/s3KeyToUrl");
 
@@ -106,7 +107,7 @@ const createInterviewResultEmailTemplate = (tutorName, result, notes = '') => {
   const headerColor = isPassed ? '#4CAF50' : '#f44336';
   const resultText = isPassed ? 'Congratulations!' : 'Interview Result';
   const statusText = isPassed ? 'PASSED' : 'FAILED';
-  
+
   return `
     <!DOCTYPE html>
     <html>
@@ -320,7 +321,7 @@ exports.setAvailableInterviewSlots = async (req, res) => {
 
 
       application.preferred_interview_times = mergedTimes;
-      
+
       // Update token and expiration time
       application.interview_token = interviewToken;
       application.expire_token = tokenExpiration;
@@ -331,14 +332,14 @@ exports.setAvailableInterviewSlots = async (req, res) => {
 
     // Get tutor's user information for email
     const tutorUser = await User.findById(user_id);
-    
+
     if (tutorUser && tutorUser.email) {
       // Send email to tutor with interview scheduling link
       const clientUrl = process.env.FRONTEND_URL;
       const emailSubject = 'Interview Scheduling Invitation - Tutorby';
       const emailContent = createInterviewEmailTemplate(
-        tutorUser.full_name, 
-        clientUrl, 
+        tutorUser.full_name,
+        clientUrl,
         interviewToken
       );
 
@@ -516,16 +517,16 @@ exports.completeInterview = async (req, res) => {
 
     // Get tutor user details for email
     const tutorUser = await User.findById(userId);
-    
+
     if (tutorUser && tutorUser.email) {
       // Send interview result email to tutor
-      const emailSubject = result === "passed" 
-        ? 'Congratulations! Interview Passed - Tutorby' 
+      const emailSubject = result === "passed"
+        ? 'Congratulations! Interview Passed - Tutorby'
         : 'Interview Result - Tutorby';
-      
+
       const emailContent = createInterviewResultEmailTemplate(
-        tutorUser.full_name, 
-        result, 
+        tutorUser.full_name,
+        result,
         notes || ''
       );
 
@@ -1006,13 +1007,11 @@ exports.rejectTutorProfile = async (req, res) => {
 };
 
 
-
 // Get all users (tutors, students, parents) with detailed information - ULTRA OPTIMIZED VERSION
-
 exports.getAllUsers = async (req, res) => {
   try {
     const { userType, status, search, page = 1, limit = 50 } = req.query;
-    
+
     // Pagination setup - increased default limit for better performance
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const lim = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
@@ -1023,7 +1022,7 @@ exports.getAllUsers = async (req, res) => {
     if (userType && userType !== "all") {
       const roleMapping = {
         tutors: "tutor",
-        students: "student", 
+        students: "student",
         parents: "parent",
       };
       query.role = roleMapping[userType] || userType;
@@ -1042,7 +1041,7 @@ exports.getAllUsers = async (req, res) => {
 
     // Get total count for pagination - use estimated count for better performance
     const totalUsers = await User.estimatedDocumentCount();
-    
+
     // Get users with pagination - optimized query
     const users = await User.find(query)
       .select('_id full_name email phone_number photo_url role is_verified createdAt updatedAt')
@@ -1080,7 +1079,7 @@ exports.getAllUsers = async (req, res) => {
           select: "level"
         })
         .lean(),
-      
+
       // Student profiles with minimal population
       StudentProfile.find({ user_id: { $in: userIds } })
         .select('user_id preferred_subjects academic_level location parent_id')
@@ -1093,7 +1092,7 @@ exports.getAllUsers = async (req, res) => {
           }
         })
         .lean(),
-      
+
       // Parent profiles with minimal population
       ParentProfile.find({ user_id: { $in: userIds } })
         .select('user_id students location')
@@ -1110,7 +1109,7 @@ exports.getAllUsers = async (req, res) => {
 
     // Get tutor IDs for documents and applications
     const tutorIds = tutorProfiles.map(tp => tp._id);
-    
+
     // Fetch documents and applications only if we have tutors
     const [tutorDocuments, tutorApplications] = tutorIds.length > 0 ? await Promise.all([
       TutorDocument.find({ tutor_id: { $in: tutorIds } })
@@ -1185,8 +1184,8 @@ exports.getAllUsers = async (req, res) => {
               }),
               scheduled: application.interview_status,
               completed: ["Passed", "Failed"].includes(application.interview_status),
-              result: application.interview_status === "Passed" ? "Passed" : 
-                     application.interview_status === "Failed" ? "Failed" : null,
+              result: application.interview_status === "Passed" ? "Passed" :
+                application.interview_status === "Failed" ? "Failed" : null,
               notes: application.interview_notes || "",
             }] : [],
             is_interview: application?.is_interview || false,
@@ -1223,7 +1222,6 @@ exports.getAllUsers = async (req, res) => {
       } else if (user.role === "parent") {
         const parentProfile = parentProfileMap.get(user._id.toString());
         if (parentProfile) {
-          console.log("parentProfile", parentProfile);
           return {
             ...baseUser,
             children: parentProfile.students,
@@ -1232,7 +1230,6 @@ exports.getAllUsers = async (req, res) => {
           };
         }
       }
-      console.log("baseUser", baseUser);
       return baseUser;
     }));
 
@@ -1255,9 +1252,7 @@ exports.getAllUsers = async (req, res) => {
 };
 
 
-
 // Get detailed tutor information including documents and interviews
-
 exports.getTutorDetails = async (req, res) => {
 
   try {
@@ -1265,18 +1260,18 @@ exports.getTutorDetails = async (req, res) => {
     const { user_id } = req.params;
 
     const tutor = await TutorProfile.findOne({ user_id: user_id })
-    .populate({
-      path: "user_id",
-      select: "full_name email phone_number photo_url createdAt updatedAt",
-    })
-    .populate({
-      path: "subjects", // 👈 populate subjects
-      select: "name",   // sirf name chahiye
-    })
-    .populate({
-      path: "academic_levels_taught.educationLevel",
-      select: "level",
-    });
+      .populate({
+        path: "user_id",
+        select: "full_name email phone_number photo_url createdAt updatedAt",
+      })
+      .populate({
+        path: "subjects", // 👈 populate subjects
+        select: "name",   // sirf name chahiye
+      })
+      .populate({
+        path: "academic_levels_taught.educationLevel",
+        select: "level",
+      });
 
     if (!tutor) {
 
@@ -1371,12 +1366,12 @@ exports.getTutorDetails = async (req, res) => {
       location: tutor.location,
       subjects: parsedSubjects,
       status: tutor.profile_status,
-      experience_years : tutor.experience_years,
-      TotalSessions:totalSessions,
+      experience_years: tutor.experience_years,
+      TotalSessions: totalSessions,
       bio: tutor.bio,
       // 🔹 Academic Levels
       academic_levels_taught: tutor.academic_levels_taught || [],
-    
+
       documents: await Promise.all(documents.map(async (doc) => ({
         type: doc.document_type,
         url: doc.file_url ? await s3KeyToUrl(doc.file_url) : "#",
@@ -1384,29 +1379,29 @@ exports.getTutorDetails = async (req, res) => {
         uploadDate: doc.uploaded_at,
         notes: doc.notes,
       }))),
-    
+
       interviewSlots:
         application && application.scheduled_time
           ? [
-              {
-                dateTime: application.scheduled_time,
-                scheduled: application.interview_status === "Scheduled",
-                completed: ["Passed", "Failed"].includes(application.interview_status),
-                result:
-                  application.interview_status === "Passed"
-                    ? "Passed"
-                    : application.interview_status === "Failed"
+            {
+              dateTime: application.scheduled_time,
+              scheduled: application.interview_status === "Scheduled",
+              completed: ["Passed", "Failed"].includes(application.interview_status),
+              result:
+                application.interview_status === "Passed"
+                  ? "Passed"
+                  : application.interview_status === "Failed"
                     ? "Failed"
                     : null,
-              },
-            ]
+            },
+          ]
           : [],
-    
+
       preferredSlots:
         application && application.preferred_interview_times
           ? application.preferred_interview_times
           : [],
-    
+
       backgroundCheck: tutor.is_background_checked,
       references: documents.filter(
         (doc) => doc.document_type === "Reference Letter"
@@ -1426,7 +1421,7 @@ exports.getTutorDetails = async (req, res) => {
       applicationNotes: application ? application.admin_notes : "",
     };
 
-      res.status(200).json(tutorDetails);
+    res.status(200).json(tutorDetails);
 
   } catch (err) {
 
@@ -1439,14 +1434,12 @@ exports.getTutorDetails = async (req, res) => {
     });
 
   }
-
 };
 
-// Admin: Update a specific hire request on a student's profile
+
 exports.updateHireRequest = asyncHandler(async (req, res) => {
   try {
     const { student_profile_id, hire_record_id } = req.params;
-    // status may be 'accepted'|'rejected' or 'accept'|'reject'
     const { status, subject, academic_level_id } = req.body || {};
 
     if (!student_profile_id || !hire_record_id) {
@@ -1458,6 +1451,11 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
 
     const hireRecord = student.hired_tutors.id(hire_record_id);
     if (!hireRecord) return res.status(404).json({ message: 'Hire record not found' });
+
+    const actor = req.user ? req.user._id : null;
+
+    // capture BEFORE snapshot of the hire subdocument
+    const beforeHire = hireRecord.toObject ? hireRecord.toObject() : JSON.parse(JSON.stringify(hireRecord));
 
     // Normalize action: map incoming status to 'accept'|'reject'
     let action = null;
@@ -1475,7 +1473,7 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
       // fetch tutor profile early for payment checks
       const tutorProfile = await TutorProfile.findById(hireRecord.tutor);
 
-      // If admin is trying to set status to 'pending', block if there's an active payment
+      // Block setting to 'pending' if active payment exists
       if (status && String(status).toLowerCase() === 'pending') {
         try {
           const now = new Date();
@@ -1509,25 +1507,41 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
           }
         } catch (err) {
           console.error('Error checking active payments before admin set-pending:', err);
-          // continue but log
+          // continue
         }
       }
 
-      if (status) hireRecord.status = status; // allow other non accept/reject states
+      // apply non accept/reject updates
+      if (status) hireRecord.status = status;
       if (subject) hireRecord.subject = subject;
       if (academic_level_id) hireRecord.academic_level_id = academic_level_id;
       hireRecord.updated_at = new Date();
+
+      // explicit log for subdocument change (stores BEFORE state)
+      try {
+        await ChangeLog.create({
+          table: 'student_hired_tutors',
+          action: 'update',
+          actualJson: beforeHire,
+          documentKey: { student_profile_id: String(student._id), hire_record_id: String(beforeHire._id) },
+          changedBy: actor,
+          meta: { note: 'admin updated hire subdocument (non accept/reject) via adminController.updateHireRequest' }
+        });
+      } catch (logErr) {
+        console.error('Failed to create ChangeLog for hire subdocument update:', logErr);
+      }
+
+      // let plugin log parent update as well
+      student._changedBy = actor;
       await student.save();
+
       return res.status(200).json({ success: true, message: 'Hire request updated', hireRecord });
     }
 
-    // Find tutor profile referenced in the hire record
+    // action is accept/reject path
     const tutorProfile = await TutorProfile.findById(hireRecord.tutor);
-    if (!tutorProfile) {
-      return res.status(404).json({ message: 'Associated tutor profile not found' });
-    }
+    if (!tutorProfile) return res.status(404).json({ message: 'Associated tutor profile not found' });
 
-    // If admin is attempting to reject, ensure the student does NOT have a valid active payment
     if (action === 'reject') {
       try {
         const now = new Date();
@@ -1561,22 +1575,35 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
         }
       } catch (err) {
         console.error('Error checking active payments before admin reject:', err);
-        // continue but log
       }
     }
 
-    // Capture previous status
+    // Capture previous status then apply
     const prevHireStatus = hireRecord.status;
-
-    // Apply status update
     hireRecord.status = action === 'accept' ? 'accepted' : 'rejected';
     if (subject) hireRecord.subject = subject;
     if (academic_level_id) hireRecord.academic_level_id = academic_level_id;
     hireRecord.updated_at = new Date();
 
+    // explicit log for subdocument change (BEFORE snapshot)
+    try {
+      await ChangeLog.create({
+        table: 'student_hired_tutors',
+        action: 'update',
+        actualJson: beforeHire,
+        documentKey: { student_profile_id: String(student._id), hire_record_id: String(beforeHire._id) },
+        changedBy: actor,
+        meta: { note: `admin ${action}ed hire request via adminController.updateHireRequest` }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for hire subdocument update (accept/reject):', logErr);
+    }
+
+    // ensure plugin logs parent update as well
+    student._changedBy = actor;
     await student.save();
 
-    // If previously accepted and now rejected -> expire/cancel related payments
+    // handle payments when rejecting accepted -> expire/cancel
     if (prevHireStatus === 'accepted' && action === 'reject') {
       try {
         await StudentPayment.updateMany(
@@ -1600,7 +1627,7 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
       }
     }
 
-    // If accepted, create or mark a pending StudentPayment record
+    // handle accept -> create/mark pending payment
     if (action === 'accept') {
       try {
         const existingPayment = await StudentPayment.findOne({
@@ -1621,7 +1648,7 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
                   validity_status: 'pending',
                   payment_status: 'pending',
                   validity_start_date: new Date(),
-                  validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                  validity_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                   request_date: new Date(),
                   sessions_remaining: existingPayment.total_sessions_per_month,
                 },
@@ -1634,23 +1661,17 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
         } else {
           const subjectData = await Subject.findById(hireRecord.subject);
           const academicLevelData = await EducationLevel.findById(hireRecord.academic_level_id);
-
           const tutorAcademicLevel = (tutorProfile.academic_levels_taught || []).find(
             (level) => String(level.educationLevel) === String(hireRecord.academic_level_id)
           );
-
           if (!tutorAcademicLevel) {
             console.error('Tutor academic level not found for payment creation (admin)');
           } else {
             const baseAmount = tutorAcademicLevel.hourlyRate || tutorProfile.hourly_rate || 25;
             const discount = tutorAcademicLevel.discount || 0;
             const totalSessions = tutorAcademicLevel.totalSessionsPerMonth || 1;
-
             const validityStartDate = new Date();
-            const validityEndDate = new Date(
-              validityStartDate.getTime() + 30 * 24 * 60 * 60 * 1000
-            );
-
+            const validityEndDate = new Date(validityStartDate.getTime() + 30 * 24 * 60 * 60 * 1000);
             const paymentRecord = new StudentPayment({
               student_id: student._id,
               tutor_id: tutorProfile._id,
@@ -1668,7 +1689,6 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
               request_notes: `Monthly package for ${subjectData?.name || 'Subject'} - ${academicLevelData?.level || 'Level'}. ${totalSessions} sessions per month.`,
               currency: 'GBP',
             });
-
             await paymentRecord.save();
           }
         }
@@ -1689,9 +1709,14 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to update hire request', error: err.message });
   }
 });
+// ...existing code...
 
-// Admin: Delete a specific hire request from a student's profile
+
+// Admin: Delete a specific hire 
+// request from a student's profile
+// ...existing code...
 exports.deleteHireRequest = asyncHandler(async (req, res) => {
+  console.log("req of hire", req.user);
   try {
     const { student_profile_id, hire_record_id } = req.params;
 
@@ -1714,7 +1739,12 @@ exports.deleteHireRequest = asyncHandler(async (req, res) => {
       });
     }
 
-    // Expire/cancel related StudentPayment records for this student/tutor/subject/level
+    const actor = req.user ? req.user._id : null;
+
+    // Capture BEFORE snapshot of the hire subdocument for an explicit delete log
+    const removedHireSnapshot = hireRecord.toObject ? hireRecord.toObject() : JSON.parse(JSON.stringify(hireRecord));
+
+    // Try to expire/cancel related StudentPayment records
     try {
       const updateResult = await StudentPayment.updateMany(
         {
@@ -1733,8 +1763,25 @@ exports.deleteHireRequest = asyncHandler(async (req, res) => {
         }
       );
 
-      // Remove hire record from student profile
+      // create explicit delete log for the subdocument BEFORE removing it
+      try {
+        await ChangeLog.create({
+          table: 'student_hired_tutors',
+          action: 'delete',
+          actualJson: removedHireSnapshot,
+          documentKey: { student_profile_id: String(student._id), hire_record_id: String(removedHireSnapshot._id) },
+          changedBy: actor,
+          meta: { note: 'admin deleted hire request via adminController.deleteHireRequest' }
+        });
+      } catch (logErr) {
+        console.error('Failed to create ChangeLog for removed hire request:', logErr);
+        // do not block deletion on logging failure
+      }
+
+      // Remove hire record from student profile and mark actor for plugin
       student.hired_tutors = (student.hired_tutors || []).filter(h => String(h._id) !== String(hire_record_id));
+      student._changedBy = actor;
+      console.log("id", actor);
       await student.save();
 
       return res.status(200).json({
@@ -1745,9 +1792,25 @@ exports.deleteHireRequest = asyncHandler(async (req, res) => {
       });
     } catch (err) {
       console.error('Error cancelling payments during hire deletion:', err);
-      // Still attempt removal even if payment update fails
+
+      // Even if payment update fails, still log & remove hire record
+      try {
+        await ChangeLog.create({
+          table: 'student_hired_tutors',
+          action: 'delete',
+          actualJson: removedHireSnapshot,
+          documentKey: { student_profile_id: String(student._id), hire_record_id: String(removedHireSnapshot._id) },
+          changedBy: actor,
+          meta: { note: 'admin deleted hire request (payments update failed) via adminController.deleteHireRequest' }
+        });
+      } catch (logErr) {
+        console.error('Failed to create ChangeLog for removed hire request (payments failed):', logErr);
+      }
+
       student.hired_tutors = (student.hired_tutors || []).filter(h => String(h._id) !== String(hire_record_id));
+      student._changedBy = actor;
       await student.save();
+
       return res.status(200).json({
         success: true,
         message: 'Hire request deleted (payments update failed)',
@@ -1759,6 +1822,7 @@ exports.deleteHireRequest = asyncHandler(async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to delete hire request', error: err.message });
   }
 });
+
 
 
 
@@ -1818,7 +1882,7 @@ exports.updateUserStatus = async (req, res) => {
     const studentProfile = await StudentProfile.findOne({ user_id: user_id });
     const parentProfile = await ParentProfile.findOne({ user_id: user_id });
 
-    
+
     if (studentProfile) {
       studentProfile.profile_status = status;
       await studentProfile.save();
@@ -2037,20 +2101,20 @@ exports.getDashboardStats = async (req, res) => {
     ]);
 
     const totalHireRequests = (hireReqAgg && hireReqAgg.length > 0) ? hireReqAgg[0].count : 0;
-    
+
     const stats = {
       tutors: {
         total: Object.values(tutorStats).reduce((sum, count) => sum + count, 0),
         inactive: tutorStats.rejected || 0,
         verified: tutorStats.approved || 0,
       },
-      students: { 
+      students: {
         total: Object.values(studentStats).reduce((sum, count) => sum + count, 0),
-        inactive: studentStats.inactive || 0 
+        inactive: studentStats.inactive || 0
       },
-      parents: { 
+      parents: {
         total: Object.values(parentStats).reduce((sum, count) => sum + count, 0),
-        inactive: parentStats.inactive || 0 
+        inactive: parentStats.inactive || 0
       },
       sessions: {
         total: (sessionStats.completed || 0) + (sessionStats.pending || 0),
@@ -2073,7 +2137,7 @@ exports.getDashboardStats = async (req, res) => {
       totalAcademicLevels: academicLevelsCount,
       totalTutorReviews: tutorReviewsCount,
     };
-   
+
     res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({ message: "Failed to get dashboard statistics", error: err.message });
@@ -2185,7 +2249,7 @@ exports.rejectGroupedDocuments = async (req, res) => {
     tutor[profileField] = false;
     await tutor.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: `${group_type} documents rejected successfully`,
       rejectedDocuments: documentTypes
     });
@@ -2507,7 +2571,7 @@ exports.manageEducationLevel = asyncHandler(async (req, res) => {
     // Get current min and max session values (either from request or existing values)
     const currentMinSession = minSession !== undefined ? minSession : existingLevel.minSession;
     const currentMaxSession = maxSession !== undefined ? maxSession : existingLevel.maxSession;
-    
+
     // Validate that totalSessionsPerMonth is within min and max range
     if (currentMinSession !== undefined && currentMaxSession !== undefined) {
       if (totalSessionsPerMonth < currentMinSession || totalSessionsPerMonth > currentMaxSession) {
@@ -2515,7 +2579,7 @@ exports.manageEducationLevel = asyncHandler(async (req, res) => {
         throw new Error(`Total sessions per month (${totalSessionsPerMonth}) must be between minimum (${currentMinSession}) and maximum (${currentMaxSession}) sessions`);
       }
     }
-    
+
     existingLevel.totalSessionsPerMonth = totalSessionsPerMonth;
   }
 
@@ -3312,7 +3376,7 @@ exports.getAllTutorSessions = asyncHandler(async (req, res) => {
           payment_method: sp.payment_id?.payment_method || null,
           payment_date: sp.payment_id?.payment_date || null,
           currency: sp.payment_id?.currency || 'GBP',
-          
+
           // Renewal tracking
           is_renewal: sp.payment_id?.is_renewal || false,
           original_payment_id: sp.payment_id?.original_payment_id || null
@@ -3399,19 +3463,19 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
     _id: msg._id,
     student: msg.studentId
       ? {
-          id: msg.studentId._id,
-          full_name: msg.studentId.full_name,
-          email: msg.studentId.email,
-          photo_url: msg.studentId.photo_url ? await s3KeyToUrl(msg.studentId.photo_url) : msg.studentId.photo_url,
-        }
+        id: msg.studentId._id,
+        full_name: msg.studentId.full_name,
+        email: msg.studentId.email,
+        photo_url: msg.studentId.photo_url ? await s3KeyToUrl(msg.studentId.photo_url) : msg.studentId.photo_url,
+      }
       : null, // or {} if you prefer empty object
     tutor: msg.tutorId
       ? {
-          id: msg.tutorId._id,
-          full_name: msg.tutorId.full_name,
-          email: msg.tutorId.email,
-          photo_url: msg.tutorId.photo_url ? await s3KeyToUrl(msg.tutorId.photo_url) : msg.tutorId.photo_url,
-        }
+        id: msg.tutorId._id,
+        full_name: msg.tutorId.full_name,
+        email: msg.tutorId.email,
+        photo_url: msg.tutorId.photo_url ? await s3KeyToUrl(msg.tutorId.photo_url) : msg.tutorId.photo_url,
+      }
       : null,
     message: msg.message,
     response: msg.response,
@@ -3419,7 +3483,7 @@ exports.getAllChatsOfUsers = asyncHandler(async (req, res) => {
     createdAt: msg.createdAt,
     updatedAt: msg.updatedAt,
   })));
-  
+
 
 
   res.status(200).json({
@@ -3485,7 +3549,7 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
       validity_end_date: p.validity_end_date,
       sessions_remaining: p.sessions_remaining,
       createdAt: p.createdAt,
-      
+
       // Renewal tracking
       is_renewal: p.is_renewal || false,
       original_payment_id: p.original_payment_id || null
@@ -3497,7 +3561,7 @@ exports.getAllTutorPayments = asyncHandler(async (req, res) => {
   }
 });
 
-// Update a tutor payment by ID (admin)
+// Update a tutor payment by ID (admin) with ChangeLog
 exports.updateTutorPayment = asyncHandler(async (req, res) => {
   try {
     const { paymentId } = req.params;
@@ -3520,28 +3584,30 @@ exports.updateTutorPayment = asyncHandler(async (req, res) => {
 
     const updates = {};
     Object.keys(req.body || {}).forEach(key => {
-      if (allowedFields.includes(key)) {
-        updates[key] = req.body[key];
-      }
+      if (allowedFields.includes(key)) updates[key] = req.body[key];
     });
 
-    // Parse dates if provided
     if (updates.validity_start_date) updates.validity_start_date = new Date(updates.validity_start_date);
     if (updates.validity_end_date) updates.validity_end_date = new Date(updates.validity_end_date);
     if (typeof updates.base_amount !== 'undefined') updates.base_amount = Number(updates.base_amount);
     if (typeof updates.sessions_remaining !== 'undefined') updates.sessions_remaining = Number(updates.sessions_remaining);
 
-    // Before updating, check whether this payment is linked to any tutoring sessions or used as an original_payment (renewal)
+    const payment = await StudentPayment.findById(paymentId);
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+
+    // BEFORE snapshot for ChangeLog
+    const beforePayment = payment.toObject ? payment.toObject() : JSON.parse(JSON.stringify(payment));
+    const actor = req.user ? req.user._id : null;
+
+    // Check linked sessions or renewals
     const linkedSessions = await TutoringSession.find({ 'student_payments.payment_id': paymentId })
       .select('_id session_date tutor_id status')
       .lean();
-
     const linkedRenewals = await StudentPayment.find({ original_payment_id: paymentId })
       .select('_id student_id tutor_id payment_status')
       .lean();
 
     if ((linkedSessions && linkedSessions.length > 0) || (linkedRenewals && linkedRenewals.length > 0)) {
-      // Build a helpful response listing where the payment is linked
       const links = {};
       if (linkedSessions && linkedSessions.length > 0) {
         links.sessions = linkedSessions.map(s => ({ id: s._id, session_date: s.session_date, tutor_id: s.tutor_id, status: s.status }));
@@ -3549,7 +3615,6 @@ exports.updateTutorPayment = asyncHandler(async (req, res) => {
       if (linkedRenewals && linkedRenewals.length > 0) {
         links.renewals = linkedRenewals.map(r => ({ id: r._id, student_id: r.student_id, tutor_id: r.tutor_id, payment_status: r.payment_status }));
       }
-
       return res.status(400).json({
         success: false,
         message: 'Payment is linked to other records and cannot be updated. See links for details.',
@@ -3557,20 +3622,35 @@ exports.updateTutorPayment = asyncHandler(async (req, res) => {
       });
     }
 
-    const updated = await StudentPayment.findByIdAndUpdate(paymentId, { $set: updates }, { new: true }).lean();
+    // Apply updates
+    Object.keys(updates).forEach(k => { payment[k] = updates[k]; });
 
-    if (!updated) {
-      return res.status(404).json({ success: false, message: 'Payment not found' });
+    // Save payment
+    payment._changedBy = actor;
+    await payment.save();
+
+    // Log the update
+    try {
+      await ChangeLog.create({
+        table: 'student_payments',
+        action: 'update',
+        actualJson: beforePayment,
+        documentKey: { _id: payment._id },
+        changedBy: actor,
+        meta: { note: 'admin updated payment via updateTutorPayment' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for payment update:', logErr);
     }
 
-    res.status(200).json({ success: true, payment: updated });
+    res.status(200).json({ success: true, payment });
   } catch (error) {
     console.error('Error updating payment:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
-// Delete a tutor payment by ID (admin)
+// Delete a tutor payment by ID (admin) with ChangeLog
 exports.deleteTutorPayment = asyncHandler(async (req, res) => {
   try {
     const { paymentId } = req.params;
@@ -3579,49 +3659,22 @@ exports.deleteTutorPayment = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid paymentId' });
     }
 
-    // First load the payment so we can check contextual dependencies (student, tutor, subject, level)
-    const payment = await StudentPayment.findById(paymentId).lean();
-    if (!payment) {
-      return res.status(404).json({ success: false, message: 'Payment not found' });
-    }
+    const payment = await StudentPayment.findById(paymentId);
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
 
-    // Check references before deleting
+    // BEFORE snapshot for ChangeLog
+    const beforePayment = payment.toObject ? payment.toObject() : JSON.parse(JSON.stringify(payment));
+    const actor = req.user ? req.user._id : null;
+
+    // Check linked sessions or renewals
     const linkedSessions = await TutoringSession.find({ 'student_payments.payment_id': paymentId })
       .select('_id session_date tutor_id status')
       .lean();
-
     const linkedRenewals = await StudentPayment.find({ original_payment_id: paymentId })
       .select('_id student_id tutor_id payment_status')
       .lean();
 
-    // Additional: check whether the student has a hire request for this tutor / subject / academic level
-    // Hire requests are stored on StudentProfile.hired_tutors
-    let hireConflicts = [];
-    try {
-      if (payment.student_id) {
-        const studentProfile = await StudentProfile.findOne({_id: payment.student_id }).select('hired_tutors').lean();
-        if (studentProfile && Array.isArray(studentProfile.hired_tutors)) {
-          // Match tutor, subject and academic level
-          hireConflicts = studentProfile.hired_tutors.filter(ht => {
-            try {
-              const sameTutor = ht.tutor && String(ht.tutor) === String(payment.tutor_id);
-              const sameSubject = ht.subject && payment.subject && String(ht.subject) === String(payment.subject);
-              const sameLevel = ht.academic_level_id && payment.academic_level && String(ht.academic_level_id) === String(payment.academic_level);
-              // Consider active/pending/accepted requests as blocking (not rejected)
-              const blockingStatus = ht.status && ['pending', 'accepted'].includes(String(ht.status));
-              return sameTutor && sameSubject && sameLevel && blockingStatus;
-            } catch (e) {
-              return false;
-            }
-          });
-        }
-      }
-    } catch (e) {
-      // Swallow profile lookup errors but keep going with other checks
-      console.error('Error checking hire requests for payment delete:', e);
-    }
-
-    if ((linkedSessions && linkedSessions.length > 0) || (linkedRenewals && linkedRenewals.length > 0) || (hireConflicts && hireConflicts.length > 0)) {
+    if ((linkedSessions && linkedSessions.length > 0) || (linkedRenewals && linkedRenewals.length > 0)) {
       const links = {};
       if (linkedSessions && linkedSessions.length > 0) {
         links.sessions = linkedSessions.map(s => ({ id: s._id, session_date: s.session_date, tutor_id: s.tutor_id, status: s.status }));
@@ -3629,58 +3682,43 @@ exports.deleteTutorPayment = asyncHandler(async (req, res) => {
       if (linkedRenewals && linkedRenewals.length > 0) {
         links.renewals = linkedRenewals.map(r => ({ id: r._id, student_id: r.student_id, tutor_id: r.tutor_id, payment_status: r.payment_status }));
       }
-      if (hireConflicts && hireConflicts.length > 0) {
-        try {
-          // Resolve subject names and academic level names in batch to avoid per-item queries
-          const subjectIds = [...new Set(hireConflicts.map(h => h.subject).filter(Boolean).map(String))];
-          const levelIds = [...new Set(hireConflicts.map(h => h.academic_level_id).filter(Boolean).map(String))];
-
-          const [subjectDocs, levelDocs] = await Promise.all([
-            subjectIds.length ? Subject.find({ _id: { $in: subjectIds } }).select('name').lean() : [],
-            levelIds.length ? EducationLevel.find({ _id: { $in: levelIds } }).select('level').lean() : []
-          ]);
-
-          const subjectMap = {};
-          (subjectDocs || []).forEach(s => { subjectMap[String(s._id)] = s.name; });
-          const levelMap = {};
-          (levelDocs || []).forEach(l => { levelMap[String(l._id)] = l.level; });
-
-          links.hireRequests = hireConflicts.map(h => ({
-            tutor: h.tutor,
-            subject_id: h.subject || null,
-            subject_name: subjectMap[String(h.subject)] || null,
-            academic_level_id: h.academic_level_id || null,
-            academic_level_name: levelMap[String(h.academic_level_id)] || null,
-            status: h.status,
-            hired_at: h.hired_at
-          }));
-        } catch (e) {
-          // Fallback to original minimal info if lookup fails
-          console.error('Error resolving subject/level names for hireConflicts:', e);
-          links.hireRequests = hireConflicts.map(h => ({ tutor: h.tutor, subject: h.subject, academic_level_id: h.academic_level_id, status: h.status, hired_at: h.hired_at }));
-        }
-      }
-
       return res.status(400).json({
         success: false,
-        message: 'Payment is linked to other records and cannot be deleted. Resolve related hire requests/sessions/renewals first. See links for details.',
+        message: 'Payment is linked to other records and cannot be deleted. See links for details.',
         links
       });
     }
-
-    const deleted = await StudentPayment.findByIdAndDelete(paymentId).lean();
+    // Delete payment using findByIdAndDelete and pass _changedBy so plugin can pick up actor
+    const deleted = await StudentPayment.findByIdAndDelete(paymentId, { _changedBy: actor });
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Payment not found' });
     }
 
+    // Log the delete (we keep BEFORE snapshot)
+    try {
+      await ChangeLog.create({
+        table: 'student_payments',
+        action: 'delete',
+        actualJson: beforePayment,
+        documentKey: { _id: deleted._id },
+        changedBy: actor,
+        meta: { note: 'admin deleted payment via deleteTutorPayment' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for payment delete:', logErr);
+    }
+
     res.status(200).json({ success: true, message: 'Payment deleted', paymentId: deleted._id });
+ // ...existing code...
   } catch (error) {
     console.error('Error deleting payment:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
-// Update a tutoring session by ID (admin)
+
+
+// Update a tutoring session by ID (admin) with ChangeLog
 exports.updateTutorSession = asyncHandler(async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -3689,10 +3727,10 @@ exports.updateTutorSession = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid sessionId' });
     }
 
-    const session = await TutoringSession.findById(sessionId).lean();
+    const session = await TutoringSession.findById(sessionId);
     if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
 
-    // Block edits if session is currently in progress
+    // Block edits if session is in progress
     if (session.status === 'in_progress') {
       return res.status(400).json({ success: false, message: 'Session is currently in progress and cannot be edited.' });
     }
@@ -3717,23 +3755,47 @@ exports.updateTutorSession = asyncHandler(async (req, res) => {
     if (typeof updates.hourly_rate !== 'undefined') updates.hourly_rate = Number(updates.hourly_rate);
     if (typeof updates.total_earnings !== 'undefined') updates.total_earnings = Number(updates.total_earnings);
 
-    const updated = await TutoringSession.findByIdAndUpdate(sessionId, { $set: updates }, { new: true }).lean();
-    return res.status(200).json({ success: true, session: updated });
+    // BEFORE snapshot for ChangeLog
+    const beforeSession = session.toObject ? session.toObject() : JSON.parse(JSON.stringify(session));
+    const actor = req.user ? req.user._id : null;
+
+    // Apply updates
+    Object.keys(updates).forEach(k => { session[k] = updates[k]; });
+
+    session._changedBy = actor;
+    await session.save();
+
+    // Log the update
+    try {
+      await ChangeLog.create({
+        table: 'tutoring_sessions',
+        action: 'update',
+        actualJson: beforeSession,
+        documentKey: { _id: session._id },
+        changedBy: actor,
+        meta: { note: 'admin updated tutoring session via updateTutorSession' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for session update:', logErr);
+    }
+
+    res.status(200).json({ success: true, session });
   } catch (error) {
     console.error('Error updating session:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
-// Delete a tutoring session by ID (admin)
+// Delete a tutoring session by ID (admin) with ChangeLog
 exports.deleteTutorSession = asyncHandler(async (req, res) => {
   try {
     const { sessionId } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ success: false, message: 'Invalid sessionId' });
     }
 
-    const session = await TutoringSession.findById(sessionId).lean();
+    const session = await TutoringSession.findById(sessionId);
     if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
 
     // Block deletes if session is in progress
@@ -3741,25 +3803,51 @@ exports.deleteTutorSession = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: 'Session is currently in progress and cannot be deleted.' });
     }
 
-    // If session references payments, return links instead of deleting
+    // BEFORE snapshot for ChangeLog
+    const beforeSession = session.toObject ? session.toObject() : JSON.parse(JSON.stringify(session));
+    const actor = req.user ? req.user._id : null;
+
+    // Check if session references payments
     const paymentIds = (session.student_payments || []).map(sp => sp.payment_id).filter(Boolean);
     let linkedPayments = [];
     if (paymentIds.length > 0) {
-      linkedPayments = await StudentPayment.find({ _id: { $in: paymentIds } }).select('_id student_id tutor_id payment_status').lean();
+      linkedPayments = await StudentPayment.find({ _id: { $in: paymentIds } })
+        .select('_id student_id tutor_id payment_status')
+        .lean();
     }
 
     if (linkedPayments.length > 0) {
-      return res.status(400).json({ success: false, message: 'Session references payments and cannot be deleted. See links for details.', links: { payments: linkedPayments } });
+      return res.status(400).json({
+        success: false,
+        message: 'Session references payments and cannot be deleted. See links for details.',
+        links: { payments: linkedPayments }
+      });
     }
 
-    const deleted = await TutoringSession.findByIdAndDelete(sessionId).lean();
-    if (!deleted) return res.status(404).json({ success: false, message: 'Session not found' });
-    return res.status(200).json({ success: true, message: 'Session deleted', sessionId: deleted._id });
+    // Delete session
+    await session.remove();
+
+    // Log the delete
+    try {
+      await ChangeLog.create({
+        table: 'tutoring_sessions',
+        action: 'delete',
+        actualJson: beforeSession,
+        documentKey: { _id: session._id },
+        changedBy: actor,
+        meta: { note: 'admin deleted tutoring session via deleteTutorSession' }
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for session delete:', logErr);
+    }
+
+    res.status(200).json({ success: true, message: 'Session deleted', sessionId: session._id });
   } catch (error) {
     console.error('Error deleting session:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
 
 // Get all tutor reviews for admin
 exports.getAllTutorReviews = asyncHandler(async (req, res) => {
@@ -3770,7 +3858,7 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
     const skip = (pageNum - 1) * lim;
 
     let query = {};
-    
+
     // Filter by tutor if specified
     if (tutor_id) {
       if (!mongoose.Types.ObjectId.isValid(tutor_id)) {
@@ -3783,7 +3871,7 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
     if (search && search.trim()) {
       const searchTerm = search.trim();
       const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
+
       // Use aggregation pipeline for faster search
       const searchPipeline = [
         // Lookup student profiles and their users
@@ -3874,20 +3962,20 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
 
       // Execute the search pipeline
       const searchResults = await TutorReview.aggregate(searchPipeline);
-      
+
       if (searchResults.length === 0) {
-          return res.status(200).json({
-            success: true,
-            reviews: [],
-            pagination: {
-              current_page: pageNum,
-              total_pages: 0,
-              total_reviews: 0,
-              has_next: false,
-              has_prev: false
-            }
-          });
-        }
+        return res.status(200).json({
+          success: true,
+          reviews: [],
+          pagination: {
+            current_page: pageNum,
+            total_pages: 0,
+            total_reviews: 0,
+            has_next: false,
+            has_prev: false
+          }
+        });
+      }
 
       // Get the IDs of matching reviews
       const matchingReviewIds = searchResults.map(r => r._id);
@@ -3935,7 +4023,7 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
     const formattedReviews = await Promise.all(reviews.map(async review => {
       const isStudentReview = review.student_id && review.review_type === 'student';
       const isParentReview = review.parent_id && review.review_type === 'parent';
-      
+
       return {
         _id: review._id,
         rating: review.rating,
@@ -3950,26 +4038,26 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
         },
         reviewer: {
           type: isStudentReview ? 'student' : isParentReview ? 'parent' : 'unknown',
-          name: isStudentReview 
+          name: isStudentReview
             ? (review.student_id?.user_id?.full_name || 'Anonymous Student')
-            : isParentReview 
-            ? (review.parent_id?.user_id?.full_name || 'Anonymous Parent')
-            : 'Anonymous',
-          email: isStudentReview 
+            : isParentReview
+              ? (review.parent_id?.user_id?.full_name || 'Anonymous Parent')
+              : 'Anonymous',
+          email: isStudentReview
             ? (review.student_id?.user_id?.email || '')
-            : isParentReview 
-            ? (review.parent_id?.user_id?.email || '')
-            : '',
-          photo_url: isStudentReview 
+            : isParentReview
+              ? (review.parent_id?.user_id?.email || '')
+              : '',
+          photo_url: isStudentReview
             ? (review.student_id?.user_id?.photo_url ? await s3KeyToUrl(review.student_id.user_id.photo_url) : review.student_id?.user_id?.photo_url || '')
-            : isParentReview 
-            ? (review.parent_id?.user_id?.photo_url ? await s3KeyToUrl(review.parent_id.user_id.photo_url) : review.parent_id?.user_id?.photo_url || '')
-            : '',
-          id: isStudentReview 
-            ? review.student_id?._id 
-            : isParentReview 
-            ? review.parent_id?._id 
-            : null
+            : isParentReview
+              ? (review.parent_id?.user_id?.photo_url ? await s3KeyToUrl(review.parent_id.user_id.photo_url) : review.parent_id?.user_id?.photo_url || '')
+              : '',
+          id: isStudentReview
+            ? review.student_id?._id
+            : isParentReview
+              ? review.parent_id?._id
+              : null
         },
         // Keep backward compatibility
         student: {
@@ -4005,7 +4093,7 @@ exports.getAllTutorReviews = asyncHandler(async (req, res) => {
   }
 });
 
-// Admin: delete a tutor review
+// Admin: delete a tutor review with ChangeLog
 exports.deleteTutorReview = asyncHandler(async (req, res) => {
   try {
     const { review_id } = req.params;
@@ -4013,30 +4101,46 @@ exports.deleteTutorReview = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid review id' });
     }
 
-    const review = await TutorReview.findById(review_id).lean();
+    const review = await TutorReview.findById(review_id);
     if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+
+    // Capture BEFORE snapshot for logging
+    const beforeReview = review.toObject ? review.toObject() : JSON.parse(JSON.stringify(review));
 
     // Remove the review
     await TutorReview.deleteOne({ _id: review_id });
 
-    // Optionally, you may want to update the tutor's average rating/count here.
-    // We'll attempt a safe recalculation: compute average from remaining reviews
+    // Log deletion action
+    try {
+      await ChangeLog.create({
+        table: 'tutor_reviews',
+        action: 'delete',
+        actualJson: beforeReview,
+        documentKey: { review_id: review._id },
+        changedBy: req.user ? req.user._id : null, // admin performing deletion
+        meta: { note: 'Admin deleted tutor review' },
+      });
+    } catch (logErr) {
+      console.error('Failed to create ChangeLog for tutor review deletion:', logErr);
+    }
+
+    // Recalculate tutor rating/count safely
     try {
       const agg = await TutorReview.aggregate([
         { $match: { tutor_id: review.tutor_id } },
         { $group: { _id: '$tutor_id', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
       ]);
+
       if (agg && agg.length > 0) {
         const avg = agg[0].avgRating || 0;
         const count = agg[0].count || 0;
-        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: avg, review_count: count }).catch(() => {});
+        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: avg, review_count: count }).catch(() => { });
       } else {
         // No reviews left
-        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: 0, review_count: 0 }).catch(() => {});
+        await TutorProfile.findByIdAndUpdate(review.tutor_id, { average_rating: 0, review_count: 0 }).catch(() => { });
       }
     } catch (err) {
-      // Non-fatal
-      console.error('Failed to recalc tutor rating after review delete:', err && err.message);
+      console.error('Failed to recalc tutor rating after review delete:', err?.message || err);
     }
 
     return res.status(200).json({ success: true, message: 'Review deleted', review_id });
@@ -4049,10 +4153,10 @@ exports.deleteTutorReview = asyncHandler(async (req, res) => {
 // Get all hire requests with student-tutor matching and status
 exports.getAllHireRequests = asyncHandler(async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 50, 
-      status = '', 
+    const {
+      page = 1,
+      limit = 50,
+      status = '',
       search = '',
       tutor_id = '',
       student_id = ''
@@ -4152,10 +4256,10 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
           },
           tutor: {
             id: '$hired_tutors.tutor',
-            name: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.full_name', 0] }, 0 ] },
-            email: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.email', 0] }, 0 ] },
-            phone: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.phone_number', 0] }, 0 ] },
-            photo_url: { $arrayElemAt: [ { $arrayElemAt: ['$tutor_profile.tutor_user.photo_url', 0] }, 0 ] }
+            name: { $arrayElemAt: [{ $arrayElemAt: ['$tutor_profile.tutor_user.full_name', 0] }, 0] },
+            email: { $arrayElemAt: [{ $arrayElemAt: ['$tutor_profile.tutor_user.email', 0] }, 0] },
+            phone: { $arrayElemAt: [{ $arrayElemAt: ['$tutor_profile.tutor_user.phone_number', 0] }, 0] },
+            photo_url: { $arrayElemAt: [{ $arrayElemAt: ['$tutor_profile.tutor_user.photo_url', 0] }, 0] }
           },
           subject: {
             id: '$hired_tutors.subject',
@@ -4213,13 +4317,13 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
           const url = await s3KeyToUrl(resolvedStudentPhoto);
           if (url) resolvedStudentPhoto = url;
         }
-      } catch (_) {}
+      } catch (_) { }
       try {
         if (resolvedTutorPhoto && !resolvedTutorPhoto.startsWith('http')) {
           const url = await s3KeyToUrl(resolvedTutorPhoto);
           if (url) resolvedTutorPhoto = url;
         }
-      } catch (_) {}
+      } catch (_) { }
       return {
         ...req,
         student: {
@@ -4250,7 +4354,6 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
       rejected: statsResult.find(s => s._id === 'rejected')?.count || 0
     };
 
-    console.log("resolvedHireRequests", resolvedHireRequests);
 
     res.status(200).json({
       success: true,
@@ -4276,34 +4379,79 @@ exports.getAllHireRequests = asyncHandler(async (req, res) => {
   }
 });
 
+
+
+
+
+// \\left
 // Admin: Update parent details (basic user fields and optional location in profile)
+// ...existing code...
+// Helper: detect changed fields
+function getChanges(before, after, keys) {
+  const changes = {};
+  keys.forEach((key) => {
+    if (after[key] !== undefined && before[key] !== after[key]) {
+      changes[key] = after[key];
+    }
+  });
+  return changes;
+}
+
+// Admin: Update parent details (basic user fields + optional profile location)
 exports.updateParentByAdmin = asyncHandler(async (req, res) => {
   try {
     const { user_id } = req.params;
     const { name, email, phone, location } = req.body || {};
+    const actor = req.user?._id;
 
     const user = await User.findById(user_id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const parent = await ParentProfile.findOne({ user_id });
+
+    const beforeUser = user.toObject();
+    const beforeParent = parent ? parent.toObject() : null;
+
+    const userChanges = getChanges(beforeUser, { full_name: name, email, phone_number: phone }, ['full_name','email','phone_number']);
+    Object.assign(user, userChanges);
+
+    let parentChanges = {};
+    if (parent && location !== undefined) {
+      parentChanges = getChanges(beforeParent, { location }, ['location']);
+      Object.assign(parent, parentChanges);
     }
 
-    // Update basic user fields
-    if (typeof name === 'string') user.full_name = name;
-    if (typeof email === 'string') user.email = email;
-    if (typeof phone === 'string') user.phone_number = phone;
-
-    // Update parent profile location if provided
-    if (typeof location === 'string') {
-      const parent = await ParentProfile.findOne({ user_id });
-      if (parent) {
-        parent.location = location;
-        await parent.save();
-      }
+    // Log only if changes exist
+    if (Object.keys(userChanges).length > 0) {
+      await ChangeLog.create({
+        table: 'users',
+        action: 'update',
+        actualJson: beforeUser,
+        documentKey: { _id: beforeUser._id },
+        changedBy: actor,
+        meta: { note: 'admin updated user via updateParentByAdmin' }
+      });
     }
 
-    await user.save();
+    if (parent && Object.keys(parentChanges).length > 0) {
+      await ChangeLog.create({
+        table: 'parent_profiles',
+        action: 'update',
+        actualJson: beforeParent,
+        documentKey: { user_id: String(beforeParent.user_id), _id: String(beforeParent._id) },
+        changedBy: actor,
+        meta: { note: 'admin updated parent profile via updateParentByAdmin' }
+      });
+    }
+
+    // Save
+    const saves = [user.save()];
+    if (parent && Object.keys(parentChanges).length > 0) saves.push(parent.save());
+    await Promise.all(saves);
+
     return res.status(200).json({ success: true, message: 'Parent updated successfully' });
   } catch (error) {
+    console.error('updateParentByAdmin error:', error);
     return res.status(500).json({ success: false, message: 'Failed to update parent', error: error.message });
   }
 });
@@ -4313,91 +4461,86 @@ exports.updateStudentByAdmin = asyncHandler(async (req, res) => {
   try {
     const { user_id } = req.params;
     const { name, email, phone, location, academic_level, subjects } = req.body || {};
+    const actor = req.user?._id;
 
     const user = await User.findById(user_id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     const student = await StudentProfile.findOne({ user_id });
-    if (!student) {
-      return res.status(404).json({ success: false, message: "Student profile not found" });
-    }
+    if (!student) return res.status(404).json({ success: false, message: "Student profile not found" });
 
-    if (typeof name === 'string') user.full_name = name;
-    if (typeof email === 'string') user.email = email;
-    if (typeof phone === 'string') user.phone_number = phone;
-    if (typeof location === 'string') student.location = location;
+    const beforeUser = user.toObject();
+    const beforeStudent = student.toObject();
 
-    // Dependency checks if level/subjects change
-    const prevLevel = student.academic_level ? String(student.academic_level) : null;
-    const prevSubjects = Array.isArray(student.preferred_subjects) ? student.preferred_subjects.map(String) : [];
-    const nextLevel = academic_level ? String(academic_level) : prevLevel;
-    const nextSubjectsRaw = Array.isArray(subjects) ? subjects.map(String) : prevSubjects;
+    // Update only changed user fields
+    const userChanges = getChanges(beforeUser, { full_name: name, email, phone_number: phone }, ['full_name','email','phone_number']);
+    Object.assign(user, userChanges);
 
-    // Filter submitted subjects to the selected level
-    let nextSubjects = nextSubjectsRaw;
-    if (academic_level) {
-      const subjectDocs = await Subject.find({ _id: { $in: nextSubjectsRaw } }).select('_id level_id').lean();
-      nextSubjects = subjectDocs
-        .filter((sd) => sd.level_id && String(sd.level_id) === String(nextLevel))
-        .map((sd) => String(sd._id));
-    }
+    // Update only changed profile fields
+    const studentChanges = getChanges(beforeStudent, { location, academic_level }, ['location','academic_level']);
+    Object.assign(student, studentChanges);
 
-    // Subjects being removed
-    const removedSubjects = prevSubjects.filter((s) => !new Set(nextSubjects).has(String(s)));
-    const levelChanged = prevLevel && nextLevel && prevLevel !== nextLevel;
-
-    if (levelChanged || removedSubjects.length > 0) {
-      const studentProfile = await StudentProfile.findOne({ user_id }).select('_id hired_tutors').lean();
-      const studentId = studentProfile?._id;
-      const deps = {};
-      if (levelChanged) {
-        deps.sessionsWithPrevLevel = await TutoringSession.countDocuments({ student_ids: studentId, academic_level: prevLevel });
-        deps.paymentsWithPrevLevel = await StudentPayment.countDocuments({ student_id: studentId, academic_level: prevLevel });
-        deps.hiresWithPrevLevel = Array.isArray(studentProfile?.hired_tutors)
-          ? studentProfile.hired_tutors.filter((h) => String(h.academic_level_id) === String(prevLevel)).length
-          : 0;
-      }
-      if (removedSubjects.length > 0) {
-        deps.sessionsWithRemovedSubjects = await TutoringSession.countDocuments({ student_ids: studentId, subject: { $in: removedSubjects } });
-        deps.paymentsWithRemovedSubjects = await StudentPayment.countDocuments({ student_id: studentId, subject: { $in: removedSubjects } });
-        deps.hiresWithRemovedSubjects = Array.isArray(studentProfile?.hired_tutors)
-          ? studentProfile.hired_tutors.filter((h) => removedSubjects.map(String).includes(String(h.subject))).length
-          : 0;
-      }
-      const total = Object.values(deps).reduce((a, b) => a + (b || 0), 0);
-      if (total > 0) {
-        return res.status(400).json({ success: false, message: 'Dependencies exist for previous academic level/subjects. Please resolve before updating.', dependencies: deps });
+    // Update subjects only if changed
+    if (Array.isArray(subjects)) {
+      const newSubjects = subjects.map(String);
+      if (JSON.stringify(newSubjects) !== JSON.stringify(student.preferred_subjects)) {
+        student.preferred_subjects = newSubjects;
       }
     }
 
-    if (academic_level) student.academic_level = nextLevel;
-    if (Array.isArray(subjects)) student.preferred_subjects = nextSubjects;
+    // Log changes only if something changed
+    if (Object.keys(userChanges).length > 0) {
+      await ChangeLog.create({
+        table: 'users',
+        action: 'update',
+        actualJson: beforeUser,
+        documentKey: { _id: beforeUser._id },
+        changedBy: actor,
+        meta: { note: 'admin updated user via updateStudentByAdmin' }
+      });
+    }
 
+    if (Object.keys(studentChanges).length > 0 || (Array.isArray(subjects) && subjects.length > 0)) {
+      await ChangeLog.create({
+        table: 'student_profiles',
+        action: 'update',
+        actualJson: beforeStudent,
+        documentKey: { user_id: String(beforeStudent.user_id), _id: String(beforeStudent._id) },
+        changedBy: actor,
+        meta: { note: 'admin updated student profile via updateStudentByAdmin' }
+      });
+    }
+
+    user._changedBy = actor;
+    student._changedBy = actor;
     await Promise.all([user.save(), student.save()]);
+
     return res.status(200).json({ success: true, message: 'Student updated successfully' });
   } catch (error) {
+    console.error('updateStudentByAdmin error:', error);
     return res.status(500).json({ success: false, message: 'Failed to update student', error: error.message });
   }
 });
 
+
+
 // Admin: Remove a single academic level and prune subjects not matching remaining levels
+// ...existing code...
 exports.removeTutorLevelByAdmin = asyncHandler(async (req, res) => {
   try {
     const { user_id, level_id } = req.params;
+    const actor = req.user ? req.user._id : null;
 
-    console.log("level_id", req.params);
     if (!user_id || !level_id) {
       return res.status(400).json({ success: false, message: 'user_id and level_id are required' });
     }
 
     const tutor = await TutorProfile.findOne({ user_id });
-    if (!tutor) {
-      return res.status(404).json({ success: false, message: 'Tutor profile not found' });
-    }
+    if (!tutor) return res.status(404).json({ success: false, message: 'Tutor profile not found' });
 
-    // Dependency checks before removal
+    const beforeTutor = tutor.toObject();
+
+    // --- Check dependencies before removal ---
     const deps = {};
     deps.sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id, academic_level: level_id });
     deps.payments = await StudentPayment.countDocuments({ tutor_id: tutor._id, academic_level: level_id });
@@ -4407,35 +4550,46 @@ exports.removeTutorLevelByAdmin = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot remove academic level due to existing dependencies', dependencies: deps });
     }
 
-    const beforeCount = Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught.length : 0;
-    tutor.academic_levels_taught = (tutor.academic_levels_taught || []).filter((entry) => {
+    const originalCount = Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught.length : 0;
+    tutor.academic_levels_taught = (tutor.academic_levels_taught || []).filter(entry => {
       const id = entry?.educationLevel && entry.educationLevel._id ? String(entry.educationLevel._id) : String(entry?.educationLevel);
       return id !== String(level_id);
     });
-    const afterCount = tutor.academic_levels_taught.length;
+    const newCount = tutor.academic_levels_taught.length;
 
-    // Prune subjects that belong to the removed level by keeping only those in remaining levels
-    const remainingLevelIds = new Set(
-      (tutor.academic_levels_taught || []).map((e) => String(e.educationLevel && e.educationLevel._id ? e.educationLevel._id : e.educationLevel))
-    );
+    // --- Prune subjects of removed level ---
+    const remainingLevelIds = new Set((tutor.academic_levels_taught || []).map(e => String(e.educationLevel && e.educationLevel._id ? e.educationLevel._id : e.educationLevel)));
     if (Array.isArray(tutor.subjects) && tutor.subjects.length > 0) {
       const subjectDocs = await Subject.find({ _id: { $in: tutor.subjects } }).select('_id level_id').lean();
-      const pruned = subjectDocs.filter((sd) => sd.level_id && remainingLevelIds.has(String(sd.level_id))).map((sd) => sd._id);
-      tutor.subjects = pruned;
+      tutor.subjects = subjectDocs.filter(sd => sd.level_id && remainingLevelIds.has(String(sd.level_id))).map(sd => sd._id);
     }
 
-    await tutor.save();
-    if (beforeCount === afterCount) {
-      return res.status(404).json({ success: false, message: 'Level not found in tutor profile' });
+    // --- Only create ChangeLog if the level was actually removed ---
+    if (originalCount !== newCount) {
+      await ChangeLog.create({
+        table: 'tutor_profiles',
+        action: 'update',
+        actualJson: beforeTutor,
+        documentKey: { user_id: String(tutor.user_id), _id: String(beforeTutor._id) },
+        changedBy: actor,
+        meta: { note: 'admin removed academic level via removeTutorLevelByAdmin' }
+      });
+
+      tutor._changedBy = actor;
+      await tutor.save();
+
+      return res.status(200).json({ success: true, message: 'Academic level removed successfully' });
     }
 
-    return res.status(200).json({ success: true, message: 'Academic level removed successfully' });
+    return res.status(404).json({ success: false, message: 'Level not found in tutor profile' });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to remove academic level', error: error.message });
   }
 });
 
-// Admin: Update tutor details and/or education (levels, subjects)
+
+
+// ...existing code...
 exports.updateTutorByAdmin = asyncHandler(async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -4450,119 +4604,115 @@ exports.updateTutorByAdmin = asyncHandler(async (req, res) => {
       academic_levels_taught,
       subjects
     } = req.body || {};
-console.log("req.body", req.body);
+    const actor = req.user ? req.user._id : null;
+
     const user = await User.findById(user_id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     const tutor = await TutorProfile.findOne({ user_id });
-    if (!tutor) {
-      return res.status(404).json({ success: false, message: "Tutor profile not found" });
-    }
+    if (!tutor) return res.status(404).json({ success: false, message: "Tutor profile not found" });
 
-    // Update basic user fields
-    if (typeof name === 'string') user.full_name = name;
-    if (typeof email === 'string') user.email = email;
-    if (typeof phone === 'string') user.phone_number = phone;
+    // BEFORE snapshots
+    const beforeUser = user.toObject();
+    const beforeTutor = tutor.toObject();
 
-    // Update tutor profile fields
-    if (typeof location === 'string') tutor.location = location;
+    // --- Update user fields only if changed ---
+    const userChanges = {};
+    if (typeof name === 'string' && name !== user.full_name) userChanges.full_name = name;
+    if (typeof email === 'string' && email !== user.email) userChanges.email = email;
+    if (typeof phone === 'string' && phone !== user.phone_number) userChanges.phone_number = phone;
+    Object.assign(user, userChanges);
+
+    // --- Update tutor profile fields only if changed ---
+    const tutorChanges = {};
+    if (typeof location === 'string' && location !== tutor.location) tutorChanges.location = location;
     if (typeof experience_years !== 'undefined') {
       const exp = Number(experience_years);
-      tutor.experience_years = Number.isNaN(exp) ? tutor.experience_years : exp;
+      if (!Number.isNaN(exp) && exp !== tutor.experience_years) tutorChanges.experience_years = exp;
     }
-    if (typeof bio === 'string') tutor.bio = bio;
+    if (typeof bio === 'string' && bio !== tutor.bio) tutorChanges.bio = bio;
     if (typeof qualifications !== 'undefined') {
-      if (Array.isArray(qualifications)) {
-        tutor.qualifications = qualifications.join(', ');
-      } else if (typeof qualifications === 'string') {
-        tutor.qualifications = qualifications;
-      }
+      const qualStr = Array.isArray(qualifications) ? qualifications.join(', ') : String(qualifications);
+      if (qualStr !== tutor.qualifications) tutorChanges.qualifications = qualStr;
     }
 
-    // Handle academic levels taught if provided
-    let selectedLevelIds = null;
+    // --- Handle academic_levels_taught ---
     if (Array.isArray(academic_levels_taught)) {
-      // Normalize to array of ObjectIds as strings
-      selectedLevelIds = academic_levels_taught.map((lv) => {
-        if (lv && typeof lv === 'object' && (lv.educationLevel || lv._id)) {
-          return String(lv.educationLevel || lv._id);
-        }
-        return String(lv);
-      }).filter(Boolean);
+      const selectedLevelIds = academic_levels_taught.map(lv => lv?.educationLevel || lv?._id || lv).filter(Boolean).map(String);
+      const prevLevels = (tutor.academic_levels_taught || []).map(e => String(e.educationLevel || e._id || e));
+      const removedLevels = prevLevels.filter(l => !selectedLevelIds.includes(l));
 
-      // Find levels being removed and check dependencies before proceeding
-      const prevLevels = (Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught : []).map((e) => String(e.educationLevel && e.educationLevel._id ? e.educationLevel._id : e.educationLevel));
-      const removedLevels = prevLevels.filter((l) => !new Set(selectedLevelIds).has(l));
+      // Check dependencies for removed levels
       if (removedLevels.length > 0) {
         const deps = {};
         deps.sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id, academic_level: { $in: removedLevels } });
         deps.payments = await StudentPayment.countDocuments({ tutor_id: tutor._id, academic_level: { $in: removedLevels } });
         deps.hires = await StudentProfile.countDocuments({ 'hired_tutors.tutor': tutor._id, 'hired_tutors.academic_level_id': { $in: removedLevels } });
-        const total = (deps.sessions||0)+(deps.payments||0)+(deps.hires||0);
-        if (total > 0) {
-          return res.status(400).json({ success: false, message: 'Cannot update levels due to existing dependencies', dependencies: deps });
-        }
+        const total = (deps.sessions || 0) + (deps.payments || 0) + (deps.hires || 0);
+        if (total > 0) return res.status(400).json({ success: false, message: 'Cannot remove levels due to existing dependencies', dependencies: deps });
       }
-      console.log("removedLevels", removedLevels);
-      // Build full objects satisfying TutorProfile schema requirements
-      const existingByLevel = new Map(
-        (Array.isArray(tutor.academic_levels_taught) ? tutor.academic_levels_taught : [])
-          .map((entry) => [String(entry.educationLevel), entry])
-      );
 
-      const levelDocs = await EducationLevel.find({ _id: { $in: selectedLevelIds } }).lean();
-      const levelDocMap = new Map(levelDocs.map((ld) => [String(ld._id), ld]));
+      if (JSON.stringify(selectedLevelIds) !== JSON.stringify(prevLevels)) {
+        // Build new levels array
+        const existingByLevel = new Map((tutor.academic_levels_taught || []).map(e => [String(e.educationLevel || e._id || e), e]));
+        const levelDocs = await EducationLevel.find({ _id: { $in: selectedLevelIds } }).lean();
+        const levelDocMap = new Map(levelDocs.map(ld => [String(ld._id), ld]));
 
-      tutor.academic_levels_taught = selectedLevelIds.map((levelId) => {
-        const prev = existingByLevel.get(levelId);
-        const lvl = levelDocMap.get(levelId);
-        const hourly = prev?.hourlyRate ?? lvl?.hourlyRate ?? 0;
-        const totalSessions = prev?.totalSessionsPerMonth ?? lvl?.totalSessionsPerMonth ?? 0;
-        const discount = prev?.discount ?? lvl?.discount ?? 0;
-        const monthlyRate = Math.max(0, (hourly * totalSessions) - ((hourly * totalSessions) * (discount / 100)));
-        return {
-          educationLevel: levelId,
-          name: lvl?.level || prev?.name || 'Level',
-          hourlyRate: hourly,
-          totalSessionsPerMonth: totalSessions,
-          discount,
-          monthlyRate
-        };
+        tutorChanges.academic_levels_taught = selectedLevelIds.map(levelId => {
+          const prev = existingByLevel.get(levelId);
+          const lvl = levelDocMap.get(levelId);
+          const hourly = prev?.hourlyRate ?? lvl?.hourlyRate ?? 0;
+          const totalSessions = prev?.totalSessionsPerMonth ?? lvl?.totalSessionsPerMonth ?? 0;
+          const discount = prev?.discount ?? lvl?.discount ?? 0;
+          const monthlyRate = Math.max(0, (hourly * totalSessions) - ((hourly * totalSessions) * (discount / 100)));
+          return {
+            educationLevel: levelId,
+            name: lvl?.level || prev?.name || 'Level',
+            hourlyRate: hourly,
+            totalSessionsPerMonth: totalSessions,
+            discount,
+            monthlyRate
+          };
+        });
+      }
+    }
+
+    // --- Handle subjects ---
+    if (Array.isArray(subjects)) {
+      const subjectIds = subjects.map(s => String(s));
+      if (JSON.stringify(subjectIds) !== JSON.stringify(tutor.subjects.map(String))) {
+        tutorChanges.subjects = subjectIds;
+      }
+    }
+
+    Object.assign(tutor, tutorChanges);
+
+    // --- ChangeLog only if changes exist ---
+    if (Object.keys(userChanges).length > 0) {
+      await ChangeLog.create({
+        table: 'users',
+        action: 'update',
+        actualJson: beforeUser,
+        documentKey: { _id: beforeUser._id },
+        changedBy: actor,
+        meta: { note: 'admin updated user via updateTutorByAdmin' }
       });
     }
 
-    // Handle subjects if provided; optionally filter to selected levels
-    if (Array.isArray(subjects)) {
-      let subjectIds = subjects.map((s) => String(s)).filter(Boolean);
-
-      // If levels were provided in same request, filter subjects to those levels
-      if (selectedLevelIds && selectedLevelIds.length > 0) {
-        const subjectDocs = await Subject.find({ _id: { $in: subjectIds } }).select('_id level_id').lean();
-        const levelSet = new Set(selectedLevelIds.map(String));
-        subjectIds = subjectDocs
-          .filter((sd) => sd.level_id && levelSet.has(String(sd.level_id)))
-          .map((sd) => String(sd._id));
-      }
-
-      // Subjects being removed and their dependencies
-      const prevSubjects = Array.isArray(tutor.subjects) ? tutor.subjects.map(String) : [];
-      const removedSubjects = prevSubjects.filter((s) => !new Set(subjectIds).has(s));
-      if (removedSubjects.length > 0) {
-        const deps = {};
-        deps.sessions = await TutoringSession.countDocuments({ tutor_id: tutor._id, subject: { $in: removedSubjects } });
-        deps.payments = await StudentPayment.countDocuments({ tutor_id: tutor._id, subject: { $in: removedSubjects } });
-        deps.hires = await StudentProfile.countDocuments({ 'hired_tutors.tutor': tutor._id, 'hired_tutors.subject': { $in: removedSubjects } });
-        const total = (deps.sessions||0)+(deps.payments||0)+(deps.hires||0);
-        if (total > 0) {
-          return res.status(400).json({ success: false, message: 'Cannot remove subjects due to existing dependencies', dependencies: deps });
-        }
-      }
-
-      tutor.subjects = subjectIds;
+    if (Object.keys(tutorChanges).length > 0) {
+      await ChangeLog.create({
+        table: 'tutor_profiles',
+        action: 'update',
+        actualJson: beforeTutor,
+        documentKey: { user_id: String(beforeTutor.user_id), _id: String(beforeTutor._id) },
+        changedBy: actor,
+        meta: { note: 'admin updated tutor profile via updateTutorByAdmin' }
+      });
     }
 
+    // Save
+    user._changedBy = actor;
+    tutor._changedBy = actor;
     await Promise.all([user.save(), tutor.save()]);
 
     return res.status(200).json({ success: true, message: 'Tutor updated successfully' });
@@ -4570,4 +4720,7 @@ console.log("req.body", req.body);
     return res.status(500).json({ success: false, message: 'Failed to update tutor', error: error.message });
   }
 });
+
+
+
 

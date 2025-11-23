@@ -42,7 +42,7 @@ import {
   ListItemText,
   CircularProgress,
 } from '@mui/material';
-import { User, } from 'lucide-react';
+import { User, UserCircleIcon } from 'lucide-react';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoIcon from '@mui/icons-material/Info';
 import PersonIcon from '@mui/icons-material/Person';
@@ -159,7 +159,7 @@ const TutorSessionsPage = () => {
       status: session.status || '',
       notes: session.notes || '',
       meeting_link: session.meeting_link || '',
-      session_date: session.session_date ? new Date(session.session_date).toISOString().slice(0,16) : ''
+      session_date: session.session_date ? new Date(session.session_date).toISOString().slice(0, 16) : ''
     });
     setSelectedSession(session);
     setEditDialogOpen(true);
@@ -629,7 +629,7 @@ const TutorSessionsPage = () => {
                           flexDirection: { xs: 'column', sm: 'row' },
                         }}
                       >
-                        <Box
+                        {/* <Box
                           component="img"
                           src={session.tutor.photo_url || ''}
                           alt={session.tutor.full_name}
@@ -641,7 +641,19 @@ const TutorSessionsPage = () => {
                             mr: { xs: 0, sm: 2 },
                             mb: { xs: 2, sm: 0 },
                           }}
-                        />
+                        /> */}
+                        {session.tutor.photo_url ? (
+                          <img
+                            //   src={selectedTutor.tutor.photo_url}
+                            src={`${session.tutor.photo_url}`}
+                            alt={session.tutor.name}
+                            className="h-10 w-10 rounded-full object-cover mr-4"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <UserCircleIcon className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
                         <Box sx={{ flex: 1 }}>
                           <Typography fontWeight={600} variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                             {session.tutor.full_name}
@@ -737,7 +749,7 @@ const TutorSessionsPage = () => {
                                     mb: { xs: 2, sm: 0 },
                                   }}
                                 /> */}
-                                <div className="w-14 h-14 mr-4 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
+                                 <div className="w-12 h-12 mr-4 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                                   {student?.photo_url ? (
                                     <img
                                       src={student.photo_url}
@@ -753,7 +765,7 @@ const TutorSessionsPage = () => {
                                       <User className="h-8 w-8" />
                                     </div>
                                   )}
-                                </div>
+                                </div> 
                                 <Box sx={{ flex: 1 }}>
                                   <Typography fontWeight="600" variant="subtitle1">
                                     {student.full_name}
@@ -961,12 +973,25 @@ const TutorSessionsPage = () => {
                     </Typography>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Avatar
+                      {/* <Avatar
                         src={`${BASE_URL}${session.tutor.photo_url}`}
                         sx={{ width: 24, height: 24, mr: 1 }}
                       >
                         <Person />
-                      </Avatar>
+                      </Avatar> */}
+
+                      {/* {session.tutor.photo_url ? (
+                                          <img
+                                          //   src={selectedTutor.tutor.photo_url}
+                                            src={`${session.tutor.photo_url}`}
+                                            alt={session.tutor.name}
+                                            className="h-12 w-12 rounded-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <UserCircleIcon className="h-6 w-6 text-gray-400" />
+                                          </div>
+                                        )} */}
                       <Typography variant="body2">
                         {session.tutor?.full_name || 'Unknown'}
                       </Typography>
@@ -1105,12 +1130,24 @@ const TutorSessionsPage = () => {
                   <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     {session.tutor ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
+                        {/* <Box
                           component="img"
                           src={session.tutor.photo_url || ''}
                           alt={session.tutor.full_name}
                           sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                        />
+                        /> */}
+                        {session.tutor.photo_url ? (
+                          <img
+                            //   src={selectedTutor.tutor.photo_url}
+                            src={`${session.tutor.photo_url}`}
+                            alt={session.tutor.name}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <UserCircleIcon className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
                         <Box>
                           <Typography variant="body2">{session.tutor.full_name}</Typography>
                           <Typography variant="caption" color="text.secondary">

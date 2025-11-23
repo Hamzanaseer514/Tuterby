@@ -272,17 +272,16 @@ const TutorReviewsPage = () => {
             </div>
           )}
         </div>
-        <div className="mt-3 flex items-center justify-end space-x-2">
+        <div className="mt-12  flex items-center justify-end space-x-2">
           <button
             onClick={() => {
               setDeletingReview(review);
               setDeleteDialogOpen(true);
             }}
             title="Delete review"
-            className="inline-flex items-center px-3 py-1.5 border border-red-300 bg-red-50 text-red-700 rounded-md text-sm hover:bg-red-100"
+            className="inline-flex items-center px-1 py-1 border border-red-300 bg-red-50 text-red-700 rounded-md text-sm hover:bg-red-100"
           >
-            <TrashIcon className="h-4 w-4 mr-1" />
-            Delete
+            <TrashIcon className="h-4 w-4" />
           </button>
         </div>
       </div>

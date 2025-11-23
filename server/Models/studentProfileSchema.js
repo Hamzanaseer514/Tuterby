@@ -7,6 +7,10 @@ const studentProfileSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    location: {
+      type: String,
+      default: "",
+    },
     academic_level: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "EducationLevel",

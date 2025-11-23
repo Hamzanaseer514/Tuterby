@@ -30,11 +30,23 @@ import {
   SortDesc,
   X,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  Edit3,
+  Trash2,
+  BarChart3,
+  Send,
+  Award
 } from 'lucide-react';
 import { getTutorSubmissions, gradeSubmission } from '../../services/assignmentService';
 import { deleteSubmission } from '../../services/assignmentService';
 import { useSubject } from '../../hooks/useSubject';
+
+// Truncate text function
+function truncate(text, len = 50) {
+  if (!text) return '';
+  const s = String(text);
+  return s.length > len ? s.slice(0, len).trim() + '...' : s;
+}
 
 // Submission Details Modal Component
 const SubmissionDetailsModal = ({
@@ -61,22 +73,15 @@ const SubmissionDetailsModal = ({
       <div className="space-y-4">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-medium font-medium">Title:</span>
-              <h3 className="text-xl font-semibold mb-2">{submission.assignment_id.title}</h3>
-            </div>
+            <h3 className="text-xl font-semibold mb-2">{submission.assignment_id.title}</h3>
             {submission.assignment_id.description && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Description:</span>
-                <p className="text-gray-600">{submission.assignment_id.description}</p>
-              </div>
+              <p className="text-gray-600 text-sm">{submission.assignment_id.description}</p>
             )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge variant={submission.status === 'graded' ? 'default' : 'secondary'}>
               {submission.status === 'graded' ? 'Graded' : 'Pending Evaluation'}
             </Badge>
-
           </div>
         </div>
 
@@ -84,28 +89,36 @@ const SubmissionDetailsModal = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium">Student:</span>
-            <span className="text-sm">{submission.student_id.user_id.full_name}</span>
+            <div>
+              <p className="text-xs text-gray-500">Student</p>
+              <p className="text-sm font-medium">{submission.student_id.user_id.full_name}</p>
+            </div>
           </div>
           {submission.assignment_id.subject && (
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium">Subject:</span>
-              <span className="text-sm">{submission.assignment_id.subject.name}</span>
+              <div>
+                <p className="text-xs text-gray-500">Subject</p>
+                <p className="text-sm font-medium">{submission.assignment_id.subject.name}</p>
+              </div>
             </div>
           )}
           {submission.assignment_id.academic_level && (
             <div className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium">Academic Level:</span>
-              <span className="text-sm">{submission.assignment_id.academic_level.level}</span>
+              <div>
+                <p className="text-xs text-gray-500">Academic Level</p>
+                <p className="text-sm font-medium">{submission.assignment_id.academic_level.level}</p>
+              </div>
             </div>
           )}
           {submission.assignment_id.due_date && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium">Due Date:</span>
-              <span className="text-sm">{formatDateTime(submission.assignment_id.due_date)}</span>
+              <div>
+                <p className="text-xs text-gray-500">Due Date</p>
+                <p className="text-sm font-medium">{formatDateTime(submission.assignment_id.due_date)}</p>
+              </div>
             </div>
           )}
         </div>
@@ -114,7 +127,7 @@ const SubmissionDetailsModal = ({
       {/* Submission Content */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex  gap-2">
+          <div className="flex items-center gap-2">
             <h4 className="font-medium text-gray-900">Student's Submission</h4>
             <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
               {submission.is_late ? 'Late Submission' : 'On Time'}
@@ -122,41 +135,43 @@ const SubmissionDetailsModal = ({
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium">Submitted:</span>
-            <span className="text-sm">{formatDateTime(submission.submitted_at)}</span>
+            <div>
+              <p className="text-xs text-gray-500">Submitted</p>
+              <p className="text-sm font-medium">{formatDateTime(submission.submitted_at)}</p>
+            </div>
           </div>
         </div>
+        
         {submission.submission_text && (
           <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center gap-5">
-              <p className="text-sm font-medium">Submission Text:</p>
-              <p className="text-sm text-gray-700">{submission.submission_text}</p>
-            </div>
+            <p className="text-sm font-medium mb-2">Submission Text:</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{submission.submission_text}</p>
           </div>
         )}
 
         {submission.submission_file_url && (
-          <div className="flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-12">
-              <p className="text-sm font-medium">Submitted File:</p>
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-600">{submission.submission_file_name}</span>
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">{submission.submission_file_name}</p>
+                <p className="text-xs text-blue-600">Submitted file</p>
               </div>
             </div>
             <Button
               size="sm"
               variant="outline"
               onClick={() => window.open(submission.submission_file_url, '_blank')}
+              className="flex items-center gap-1"
             >
-              <Eye className="h-3 w-3 mr-1" />
+              <Eye className="h-3 w-3" />
               View
             </Button>
           </div>
         )}
 
         {!submission.submission_text && !submission.submission_file_url && (
-          <div className="text-center py-4 text-gray-500">
+          <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
             <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
             <p className="text-sm">No submission content provided</p>
           </div>
@@ -165,34 +180,37 @@ const SubmissionDetailsModal = ({
 
       {/* Grade Section */}
       <div className="space-y-4">
-        <h4 className="font-medium text-gray-900">Grading</h4>
+        <h4 className="font-medium text-gray-900 flex items-center gap-2">
+          <Award className="h-4 w-4" />
+          Evaluation
+        </h4>
         {submission.status === 'graded' ? (
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-blue-600" />
-              <span className="font-medium">Grade: {submission.grade}/100</span>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-semibold text-green-900">Grade: {submission.grade}/100</span>
             </div>
             {submission.feedback && (
-              <div className="mt-2">
-                <div className="flex items-center gap-5">
-                  <p className="text-sm font-medium">Feedback:</p>
-                  <p className="text-sm text-gray-700">{submission.feedback}</p>
-                </div>
+              <div className="mt-3">
+                <p className="text-sm font-medium text-green-900 mb-1">Feedback:</p>
+                <p className="text-sm text-green-800 whitespace-pre-wrap">{submission.feedback}</p>
               </div>
             )}
-            <p className="text-xs text-gray-500 mt-2">
-              Graded: {formatDateTime(submission.graded_at)}
+            <p className="text-xs text-green-600 mt-3">
+              Evaluated: {formatDateTime(submission.graded_at)}
             </p>
           </div>
         ) : (
-          <div className="text-center py-6 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-3">Ready to grade this submission?</p>
+          <div className="text-center py-6 bg-orange-50 rounded-lg border border-orange-200">
+            <AlertCircle className="h-8 w-8 mx-auto mb-3 text-orange-500" />
+            <p className="text-sm text-orange-800 mb-3">Ready to evaluate this submission?</p>
             <Button
               onClick={() => onGradeSubmission(submission)}
               disabled={grading[submission._id]}
-              className="w-full max-w-xs"
+              className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
             >
-              {grading[submission._id] ? 'Grading...' : 'Grade Submission'}
+              <Award className="h-4 w-4" />
+              {grading[submission._id] ? 'Evaluating...' : 'Evaluate Submission'}
             </Button>
           </div>
         )}
@@ -224,11 +242,11 @@ const TutorSubmissions = () => {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
-    submission_status: 'all', // 'all', 'graded', 'pending'
+    submission_status: 'all',
     subject: 'all',
     academic_level: 'all',
-    sort_by: 'submitted_at', // 'submitted_at', 'title', 'student_name', 'grade'
-    sort_order: 'desc' // 'asc', 'desc'
+    sort_by: 'submitted_at',
+    sort_order: 'desc'
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -243,11 +261,7 @@ const TutorSubmissions = () => {
       const data = await getTutorSubmissions(user._id);
       setSubmissions(data);
     } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to fetch submissions",
-      //   variant: "destructive"
-      // });
+      // Error handling
     } finally {
       setLoading(false);
     }
@@ -392,7 +406,7 @@ const TutorSubmissions = () => {
       feedback: submission.feedback || ''
     });
     setShowGradeModal(true);
-    setShowDetailsModal(false); // Close details modal
+    setShowDetailsModal(false);
   };
 
   const openDeleteSubmissionDialog = (submissionId) => {
@@ -405,7 +419,7 @@ const TutorSubmissions = () => {
     setDeleteSubmitting(true);
     try {
       await deleteSubmission(user._id, deletingSubmissionId);
-      toast({ title: 'Deleted', description: 'Submission deleted' });
+      toast({ title: 'Deleted', description: 'Submission deleted successfully' });
       setSubmissions(prev => prev.filter(s => s._id !== deletingSubmissionId));
       setShowDeleteDialog(false);
       setDeletingSubmissionId(null);
@@ -443,17 +457,17 @@ const TutorSubmissions = () => {
 
       toast({
         title: "Success",
-        description: "Submission graded successfully"
+        description: "Submission evaluated successfully"
       });
 
       setShowGradeModal(false);
       setSelectedSubmission(null);
       setGradeForm({ grade: '', feedback: '' });
-      fetchSubmissions(); // Refresh submissions
+      fetchSubmissions();
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to grade submission",
+        description: error.message || "Failed to evaluate submission",
         variant: "destructive"
       });
     } finally {
@@ -474,9 +488,13 @@ const TutorSubmissions = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Assignment Submissions</h2>
-        <Badge variant="outline" className="text-sm">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Assignment Submissions</h2>
+          <p className="text-gray-600 mt-1">Review and evaluate student submissions</p>
+        </div>
+        <Badge variant="outline" className="text-sm px-3 py-1">
           {getFilteredSubmissions().length} submission{getFilteredSubmissions().length !== 1 ? 's' : ''}
         </Badge>
       </div>
@@ -524,7 +542,6 @@ const TutorSubmissions = () => {
             {/* Filters Panel */}
             {showFilters && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
-                {/* Submission Status Filter */}
                 <div>
                   <Label className="text-sm font-medium">Submission Status</Label>
                   <Select
@@ -537,12 +554,11 @@ const TutorSubmissions = () => {
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending Evaluation</SelectItem>
-                      <SelectItem value="graded">Graded</SelectItem>
+                      <SelectItem value="graded">Evaluated</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Subject Filter */}
                 <div>
                   <Label className="text-sm font-medium">Subject</Label>
                   <Select
@@ -563,7 +579,6 @@ const TutorSubmissions = () => {
                   </Select>
                 </div>
 
-                {/* Academic Level Filter */}
                 <div>
                   <Label className="text-sm font-medium">Academic Level</Label>
                   <Select
@@ -584,7 +599,6 @@ const TutorSubmissions = () => {
                   </Select>
                 </div>
 
-                {/* Sort Options */}
                 <div>
                   <Label className="text-sm font-medium">Sort By</Label>
                   <div className="flex gap-2">
@@ -624,6 +638,7 @@ const TutorSubmissions = () => {
         </CardContent>
       </Card>
 
+      {/* Submissions List */}
       {getFilteredSubmissions().length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
@@ -643,7 +658,7 @@ const TutorSubmissions = () => {
             ) : (
               <>
                 <p className="text-gray-600">No submissions yet</p>
-                <p className="text-sm text-gray-500">Students will submit their assignments here</p>
+                <p className="text-sm text-gray-500">Student submissions will appear here</p>
               </>
             )}
           </CardContent>
@@ -656,90 +671,118 @@ const TutorSubmissions = () => {
               <span className="text-sm text-gray-600">
                 Showing {getFilteredSubmissions().length} of {submissions.length} submissions
               </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="flex items-center gap-1 text-xs"
+              >
+                <X className="h-3 w-3" />
+                Clear Filters
+              </Button>
             </div>
           )}
 
           {getFilteredSubmissions().map((submission) => (
-            <Card key={submission._id}>
+            <Card key={submission._id} className={
+              submission.status === 'graded' 
+                ? 'border-green-200 bg-green-50' 
+                : 'border-orange-200 bg-orange-50'
+            }>
               <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-medium font-medium">Title:</span>
-                      <h3 className="text-xl font-semibold mb-2">{submission.assignment_id.title}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold">{truncate(submission.assignment_id.title, 60)}</h3>
+                      {submission.status === 'graded' ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-orange-600" />
+                      )}
                     </div>
                     {submission.assignment_id.description && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Description:</span>
-                        <p className="text-gray-600">{submission.assignment_id.description}</p>
-                      </div>
+                      <p className="text-gray-600 text-sm">{truncate(submission.assignment_id.description, 80)}</p>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <Badge variant={submission.status === 'graded' ? 'default' : 'secondary'}>
-                      {submission.status === 'graded' ? 'Graded' : 'Pending Evaluation'}
+                      {submission.status === 'graded' ? 'Evaluated' : 'Pending'}
                     </Badge>
                     <Badge variant={submission.is_late ? 'destructive' : 'secondary'}>
-                      {submission.is_late ? 'Late Submission' : 'On Time'}
+                      {submission.is_late ? 'Late' : 'On Time'}
                     </Badge>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium">Student:</span>
-                      <span className="text-sm">{submission.student_id.user_id.full_name}</span>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Student</p>
+                      <p className="text-sm font-medium">{submission.student_id.user_id.full_name}</p>
                     </div>
+                  </div>
+                  
+                  {submission.assignment_id.subject && (
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-xs text-gray-500">Subject</p>
+                        <p className="text-sm font-medium">{submission.assignment_id.subject.name}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {submission.assignment_id.academic_level && (
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-xs text-gray-500">Level</p>
+                        <p className="text-sm font-medium">{submission.assignment_id.academic_level.level}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {submission.status === 'graded' && (
+                    <div className="flex items-center gap-2">
+                      <Award className="h-4 w-4 text-green-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">Grade</p>
+                        <p className="text-sm font-medium text-green-600">{submission.grade}/100</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                    {/* <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium">Submitted:</span>
-                      <span className="text-sm">{formatDateTime(submission.submitted_at)}</span>
-                    </div> */}
-                    {submission.assignment_id.subject && (
-                      <div className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Subject:</span>
-                        <span>{submission.assignment_id.subject.name}</span>
-                      </div>
-                    )}
-                    {submission.assignment_id.academic_level && (
-                      <div className="flex items-center gap-1">
-                        <GraduationCap className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Academic Level:</span>
-                        <span>{submission.assignment_id.academic_level.level}</span>
-                      </div>
-                    )}
-                    {submission.status === 'graded' && (
-                      <div className="flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium">Grade:</span>
-                        <span className="text-green-600 font-medium">{submission.grade}/100</span>
-                      </div>
-                    )}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar className="h-4 w-4" />
+                    <span>Submitted: {formatDateTime(submission.submitted_at)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
                       onClick={() => handleViewDetails(submission)}
+                      title="View Details"
                     >
-                      <Info className="h-4 w-4 mr-1" />
-                      View Details
+                      <Eye className="h-4 w-4" />
                     </Button>
-                    {submission.status === 'graded' ? (
-                      <Button size="sm" onClick={() => handleGradeSubmission(submission)}>
-                        Edit Evaluation
-                      </Button>
-                    ) : (
-                      <Button size="sm" onClick={() => handleGradeSubmission(submission)}>
-                        Grade Submission
-                      </Button>
-                    )}
-                    <Button size="sm" variant="destructive" onClick={() => openDeleteSubmissionDialog(submission._id)}>
-                      Delete
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleGradeSubmission(submission)}
+                      title={submission.status === 'graded' ? "Edit Evaluation" : "Evaluate Submission"}
+                    >
+                      <Award className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      onClick={() => openDeleteSubmissionDialog(submission._id)}
+                      title="Delete Submission"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -753,7 +796,6 @@ const TutorSubmissions = () => {
       {showDetailsModal && currentSubmission && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={() => {
             setShowDetailsModal(false);
             setCurrentSubmission(null);
@@ -764,10 +806,10 @@ const TutorSubmissions = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  {currentSubmission.assignment_id.title}
+                  Submission Details
                 </h2>
                 <Button
                   variant="outline"
@@ -797,14 +839,28 @@ const TutorSubmissions = () => {
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
           onClick={() => { setShowDeleteDialog(false); setDeletingSubmissionId(null); }}
         >
-          <div className="w-full max-w-md bg-white rounded-lg p-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-medium mb-2">Confirm Delete</h3>
-            <p className="text-sm text-gray-600">Are you sure you want to delete this submission? This action cannot be undone.</p>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => { setShowDeleteDialog(false); setDeletingSubmissionId(null); }}>Cancel</Button>
-              <Button variant="destructive" onClick={confirmDeleteSubmission} disabled={deleteSubmitting}>{deleteSubmitting ? 'Deleting...' : 'Delete'}</Button>
-            </div>
-          </div>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <AlertCircle className="h-5 w-5" />
+                Confirm Delete
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to delete this submission? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setShowDeleteDialog(false); setDeletingSubmissionId(null); }}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={confirmDeleteSubmission} disabled={deleteSubmitting} className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  {deleteSubmitting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -812,7 +868,6 @@ const TutorSubmissions = () => {
       {showGradeModal && selectedSubmission && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={() => {
             setShowGradeModal(false);
             setSelectedSubmission(null);
@@ -821,12 +876,18 @@ const TutorSubmissions = () => {
         >
           <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
-              <CardTitle>Grade Submission</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                Evaluate Submission
+              </CardTitle>
               <p className="text-sm text-gray-600">{selectedSubmission.assignment_id.title}</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="grade">Grade (0-100) *</Label>
+                <Label htmlFor="grade" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Grade (0-100) *
+                </Label>
                 <Input
                   id="grade"
                   type="number"
@@ -839,12 +900,15 @@ const TutorSubmissions = () => {
               </div>
 
               <div>
-                <Label htmlFor="feedback">Feedback (Optional)</Label>
+                <Label htmlFor="feedback" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Feedback (Optional)
+                </Label>
                 <Textarea
                   id="feedback"
                   value={gradeForm.feedback}
                   onChange={(e) => setGradeForm(prev => ({ ...prev, feedback: e.target.value }))}
-                  placeholder="Enter feedback for the student..."
+                  placeholder="Provide constructive feedback for the student..."
                   rows={4}
                 />
               </div>
@@ -853,9 +917,10 @@ const TutorSubmissions = () => {
                 <Button
                   onClick={handleSubmitGrade}
                   disabled={grading[selectedSubmission._id]}
-                  className="flex-1"
+                  className="flex-1 flex items-center gap-2"
                 >
-                  {grading[selectedSubmission._id] ? 'Grading...' : 'Submit Grade'}
+                  <Award className="h-4 w-4" />
+                  {grading[selectedSubmission._id] ? 'Evaluating...' : 'Submit Evaluation'}
                 </Button>
                 <Button
                   variant="outline"

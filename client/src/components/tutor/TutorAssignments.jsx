@@ -36,7 +36,12 @@ import {
   Filter,
   SortAsc,
   SortDesc,
-  X
+  X,
+  Edit3,
+  Trash2,
+  Info,
+  BarChart3,
+  Send
 } from 'lucide-react';
 import { createAssignment, getTutorAssignments, editAssignment, deleteAssignment } from '../../services/assignmentService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
@@ -56,16 +61,16 @@ const TutorAssignments = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'submitted'
+  const [activeTab, setActiveTab] = useState('all');
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
-    submission_status: 'all', // 'all', 'submitted', 'not_submitted', 'graded'
+    submission_status: 'all',
     subject: 'all',
     academic_level: 'all',
-    sort_by: 'created_at', // 'created_at', 'submission_date', 'title', 'student_name'
-    sort_order: 'desc' // 'asc', 'desc'
+    sort_by: 'created_at',
+    sort_order: 'desc'
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -79,6 +84,24 @@ const TutorAssignments = () => {
     file: null
   });
 
+  // Edit and Delete states
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [editForm, setEditForm] = useState({
+    academic_level: '',
+    subject: '',
+    student_user_id: '',
+    title: '',
+    description: '',
+    due_date: '',
+    file: null,
+  });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+
   useEffect(() => {
     if (user) {
       fetchAssignments();
@@ -88,17 +111,18 @@ const TutorAssignments = () => {
     }
   }, [user]);
 
+    function truncate(text, len = 100) {
+    if (!text) return '';
+    const s = String(text);
+    return s.length > len ? s.slice(0, len).trim() + '...' : s;
+  }
+
   const fetchAssignments = async () => {
     try {
       const data = await getTutorAssignments(user._id);
       setAssignments(data);
-
     } catch (error) {
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to fetch assignments",
-      //   variant: "destructive"
-      // });
+      // Error handling
     } finally {
       setLoading(false);
     }
@@ -115,7 +139,7 @@ const TutorAssignments = () => {
         setTutorAcademicLevels(data.academic_levels || []);
       }
     } catch (error) {
-      // console.error('Failed to fetch academic levels:', error);
+      // Error handling
     }
   };
 
@@ -125,13 +149,11 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-
       if (response.ok) {
         const data = await response.json();
         setAvailableSubjects(data.subjects || []);
       }
     } catch (error) {
-      // console.error('Failed to fetch subjects:', error);
       setAvailableSubjects([]);
     }
   };
@@ -143,13 +165,11 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-
       if (response.ok) {
         const data = await response.json();
         setAvailableStudents(data.students || []);
       }
     } catch (error) {
-      // console.error('Failed to fetch students:', error);
       setAvailableStudents([]);
     } finally {
       setLoadingStudents(false);
@@ -162,13 +182,12 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-
       if (response.ok) {
         const data = await response.json();
         setSubmittedAssignments(data.assignments || []);
       }
     } catch (error) {
-      // console.error('Failed to fetch submitted assignments:', error);
+      // Error handling
     }
   };
 
@@ -178,13 +197,12 @@ const TutorAssignments = () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-
       if (response.ok) {
         const data = await response.json();
         setUnreadCount(data.unread_count || 0);
       }
     } catch (error) {
-      // console.error('Failed to fetch unread count:', error);
+      // Error handling
     }
   };
 
@@ -192,20 +210,16 @@ const TutorAssignments = () => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
 
-      // If academic level changes, fetch subjects for that level
       if (field === 'academic_level' && value) {
         fetchSubjectsForLevel(value);
-        // Reset subject and students when academic level changes
         newData.subject = '';
         newData.selected_students = [];
         setAvailableSubjects([]);
         setAvailableStudents([]);
       }
 
-      // If subject changes, fetch students for that subject and level
       if (field === 'subject' && value && prev.academic_level) {
         fetchStudentsForAssignment(prev.academic_level, value);
-        // Reset selected students when subject changes
         newData.selected_students = [];
       }
 
@@ -245,7 +259,6 @@ const TutorAssignments = () => {
 
     setSubmitting(true);
     try {
-      // Create assignment for each selected student
       const assignmentPromises = formData.selected_students.map(studentId =>
         createAssignment(user._id, {
           ...formData,
@@ -291,6 +304,7 @@ const TutorAssignments = () => {
       day: 'numeric'
     });
   };
+
   const formatDate = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -306,28 +320,9 @@ const TutorAssignments = () => {
   };
 
   const handleDeleteAssignment = async (assignmentId) => {
-    // Open confirmation dialog instead
     setDeletingAssignmentId(assignmentId);
     setDeleteDialogOpen(true);
   };
-
-  // Edit dialog state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingAssignment, setEditingAssignment] = useState(null);
-  const [editForm, setEditForm] = useState({
-    academic_level: '',
-    subject: '',
-    student_user_id: '',
-    title: '',
-    description: '',
-    due_date: '',
-    file: null,
-  });
-
-  // Delete confirmation dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingAssignmentId, setDeletingAssignmentId] = useState(null);
-  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const openEditDialog = (assignment) => {
     setEditingAssignment(assignment);
@@ -341,7 +336,6 @@ const TutorAssignments = () => {
       file: null,
     });
 
-    // preload subjects and students lists for the assignment's level/subject
     if (assignment.academic_level?._id) {
       fetchSubjectsForLevel(assignment.academic_level._id);
     }
@@ -395,9 +389,6 @@ const TutorAssignments = () => {
     openEditDialog(assignment);
   };
 
-  const [showDetails, setShowDetails] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
-
   const handleViewDetails = (assignment) => {
     setSelectedAssignment(assignment);
     setShowDetails(true);
@@ -430,11 +421,9 @@ const TutorAssignments = () => {
     return level?.level || 'Unknown Level';
   };
 
-  // Filter and search functions
   const getFilteredAssignments = () => {
     let filtered = activeTab === 'all' ? assignments : submittedAssignments;
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(assignment =>
@@ -444,7 +433,6 @@ const TutorAssignments = () => {
       );
     }
 
-    // Apply submission status filter
     if (filters.submission_status !== 'all') {
       filtered = filtered.filter(assignment => {
         switch (filters.submission_status) {
@@ -460,21 +448,18 @@ const TutorAssignments = () => {
       });
     }
 
-    // Apply subject filter
     if (filters.subject !== 'all') {
       filtered = filtered.filter(assignment =>
         assignment.subject._id === filters.subject
       );
     }
 
-    // Apply academic level filter
     if (filters.academic_level !== 'all') {
       filtered = filtered.filter(assignment =>
         assignment.academic_level._id === filters.academic_level
       );
     }
 
-    // Apply sorting
     filtered.sort((a, b) => {
       let aValue, bValue;
 
@@ -528,8 +513,6 @@ const TutorAssignments = () => {
     return count;
   };
 
-
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -543,9 +526,14 @@ const TutorAssignments = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Assignment Management</h2>
-        <div className="flex items-center gap-3">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Assignment Management</h2>
+          <p className="text-gray-600 mt-1">Create, manage, and review student assignments</p>
+        </div>
+        
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Notification Badge */}
           {unreadCount > 0 && (
             <Badge variant="destructive" className="flex items-center gap-1">
@@ -560,16 +548,18 @@ const TutorAssignments = () => {
               variant={activeTab === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setActiveTab('all')}
+              className="flex items-center gap-2"
             >
-              All Assignments ({assignments.length})
+              <BarChart3 className="h-4 w-4" />
+              All ({assignments.length})
             </Button>
             <Button
               variant={activeTab === 'submitted' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setActiveTab('submitted')}
-              className="relative"
+              className="relative flex items-center gap-2"
             >
-              <Bell className="h-4 w-4 mr-1" />
+              <Send className="h-4 w-4" />
               Submitted ({submittedAssignments.length})
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -632,7 +622,6 @@ const TutorAssignments = () => {
             {/* Filters Panel */}
             {showFilters && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
-                {/* Submission Status Filter */}
                 <div>
                   <Label className="text-sm font-medium">Submission Status</Label>
                   <Select
@@ -651,7 +640,6 @@ const TutorAssignments = () => {
                   </Select>
                 </div>
 
-                {/* Subject Filter */}
                 <div>
                   <Label className="text-sm font-medium">Subject</Label>
                   <Select
@@ -672,7 +660,6 @@ const TutorAssignments = () => {
                   </Select>
                 </div>
 
-                {/* Academic Level Filter */}
                 <div>
                   <Label className="text-sm font-medium">Academic Level</Label>
                   <Select
@@ -693,7 +680,6 @@ const TutorAssignments = () => {
                   </Select>
                 </div>
 
-                {/* Sort Options */}
                 <div>
                   <Label className="text-sm font-medium">Sort By</Label>
                   <div className="flex gap-2">
@@ -743,18 +729,17 @@ const TutorAssignments = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Step 1: Academic Level Selection */}
               <div className="space-y-2">
                 <Label htmlFor="academic_level" className="text-base font-semibold flex items-center gap-2">
                   <GraduationCap className="h-4 w-4" />
-                  Step 1: Select Academic Level *
+                  Academic Level *
                 </Label>
                 <Select
                   value={formData.academic_level}
                   onValueChange={(value) => handleInputChange('academic_level', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select academic level you teach" />
+                    <SelectValue placeholder="Select academic level" />
                   </SelectTrigger>
                   <SelectContent>
                     {tutorAcademicLevels.map((level) => (
@@ -764,16 +749,12 @@ const TutorAssignments = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {tutorAcademicLevels.length === 0 && (
-                  <p className="text-xs text-gray-500">No academic levels configured for your profile</p>
-                )}
               </div>
 
-              {/* Step 2: Subject Selection */}
               <div className="space-y-2">
                 <Label htmlFor="subject" className="text-base font-semibold flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
-                  Step 2: Select Subject *
+                  Subject *
                 </Label>
                 <Select
                   value={formData.subject}
@@ -781,7 +762,7 @@ const TutorAssignments = () => {
                   disabled={!formData.academic_level}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={formData.academic_level ? "Select subject" : "Select academic level first"} />
+                    <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableSubjects.map((subject) => (
@@ -791,19 +772,12 @@ const TutorAssignments = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {!formData.academic_level && (
-                  <p className="text-xs text-gray-500">Please select an academic level first</p>
-                )}
-                {formData.academic_level && availableSubjects.length === 0 && (
-                  <p className="text-xs text-gray-500">Loading subjects...</p>
-                )}
               </div>
 
-              {/* Step 3: Student Selection */}
               <div className="space-y-2">
                 <Label className="text-base font-semibold flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Step 3: Select Students * ({formData.selected_students.length} selected)
+                  Students * ({formData.selected_students.length} selected)
                 </Label>
 
                 {!formData.subject ? (
@@ -814,7 +788,7 @@ const TutorAssignments = () => {
                     Loading students...
                   </div>
                 ) : availableStudents.length === 0 ? (
-                  <p className="text-xs text-red-500">No students found with active payment for this subject and academic level</p>
+                  <p className="text-xs text-red-500">No students found with active payment for this subject</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-lg p-3">
                     {availableStudents.map((student) => (
@@ -828,21 +802,15 @@ const TutorAssignments = () => {
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
                             <span className="font-medium">{student.user_id.full_name}</span>
-
                           </div>
-                          <p className="text-xs text-gray-500 ml-2">Payment Status: {(student.payment_info.validity_status === 'active') ? (
-                            <Badge variant="success">
-                              Active
-                            </Badge>
-                          ) : (student.payment_info.validity_status === 'expired') ? (
-                            <Badge variant="error">
-                              Expired
-                            </Badge>
-                          ) : (
-                            <Badge variant="warning">
-                              Pending
-                            </Badge>
-                          )}
+                          <p className="text-xs text-gray-500 ml-2">
+                            Payment: {(student.payment_info.validity_status === 'active') ? (
+                              <Badge variant="success">Active</Badge>
+                            ) : (student.payment_info.validity_status === 'expired') ? (
+                              <Badge variant="error">Expired</Badge>
+                            ) : (
+                              <Badge variant="warning">Pending</Badge>
+                            )}
                           </p>
                         </Label>
                       </div>
@@ -851,7 +819,6 @@ const TutorAssignments = () => {
                 )}
               </div>
 
-              {/* Assignment Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="due_date">Due Date</Label>
@@ -859,11 +826,9 @@ const TutorAssignments = () => {
                     type="datetime-local"
                     id="due_date"
                     value={formData.due_date}
-                    className="w-full appearance-none"
                     onChange={(e) => handleInputChange('due_date', e.target.value)}
                   />
                 </div>
-
 
                 <div>
                   <Label htmlFor="title">Assignment Title *</Label>
@@ -874,6 +839,7 @@ const TutorAssignments = () => {
                   />
                 </div>
               </div>
+
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -894,7 +860,8 @@ const TutorAssignments = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" disabled={submitting} className="flex items-center gap-2">
+                  <Send className="h-4 w-4" />
                   {submitting ? 'Creating...' : 'Create Assignment'}
                 </Button>
                 <Button
@@ -914,7 +881,7 @@ const TutorAssignments = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">
-            {activeTab === 'all' ? `Your Assignments (${getFilteredAssignments().length})` : `Submitted Assignments (${getFilteredAssignments().length})`}
+            {activeTab === 'all' ? `All Assignments (${getFilteredAssignments().length})` : `Submitted Assignments (${getFilteredAssignments().length})`}
           </h3>
           {getActiveFiltersCount() > 0 && (
             <div className="flex items-center gap-2">
@@ -925,275 +892,182 @@ const TutorAssignments = () => {
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="text-xs"
+                className="text-xs flex items-center gap-1"
               >
-                <X className="h-3 w-3 mr-1" />
-                Clear Filters
+                <X className="h-3 w-3" />
+                Clear
               </Button>
             </div>
           )}
         </div>
 
-        {activeTab === 'all' ? (
-          // All Assignments View
-          getFilteredAssignments().length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                {getActiveFiltersCount() > 0 ? (
-                  <>
-                    <p className="text-gray-600">No assignments match your filters</p>
-                    <p className="text-sm text-gray-500">Try adjusting your search criteria</p>
-                    <Button
-                      variant="outline"
-                      onClick={clearFilters}
-                      className="mt-3"
-                    >
-                      Clear Filters
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-gray-600">No assignments created yet</p>
-                    <p className="text-sm text-gray-500">Create your first assignment to get started</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {getFilteredAssignments().map((assignment) => (
-                <Card key={assignment._id} className={
-                  assignment.has_submission
-                    ? assignment.is_graded
-                      ? 'border-green-200'
-                      : 'border-orange-200'
-                    : 'border-gray-200'
-                }>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-medium font-medium">Title:</span>
-                          <h4 className="text-lg font-semibold">{assignment.title}</h4>
-                          {assignment.has_submission ? (
-                            assignment.is_graded ? (
-                              <CheckCircle2 className="h-5 w-5 text-green-600" />
-                            ) : (
-                              <AlertCircle className="h-5 w-5 text-orange-600" />
-                            )
+        {getFilteredAssignments().length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              {getActiveFiltersCount() > 0 ? (
+                <>
+                  <p className="text-gray-600">No assignments match your filters</p>
+                  <p className="text-sm text-gray-500">Try adjusting your search criteria</p>
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="mt-3"
+                  >
+                    Clear Filters
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-600">No assignments found</p>
+                  <p className="text-sm text-gray-500">
+                    {activeTab === 'all' ? 'Create your first assignment to get started' : 'No submitted assignments yet'}
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {getFilteredAssignments().map((assignment) => (
+              <Card key={assignment._id} className={
+                assignment.has_submission
+                  ? assignment.is_graded
+                    ? 'border-green-200 bg-green-50'
+                    : 'border-orange-200 bg-orange-50'
+                  : 'border-gray-200'
+              }>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-lg font-semibold">{assignment.title}</h4>
+                        {assignment.has_submission ? (
+                          assignment.is_graded ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
                           ) : (
-                            <Clock className="h-5 w-5 text-gray-400" />
+                            <AlertCircle className="h-5 w-5 text-orange-600" />
+                          )
+                        ) : (
+                          <Clock className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                      {assignment.description && (
+                        <p className="text-gray-600 text-sm">{truncate(assignment.description)}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {formatOnlyDate(assignment.createdAt)}
+                      </Badge>
+                      {assignment.has_submission ? (
+                        <div className="flex gap-1">
+                          <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
+                            {assignment.is_graded ? 'Graded' : 'Submitted'}
+                          </Badge>
+                          {assignment.is_late && (
+                            <Badge variant="destructive" className="text-xs">
+                              Late
+                            </Badge>
                           )}
                         </div>
-                        {assignment.description && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Description:</span>
-                            <p className="text-gray-600">{assignment.description}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge variant="secondary">
-                          Created At: {formatOnlyDate(assignment.createdAt)}
+                      ) : (
+                        <Badge variant="outline" className="text-gray-500">
+                          Not Submitted
                         </Badge>
-                        {assignment.has_submission ? (
-                          <div className="flex  gap-1">
-                            <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
-                              {assignment.is_graded ? 'Graded' : 'Submitted'}
-                            </Badge>
-                            {assignment.is_late && (
-                              <Badge variant="destructive" className="text-xs">
-                                Late Submission
-                              </Badge>
-                            )}
-                          </div>
-                        ) : (
-                          <Badge variant="outline" className="text-gray-500">
-                            Not Submitted
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Student:</span>
-                        <span className="text-sm">{assignment.student_id.user_id.full_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Subject:</span>
-                        <span className="text-sm">{getSubjectName(assignment.subject._id)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Academic Level:</span>
-                        <span className="text-sm">{getLevelName(assignment.academic_level._id)}</span>
-                      </div>
-                      {assignment.due_date && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium">Due Date:</span>
-                          <span className="text-sm">{formatDate(assignment.due_date)}</span>
-                        </div>
                       )}
-
                     </div>
+                  </div>
 
-                    {assignment.file_url && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-xs text-gray-500">Student</p>
+                        <p className="text-sm font-medium">{assignment.student_id.user_id.full_name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-xs text-gray-500">Subject</p>
+                        <p className="text-sm font-medium">{getSubjectName(assignment.subject._id)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-xs text-gray-500">Level</p>
+                        <p className="text-sm font-medium">{getLevelName(assignment.academic_level._id)}</p>
+                      </div>
+                    </div>
+                    {assignment.due_date && (
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm text-blue-600">{assignment.file_name}</span>
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <p className="text-xs text-gray-500">Due Date</p>
+                          <p className="text-sm font-medium">{formatDate(assignment.due_date)}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {assignment.file_url && (
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => window.open(assignment.file_url, '_blank')}
+                          className="flex items-center gap-1"
                         >
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
+                          <FileText className="h-3 w-3" />
+                          View File
                         </Button>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 mt-4">
-                      <Button size="sm" variant="outline" onClick={() => handleViewDetails(assignment)}>
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleViewDetails(assignment)}
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" onClick={() => handleEditAssignment(assignment)}>
-                        Edit
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditAssignment(assignment)}
+                        title="Edit Assignment"
+                      >
+                        <Edit3 className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDeleteAssignment(assignment._1d || assignment._id)}>
-                        Delete
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => handleDeleteAssignment(assignment._id)}
+                        title="Delete Assignment"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )
-        ) : (
-          // Submitted Assignments View
-          getFilteredAssignments().length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                {getActiveFiltersCount() > 0 ? (
-                  <>
-                    <p className="text-gray-600">No submitted assignments match your filters</p>
-                    <p className="text-sm text-gray-500">Try adjusting your search criteria</p>
-                    <Button
-                      variant="outline"
-                      onClick={clearFilters}
-                      className="mt-3"
-                    >
-                      Clear Filters
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-gray-600">No submitted assignments yet</p>
-                    <p className="text-sm text-gray-500">Students will submit their assignments here</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {getFilteredAssignments().map((assignment) => (
-                <Card key={assignment._id} className={assignment.is_graded ? 'border-green-200' : 'border-orange-200'}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-medium font-medium">Title:</span>
-                          <h4 className="text-lg font-semibold">{assignment.title}</h4>
-                          {assignment.is_graded ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-orange-600" />
-                          )}
-                        </div>
-                        {assignment.description && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Description:</span>
-                            <p className="text-gray-600">{assignment.description}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex  gap-2">
-
-                          <Badge variant={assignment.is_graded ? 'default' : 'secondary'}>
-                            {assignment.is_graded ? 'Graded' : 'Pending Evaluation'}
-                          </Badge>
-                          {assignment.grade && (
-                            <Badge variant="outline" className="text-green-600">
-                              Grade: {assignment.grade}/100
-                            </Badge>
-                          )}
-                        </div>
-                        {assignment.is_late && (
-                          <Badge variant="destructive" className="text-xs">
-                            Late Submission
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Student:</span>
-                        <span className="text-sm">{assignment.student_id.user_id.full_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Subject:</span>
-                        <span className="text-sm">{getSubjectName(assignment.subject._id)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Academic Level:</span>
-                        <span className="text-sm">{getLevelName(assignment.academic_level._id)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">Submitted:</span>
-                        <span className="text-sm">{formatDate(assignment.submission_date)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm text-blue-600">Student has submitted this assignment</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleViewDetails(assignment)}>
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                        <Button size="sm" onClick={() => handleEditAssignment(assignment)}>
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDeleteAssignment(assignment._id)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
+
       {/* Edit Assignment Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Assignment</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5" />
+              Edit Assignment
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={submitEdit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1209,9 +1083,9 @@ const TutorAssignments = () => {
               </div>
 
               <div>
-                <Label className="text-sm font-medium">Academic Level</Label>
+                <Label className="text-sm font-medium">Academic Level & Subject</Label>
                 <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
-                  {getLevelName(editForm.academic_level) || (editingAssignment?.academic_level?.level) || '—'} -                   {getSubjectName(editForm.subject) || (editingAssignment?.subject?.name) || '—'}
+                  {getLevelName(editForm.academic_level) || (editingAssignment?.academic_level?.level) || '—'} - {getSubjectName(editForm.subject) || (editingAssignment?.subject?.name) || '—'}
                 </div>
               </div>
             </div>
@@ -1235,25 +1109,36 @@ const TutorAssignments = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
               <div>
-                <Label className="text-sm font-medium">Assignment File (optional)</Label>
+                <Label className="text-sm font-medium">Assignment File</Label>
                 <Input type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" onChange={handleEditFileChange} />
               </div>
               <div className="text-sm text-gray-600">
                 {editingAssignment?.file_url ? (
                   <div className="flex items-center justify-end gap-2">
-                    <a href={editingAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Current file</a>
+                    <a href={editingAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      Current file
+                    </a>
                     <span className="text-xs text-gray-500">(upload to replace)</span>
                   </div>
                 ) : (
-                  <div className="flex justify-end">No existing file</div>
+                  <div className="flex justify-end items-center gap-1 text-gray-500">
+                    <FileText className="h-3 w-3" />
+                    No existing file
+                  </div>
                 )}
               </div>
             </div>
 
             <DialogFooter>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingAssignment(null); }}>Cancel</Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingAssignment(null); }}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Save Changes
+                </Button>
               </div>
             </DialogFooter>
           </form>
@@ -1282,7 +1167,10 @@ const TutorAssignments = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-4 sm:mb-6">
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold mb-3">Assignment Information</h3>
+                  <h3 className="text-base sm:text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Assignment Information
+                  </h3>
                   <div className="space-y-3">
                     {selectedAssignment.description && (
                       <div>
@@ -1290,14 +1178,6 @@ const TutorAssignments = () => {
                         <p className="text-xs sm:text-sm text-gray-900 mt-1 break-words">{selectedAssignment.description}</p>
                       </div>
                     )}
-                    <div>
-                      <span className="text-xs sm:text-sm font-medium text-gray-500">Subject:</span>
-                      <p className="text-xs sm:text-sm text-gray-900">{selectedAssignment.subject?.name || selectedAssignment.subject}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs sm:text-sm font-medium text-gray-500">Academic Level:</span>
-                      <p className="text-xs sm:text-sm text-gray-900">{selectedAssignment.academic_level?.level || selectedAssignment.academic_level}</p>
-                    </div>
                     {selectedAssignment.due_date && (
                       <div>
                         <span className="text-xs sm:text-sm font-medium text-gray-500">Due Date:</span>
@@ -1306,31 +1186,47 @@ const TutorAssignments = () => {
                     )}
                     {selectedAssignment.file_url && (
                       <div className="mt-2">
-                        <a href={selectedAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Open attachment</a>
+                        <a href={selectedAssignment.file_url} target="_blank" rel="noreferrer" className="text-blue-600 underline flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          Open attachment
+                        </a>
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold mb-3">Participants</h3>
+                  <h3 className="text-base sm:text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Participants
+                  </h3>
                   <div className="space-y-3">
-                    <div>
+                    {/* <div>
                       <span className="text-xs sm:text-sm font-medium text-gray-500">Tutor:</span>
                       <p className="text-xs sm:text-sm text-gray-900 break-words">{selectedAssignment.tutor_id?.user_id?.full_name || 'N/A'}</p>
                       <p className="text-xs text-gray-500 break-words">{selectedAssignment.tutor_id?.user_id?.email || ''}</p>
-                    </div>
+                    </div> */}
                     <div>
                       <span className="text-xs sm:text-sm font-medium text-gray-500">Student:</span>
                       <p className="text-xs sm:text-sm text-gray-900 break-words">{selectedAssignment.student_id?.user_id?.full_name || 'N/A'}</p>
                       <p className="text-xs text-gray-500 break-words">{selectedAssignment.student_id?.user_id?.email || ''}</p>
+                    </div>
+                      <div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Subject:</span>
+                      <p className="text-xs sm:text-sm text-gray-900">{selectedAssignment.subject?.name || selectedAssignment.subject}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-500">Academic Level:</span>
+                      <p className="text-xs sm:text-sm text-gray-900">{selectedAssignment.academic_level?.level || selectedAssignment.academic_level}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => { setShowDetails(false); setSelectedAssignment(null); }} className="w-full sm:w-auto">Close</Button>
+                <Button variant="outline" onClick={() => { setShowDetails(false); setSelectedAssignment(null); }} className="w-full sm:w-auto">
+                  Close
+                </Button>
               </div>
             </div>
           </div>
@@ -1341,7 +1237,10 @@ const TutorAssignments = () => {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Confirm Delete
+            </DialogTitle>
           </DialogHeader>
           <div className="p-4">
             <p>Are you sure you want to delete this assignment? This will remove all related student submissions.</p>
@@ -1349,14 +1248,14 @@ const TutorAssignments = () => {
               <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeletingAssignmentId(null); }}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={confirmDeleteAssignment} disabled={deleteSubmitting}>
+              <Button variant="destructive" onClick={confirmDeleteAssignment} disabled={deleteSubmitting} className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
                 {deleteSubmitting ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

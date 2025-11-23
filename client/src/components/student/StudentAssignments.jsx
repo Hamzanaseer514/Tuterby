@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle
 } from '../ui/card';
+
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
@@ -93,7 +94,7 @@ const AssignmentDetailsModal = ({
               <h3 className="text-xl font-semibold mb-2">{assignment.title}</h3>
             </div>
             {assignment.description && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col  gap-2">
                 <span className="text-sm font-medium">Description:</span>
                 <p className="text-gray-600">{assignment.description}</p>
               </div>
@@ -265,6 +266,14 @@ const AssignmentDetailsModal = ({
     </div>
   );
 };
+
+  // Truncate helper (declare before JSX usage)
+  function truncate(text, len = 50) {
+    if (!text) return '';
+    const s = String(text);
+    return s.length > len ? s.slice(0, len).trim() + '...' : s;
+  }
+
 
 const StudentAssignments = () => {
   const { toast } = useToast();
@@ -511,10 +520,10 @@ const StudentAssignments = () => {
                         <span className="text-medium font-medium">Title:</span>
                         <h4 className="text-lg font-semibold">{assignment.title}</h4>
                       </div>
-                      {assignment.description && (
+                                         {assignment.description && (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Description:</span>
-                        <p className="text-gray-600">{assignment.description}</p>
+                        {/* <span className="text-sm font-medium">Description:</span> */}
+                        <p className="text-gray-600">{truncate(assignment.description, 80)}</p>
                       </div>
                       )}
                     </div>
