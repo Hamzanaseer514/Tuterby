@@ -136,6 +136,7 @@ exports.getTutorAssignments = asyncHandler(async (req, res) => {
 
 // Student: list assignments assigned to them
 exports.getStudentAssignments = asyncHandler(async (req, res) => {
+  console.log("student assignments")
   const { user_id } = req.params; // student user id
   const studentProfile = await StudentProfile.findOne({ user_id });
   if (!studentProfile) return res.status(404).json({ message: 'Student profile not found' });
@@ -153,6 +154,33 @@ exports.getStudentAssignments = asyncHandler(async (req, res) => {
     if (assignmentObj.file_url) {
       assignmentObj.file_url = await s3KeyToUrl(assignmentObj.file_url);
     }
+
+    // Fetch submission for this student (if any)
+    try {
+      const submission = await AssignmentSubmission.findOne({
+        assignment_id: assignment._id,
+        student_id: studentProfile._id
+      });
+
+      assignmentObj.has_submission = !!submission;
+      assignmentObj.submission_status = submission ? submission.status : 'not_submitted';
+      assignmentObj.submission_date = submission ? submission.submitted_at : null;
+      assignmentObj.is_graded = submission ? submission.status === 'graded' : false;
+      assignmentObj.grade = submission ? submission.grade : null;
+      assignmentObj.is_late = submission ? submission.is_late : false;
+    } catch (e) {
+      // If submission lookup fails, still return assignment but mark unknown
+      assignmentObj.has_submission = false;
+      assignmentObj.submission_status = 'unknown';
+      assignmentObj.submission_date = null;
+      assignmentObj.is_graded = false;
+      assignmentObj.grade = null;
+      assignmentObj.is_late = false;
+    }
+
+    // Normalize a simple status field for frontend checks
+    assignmentObj.status = assignmentObj.status || (assignmentObj.is_active ? 'active' : 'inactive');
+
     return assignmentObj;
   }));
 

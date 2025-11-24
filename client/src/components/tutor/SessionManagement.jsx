@@ -8,6 +8,7 @@ import {
   CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
+import { RefreshCw } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -571,13 +572,25 @@ const SessionManagement = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Session Management</h1>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <p className="text-sm sm:text-base text-gray-600">Manage your tutoring sessions and track progress</p>
-            <Button
-              size="sm"
-              onClick={() => navigate('/tutor-dashboard/create-session')}
-              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
-            >
-              Create Session
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fetchSessions()}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                {/* Refresh */}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => navigate('/tutor-dashboard/create-session')}
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+              >
+                Create Session
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -3731,7 +3731,7 @@ exports.updateTutorSession = asyncHandler(async (req, res) => {
     if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
 
     // Block edits if session is in progress
-    if (session.status === 'in_progress') {
+    if (session.status === 'in_progress' || session.status === 'completed') {
       return res.status(400).json({ success: false, message: 'Session is currently in progress and cannot be edited.' });
     }
 
@@ -3798,34 +3798,18 @@ exports.deleteTutorSession = asyncHandler(async (req, res) => {
     const session = await TutoringSession.findById(sessionId);
     if (!session) return res.status(404).json({ success: false, message: 'Session not found' });
 
-    // Block deletes if session is in progress
-    if (session.status === 'in_progress') {
-      return res.status(400).json({ success: false, message: 'Session is currently in progress and cannot be deleted.' });
+    // Block deletes if session is in progress or already completed
+    if (session.status === 'in_progress' || session.status === 'completed') {
+      return res.status(400).json({ success: false, message: 'Session in progress or completed cannot be deleted.' });
     }
 
     // BEFORE snapshot for ChangeLog
     const beforeSession = session.toObject ? session.toObject() : JSON.parse(JSON.stringify(session));
     const actor = req.user ? req.user._id : null;
 
-    // Check if session references payments
-    const paymentIds = (session.student_payments || []).map(sp => sp.payment_id).filter(Boolean);
-    let linkedPayments = [];
-    if (paymentIds.length > 0) {
-      linkedPayments = await StudentPayment.find({ _id: { $in: paymentIds } })
-        .select('_id student_id tutor_id payment_status')
-        .lean();
-    }
-
-    if (linkedPayments.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Session references payments and cannot be deleted. See links for details.',
-        links: { payments: linkedPayments }
-      });
-    }
-
-    // Delete session
-    await session.remove();
+    // Delete session (no longer validating linked payments or hires)
+    // Use model-level delete to avoid relying on deprecated/removed document methods
+    await TutoringSession.findByIdAndDelete(session._id);
 
     // Log the delete
     try {

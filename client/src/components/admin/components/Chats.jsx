@@ -35,6 +35,7 @@ import {
   CheckCircle,
   PendingActions,
   Close,
+  Refresh,
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import AdminLayout from "./AdminLayout";
@@ -49,20 +50,22 @@ const ChatAdminDashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const response = await fetch(`${BASE_URL}/api/admin/chats`);
-        if (!response.ok) throw new Error("Failed to fetch chats");
-        const data = await response.json();
-        setChats(data.data);
-      } catch (err) {
-        setError(err.message || "Failed to fetch chats");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchChats = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${BASE_URL}/api/admin/chats`);
+      if (!response.ok) throw new Error("Failed to fetch chats");
+      const data = await response.json();
+      setChats(data.data);
+    } catch (err) {
+      setError(err.message || "Failed to fetch chats");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchChats();
   }, []);
 
@@ -135,22 +138,44 @@ const ChatAdminDashboard = () => {
     // <AdminLayout tabValue="chat">
       <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
         <Box sx={{ mb: { xs: 2, sm: 4 } }}>
-          <Typography 
-            variant="h4" 
-            component="h1" 
-            gutterBottom 
-            fontWeight="bold"
-            sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
-          >
-            Message Center
-          </Typography>
-          <Typography 
-            variant="subtitle1" 
-            color="textSecondary"
-            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, display: { xs: 'none', sm: 'block' } }}
-          >
-            Monitor and manage all tutor-student communications
-          </Typography>
+          <Box display="flex" alignItems="center" justifyContent="space-between" gap={2}>
+            <Box>
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                gutterBottom 
+                fontWeight="bold"
+                sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
+              >
+                Message Center
+              </Typography>
+              <Typography 
+                variant="subtitle1" 
+                color="textSecondary"
+                sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, display: { xs: 'none', sm: 'block' } }}
+              >
+                Monitor and manage all tutor-student communications
+              </Typography>
+            </Box>
+
+            <Box display="flex" alignItems="center" gap={1}>
+              <Tooltip title="Refresh">
+                <span>
+                  <IconButton
+                    onClick={fetchChats}
+                    size={isMobile ? 'small' : 'medium'}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      <Refresh />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          </Box>
         </Box>
 
         <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 4 }, borderRadius: 2, boxShadow: theme.shadows[3] }}>

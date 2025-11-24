@@ -37,6 +37,7 @@ import {
   Send,
   Award
 } from 'lucide-react';
+import { RefreshCw, Repeat } from 'lucide-react';
 import { getTutorSubmissions, gradeSubmission } from '../../services/assignmentService';
 import { deleteSubmission } from '../../services/assignmentService';
 import { useSubject } from '../../hooks/useSubject';
@@ -226,6 +227,9 @@ const TutorSubmissions = () => {
 
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [newUpdatesAvailable, setNewUpdatesAvailable] = useState(false);
+  const [lastDataHash, setLastDataHash] = useState(null);
   const [grading, setGrading] = useState({});
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -256,14 +260,41 @@ const TutorSubmissions = () => {
     }
   }, [user]);
 
-  const fetchSubmissions = async () => {
+  // polling for updates when autoRefresh is enabled
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchSubmissions(true);
+    }, 30000); // every 30s
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
+  // fetchSubmissions supports silent polling when `silent` is true
+  const fetchSubmissions = async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
       const data = await getTutorSubmissions(user._id);
-      setSubmissions(data);
+      const newSubs = data || [];
+
+      // detect changes by hashing submission ids
+      try {
+        const hash = JSON.stringify(newSubs.map(s => s._id || s));
+        if (lastDataHash && hash !== lastDataHash) {
+          setNewUpdatesAvailable(true);
+        }
+        setLastDataHash(hash);
+      } catch (e) {
+        if (lastDataHash && (newSubs.length !== (submissions?.length || 0))) {
+          setNewUpdatesAvailable(true);
+        }
+        setLastDataHash(String(newSubs.length));
+      }
+
+      setSubmissions(newSubs);
     } catch (error) {
       // Error handling
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -494,9 +525,37 @@ const TutorSubmissions = () => {
           <h2 className="text-2xl font-bold text-gray-900">Assignment Submissions</h2>
           <p className="text-gray-600 mt-1">Review and evaluate student submissions</p>
         </div>
-        <Badge variant="outline" className="text-sm px-3 py-1">
-          {getFilteredSubmissions().length} submission{getFilteredSubmissions().length !== 1 ? 's' : ''}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-sm px-3 py-1">
+            {getFilteredSubmissions().length} submission{getFilteredSubmissions().length !== 1 ? 's' : ''}
+          </Badge>
+
+          {/* {newUpdatesAvailable && (
+            <Button size="sm" variant="default" onClick={() => { setNewUpdatesAvailable(false); fetchSubmissions(false); }}>
+              New updates — Refresh
+            </Button>
+          )} */}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setNewUpdatesAvailable(false); fetchSubmissions(false); }}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {/* Refresh */}
+          </Button>
+
+          {/* <Button
+            size="sm"
+            variant={autoRefresh ? 'default' : 'outline'}
+            className="text-xs flex items-center gap-2"
+            onClick={() => setAutoRefresh(prev => !prev)}
+          >
+            <Repeat className="w-4 h-4" />
+            {autoRefresh ? 'Auto On' : 'Auto Off'}
+          </Button> */}
+        </div>
       </div>
 
       {/* Search and Filters Section */}

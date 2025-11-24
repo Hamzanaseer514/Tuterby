@@ -43,6 +43,7 @@ import {
   BarChart3,
   Send
 } from 'lucide-react';
+import { RefreshCw, Repeat } from 'lucide-react';
 import { createAssignment, getTutorAssignments, editAssignment, deleteAssignment } from '../../services/assignmentService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
@@ -53,6 +54,9 @@ const TutorAssignments = () => {
 
   const [assignments, setAssignments] = useState([]);
   const [submittedAssignments, setSubmittedAssignments] = useState([]);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [newUpdatesAvailable, setNewUpdatesAvailable] = useState(false);
+  const [lastDataHash, setLastDataHash] = useState(null);
   const [tutorAcademicLevels, setTutorAcademicLevels] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableStudents, setAvailableStudents] = useState([]);
@@ -111,6 +115,17 @@ const TutorAssignments = () => {
     }
   }, [user]);
 
+  // polling for updates when autoRefresh is enabled
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchAssignments(true);
+      fetchSubmittedAssignments(true);
+      fetchUnreadCount(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
     function truncate(text, len = 100) {
     if (!text) return '';
     const s = String(text);
@@ -118,13 +133,33 @@ const TutorAssignments = () => {
   }
 
   const fetchAssignments = async () => {
+    return fetchAssignmentsWithOptions();
+  };
+
+  // support silent polling detection
+  const fetchAssignmentsWithOptions = async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
       const data = await getTutorAssignments(user._id);
-      setAssignments(data);
+      const newAssignments = data || [];
+
+      // detect changes by assignment ids
+      try {
+        const hash = JSON.stringify(newAssignments.map(a => a._id || a));
+        if (lastDataHash && hash !== lastDataHash) setNewUpdatesAvailable(true);
+        setLastDataHash(hash);
+      } catch (e) {
+        if (lastDataHash && (newAssignments.length !== (assignments?.length || 0))) setNewUpdatesAvailable(true);
+        setLastDataHash(String(newAssignments.length));
+      }
+
+      setAssignments(newAssignments);
+      return newAssignments;
     } catch (error) {
       // Error handling
+      return [];
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -177,6 +212,10 @@ const TutorAssignments = () => {
   };
 
   const fetchSubmittedAssignments = async () => {
+    return fetchSubmittedAssignmentsWithOptions();
+  };
+
+  const fetchSubmittedAssignmentsWithOptions = async (silent = false) => {
     try {
       const response = await fetchWithAuth(`${BASE_URL}/api/assignments/tutor/${user._id}/submitted-assignments`, {
         method: 'GET',
@@ -184,14 +223,30 @@ const TutorAssignments = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setSubmittedAssignments(data.assignments || []);
+        const newSubs = data.assignments || [];
+
+        // optional: detect changes
+        try {
+          const hash = JSON.stringify(newSubs.map(s => s._id || s));
+          if (lastDataHash && hash !== lastDataHash) setNewUpdatesAvailable(true);
+        } catch (e) {
+          if (lastDataHash && (newSubs.length !== (submittedAssignments?.length || 0))) setNewUpdatesAvailable(true);
+        }
+
+        setSubmittedAssignments(newSubs);
+        return newSubs;
       }
+      return [];
     } catch (error) {
-      // Error handling
+      return [];
     }
   };
 
   const fetchUnreadCount = async () => {
+    return fetchUnreadCountWithOptions();
+  };
+
+  const fetchUnreadCountWithOptions = async (silent = false) => {
     try {
       const response = await fetchWithAuth(`${BASE_URL}/api/assignments/tutor/${user._id}/unread-submissions-count`, {
         method: 'GET',
@@ -199,10 +254,14 @@ const TutorAssignments = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setUnreadCount(data.unread_count || 0);
+        const newCount = data.unread_count || 0;
+        if (typeof unreadCount === 'number' && newCount !== unreadCount) setNewUpdatesAvailable(true);
+        setUnreadCount(newCount);
+        return newCount;
       }
+      return 0;
     } catch (error) {
-      // Error handling
+      return 0;
     }
   };
 
@@ -541,6 +600,32 @@ const TutorAssignments = () => {
               {unreadCount} New
             </Badge>
           )}
+
+          {/* {newUpdatesAvailable && (
+            <Button size="sm" variant="default" onClick={() => { setNewUpdatesAvailable(false); fetchAssignmentsWithOptions(false); fetchSubmittedAssignmentsWithOptions(false); fetchUnreadCountWithOptions(false); }}>
+              New updates — Refresh
+            </Button>
+          )} */}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setNewUpdatesAvailable(false); fetchAssignmentsWithOptions(false); fetchSubmittedAssignmentsWithOptions(false); fetchUnreadCountWithOptions(false); }}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {/* Refresh */}
+          </Button>
+
+          {/* <Button
+            size="sm"
+            variant={autoRefresh ? 'default' : 'outline'}
+            className="text-xs flex items-center gap-2"
+            onClick={() => setAutoRefresh(prev => !prev)}
+          >
+            <Repeat className="w-4 h-4" />
+            {autoRefresh ? 'Auto On' : 'Auto Off'}
+          </Button> */}
 
           {/* Tab Buttons */}
           <div className="flex gap-2">

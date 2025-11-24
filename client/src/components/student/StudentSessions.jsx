@@ -24,6 +24,7 @@ import {
   Filter,
   Search
 } from 'lucide-react';
+import { RefreshCw, Repeat } from 'lucide-react';
 import { useSubject } from '../../hooks/useSubject';
 
 const StudentSessions = () => {
@@ -34,6 +35,9 @@ const StudentSessions = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [newUpdatesAvailable, setNewUpdatesAvailable] = useState(false);
+  const [lastDataHash, setLastDataHash] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -54,6 +58,15 @@ const StudentSessions = () => {
       checkPaymentStatus();
     }
   }, [user, currentPage, statusFilter]);
+
+  // polling for updates when autoRefresh is enabled
+  useEffect(() => {
+    if (!autoRefresh || !user) return;
+    const interval = setInterval(() => {
+      fetchSessions(true);
+    }, 30000); // 30s
+    return () => clearInterval(interval);
+  }, [autoRefresh, user, currentPage, statusFilter]);
 
 
   // useEffect(() => {
@@ -86,10 +99,13 @@ const StudentSessions = () => {
     }
   };
 
-  const fetchSessions = async () => {
+  // fetchSessions supports silent polling when `silent` is true
+  const fetchSessions = async (silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       const token = getAuthToken();
       const params = new URLSearchParams({
         page: currentPage,
@@ -102,23 +118,35 @@ const StudentSessions = () => {
         headers: {
           'Content-Type': 'application/json'
         }
-      }, token, (newToken) => localStorage.setItem("authToken", newToken) // ✅ setToken
+      }, token, (newToken) => localStorage.setItem("authToken", newToken)
       );
       if (!response.ok) {
-        throw new Error('Failed to fetch sessions');
+        if (!silent) throw new Error('Failed to fetch sessions');
+        return;
       }
       const data = await response.json();
-      setSessions(data.sessions);
-      setTotalPages(data.pagination.total);
+      const newSessions = data.sessions || [];
+      setTotalPages(data.pagination?.total || 1);
+
+      // detect changes by session ids
+      try {
+        const hash = JSON.stringify(newSessions.map(s => s._id || s));
+        if (lastDataHash && hash !== lastDataHash) {
+          setNewUpdatesAvailable(true);
+        }
+        setLastDataHash(hash);
+      } catch (e) {
+        if (lastDataHash && (newSessions.length !== (sessions?.length || 0))) {
+          setNewUpdatesAvailable(true);
+        }
+        setLastDataHash(String(newSessions.length));
+      }
+
+      setSessions(newSessions);
     } catch (error) {
-      setError(error.message);
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to load sessions",
-      //   variant: "destructive"
-      // });
+      if (!silent) setError(error.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -321,6 +349,23 @@ const StudentSessions = () => {
             <h1 className="text-3xl font-bold text-gray-900">My Sessions</h1>
             <p className="text-gray-600 mt-1">View and manage all your tutoring sessions</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* {newUpdatesAvailable && (
+            <Button size="sm" variant="default" onClick={() => { setNewUpdatesAvailable(false); fetchSessions(false); }}>
+              New updates — Refresh
+            </Button>
+          )} */}
+
+          <Button size="sm" variant="outline" onClick={() => { setNewUpdatesAvailable(false); fetchSessions(false); }} disabled={loading}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            {/* Refresh */}
+          </Button>
+
+          {/* <Button size="sm" variant={autoRefresh ? 'default' : 'outline'} onClick={() => setAutoRefresh(prev => !prev)}>
+            <Repeat className="w-4 h-4 mr-1" />
+            {autoRefresh ? 'Auto On' : 'Auto Off'}
+          </Button> */}
         </div>
 
       </div>
