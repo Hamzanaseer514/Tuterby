@@ -292,10 +292,26 @@ const TutorSessionsPage = () => {
     });
   };
 
-  const formatTime = (timeString) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    // Format time from session_date to ensure timezone consistency
+    return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -442,7 +458,7 @@ const TutorSessionsPage = () => {
                         Time
                       </Typography>
                       <Typography variant="body2">
-                        {session.session_time}
+                        {formatTime(session.session_date)}
                       </Typography>
                     </Box>
 
@@ -1121,7 +1137,7 @@ const TutorSessionsPage = () => {
                         {session.session_title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {session.session_time}
+                        {formatTime(session.session_date)}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -1164,6 +1180,9 @@ const TutorSessionsPage = () => {
                   <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     <Box>
                       <Typography variant="body2">{formatDate(session.session_date)}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatTime(session.session_date)}
+                      </Typography>
                     </Box>
                   </TableCell>
 
@@ -1643,7 +1662,7 @@ const TutorSessionsPage = () => {
           {deleteTargetSession && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2">{deleteTargetSession.session_title}</Typography>
-              <Typography variant="body2" color="text.secondary">{formatDate(deleteTargetSession.session_date)} • {deleteTargetSession.session_time}</Typography>
+              <Typography variant="body2" color="text.secondary">{formatDate(deleteTargetSession.session_date)} • {formatTime(deleteTargetSession.session_date)}</Typography>
             </Box>
           )}
         </DialogContent>

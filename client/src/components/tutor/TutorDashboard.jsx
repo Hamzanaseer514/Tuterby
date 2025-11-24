@@ -242,10 +242,18 @@ const TutorDashboard = () => {
   }, [user, token,fetchWithAuth]);
 
   const formatDate = (dateString) => {
-    const [datePart, timePart] = dateString.split('T');
-    const time = timePart.slice(0, 5);
-    const [year, month, day] = datePart.split('-');
-    return `${day}-${month}-${year} ${time}`;
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    // Convert to local time
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
   const formatCurrency = (amount) => {
