@@ -15,7 +15,7 @@ const { google } = require('googleapis');
 const sendEmail = require("../Utils/sendEmail");
 const uploadToS3 = require("../Utils/uploadToS3");
 const s3KeyToUrl = require("../Utils/s3KeyToUrl");
-const { createLiveBroadcast, uploadVideoToYouTube } = require("../Utils/youtubeStreaming"); // Add YouTube streaming utility
+const { createLiveBroadcast, updateLiveBroadcastTime, uploadVideoToYouTube } = require("../Utils/youtubeStreaming"); // Add YouTube streaming utility
 
 const uploadDocument = asyncHandler(async (req, res) => {
   const { tutor_id, document_type } = req.body;
@@ -642,29 +642,44 @@ const createSession = asyncHandler(async (req, res) => {
     let youtubeStreamData;
     let youtubeErrorDetails = null;
     let isFallback = false;
+    
+    // Validate session date is in the future
+    const now = new Date();
+    if (sessionDateExactUTC <= now) {
+      return res.status(400).json({
+        message: "Session date must be in the future",
+        error: `Session date ${sessionDateExactUTC} is not in the future`,
+        session: session
+      });
+    }
+    
+    // Fetch subject name for proper title
+    let subjectName = subject;
     try {
-      console.log('Creating YouTube live broadcast with session data:', {
-        title: `Tutoring Session: ${subject} - ${tutor.user_id?.full_name || 'Tutor'}`,
-        description: `Live tutoring session for ${subject} with ${students.map(s => s.user_id?.full_name).join(', ')}. Session duration: ${duration_hours} hours.`,
-        startTime: sessionDateExactUTC,
-        durationHours: duration_hours
-      });
-      
+      const subjectData = await Subject.findById(subject);
+      if (subjectData && subjectData.name) {
+        subjectName = subjectData.name;
+      }
+    } catch (err) {
+      // If subject fetch fails, use the ID as fallback
+      console.error("Error fetching subject name:", err);
+    }
+    
+    // Get tutor full name
+    const tutorName = tutor.user_id?.full_name || 'Tutor';
+    
+    try {
       youtubeStreamData = await createLiveBroadcast({
-        title: `Tutoring Session: ${subject} - ${tutor.user_id?.full_name || 'Tutor'}`,
-        description: `Live tutoring session for ${subject} with ${students.map(s => s.user_id?.full_name).join(', ')}. Session duration: ${duration_hours} hours.`,
+        title: `Tutoring Session: ${subjectName} by ${tutorName}`,
+        description: `Live tutoring session for ${subjectName} with ${students.map(s => s.user_id?.full_name).join(', ')}. Session duration: ${duration_hours} hours.`,
         startTime: sessionDateExactUTC,
         durationHours: duration_hours
       });
-      
-      console.log('YouTube stream data received:', youtubeStreamData);
       
       // Check if we got valid data
       if (!youtubeStreamData.broadcastId) {
         throw new Error('Invalid YouTube stream data received');
       }
-      
-      console.log('Successfully created YouTube broadcast');
     } catch (youtubeError) {
       console.error("❌ YouTube streaming setup failed:", youtubeError);
       youtubeErrorDetails = youtubeError.message;
@@ -685,6 +700,34 @@ const createSession = asyncHandler(async (req, res) => {
           message: "Insufficient permissions for YouTube API. Please check your credentials and permissions.",
           error: youtubeErrorDetails,
           session: session // Still return the session that was created
+        });
+      }
+      
+      // Check if it's a credentials/configuration error
+      if (youtubeError.message && (
+        youtubeError.message.includes('credentials') ||
+        youtubeError.message.includes('not configured') ||
+        youtubeError.message.includes('YOUTUBE_CLIENT_ID') ||
+        youtubeError.message.includes('YOUTUBE_CLIENT_SECRET') ||
+        youtubeError.message.includes('YOUTUBE_REFRESH_TOKEN')
+      )) {
+        return res.status(500).json({
+          message: "YouTube API credentials are not properly configured. Please check your environment variables.",
+          error: youtubeErrorDetails,
+          session: session
+        });
+      }
+      
+      // Check if it's a date/time related error
+      if (youtubeError.message && (
+        youtubeError.message.includes('scheduledStartTime') ||
+        youtubeError.message.includes('date') ||
+        youtubeError.message.includes('time')
+      )) {
+        return res.status(400).json({
+          message: "Invalid session date/time. Please ensure the session date is in the future and properly formatted.",
+          error: youtubeErrorDetails,
+          session: session
         });
       }
       
@@ -709,30 +752,111 @@ const createSession = asyncHandler(async (req, res) => {
       .map((s) => s.user_id?.email)
       .filter((email) => !!email); // remove null/undefined
 
-    const allRecipients = [tutorEmail, ...studentEmails].filter((e) => !!e);
+    // Format session date/time for display
+    const sessionDateTime = sessionDateExactUTC.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
 
-    if (allRecipients.length === 0) {
-      console.error("❌ No valid recipients found for email");
-    } else {
-      try {
+    // Send separate emails to students and tutor
+    try {
+      // Email to Students
+      if (studentEmails.length > 0) {
+        const studentEmailContent = `
+          <h2>New Tutoring Session Scheduled</h2>
+          <p>Hello,</p>
+          <p>Your tutoring session has been scheduled with <strong>${tutorName}</strong>.</p>
+          <p><strong>Session Details:</strong></p>
+          <ul>
+            <li><strong>Subject:</strong> ${subjectName}</li>
+            <li><strong>Date & Time:</strong> ${sessionDateTime}</li>
+            <li><strong>Duration:</strong> ${duration_hours} hour${duration_hours > 1 ? 's' : ''}</li>
+          </ul>
+          <p><strong>📺 Join the Session:</strong></p>
+          <p>Please join the session on time using the link below:</p>
+          <p style="text-align: center; margin: 20px 0;">
+            <a href="${youtubeStreamData.broadcastUrl}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Join Session</a>
+          </p>
+          <p><strong>Important:</strong> Please join on time at <strong>${sessionDateTime}</strong> to ensure you don't miss any part of the session.</p>
+          
+          <p>Best regards,<br>tutornearby Team</p>
+        `;
+        
         await sendEmail(
-          [tutorEmail, ...studentEmails].join(", "), // 👈 array ko string bana diya
-          "New Tutoring Session - YouTube Streaming Link",
-          `<p>Your tutoring session has been scheduled for ${sessionDateExactUTC.toLocaleString()}.</p>
-          <p><strong>Join the session using this YouTube streaming link:</strong> <a href="${youtubeStreamData.broadcastUrl}">${youtubeStreamData.broadcastUrl}</a></p>
-          ${isFallback ? `<p><strong>Note:</strong> There was an issue with YouTube integration. You may need to manually set up your stream.</p>` : ''}
-          <p>The session will be automatically recorded and uploaded to YouTube after completion.</p>
-          <p>Subject: ${subject}</p>
-          <p>Duration: ${duration_hours} hours</p>
-          ${!isFallback && youtubeStreamData.streamKey ? `<p><strong>For the tutor:</strong> Use your streaming software (OBS, etc.) with the following settings:<br>
-          RTMP URL: rtmp://a.rtmp.youtube.com/live2<br>
-          Stream Key: ${youtubeStreamData.streamKey}</p>` : ''}`
+          studentEmails.join(", "),
+          `Tutoring Session - ${subjectName} with ${tutorName}`,
+          studentEmailContent
         );
-      } catch (emailError) {
-        console.error("❌ Email sending failed:", emailError);
-        // If email fails, we should still return success since session was created
-        // But log the error for monitoring
       }
+
+      // Email to Tutor
+      if (tutorEmail) {
+        let tutorEmailContent = `
+          <h2>New Tutoring Session Created</h2>
+          <p>Hello ${tutorName},</p>
+          <p>Your tutoring session has been scheduled.</p>
+          <p><strong>Session Details:</strong></p>
+          <ul>
+            <li><strong>Subject:</strong> ${subjectName}</li>
+            <li><strong>Students:</strong> ${students.map(s => s.user_id?.full_name).join(', ')}</li>
+            <li><strong>Date & Time:</strong> ${sessionDateTime}</li>
+            <li><strong>Duration:</strong> ${duration_hours} hour${duration_hours > 1 ? 's' : ''}</li>
+          </ul>
+        `;
+
+        if (!isFallback && youtubeStreamData.streamKey && youtubeStreamData.ingestionAddress) {
+          tutorEmailContent += `
+            <p><strong>🎥 Streaming Setup Instructions:</strong></p>
+            <p>To start streaming, connect your streaming software (OBS Studio, Streamlabs, etc.) to YouTube using the following settings:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Stream Settings:</strong></p>
+              <ul>
+                <li><strong>Service:</strong> YouTube / YouTube Gaming</li>
+                <li><strong>Server:</strong> ${youtubeStreamData.ingestionAddress}</li>
+                <li><strong>Stream Key:</strong> ${youtubeStreamData.streamKey}</li>
+              </ul>
+            </div>
+            <p><strong>Steps to Connect:</strong></p>
+            <ol>
+              <li>Open OBS Studio (or your preferred streaming software)</li>
+              <li>Go to Settings → Stream</li>
+              <li>Select "YouTube / YouTube Gaming" as the service</li>
+              <li>Enter the Server URL: <code>${youtubeStreamData.ingestionAddress}</code></li>
+              <li>Enter the Stream Key: <code>${youtubeStreamData.streamKey}</code></li>
+              <li>Click "OK" and then click "Start Streaming"</li>
+            </ol>
+            <p><strong>📺 Session Link (for students to watch):</strong></p>
+            <p style="text-align: center; margin: 20px 0;">
+              <a href="${youtubeStreamData.broadcastUrl}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">View Broadcast</a>
+            </p>
+          `;
+        } else {
+          tutorEmailContent += `
+            <p><strong>⚠️ Note:</strong> There was an issue with YouTube integration. You may need to manually set up your stream.</p>
+            <p><strong>Session Link:</strong> <a href="${youtubeStreamData.broadcastUrl}">${youtubeStreamData.broadcastUrl}</a></p>
+          `;
+        }
+
+        tutorEmailContent += `
+          <p>The session will be automatically recorded and uploaded to YouTube after completion.</p>
+          <p>Best regards,<br>tutornearby Team</p>
+        `;
+
+        await sendEmail(
+          tutorEmail,
+          `Tutoring Session - ${subjectName} - Streaming Setup`,
+          tutorEmailContent
+        );
+      }
+    } catch (emailError) {
+      console.error("❌ Email sending failed:", emailError);
+      // If email fails, we should still return success since session was created
+      // But log the error for monitoring
     }
 
     return res.status(201).json({
@@ -1093,6 +1217,39 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     //   updates.student_proposed_decided_at = undefined;
     // }
     // If status is not "pending", meeting_link and meeting_link_sent_at are already preserved above
+
+    // Update YouTube broadcast time if session_date or duration_hours is being changed
+    const isDateChanging = updates.session_date && 
+      session.session_date && 
+      new Date(updates.session_date).getTime() !== new Date(session.session_date).getTime();
+    
+    const isDurationChanging = updates.duration_hours && 
+      session.duration_hours && 
+      updates.duration_hours !== session.duration_hours;
+
+    if ((isDateChanging || isDurationChanging) && session.meeting_link) {
+      try {
+        // Extract broadcastId from meeting_link URL (format: https://www.youtube.com/watch?v=BROADCAST_ID)
+        const urlMatch = session.meeting_link.match(/[?&]v=([^&]+)/);
+        if (urlMatch && urlMatch[1]) {
+          const broadcastId = urlMatch[1];
+          const newStartTime = updates.session_date ? new Date(updates.session_date) : session.session_date;
+          const newDuration = updates.duration_hours || session.duration_hours;
+          
+          // Validate new date is in the future
+          const now = new Date();
+          if (newStartTime > now) {
+            await updateLiveBroadcastTime(broadcastId, newStartTime, newDuration);
+            console.log(`✅ YouTube broadcast ${broadcastId} time updated to ${newStartTime}`);
+          } else {
+            console.warn(`⚠️ Cannot update YouTube broadcast: new date ${newStartTime} is not in the future`);
+          }
+        }
+      } catch (youtubeUpdateError) {
+        console.error("❌ Failed to update YouTube broadcast time:", youtubeUpdateError);
+        // Don't fail the entire update if YouTube update fails
+      }
+    }
 
     const updatedSession = await TutoringSession.findByIdAndUpdate(session_id, updates, { new: true });
     res.status(200).json({

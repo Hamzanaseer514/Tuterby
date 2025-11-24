@@ -277,9 +277,13 @@ const StudentSessions = () => {
     return null;
   }
   const formatTime = (dateString) => {
-    const [datePart, timePart] = dateString.split('T');
-    const time = timePart.slice(0, 5);
-    return `${time}`;
+    if (!dateString) return '';
+    // Format time from session_date to ensure timezone consistency
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -531,7 +535,7 @@ const StudentSessions = () => {
                           <div className="flex items-center gap-2">
                             <Badge className="bg-yellow-100 text-yellow-700">Proposed</Badge>
                             <span className="text-gray-600">Student proposed time:</span>
-                            <span className="font-medium text-gray-800">{formatTime(new Date(session.student_proposed_date).toISOString())} • {formatDate(new Date(session.student_proposed_date).toISOString())}</span>
+                            <span className="font-medium text-gray-800">{formatTime(session.student_proposed_date)} • {formatDate(session.student_proposed_date)}</span>
                           </div>
                           {session.student_proposed_status && (
                             <div className="mt-1 text-xs text-gray-500">

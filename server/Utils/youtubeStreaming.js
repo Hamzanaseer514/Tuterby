@@ -233,6 +233,60 @@ const endLiveBroadcast = async (broadcastId) => {
 };
 
 /**
+ * Update YouTube live broadcast time
+ * @param {string} broadcastId - YouTube broadcast ID
+ * @param {Date} startTime - New scheduled start time
+ * @param {number} durationHours - Duration in hours
+ * @returns {Promise<void>}
+ */
+const updateLiveBroadcastTime = async (broadcastId, startTime, durationHours) => {
+  try {
+    // Only proceed if we have valid credentials
+    if (!process.env.YOUTUBE_REFRESH_TOKEN) {
+      console.warn('YouTube refresh token not configured. Skipping broadcast update.');
+      return;
+    }
+    
+    const { youtube } = initializeYouTubeClient();
+    
+    // First, get the current broadcast to preserve title and description
+    const currentBroadcast = await youtube.liveBroadcasts.list({
+      part: ['snippet'],
+      id: broadcastId
+    });
+    
+    if (!currentBroadcast.data.items || currentBroadcast.data.items.length === 0) {
+      throw new Error(`Broadcast ${broadcastId} not found`);
+    }
+    
+    const existingSnippet = currentBroadcast.data.items[0].snippet;
+    
+    // Format start and end times
+    const startTimeISO = startTime.toISOString();
+    const endTimeISO = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000).toISOString();
+    
+    // Update the broadcast with all required snippet fields
+    await youtube.liveBroadcasts.update({
+      part: ['snippet'],
+      requestBody: {
+        id: broadcastId,
+        snippet: {
+          title: existingSnippet.title,
+          description: existingSnippet.description,
+          scheduledStartTime: startTimeISO,
+          scheduledEndTime: endTimeISO
+        }
+      }
+    });
+    
+    console.log(`✅ YouTube broadcast ${broadcastId} time updated successfully`);
+  } catch (error) {
+    console.error('Error updating YouTube live broadcast time:', error);
+    throw new Error(`Failed to update YouTube live broadcast time: ${error.message}`);
+  }
+};
+
+/**
  * Delete a YouTube live broadcast
  * @param {string} broadcastId - YouTube broadcast ID
  * @returns {Promise<void>}
@@ -311,6 +365,7 @@ module.exports = {
   createLiveBroadcast,
   startLiveBroadcast,
   endLiveBroadcast,
+  updateLiveBroadcastTime,
   deleteLiveBroadcast,
   uploadVideoToYouTube
 };

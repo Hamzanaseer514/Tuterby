@@ -105,9 +105,13 @@ const StudentDashboard = () => {
   };
 
   const formatTime = (dateString) => {
-    const [datePart, timePart] = dateString.split('T');
-    const time = timePart.slice(0, 5); 
-    return `${time}`;
+    if (!dateString) return '';
+    // Format time from session_date to ensure timezone consistency
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   
