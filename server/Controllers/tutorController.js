@@ -976,7 +976,7 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
     /******************************************************************
      * 2️⃣ Normal updates (time/date, proposals, etc.)
      ******************************************************************/
-    if (session.status === "confirmed") {
+    if (session.status === "in_progress" || session.status === "completed") {
       const isTryingToPropose = !!student_proposed_date || approve_proposed;
       const incomingDate =
         typeof session_date === "string"
@@ -992,7 +992,7 @@ const updateSessionStatus = asyncHandler(async (req, res) => {
       if (isTryingToPropose || isTryingToChangeDate) {
         return res.status(400).json({
           success: false,
-          message: "Cannot change date/time of a confirmed session",
+          message: "Cannot change date/time of a " + session.status + " session",
         });
       }
     }
