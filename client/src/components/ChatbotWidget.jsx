@@ -15,10 +15,9 @@ import rehypeRaw from "rehype-raw";
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: "Hello! How can I help you today during our office hours?", sender: 'bot' }
+    { id: 1, text: "Hello! How can I help you today?", sender: 'bot' }
   ]);
   const [inputText, setInputText] = useState('');
-  const [isOfficeHours, setIsOfficeHours] = useState(true); 
   const [isBotTyping, setIsBotTyping] = useState(false);
 
   const toggleChat = () => setIsOpen(!isOpen);
@@ -62,15 +61,6 @@ const ChatbotWidget = () => {
     }
   };
 
-  useEffect(() => {
-    const currentHour = new Date().getHours();
-    // Example: office hours 9am - 5pm
-    if (currentHour >= 9 && currentHour < 17) {
-      setIsOfficeHours(true);
-    } else {
-      setIsOfficeHours(false);
-    }
-  }, []);
 
   const fabVariants = {
     initial: { scale: 0, y: 50 },
@@ -123,7 +113,7 @@ const ChatbotWidget = () => {
             <Card className="shadow-2xl border-primary/50 bg-card/90 backdrop-blur-md">
               <CardHeader className="flex flex-row items-center justify-between p-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-t-lg">
                 <CardTitle id="chat-window-title" className="text-lg font-semibold">
-                  {isOfficeHours ? "Chat with Us" : "Contact Us"}
+                  Chat with Us
                 </CardTitle>
                 <Button variant="ghost" size="icon" onClick={toggleChat} className="text-primary-foreground hover:bg-white/20" aria-label="Close chat window">
                   <X size={20} />
@@ -181,43 +171,27 @@ const ChatbotWidget = () => {
     </div>
   </div>
 )}
-
-                {!isOfficeHours && messages.length === 1 && (
-                  <div className="text-center text-muted-foreground text-sm p-4 bg-muted rounded-lg">
-                    <p>We're currently offline. Our office hours are 9 AM - 5 PM GMT.</p>
-                    <p>Please leave a message, and we'll get back to you as soon as possible!</p>
-                  </div>
-                )}
               </CardContent>
               <CardFooter className="p-3 border-t">
-                {isOfficeHours || messages.length > 1 ? (
-                  <form onSubmit={handleSendMessage} className="flex items-center w-full space-x-2">
-                    <Input
-                      type="text"
-                      placeholder="Type your message..."
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      className="flex-grow"
-                      disabled={!isOfficeHours && messages.length === 1}
-                      aria-label="Type your message here"
-                    />
-                    <Button
-                      type="submit"
-                      size="icon"
-                      className="bg-primary hover:bg-primary/90"
-                      disabled={!isOfficeHours && messages.length === 1 && inputText.trim() === ''}
-                      aria-label="Send message"
-                    >
-                      <Send size={18} />
-                    </Button>
-                  </form>
-                ) : (
-                  <div className="w-full text-center">
-                    <Button onClick={() => setMessages(prev => [...prev, {id: Date.now(), text: "I'd like to leave a message.", sender: 'user'}])} aria-label="Leave a message (currently offline)">
-                      Leave a Message
-                    </Button>
-                  </div>
-                )}
+                <form onSubmit={handleSendMessage} className="flex items-center w-full space-x-2">
+                  <Input
+                    type="text"
+                    placeholder="Type your message..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className="flex-grow"
+                    aria-label="Type your message here"
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="bg-primary hover:bg-primary/90"
+                    disabled={inputText.trim() === ''}
+                    aria-label="Send message"
+                  >
+                    <Send size={18} />
+                  </Button>
+                </form>
               </CardFooter>
             </Card>
           </motion.div>
