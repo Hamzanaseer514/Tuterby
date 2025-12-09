@@ -112,6 +112,11 @@ const tutoringSessionSchema = new mongoose.Schema({
   meeting_link_sent_at: {
     type: Date
   },
+  // Jitsi meeting link for video conferencing
+  jitsi_meeting_link: {
+    type: String,
+    default: ''
+  },
   // YouTube streaming key for the session
   youtube_stream_key: {
     type: String,

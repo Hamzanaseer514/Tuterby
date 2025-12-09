@@ -240,6 +240,7 @@ const endLiveBroadcast = async (broadcastId) => {
  * @returns {Promise<void>}
  */
 const updateLiveBroadcastTime = async (broadcastId, startTime, durationHours) => {
+  console.log('Updating YouTube live broadcast time...');
   try {
     // Only proceed if we have valid credentials
     if (!process.env.YOUTUBE_REFRESH_TOKEN) {
