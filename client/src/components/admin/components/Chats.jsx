@@ -222,6 +222,7 @@ const ChatAdminDashboard = () => {
                 }}
                 onClick={() => handleOpenChat(group)}
               >
+                            {console.log("searchTerm", groupedChats)}
                 <Box 
                   display="flex" 
                   alignItems="center" 
@@ -480,60 +481,56 @@ const ChatAdminDashboard = () => {
                     background: theme.palette.grey[50]
                   }}
                 >
-                  {selectedChat.chats.map((chat) => (
-                    <React.Fragment key={chat._id}>
-                      {/* Student Message */}
-                      <Box 
-                        sx={{ 
-                          mb: { xs: 1.5, sm: 2 },
-                          display: 'flex',
-                          justifyContent: 'flex-start'
-                        }}
-                      >
-                        <Box 
-                          sx={{
-                            maxWidth: { xs: '85%', sm: '70%' },
-                            p: { xs: 1.5, sm: 2 },
-                            backgroundColor: 'white',
-                            borderRadius: '18px 18px 18px 0',
-                            boxShadow: theme.shadows[1]
-                          }}
-                        >
-                          <Typography 
-                            variant="body2"
-                            sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                          >
-                            {chat.message}
-                          </Typography>
-                          <Typography 
-                            variant="caption" 
-                            color="textSecondary"
-                            display="block"
-                            textAlign="right"
-                            mt={1}
-                            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
-                          >
-                            {format(new Date(chat.createdAt), 'hh:mm a')}
-                          </Typography>
-                        </Box>
-                      </Box>
+                  {selectedChat.chats.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((chat, index) => {
+                    const currentDate = format(new Date(chat.createdAt), 'yyyy-MM-dd');
+                    const previousDate = index > 0 ? format(new Date(selectedChat.chats[index - 1].createdAt), 'yyyy-MM-dd') : null;
+                    const showDateSeparator = currentDate !== previousDate;
 
-                      {/* Tutor Response */}
-                      {chat.response && (
+                    return (
+                      <React.Fragment key={chat._id}>
+                        {/* Date Separator */}
+                        {showDateSeparator && (
+                          <Box 
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              my: { xs: 2, sm: 3 }
+                            }}
+                          >
+                            <Box sx={{ flex: 1, height: '1px', backgroundColor: theme.palette.divider }} />
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                mx: 2, 
+                                px: 2,
+                                py: 0.5,
+                                backgroundColor: theme.palette.background.paper,
+                                borderRadius: 2,
+                                fontWeight: 'medium',
+                                color: theme.palette.text.secondary,
+                                fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                              }}
+                            >
+                              {format(new Date(chat.createdAt), 'MMMM dd, yyyy')}
+                            </Typography>
+                            <Box sx={{ flex: 1, height: '1px', backgroundColor: theme.palette.divider }} />
+                          </Box>
+                        )}
+
+                        {/* Student Message */}
                         <Box 
                           sx={{ 
                             mb: { xs: 1.5, sm: 2 },
                             display: 'flex',
-                            justifyContent: 'flex-end'
+                            justifyContent: 'flex-start'
                           }}
                         >
                           <Box 
                             sx={{
                               maxWidth: { xs: '85%', sm: '70%' },
                               p: { xs: 1.5, sm: 2 },
-                              backgroundColor: theme.palette.primary.light,
-                              color: 'white',
-                              borderRadius: '18px 18px 0 18px',
+                              backgroundColor: 'white',
+                              borderRadius: '18px 18px 18px 0',
                               boxShadow: theme.shadows[1]
                             }}
                           >
@@ -541,26 +538,65 @@ const ChatAdminDashboard = () => {
                               variant="body2"
                               sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                             >
-                              {chat.response}
+                              {chat.message}
                             </Typography>
                             <Typography 
                               variant="caption" 
-                              color="inherit"
+                              color="textSecondary"
                               display="block"
                               textAlign="right"
                               mt={1}
-                              sx={{ 
-                                opacity: 0.8,
-                                fontSize: { xs: '0.65rem', sm: '0.75rem' }
-                              }}
+                              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                             >
-                              {format(new Date(chat.updatedAt), 'hh:mm a')}
+                              {format(new Date(chat.createdAt), 'hh:mm a')}
                             </Typography>
                           </Box>
                         </Box>
-                      )}
-                    </React.Fragment>
-                  ))}
+
+                        {/* Tutor Response */}
+                        {chat.response && (
+                          <Box 
+                            sx={{ 
+                              mb: { xs: 1.5, sm: 2 },
+                              display: 'flex',
+                              justifyContent: 'flex-end'
+                            }}
+                          >
+                            <Box 
+                              sx={{
+                                maxWidth: { xs: '85%', sm: '70%' },
+                                p: { xs: 1.5, sm: 2 },
+                                backgroundColor: theme.palette.primary.light,
+                                color: 'white',
+                                borderRadius: '18px 18px 0 18px',
+                                boxShadow: theme.shadows[1]
+                              }}
+                            >
+                              <Typography 
+                                variant="body2"
+                                sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                              >
+                                {chat.response}
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                color="inherit"
+                                display="block"
+                                textAlign="right"
+                                mt={1}
+                                sx={{ 
+                                  opacity: 0.8,
+                                  fontSize: { xs: '0.65rem', sm: '0.75rem' }
+                                }}
+                              >
+                                {format(new Date(chat.updatedAt), 'hh:mm a')}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </Box>
               </Box>
             )}

@@ -206,15 +206,12 @@ const StudentDashboardPage = () => {
         if (aRes.ok) {
           const aJson = await aRes.json();
           const list = Array.isArray(aJson) ? aJson : (aJson.assignments || []);
-          console.log('Fetched assignments for badge count:', list);
           assignmentsCount = list.filter(a => {
             const subStatus = (a?.submission_status || '').toString().toLowerCase();
-            console.log('Assignment submission status:', subStatus);
             const status = (a?.status || '').toString().toLowerCase();
             // consider requiring action if no submission or marked pending
             return (!subStatus || subStatus === 'not_submitted' || subStatus === 'pending') || status === 'pending';
           }).length;
-          console.log('Assignments needing action count:', assignmentsCount);
         }
       } catch {}
 

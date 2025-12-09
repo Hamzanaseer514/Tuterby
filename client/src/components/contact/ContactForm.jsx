@@ -33,7 +33,6 @@ import React from 'react';
 
         const submissionTime = Date.now();
         if ((submissionTime - formData.formLoadTime) < MIN_SUBMISSION_TIME_MS) {
-          console.log("Potential bot: Form submitted too quickly.");
           toast({
             title: "Submission Error",
             description: "There was an issue with your submission. Please try again.",
@@ -44,7 +43,6 @@ import React from 'react';
         }
         
         if (formData.honeypot) {
-          console.log("Bot submission detected (honeypot).");
           setMathQuestion(generateMathQuestionFunc());
           return; 
         }
@@ -122,11 +120,7 @@ import React from 'react';
                 subject: `New Contact Message — ${formData.name}`,
                 title: `New Contact Message — ${formData.name}`
               };
-              console.log(templateParams);
-              console.log(serviceId);
-              console.log(templateId);
-              console.log(publicKey);
-              console.log(adminEmail);
+            
               await emailjs.send(serviceId, templateId, templateParams, publicKey);
             }
           } catch (emailError) {

@@ -149,7 +149,6 @@ const HireRequestsPage = () => {
           'Content-Type': 'application/json',
         },
       });
-      console.log("response", response)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -370,7 +369,6 @@ const HireRequestsPage = () => {
             flexDirection: { xs: 'column', sm: 'row' },
             gap: { xs: 1, sm: 0 }
           }}>
-            {console.log("r",request.tutor)}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
               <Avatar
                 src={request.student?.photo_url}
