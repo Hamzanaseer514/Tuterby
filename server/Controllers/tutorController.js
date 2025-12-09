@@ -744,6 +744,14 @@ const createSession = asyncHandler(async (req, res) => {
     session.meeting_link = youtubeStreamData.broadcastUrl;
     session.meeting_link_sent_at = new Date();
     session.youtube_stream_key = youtubeStreamData.streamKey || ''; // Store stream key for future reference
+    
+    // Generate Jitsi meeting link
+    // Create a unique room name based on session ID
+    const jitsiRoomName = `tuterby-session-${session._id.toString()}`;
+    // Use public Jitsi server or configure your own
+    const JITSI_SERVER = process.env.JITSI_SERVER_URL || 'https://meet.jit.si';
+    session.jitsi_meeting_link = `${JITSI_SERVER}/${jitsiRoomName}`;
+    
     await session.save();
 
     // Only send email if session creation is completely successful
