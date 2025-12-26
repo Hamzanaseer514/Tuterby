@@ -53,7 +53,6 @@ export const SubjectProvider = ({ children }) => {
 
     const data = await res.json();
     setSubjectRelatedToAcademicLevels(data.data);
-    console.log("Subject Related To Academic Levels",data.data);
   } catch (err) {
     //console.error("Error fetching subjects:", err);
   }

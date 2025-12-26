@@ -509,6 +509,7 @@ const SessionManagement = () => {
   };
 
   const formatDate = (dateString) => {
+    console.log('Formatting date:', dateString);
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;

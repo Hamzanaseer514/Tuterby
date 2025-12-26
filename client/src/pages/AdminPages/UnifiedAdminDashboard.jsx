@@ -534,7 +534,6 @@ const UnifiedAdminDashboard = () => {
   const inactiveTutors = dashboardState.stats.tutors?.inactive || 0;
   const inactiveStudents = dashboardState.stats.students?.inactive || 0;
   const inactiveParents = dashboardState.stats.parents?.inactive || 0;
-console.log(dashboardState.stats);
   const statCards = useMemo(() => {
     const tutorsVerified = dashboardState.stats.tutors?.verified || 0;
     const tutorsTotal = dashboardState.stats.tutors?.total || 0;

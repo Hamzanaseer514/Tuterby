@@ -44,7 +44,6 @@ const ChatbotWidget = () => {
       });
   
       const data = await res.json();
-      console.log(data);
   
       // Hide typing and add bot reply
       setIsBotTyping(false);

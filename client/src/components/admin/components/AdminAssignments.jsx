@@ -257,14 +257,12 @@ const AdminAssignments = () => {
     if (!selectedAssignment) return;
     setEditSubmitting(true);
     try {
-      console.log('Submitting admin edit for assignment:', selectedAssignment._id);
       const res = await adminEditAssignment(selectedAssignment._id, {
         title: editForm.title,
         description: editForm.description,
         due_date: editForm.due_date || undefined,
         file: editForm.file || undefined,
       });
-      console.log('Admin edit response:', res);
       toast({ title: 'Updated', description: 'Assignment updated successfully' });
       setEditDialogOpen(false);
       setSelectedAssignment(null);

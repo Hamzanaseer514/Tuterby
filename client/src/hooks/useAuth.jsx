@@ -52,20 +52,35 @@ export const AuthProvider = ({ children }) => {
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error("Refresh failed");
+      if (!res.ok) {
+        throw new Error("Refresh failed");
+      }
 
       const data = await res.json();
-      localStorage.setItem("authToken", data.accessToken);
-      return data.accessToken;
+      if (data.accessToken) {
+        localStorage.setItem("authToken", data.accessToken);
+        return data.accessToken;
+      } else {
+        throw new Error("No access token in refresh response");
+      }
     } catch (err) {
-      //console.error("Refresh token expired:", err);
-      logout();
+      console.error("Refresh token expired or invalid:", err);
+      clearAllAuthData();
+      navigate("/login");
       throw err;
     }
-  }, [logout]);
+  }, [clearAllAuthData, navigate]);
 
   const fetchWithAuth = useCallback(async (url, options = {}) => {
     let token = getAuthToken();
+    
+    if (!token) {
+      console.warn("No auth token found, redirecting to login");
+      clearAllAuthData();
+      navigate("/login");
+      throw new Error("No auth token");
+    }
+
     let response = await fetch(url, {
       ...options,
       headers: {
@@ -74,34 +89,45 @@ export const AuthProvider = ({ children }) => {
       },
       credentials: "include",
     });
-    if (response.status === 401) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        refreshPromise = refreshAccessToken();
-        try {
-          token = await refreshPromise;
-        } catch (err) {
-          isRefreshing = false;
-          throw err;
-        }
-        isRefreshing = false;
-      } else {
-        token = await refreshPromise;
-      }
 
-      // Retry the original request
-      response = await fetch(url, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-      });
+    // If 401, try to refresh the token
+    if (response.status === 401) {
+      try {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = refreshAccessToken();
+        }
+        
+        token = await refreshPromise;
+        isRefreshing = false;
+
+        // Retry the original request with new token
+        response = await fetch(url, {
+          ...options,
+          headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+
+        // If still 401 after refresh, logout
+        if (response.status === 401) {
+          console.error("Still unauthorized after token refresh");
+          clearAllAuthData();
+          navigate("/login");
+        }
+      } catch (err) {
+        isRefreshing = false;
+        console.error("Token refresh failed:", err);
+        clearAllAuthData();
+        navigate("/login");
+        throw err;
+      }
     }
 
     return response;
-  }, [refreshAccessToken]);
+  }, [refreshAccessToken, clearAllAuthData, navigate]);
 
   const getUserProfile = useCallback(async (user_id) => {
     const token = getAuthToken();

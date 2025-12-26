@@ -55,8 +55,8 @@ exports.refreshAccessToken = asyncHandler(async (req, res) => {
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({ accessToken: newAccessToken });
@@ -671,7 +671,7 @@ function setRefreshCookie(res, refreshToken) {
     httpOnly: true,
     secure: false,        // localhost ke liye false
     sameSite: "lax",      // dev ke liye lax
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 }
 

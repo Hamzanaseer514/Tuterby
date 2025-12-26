@@ -288,8 +288,8 @@ const StudentChatting = () => {
                   key={tutor.tutorId}
                   onClick={() => { setSelectedTutor(tutor); fetchChatHistory(tutor.tutorId); }}
                   className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 ${selectedTutor?.tutorId === tutor.tutorId
-                      ? "border-blue-500 bg-blue-50 shadow-md"
-                      : "border-transparent bg-white hover:border-blue-200 hover:shadow-md"
+                    ? "border-blue-500 bg-blue-50 shadow-md"
+                    : "border-transparent bg-white hover:border-blue-200 hover:shadow-md"
                     }`}
                 >
                   <div className="flex items-start gap-3">
@@ -442,10 +442,10 @@ const StudentChatting = () => {
                 </Avatar>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold">{selectedTutor.full_name}</h3>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <p className="text-sm text-blue-100">Online • Ready to help</p>
-                  </div>
+                  </div> */}
                 </div>
                 <div className="hidden sm:flex items-center gap-2 text-blue-100">
                   <Clock className="h-4 w-4" />
@@ -476,7 +476,7 @@ const StudentChatting = () => {
                             <span className="text-xs text-gray-500">
                               {formatTime(msg.createdAt)}
                             </span>
-                            <CheckCheck className="h-3 w-3 text-blue-500" />
+                            <CheckCheck className="h-3 w-3" />
                           </div>
                         </div>
                       </div>

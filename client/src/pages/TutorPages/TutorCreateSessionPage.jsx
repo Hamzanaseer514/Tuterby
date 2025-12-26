@@ -406,14 +406,14 @@ const TutorCreateSessionPage = () => {
             const responseData = await response.json();
             if (response.status == 401) {
                 toast.error(responseData.message || 'This Academic Level is not selected by you. Please add this academic level to your profile.');
-                navigate('/tutor-dashboard');
+                navigate('/tutor-dashboard/sessions');
                 return;
             }
             if (!response.ok) {
                 throw new Error(responseData.message || 'Failed to create session');
             }
             toast.success('Session created successfully');
-            navigate('/tutor-dashboard');
+            navigate('/tutor-dashboard/sessions');
         } catch (err) {
             toast.error(err.message || 'Failed to create session');
         } finally {

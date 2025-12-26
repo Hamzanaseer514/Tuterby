@@ -168,10 +168,10 @@ exports.createCheckoutSession = async (req, res) => {
           studentName: studentName || "", // ✅ Store child's name
         },
   
-        success_url: `${process.env.FRONTEND_URL}/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
-        // success_url: `https://www.tutornearby.co.uk/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
-        // cancel_url: `https://www.tutornearby.co.uk/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
-        cancel_url: `${process.env.FRONTEND_URL}/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        // success_url: `${process.env.FRONTEND_URL}/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        success_url: `https://www.tutornearby.co.uk/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        cancel_url: `https://www.tutornearby.co.uk/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        // cancel_url: `${process.env.FRONTEND_URL}/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
   
         billing_address_collection: 'auto',
         locale: 'en-GB',

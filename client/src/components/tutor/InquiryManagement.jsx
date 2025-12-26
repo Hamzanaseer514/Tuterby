@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '@/config';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { 
-  MessageSquare, 
-  Clock, 
-  User, 
+import {
+  MessageSquare,
+  Clock,
+  User,
   BookOpen,
   Reply,
   CheckCircle,
@@ -31,7 +31,7 @@ const InquiryManagement = () => {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [replyMessage, setReplyMessage] = useState('');
-  const { user , getAuthToken , fetchWithAuth } = useAuth();
+  const { user, getAuthToken, fetchWithAuth } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -43,7 +43,7 @@ const InquiryManagement = () => {
     try {
       setLoading(true);
       // Only include status parameter if filter is not 'all'
-      const url = filter === 'all' 
+      const url = filter === 'all'
         ? `${BASE_URL}/api/tutor/inquiries/${user._id}`
         : `${BASE_URL}/api/tutor/inquiries/${user._id}?status=${filter}`;
 
@@ -123,8 +123,8 @@ const InquiryManagement = () => {
   const getActionButton = (inquiry) => {
     if (inquiry.status === 'unread' || inquiry.status === 'read') {
       return (
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           onClick={() => {
             setSelectedInquiry(inquiry);
             setShowReplyModal(true);
@@ -188,18 +188,18 @@ const InquiryManagement = () => {
           {inquiries.length > 0 ? (
             inquiries.map((inquiry) => (
               <Card key={inquiry._id}>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="p-2 bg-blue-100 rounded-full">
                         <MessageSquare className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">{inquiry.student_id.user_id.full_name}</h3>
-                        <p className="text-gray-600">Subject: {inquiry.subject}</p>
-                        <p className="text-gray-600">Academic Level: {inquiry.academic_level}</p>
-                        <p className="text-sm text-gray-500">{formatDate(inquiry.createdAt)}</p>
-                       
+                        <h3 className="font-semibold text-base">{inquiry.student_id.user_id.full_name}</h3>
+                        <div className='flex gap-1 item-center align-center'> <p className='font-semibold text-gray-600 text-sm'>Subject:</p> <p className="text-gray-600 text-sm">{inquiry.subject}</p></div>
+                        <div className='flex gap-1 item-center align-center'> <p className='font-semibold text-gray-600 text-sm'>Academic Level:</p> <p className="text-gray-600 text-sm">{inquiry.academic_level}</p></div>
+                        <p className="text-xs text-gray-500">{formatDate(inquiry.createdAt)}</p>
+
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -227,101 +227,122 @@ const InquiryManagement = () => {
         {/* Reply Modal */}
         {showReplyModal && selectedInquiry && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">
-                  {selectedInquiry.status === 'replied' ? 'View Inquiry' : 'Reply to Inquiry'}
-                </h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setShowReplyModal(false);
-                    setReplyMessage('');
-                    setSelectedInquiry(null);
-                  }}
-                >
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">From</Label>
-                  <p className="text-lg font-semibold">{selectedInquiry.student_id.user_id.full_name}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Subject</Label>
-                  <p className="text-lg">{selectedInquiry.subject}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Academic Level</Label>
-                  <p className="text-lg">{selectedInquiry.academic_level}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Message</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">{selectedInquiry.message || selectedInquiry.description || 'No message provided'}</p>
+            <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full mx-4">
+              <div className="flex items-center justify-between border-b px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
                   </div>
-                </div>
-                  
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Reply</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">{selectedInquiry.reply_message || 'No reply provided'}</p>
-                  </div>
-                </div>
-                
-                {selectedInquiry.status === 'replied' && (
-                  <div className='flex gap-2 '>
-                    <Label className="text-sm font-medium text-gray-600">Response Time: </Label>
-                    <p className="text-sm text-gray-600">
-                      {Math.round(selectedInquiry.response_time_minutes)} minutes
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {selectedInquiry.status === 'replied' ? 'View Inquiry & Response' : 'Reply to Inquiry'}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(selectedInquiry.createdAt).toLocaleString()}
                     </p>
                   </div>
-                )}
-                
-                {selectedInquiry.status !== 'replied' && (
-                  <div>
-                    <Label htmlFor="reply-message" className="text-sm font-medium text-gray-600">
-                      Your Reply
-                    </Label>
-                    <Textarea
-                      id="reply-message"
-                      value={replyMessage}
-                      onChange={(e) => setReplyMessage(e.target.value)}
-                      placeholder="Type your reply here..."
-                      className="mt-1"
-                      rows={4}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex space-x-3 mt-6">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowReplyModal(false);
-                    setReplyMessage('');
-                    setSelectedInquiry(null);
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                {selectedInquiry.status !== 'replied' && (
-                  <Button 
-                    onClick={() => replyToInquiry(selectedInquiry._id)}
-                    disabled={!replyMessage.trim()}
-                    className="flex-1"
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowReplyModal(false);
+                      setReplyMessage('');
+                      setSelectedInquiry(null);
+                    }}
+                    className="text-gray-600"
                   >
-                    Send Reply
+                    Close
                   </Button>
-                )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+                {/* Left: Inquiry Details */}
+                <div className="flex flex-col space-y-4">
+                  <div className='flex gap-1 item-center align-center align-baseline'>
+                    <p className="text-sm font-medium text-gray-600">From : </p>
+                    <p className="font-semibold text-gray-900">{selectedInquiry?.student_id?.user_id?.full_name || 'Unknown'}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Subject : </Label>
+                      <p className="text-sm text-gray-800 mt-1">{selectedInquiry?.subject || '—'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Academic Level : </Label>
+                      <p className="text-sm text-gray-800 mt-1">{selectedInquiry?.academic_level || '—'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Message</Label>
+                    <div className="mt-1 p-4 bg-gray-50 rounded-lg border">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedInquiry?.message || selectedInquiry?.description || 'No message provided'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Status</Label>
+                    <Badge className="mt-2 ml-2">{selectedInquiry?.status || 'unknown'}</Badge>
+                  </div>
+
+                  {selectedInquiry?.status === 'replied' && (
+                    <div className="mt-2 flex gap-2 items-center">
+                      <p className="text-sm font-medium text-gray-600">Response Time: </p>
+                      <p className="text-sm text-gray-700 mt-1">{Math.round(selectedInquiry.response_time_minutes)} minutes</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Reply / View Response */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Reply</Label>
+
+                    {selectedInquiry?.status === 'replied' ? (
+                      <div className="mt-1 p-4 bg-gray-50 rounded-lg border min-h-[160px]">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{selectedInquiry?.reply_message || 'No reply provided'}</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <Textarea
+                          id="reply-message"
+                          value={replyMessage}
+                          onChange={(e) => setReplyMessage(e.target.value)}
+                          placeholder="Type your reply here..."
+                          className="mt-1 min-h-[160px]"
+                        />
+                        <p className="text-xs text-gray-500 mt-2">Your reply will be sent to the student and saved in the inquiry thread.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowReplyModal(false);
+                        setReplyMessage('');
+                        setSelectedInquiry(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+
+                    {selectedInquiry?.status !== 'replied' && (
+                      <Button
+                        onClick={() => replyToInquiry(selectedInquiry._id)}
+                        disabled={!replyMessage.trim()}
+                      >
+                        Send Reply
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

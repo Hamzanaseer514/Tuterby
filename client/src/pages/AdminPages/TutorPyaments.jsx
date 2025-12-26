@@ -966,7 +966,6 @@ const TutorPayments = () => {
 
                         {linkWarningData?.hireRequests && (
                             <Box mt={2}>
-                                {console.log("linkWarningData.hireRequests", linkWarningData.hireRequests)}
                                 <Typography variant="subtitle2">Linked Hire Requests</Typography>
                                 {linkWarningData.hireRequests.map(hr => {
                                     const id = hr.id || hr._id || hr.hire_request_id || 'N/A';
