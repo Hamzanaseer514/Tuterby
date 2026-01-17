@@ -140,14 +140,22 @@ app.get("/test-stripe", async (req, res) => {
 const { errorHandler } = require("./Middleware/errorHandler");
 app.use(errorHandler);
 
-// DB Connect and Start Server
-ConnectToDB()
-  .then(() => {
+// =====================================
+// VERCEL SERVERLESS HANDLER
+// =====================================
+
+let isConnected = false;
+
+async function initDB() {
+  if (!isConnected) {
+    await ConnectToDB();
+    isConnected = true;
     console.log("✅ Database connected");
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("❌ Database connection failed:", err.message);
-  });
+  }
+}
+
+module.exports = async (req, res) => {
+  await initDB();
+  return app(req, res);
+};
+
