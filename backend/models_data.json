@@ -1,0 +1,994 @@
+{
+  "User": {
+    "full_name": {
+      "type": "String",
+      "required": true
+    },
+    "email": {
+      "type": "String",
+      "unique": true,
+      "required": true
+    },
+    "password": {
+      "type": "String",
+      "required": "function() { return !this.google_id; }"
+    },
+    "phone_number": {
+      "type": "String"
+    },
+    "role": {
+      "type": "String",
+      "enum": ["tutor", "student", "parent", "admin"]
+    },
+    "age": {
+      "type": "Number",
+      "min": 0,
+      "default": 15
+    },
+    "photo_url": {
+      "type": "String",
+      "default": ""
+    },
+    "google_id": {
+      "type": "String",
+      "sparse": true
+    },
+    "is_google_user": {
+      "type": "Boolean",
+      "default": false
+    },
+    "is_verified": {
+      "type": "String",
+      "enum": ["active", "inactive", "partial_active"],
+      "default": "active"
+    },
+    "refreshToken": {
+      "type": "String"
+    },
+    "isEmailVerified": {
+      "type": "Boolean",
+      "default": true
+    }
+  },
+  "TutorProfile": {
+    "user_id": {
+      "type": "ObjectId",
+      "ref": "User",
+      "required": true
+    },
+    "bio": {
+      "type": "String",
+      "default": ""
+    },
+    "qualifications": {
+      "type": "String",
+      "default": ""
+    },
+    "experience_years": {
+      "type": "Number",
+      "default": 0
+    },
+    "subjects": {
+      "type": "[ObjectId]",
+      "ref": "Subject",
+      "default": []
+    },
+    "academic_levels_taught": [
+      {
+        "educationLevel": {
+          "type": "ObjectId",
+          "ref": "EducationLevel",
+          "required": true
+        },
+        "name": {
+          "type": "String",
+          "required": true
+        },
+        "hourlyRate": {
+          "type": "Number",
+          "required": true,
+          "min": 0
+        },
+        "totalSessionsPerMonth": {
+          "type": "Number",
+          "required": true,
+          "min": 0
+        },
+        "discount": {
+          "type": "Number",
+          "default": 0,
+          "min": 0
+        },
+        "monthlyRate": {
+          "type": "Number",
+          "min": 0
+        }
+      }
+    ],
+    "location": {
+      "type": "String",
+      "default": ""
+    },
+    "average_rating": {
+      "type": "Number",
+      "default": 0,
+      "min": 0,
+      "max": 5
+    },
+    "total_sessions": {
+      "type": "Number",
+      "default": 0
+    },
+    "is_background_checked": {
+      "type": "Boolean",
+      "default": false
+    },
+    "is_reference_verified": {
+      "type": "Boolean",
+      "default": false
+    },
+    "is_qualification_verified": {
+      "type": "Boolean",
+      "default": false
+    },
+    "is_verified": {
+      "type": "Boolean",
+      "default": false
+    },
+    "profile_status": {
+      "type": "String",
+      "enum": ["unverified", "pending", "approved", "rejected", "partial_approved"],
+      "default": "unverified"
+    },
+    "profile_status_reason": {
+      "type": "String",
+      "default": ""
+    }
+  },
+  "StudentProfile": {
+    "user_id": {
+      "type": "ObjectId",
+      "ref": "User",
+      "required": true
+    },
+    "academic_level": {
+      "type": "ObjectId",
+      "ref": "EducationLevel",
+      "default": null
+    },
+    "learning_goals": {
+      "type": "String",
+      "default": "Improve academic performance and develop strong study skills"
+    },
+    "preferred_subjects": [
+      {
+        "type": "ObjectId",
+        "ref": "Subject",
+        "default": null
+      }
+    ],
+    "availability": [
+      {
+        "day": {
+          "type": "String",
+          "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        },
+        "duration": {
+          "type": "String",
+          "enum": ["1-2 hours", "3-4 hours", "4-5 hours", "5-6 hours", "6+ hours"]
+        }
+      }
+    ],
+    "parent_id": {
+      "type": "ObjectId",
+      "ref": "ParentProfile",
+      "default": null
+    },
+    "hired_tutors": [
+      {
+        "tutor": {
+          "type": "ObjectId",
+          "ref": "TutorProfile",
+          "default": null
+        },
+        "subject": {
+          "type": "ObjectId",
+          "ref": "Subject",
+          "default": null
+        },
+        "academic_level_id": {
+          "type": "ObjectId",
+          "ref": "EducationLevel",
+          "default": null
+        },
+        "status": {
+          "type": "String",
+          "enum": ["pending", "accepted", "rejected"],
+          "default": "pending"
+        },
+        "hired_at": {
+          "type": "Date",
+          "default": "Date.now"
+        }
+      }
+    ],
+    "profile_status": {
+      "type": "String",
+      "enum": ["active", "inactive"],
+      "default": "active"
+    }
+  },
+  "ParentProfile": {
+    "user_id": {
+      "type": "ObjectId",
+      "ref": "User",
+      "required": true
+    },
+    "students": [
+      {
+        "type": "ObjectId",
+        "ref": "StudentProfile"
+      }
+    ],
+    "profile_status": {
+      "type": "String",
+      "enum": ["active", "inactive"],
+      "default": "active"
+    }
+  },
+  "EducationLevel": {
+    "level": {
+      "type": "String",
+      "required": true,
+      "trim": true
+    },
+    "hourlyRate": {
+      "type": "Number",
+      "default": 0,
+      "min": 0
+    },
+    "totalSessionsPerMonth": {
+      "type": "Number",
+      "default": 0,
+      "min": 0
+    },
+    "discount": {
+      "type": "Number",
+      "default": 0,
+      "min": 0
+    },
+    "monthlyRate": {
+      "type": "Number",
+      "min": 0
+    },
+    "isTutorCanChangeRate": {
+      "type": "Boolean",
+      "default": false
+    },
+    "maxSession": {
+      "type": "Number",
+      "default": 0,
+      "min": 0
+    },
+    "minSession": {
+      "type": "Number",
+      "default": 0,
+      "min": 0
+    }
+  },
+  "Subject": {
+    "subject_id": {
+      "type": "String",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "String",
+      "required": true
+    },
+    "level_id": {
+      "type": "ObjectId",
+      "ref": "EducationLevel",
+      "required": true
+    },
+    "subject_type": {
+      "type": "ObjectId",
+      "ref": "SubjectType",
+      "required": true
+    }
+  },
+  "SubjectType": {
+    "name": {
+      "type": "String",
+      "required": true,
+      "trim": true
+    }
+  },
+  "TutoringSession": {
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "student_ids": [
+      {
+        "type": "ObjectId",
+        "ref": "StudentProfile",
+        "required": true
+      }
+    ],
+    "student_payments": [
+      {
+        "student_id": {
+          "type": "ObjectId",
+          "ref": "StudentProfile",
+          "required": true
+        },
+        "payment_id": {
+          "type": "ObjectId",
+          "ref": "StudentPayment",
+          "required": true
+        }
+      }
+    ],
+    "subject": {
+      "type": "ObjectId",
+      "ref": "Subject",
+      "required": true
+    },
+    "session_date": {
+      "type": "Date",
+      "required": true
+    },
+    "academic_level": {
+      "type": "ObjectId",
+      "ref": "EducationLevel",
+      "required": true
+    },
+    "duration_hours": {
+      "type": "Number",
+      "required": true,
+      "min": 0.25,
+      "max": 8
+    },
+    "hourly_rate": {
+      "type": "Number",
+      "required": true,
+      "min": 0
+    },
+    "total_earnings": {
+      "type": "Number",
+      "required": true,
+      "min": 0
+    },
+    "status": {
+      "type": "String",
+      "enum": ["pending", "confirmed", "in_progress", "completed", "cancelled"],
+      "default": "pending"
+    },
+    "notes": {
+      "type": "String",
+      "default": ""
+    },
+    "rating": {
+      "type": "Number",
+      "min": 1,
+      "max": 5
+    },
+    "feedback": {
+      "type": "String",
+      "default": ""
+    },
+    "student_ratings": [
+      {
+        "student_id": {
+          "type": "ObjectId",
+          "ref": "StudentProfile",
+          "required": true
+        },
+        "rating": {
+          "type": "Number",
+          "min": 1,
+          "max": 5,
+          "required": true
+        },
+        "feedback": {
+          "type": "String",
+          "default": ""
+        },
+        "rated_at": {
+          "type": "Date",
+          "default": "Date.now"
+        }
+      }
+    ]
+  },
+  "TutorInquiry": {
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": false
+    },
+    "student_id": {
+      "type": "ObjectId",
+      "ref": "StudentProfile",
+      "required": true
+    },
+    "subject": {
+      "type": "String",
+      "required": true
+    },
+    "academic_level": {
+      "type": "String",
+      "required": false
+    },
+    "description": {
+      "type": "String",
+      "required": false
+    },
+    "message": {
+      "type": "String",
+      "required": false
+    },
+    "preferred_schedule": {
+      "type": "String",
+      "required": false
+    },
+    "urgency_level": {
+      "type": "String",
+      "enum": ["low", "normal", "high", "urgent"],
+      "default": "normal"
+    },
+    "type": {
+      "type": "String",
+      "enum": ["additional_help", "tutor_inquiry"],
+      "default": "additional_help"
+    },
+    "status": {
+      "type": "String",
+      "enum": ["pending", "in_progress", "completed", "cancelled", "unread", "read", "replied", "converted_to_booking"],
+      "default": "pending"
+    },
+    "response_time_minutes": {
+      "type": "Number",
+      "default": null
+    },
+    "replied_at": {
+      "type": "Date"
+    },
+    "reply_message": {
+      "type": "String",
+      "required": false
+    },
+    "converted_to_session_id": {
+      "type": "ObjectId",
+      "ref": "TutoringSession"
+    }
+  },
+  "Assignment": {
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "student_id": {
+      "type": "ObjectId",
+      "ref": "StudentProfile",
+      "required": true
+    },
+    "subject": {
+      "type": "ObjectId",
+      "ref": "Subject",
+      "required": true
+    },
+    "academic_level": {
+      "type": "ObjectId",
+      "ref": "EducationLevel",
+      "required": true
+    },
+    "title": {
+      "type": "String",
+      "required": true
+    },
+    "description": {
+      "type": "String",
+      "default": ""
+    },
+    "file_url": {
+      "type": "String",
+      "default": ""
+    },
+    "file_name": {
+      "type": "String",
+      "default": ""
+    },
+    "file_mime_type": {
+      "type": "String",
+      "default": ""
+    },
+    "due_date": {
+      "type": "Date",
+      "default": null
+    },
+    "is_active": {
+      "type": "Boolean",
+      "default": true
+    }
+  },
+  "AssignmentSubmission": {
+    "assignment_id": {
+      "type": "ObjectId",
+      "ref": "Assignment",
+      "required": true
+    },
+    "student_id": {
+      "type": "ObjectId",
+      "ref": "StudentProfile",
+      "required": true
+    },
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "submission_text": {
+      "type": "String",
+      "default": ""
+    },
+    "submission_file_url": {
+      "type": "String",
+      "default": ""
+    },
+    "submission_file_name": {
+      "type": "String",
+      "default": ""
+    },
+    "submission_file_mime_type": {
+      "type": "String",
+      "default": ""
+    },
+    "submitted_at": {
+      "type": "Date",
+      "default": "Date.now"
+    },
+    "is_late": {
+      "type": "Boolean",
+      "default": false
+    },
+    "status": {
+      "type": "String",
+      "enum": ["submitted", "graded", "returned"],
+      "default": "submitted"
+    },
+    "grade": {
+      "type": "Number",
+      "min": 0,
+      "max": 100,
+      "default": null
+    },
+    "feedback": {
+      "type": "String",
+      "default": ""
+    },
+    "graded_at": {
+      "type": "Date",
+      "default": null
+    }
+  },
+  "Message": {
+    "studentId": {
+      "type": "ObjectId",
+      "ref": "User",
+      "required": true
+    },
+    "tutorId": {
+      "type": "ObjectId",
+      "ref": "User",
+      "required": true
+    },
+    "message": {
+      "type": "String",
+      "required": true
+    },
+    "response": {
+      "type": "String",
+      "default": null
+    },
+    "status": {
+      "type": "String",
+      "enum": ["unanswered", "answered"],
+      "default": "unanswered"
+    }
+  },
+  "StudentPayment": {
+    "student_id": {
+      "type": "ObjectId",
+      "ref": "StudentProfile",
+      "required": true
+    },
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "subject": {
+      "type": "ObjectId",
+      "ref": "Subject",
+      "required": true
+    },
+    "academic_level": {
+      "type": "ObjectId",
+      "ref": "EducationLevel",
+      "required": true
+    },
+    "payment_type": {
+      "type": "String",
+      "enum": ["monthly", "hourly"],
+      "required": true
+    },
+    "base_amount": {
+      "type": "Number",
+      "required": true,
+      "min": 0
+    },
+    "discount_percentage": {
+      "type": "Number",
+      "min": 0,
+      "max": 100,
+      "default": 0
+    },
+    "isParentPayment": {
+      "type": "Boolean",
+      "default": false
+    },
+    "studentName": {
+      "type": "String",
+      "default": ""
+    },
+    "monthly_amount": {
+      "type": "Number",
+      "min": 0
+    },
+    "total_sessions_per_month": {
+      "type": "Number",
+      "min": 1
+    },
+    "validity_start_date": {
+      "type": "Date",
+      "required": true
+    },
+    "validity_end_date": {
+      "type": "Date",
+      "required": true
+    },
+    "sessions_remaining": {
+      "type": "Number",
+      "required": true,
+      "min": 0
+    },
+    "payment_status": {
+      "type": "String",
+      "enum": ["pending", "paid", "failed", "cancelled"],
+      "default": "pending"
+    },
+    "validity_status": {
+      "type": "String",
+      "enum": ["pending", "active", "expired"],
+      "default": "pending"
+    },
+    "payment_method": {
+      "type": "String",
+      "enum": ["card", "bank_transfer", "paypal"],
+      "default": "card"
+    },
+    "payment_date": {
+      "type": "Date"
+    },
+    "request_date": {
+      "type": "Date",
+      "default": "Date.now"
+    },
+    "request_notes": {
+      "type": "String",
+      "default": ""
+    },
+    "academic_level_paid": {
+      "type": "Boolean",
+      "default": false
+    },
+    "is_active": {
+      "type": "Boolean",
+      "default": true
+    },
+    "currency": {
+      "type": "String",
+      "default": "GBP"
+    },
+    "gateway_transaction_id": {
+      "type": "String"
+    },
+    "gateway_response": {
+      "type": "Object"
+    },
+    "is_renewal": {
+      "type": "Boolean",
+      "default": false
+    },
+    "original_payment_id": {
+      "type": "ObjectId",
+      "ref": "StudentPayment"
+    }
+  },
+  "TutorAvailability": {
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true,
+      "unique": true
+    },
+    "general_availability": {
+      "monday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": true
+        }
+      },
+      "tuesday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": true
+        }
+      },
+      "wednesday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": true
+        }
+      },
+      "thursday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": true
+        }
+      },
+      "friday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": true
+        }
+      },
+      "saturday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": false
+        }
+      },
+      "sunday": {
+        "start": {
+          "type": "String",
+          "default": "09:00"
+        },
+        "end": {
+          "type": "String",
+          "default": "17:00"
+        },
+        "available": {
+          "type": "Boolean",
+          "default": false
+        }
+      }
+    },
+    "minimum_notice_hours": {
+      "type": "Number",
+      "default": 2,
+      "min": 0
+    },
+    "maximum_advance_days": {
+      "type": "Number",
+      "default": 30,
+      "min": 1
+    },
+    "session_durations": {
+      "type": "[Number]",
+      "default": [30, 60, 90, 120]
+    },
+    "blackout_dates": [
+      {
+        "start_date": {
+          "type": "Date",
+          "required": true
+        },
+        "end_date": {
+          "type": "Date",
+          "required": true
+        },
+        "reason": {
+          "type": "String",
+          "default": ""
+        },
+        "is_active": {
+          "type": "Boolean",
+          "default": true
+        }
+      }
+    ],
+    "is_accepting_bookings": {
+      "type": "Boolean",
+      "default": true
+    }
+  },
+  "TutorDocument": {
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "document_type": {
+      "type": "String",
+      "enum": ["ID Proof", "Address Proof", "Degree", "Certificate", "Reference Letter", "Background Check"],
+      "required": true
+    },
+    "file_url": {
+      "type": "String",
+      "required": true
+    },
+    "uploaded_at": {
+      "type": "Date",
+      "default": "Date.now"
+    },
+    "verification_status": {
+      "type": "String",
+      "enum": ["Pending", "Approved", "Rejected"],
+      "default": "Pending"
+    },
+    "notes": {
+      "type": "String",
+      "default": ""
+    }
+  },
+  "TutorApplication": {
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "is_interview": {
+      "type": "Boolean",
+      "default": false
+    },
+    "interview_status": {
+      "type": "String",
+      "enum": ["Pending", "Scheduled", "Passed", "Failed"],
+      "default": "Pending"
+    },
+    "code_of_conduct_agreed": {
+      "type": "Boolean",
+      "default": false
+    },
+    "preferred_interview_times": {
+      "type": "[Date]",
+      "default": []
+    },
+    "scheduled_time": {
+      "type": "Date",
+      "default": null
+    },
+    "application_status": {
+      "type": "String",
+      "enum": ["Pending", "Approved", "Rejected"],
+      "default": "Pending"
+    },
+    "again_interview": {
+      "type": "Boolean",
+      "default": false
+    },
+    "applied_at": {
+      "type": "Date",
+      "default": "Date.now"
+    },
+    "interview_token": {
+      "type": "String",
+      "default": null
+    },
+    "expire_token": {
+      "type": "Date",
+      "default": null
+    }
+  },
+  "TutorReview": {
+    "student_id": {
+      "type": "ObjectId",
+      "ref": "StudentProfile",
+      "required": "function() { return !this.parent_id; }"
+    },
+    "parent_id": {
+      "type": "ObjectId",
+      "ref": "ParentProfile",
+      "required": "function() { return !this.student_id; }"
+    },
+    "tutor_id": {
+      "type": "ObjectId",
+      "ref": "TutorProfile",
+      "required": true
+    },
+    "rating": {
+      "type": "Number",
+      "required": true,
+      "min": 1,
+      "max": 5
+    },
+    "review_text": {
+      "type": "String",
+      "default": "",
+      "maxlength": 1000
+    },
+    "review_type": {
+      "type": "String",
+      "enum": ["student", "parent"],
+      "required": true,
+      "default": "student"
+    },
+    "created_at": {
+      "type": "Date",
+      "default": "Date.now"
+    },
+    "updated_at": {
+      "type": "Date",
+      "default": "Date.now"
+    }
+  },
+  "Rules": {
+    "otp_rule_active": {
+      "type": "Boolean",
+      "default": false
+    }
+  }
+}
