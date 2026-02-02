@@ -415,7 +415,7 @@ const ChildViewPage = () => {
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 fill-current" />
                                                     <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                        {hiredTutor.tutor.rating} / 5.0
+                                                        {Number(hiredTutor.tutor.rating).toFixed(1)} / 5.0
                                                     </span>
                                                 </div>
                                             )}

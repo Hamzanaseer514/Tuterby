@@ -346,7 +346,7 @@ const BookSessionPage = () => {
                     {tutor.average_rating && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Rating</span>
-                        <span className="font-semibold">{tutor.average_rating}/5</span>
+                        <span className="font-semibold">{Number(tutor.average_rating).toFixed(1)}/5</span>
                       </div>
                     )}
                   </div>

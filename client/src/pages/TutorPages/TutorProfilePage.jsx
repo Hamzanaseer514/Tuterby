@@ -475,7 +475,7 @@ const TutorProfilePage = () => {
                               {tutor.average_rating && (
                                 <>  
 
-                                {tutor.average_rating} ({tutor.total_sessions || 0} sessions)
+                                {Number(tutor.average_rating).toFixed(1)} ({tutor.total_sessions || 0} sessions)
                                 </>
                               )}
                               </span>

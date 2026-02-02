@@ -876,7 +876,7 @@ const TutorSearch = () => {
                                   {renderStars(tutor.average_rating)}
                               {tutor.average_rating && typeof tutor.average_rating === 'number' && (
                                   <span className="text-sm text-gray-600 ml-1">
-                                    ({tutor.average_rating})
+                                    ({Number(tutor.average_rating).toFixed(1)})
                                   </span>
                                 )}
                                 </div>

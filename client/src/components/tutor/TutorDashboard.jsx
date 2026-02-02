@@ -594,7 +594,7 @@ const TutorDashboard = () => {
                       {session.rating && (
                         <div className="flex items-center text-xs font-medium text-gray-900 dark:text-white">
                           <Star className="h-3 w-3 text-amber-500 fill-current mr-1" />
-                          {session.rating}/5
+                          {Number(session.rating).toFixed(1)}/5
                         </div>
                       )}
                     </div>
@@ -782,7 +782,7 @@ const TutorDashboard = () => {
                   <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <Star className="h-5 w-5 text-amber-500 fill-current" />
-                      <span className="font-medium text-gray-900 dark:text-white">{viewSession.rating}/5</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{Number(viewSession.rating).toFixed(1)}/5</span>
                     </div>
                     {viewSession.feedback && (
                       <p className="text-gray-700 dark:text-gray-300">{viewSession.feedback}</p>

@@ -619,7 +619,7 @@ const StudentHelpRequests = () => {
                         {/* Rating */}
                         <div className="flex items-center space-x-2 h-6">
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                          <p className="text-sm">{tutor.rating ? tutor.rating : 0.0}/5</p>
+                          <p className="text-sm">{Number(tutor.rating ?? 0).toFixed(1)}/5</p>
                         </div>
                     
                         {/* Subjects with fixed height and overflow handling */}

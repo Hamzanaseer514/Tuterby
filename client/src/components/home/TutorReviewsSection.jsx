@@ -292,7 +292,7 @@ const TutorReviewsSection = () => {
                     />
                   ))}
                   <span className="ml-2 text-sm text-muted-foreground font-medium">
-                    {review.rating}/5
+                    {Number(review.rating).toFixed(1)}/5
                   </span>
                 </div>
 

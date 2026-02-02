@@ -148,7 +148,7 @@ const TutorCard = ({ tutor, onHire, loading, user }) => {
                   sx={{ color: '#6C63FF' }}
                 />
                 <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                  {tutor.average_rating || 0}
+                  {Number(tutor.average_rating || 0).toFixed(1)}
                 </Typography>
               </Box>
               <Typography

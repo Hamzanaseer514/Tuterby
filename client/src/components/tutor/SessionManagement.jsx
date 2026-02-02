@@ -647,7 +647,7 @@ const SessionManagement = () => {
                           {session.rating && (
                             <span className="text-xs sm:text-sm text-gray-600 flex items-center">
                               <Star className="h-3 w-3 mr-1 flex-shrink-0" />
-                              {session.rating}/5
+                              {Number(session.rating).toFixed(1)}/5
                             </span>
                           )}
                         </div>
@@ -665,7 +665,7 @@ const SessionManagement = () => {
                                 }) : null;
                                 return (
                                   <Badge key={idx} className={`${color} text-xs`}>
-                                    {name}: {r.status}{ratingEntry ? ` • ${ratingEntry.rating}/5` : ''}
+                                    {name}: {r.status}{ratingEntry ? ` • ${Number(ratingEntry.rating).toFixed(1)}/5` : ''}
                                   </Badge>
                                 );
                               })}
@@ -842,7 +842,7 @@ const SessionManagement = () => {
                             {studentRating && (
                               <div className="flex items-center gap-2 mt-2">
                                 <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 fill-current" />
-                                <span className="font-medium">{studentRating.rating}/5</span>
+                                <span className="font-medium">{Number(studentRating.rating).toFixed(1)}/5</span>
                                 {studentRating.feedback && (
                                   <span className="text-gray-600">• {studentRating.feedback}</span>
                                 )}
@@ -1079,7 +1079,7 @@ const SessionManagement = () => {
                             {studentRating && (
                               <div className="flex items-center gap-2 mt-2">
                                 <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 fill-current" />
-                                <span className="font-medium">{studentRating.rating}/5</span>
+                                <span className="font-medium">{Number(studentRating.rating).toFixed(1)}/5</span>
                                 {studentRating.feedback && (
                                   <span className="text-gray-600">• {studentRating.feedback}</span>
                                 )}
@@ -1195,7 +1195,7 @@ const SessionManagement = () => {
                         <Label className="text-xs sm:text-sm font-medium text-gray-700">Total Earnings</Label>
                         <div className="p-2 sm:p-3 bg-green-50 rounded-lg border mt-1">
                           <p className="text-sm sm:text-base font-semibold text-green-700">
-                            £{selectedSession.total_earnings}
+                            £{Number(selectedSession.total_earnings ?? 0).toFixed(2)}
                           </p>
                         </div>
                       </div>

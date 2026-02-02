@@ -489,7 +489,7 @@ const TutorProfilePage = () => {
                                                             />
                                                         ))}
                                                         <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white ml-1">
-                                                            {review.rating}/5
+                                                            {Number(review.rating).toFixed(1)}/5
                                                         </span>
                                                     </div>
                                                 )}

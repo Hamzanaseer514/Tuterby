@@ -326,7 +326,7 @@ const SessionDetailsModal = ({ session, isOpen, onClose, subjects, academicLevel
                 <div>
                   <h6 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base mb-2">Total Earnings</h6>
                   <p className="text-base sm:text-lg font-semibold text-green-600">
-                    £{session.total_earnings || (session.hourly_rate * session.duration_hours)}
+                    £{Number(session.total_earnings ?? (session.hourly_rate * session.duration_hours) ?? 0).toFixed(2)}
                   </p>
                 </div>
                 <div>

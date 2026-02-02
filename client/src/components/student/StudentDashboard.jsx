@@ -337,10 +337,10 @@ const StudentDashboard = () => {
                       {session.rating && (
                         <div className="flex items-center gap-1 mb-1">
                           <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                          <span className="text-sm font-medium">{session.rating}/5</span>
+                          <span className="text-sm font-medium">{Number(session.rating).toFixed(1)}/5</span>
                         </div>
                       )}
-                      <p className="text-sm font-medium">£{session.total_earnings}</p>
+                      <p className="text-sm font-medium">£{Number(session.total_earnings ?? 0).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}

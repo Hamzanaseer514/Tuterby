@@ -557,10 +557,10 @@ const StudentSessions = () => {
                   <div className="flex flex-col items-end gap-2">
                     <div className="text-right">
                       <p className="text-lg font-bold text-gray-900">
-                        £{session.hourly_rate}/hr
+                        £{Number(session.hourly_rate ?? 0).toFixed(2)}/hr
                       </p>
                       <p className="text-sm text-gray-600">
-                        Total: £{session.total_earnings}
+                        Total: £{Number(session.total_earnings ?? 0).toFixed(2)}
                       </p>
                     </div>
 
@@ -577,11 +577,11 @@ const StudentSessions = () => {
                           {typeof overall === 'number' && (
                             <div className="flex items-center gap-1">
                               <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                              <span className="text-sm font-medium">Session: {overall}/5</span>
+                              <span className="text-sm font-medium">Session: {typeof overall === 'number' ? Number(overall).toFixed(1) : overall}/5</span>
                             </div>
                           )}
                           {my && (
-                            <div className="text-sm text-gray-700">Your rating: {my.rating}/5</div>
+                            <div className="text-sm text-gray-700">Your rating: {Number(my.rating).toFixed(1)}/5</div>
                           )}
                         </div>
                       );

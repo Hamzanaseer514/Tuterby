@@ -267,7 +267,7 @@ const TutorSelfProfilePage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                 <div>
                   <Label className="text-sm sm:text-base font-medium">Average Rating</Label>
-                  <Input value={profile?.average_rating || 0} disabled className="mt-1 sm:mt-2 text-sm sm:text-base" />
+                  <Input value={profile?.average_rating != null ? Number(profile.average_rating).toFixed(1) : '0'} disabled className="mt-1 sm:mt-2 text-sm sm:text-base" />
                 </div>
                 <div>
                   <Label className="text-sm sm:text-base font-medium">Location</Label>

@@ -479,7 +479,7 @@ const TutorSessionsPage = () => {
                       <Box display="flex" alignItems="center">
                         {renderStars(session.rating)}
                         <Typography variant="body2">
-                          ({session.rating})
+                          ({Number(session.rating).toFixed(1)})
                         </Typography>
                       </Box>
                     </Box>
@@ -824,7 +824,7 @@ const TutorSessionsPage = () => {
                                       <Box display="flex" alignItems="center" gap={1}>
                                         {renderStars(studentRating.rating)}
                                         <Typography variant="body2" fontWeight="500">
-                                          ({studentRating.rating})
+                                          ({Number(studentRating.rating).toFixed(1)})
                                         </Typography>
                                       </Box>
                                       {studentRating.feedback && (

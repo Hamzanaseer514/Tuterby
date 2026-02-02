@@ -100,7 +100,7 @@ const createEducationLevels = async () => {
     const levels = [
       { level: "Primary", hourlyRate: 15, totalSessionsPerMonth: 8, discount: 10, isTutorCanChangeRate: false, maxSession: 2, minSession: 1 },
       { level: "Secondary", hourlyRate: 20, totalSessionsPerMonth: 8, discount: 15, isTutorCanChangeRate: true, maxSession: 3, minSession: 1 },
-      { level: "GCSE", hourlyRate: 25, totalSessionsPerMonth: 12, discount: 20, isTutorCanChangeRate: true, maxSession: 4, minSession: 2 },
+      { level: "GCSE", hourlyRate: 0.1, totalSessionsPerMonth: 12, discount: 20, isTutorCanChangeRate: true, maxSession: 4, minSession: 2 },
       { level: "A-Level", hourlyRate: 30, totalSessionsPerMonth: 16, discount: 25, isTutorCanChangeRate: true, maxSession: 5, minSession: 2 },
       { level: "University", hourlyRate: 40, totalSessionsPerMonth: 20, discount: 30, isTutorCanChangeRate: true, maxSession: 6, minSession: 3 }
     ];
@@ -395,7 +395,7 @@ const createTutoringSessions = async (tutorProfiles, studentProfiles, subjects, 
         p.tutor_id.toString() === tutor._id.toString()
       );
 
-      const durationHours = Math.random() > 0.5 ? 1 : 1.5;
+      const durationHours = 1; // Fixed 1 hour so earnings = hourlyRate (e.g. 0.1 → £0.10)
       const status = ['pending', 'confirmed', 'completed'][Math.floor(Math.random() * 3)];
 
       sessions.push({
