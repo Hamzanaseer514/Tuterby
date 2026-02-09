@@ -48,6 +48,17 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
     throw new Error("Student email already exists");
   }
 
+  // Validate academic_level exists in EducationLevel
+  if (!mongoose.Types.ObjectId.isValid(academic_level)) {
+    res.status(400);
+    throw new Error("Invalid academic level ID");
+  }
+  const validLevel = await EducationLevel.findById(academic_level);
+  if (!validLevel) {
+    res.status(400);
+    throw new Error("Academic level not found. Please select a valid level from the list.");
+  }
+
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
@@ -79,7 +90,7 @@ exports.addStudentToParent = asyncHandler(async (req, res) => {
     // ✅ Create student profile linked to parent
     const studentProfile = await Student.create({
       user_id: studentUser._id,
-      academic_level: academic_level, // ObjectId of EducationLevel
+      academic_level: validLevel._id,
       parent_id: parentProfile._id,   // 👈 save parent_id in student profile
     });
 

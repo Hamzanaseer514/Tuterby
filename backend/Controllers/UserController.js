@@ -96,6 +96,17 @@ exports.registerUser = asyncHandler(async (req, res) => {
     throw new Error("Email already exists");
   }
 
+  // Validate academic_level exists in EducationLevel collection
+  if (!mongoose.Types.ObjectId.isValid(academic_level)) {
+    res.status(400);
+    throw new Error("Invalid academic level ID");
+  }
+  const validLevel = await EducationLevel.findById(academic_level);
+  if (!validLevel) {
+    res.status(400);
+    throw new Error("Academic level not found. Please select a valid level from the list.");
+  }
+
   try {
     const user = await User.create({
       full_name,
@@ -109,7 +120,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
 
     const student = await Student.create({
       user_id: user._id,
-      academic_level,
+      academic_level: validLevel._id,
     });
 
     res.status(201).json({

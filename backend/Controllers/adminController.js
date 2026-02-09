@@ -1627,7 +1627,7 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
       }
     }
 
-    // handle accept -> create/mark pending payment
+    // handle accept -> create/mark pending payment (do not reuse cancelled/failed — create new)
     if (action === 'accept') {
       try {
         const existingPayment = await StudentPayment.findOne({
@@ -1637,7 +1637,12 @@ exports.updateHireRequest = asyncHandler(async (req, res) => {
           academic_level: hireRecord.academic_level_id,
         });
 
-        if (existingPayment) {
+        const canReuse =
+          existingPayment &&
+          existingPayment.payment_status !== 'cancelled' &&
+          existingPayment.payment_status !== 'failed';
+
+        if (canReuse) {
           try {
             await StudentPayment.findByIdAndUpdate(
               existingPayment._id,
@@ -4455,6 +4460,18 @@ exports.updateStudentByAdmin = asyncHandler(async (req, res) => {
 
     const beforeUser = user.toObject();
     const beforeStudent = student.toObject();
+
+    // Validate academic_level if provided
+    if (academic_level !== undefined && academic_level !== null && academic_level !== '') {
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(academic_level)) {
+        return res.status(400).json({ success: false, message: "Invalid academic level ID" });
+      }
+      const validLevel = await EducationLevel.findById(academic_level);
+      if (!validLevel) {
+        return res.status(400).json({ success: false, message: "Academic level not found. Please select a valid level from the list." });
+      }
+    }
 
     // Update only changed user fields
     const userChanges = getChanges(beforeUser, { full_name: name, email, phone_number: phone }, ['full_name','email','phone_number']);

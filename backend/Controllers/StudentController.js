@@ -611,7 +611,17 @@ exports.updateStudentProfile = asyncHandler(async (req, res) => {
     // BEFORE snapshot for logging
     const beforeStudent = studentProfile.toObject();
 
-    if (academic_level) studentProfile.academic_level = academic_level;
+    if (academic_level !== undefined && academic_level !== null && academic_level !== '') {
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(academic_level)) {
+        return res.status(400).json({ success: false, message: "Invalid academic level ID" });
+      }
+      const validLevel = await EducationLevel.findById(academic_level);
+      if (!validLevel) {
+        return res.status(400).json({ success: false, message: "Academic level not found. Please select a valid level from the list." });
+      }
+      studentProfile.academic_level = validLevel._id;
+    }
     if (learning_goals) studentProfile.learning_goals = learning_goals;
     if (Array.isArray(preferred_subjects) && preferred_subjects.length > 0) {
       studentProfile.preferred_subjects = preferred_subjects;

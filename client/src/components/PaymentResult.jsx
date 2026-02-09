@@ -1,5 +1,5 @@
 // pages/PaymentResult.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "react-router-dom";
 import { BASE_URL } from "@/config";
@@ -13,19 +13,61 @@ export default function PaymentResult() {
   const paymentId = query.get("PI");
   const isParentPayment = query.get("isParentPayment");
   const { getAuthToken } = useAuth();
-  const token = getAuthToken();
-  
-  useEffect(() => {
-    // Payment confirmation is now handled by Stripe webhooks
-    // No manual confirmation needed - webhook will update database automatically
-    console.log("success", success);
-    console.log("paymentId", paymentId);
-    if (success === "true" && paymentId) {
-      console.log("✅ Payment successful - webhook will handle confirmation");
-    }
-  }, [paymentId, success, isParentPayment]);
-  
+  const confirmedRef = useRef(false);
+  const canceledRef = useRef(false);
 
+  // Success: update DB via confirm API (same as webhook success)
+  useEffect(() => {
+    if (success !== "true" || !paymentId || confirmedRef.current) return;
+
+    const confirmPaymentInDb = async () => {
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`${BASE_URL}/api/payment/confirm/${paymentId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          confirmedRef.current = true;
+        }
+      } catch (err) {
+        console.error("Confirm payment failed:", err);
+      }
+    };
+
+    confirmPaymentInDb();
+  }, [paymentId, success, getAuthToken]);
+
+  // Cancel/Failed: update DB via cancel API (same as webhook payment_failed)
+  useEffect(() => {
+    if (success !== "false" || !paymentId || canceledRef.current) return;
+
+    const cancelPaymentInDb = async () => {
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`${BASE_URL}/api/payment/cancel/${paymentId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          canceledRef.current = true;
+        }
+      } catch (err) {
+        console.error("Cancel payment failed:", err);
+      }
+    };
+
+    cancelPaymentInDb();
+  }, [paymentId, success, getAuthToken]);
+  
   return (
     <div className="p-10 text-center">
       {success === "true" ? (

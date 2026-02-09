@@ -2108,7 +2108,7 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
   // If tutor accepts the request, create a payment record
   if (action === "accept") {
     try {
-      // Check if payment record already exists
+      // Check if payment record already exists (same student/tutor/subject/level)
       const existingPayment = await StudentPayment.findOne({
         student_id: studentProfile._id,
         tutor_id: tutorProfile._id,
@@ -2116,9 +2116,14 @@ const respondToHireRequest = asyncHandler(async (req, res) => {
         academic_level: hireRecord.academic_level_id,
       });
 
-      if (existingPayment) {
-        // If a payment already exists for this student/tutor/subject/level,
-        // mark it as requiring action (pending) — keep record but mark academic level unpaid
+      // Reuse only if existing payment is pending (e.g. never paid). Do NOT reuse cancelled/failed — create new.
+      const canReuse =
+        existingPayment &&
+        existingPayment.payment_status !== 'cancelled' &&
+        existingPayment.payment_status !== 'failed';
+
+      if (canReuse) {
+        // Existing pending (or paid) record — mark as requiring action (pending)
         try {
           await StudentPayment.findByIdAndUpdate(
             existingPayment._id,

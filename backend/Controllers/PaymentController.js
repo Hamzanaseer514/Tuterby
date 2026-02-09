@@ -168,10 +168,10 @@ exports.createCheckoutSession = async (req, res) => {
           studentName: studentName || "", // ✅ Store child's name
         },
   
-        // success_url: `${process.env.FRONTEND_URL}/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
-        success_url: `https://www.tutornearby.co.uk/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
-        cancel_url: `https://www.tutornearby.co.uk/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
-        // cancel_url: `${process.env.FRONTEND_URL}/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        success_url: `${process.env.FRONTEND_URL}/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        // success_url: `https://www.tutornearby.co.uk/payment-result?success=true&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        // cancel_url: `https://www.tutornearby.co.uk/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
+        cancel_url: `${process.env.FRONTEND_URL}/payment-result?success=false&PI=${paymentId}&isParentPayment=${isParentPayment}`,
   
         billing_address_collection: 'auto',
         locale: 'en-GB',
@@ -393,5 +393,29 @@ exports.confirmPayment = async (req, res) => {
     }
 };
 
-
+// @desc    Mark payment as failed/canceled (when user cancels checkout or payment fails)
+// @route   POST /api/payment/cancel/:paymentId
+// @access  Private (call from payment-result when success=false)
+exports.cancelPayment = async (req, res) => {
+  const { paymentId } = req.params;
+  try {
+    const payment = await StudentPayment.findByIdAndUpdate(
+      paymentId,
+      {
+        payment_status: "failed",
+        academic_level_paid: false,
+        validity_status: "expired",
+        gateway_transaction_id: "user_canceled_or_failed",
+      },
+      { new: true }
+    );
+    if (!payment) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+    res.json({ success: true, payment_status: "failed" });
+  } catch (err) {
+    console.error("Cancel payment error:", err);
+    res.status(500).json({ error: "Failed to cancel payment" });
+  }
+};
 
