@@ -730,19 +730,13 @@ const TutorProfilePage = () => {
                       <div className="flex flex-wrap gap-2">
                         {tutor.subjects?.map((subject, index) => {
                           const subjectData = getSubjectById(subject);
-                          const subjectName = subjectData?.name || (typeof subject === 'string' ? subject : 'Unknown Subject');
-                          const subjectType = subjectData?.subject_type?.name || '';
-                          const levelName = subjectData?.level_id?.level || '';
-                          const fullLabel = [subjectName, subjectType, levelName].filter(Boolean).join(' • ');
+                          const subjectName = subjectData?.name || subject || 'Unknown Subject';
+                          const subjectType = subjectData?.subject_type?.name || 'Unknown Type';
+                          const levelName = subjectData?.level_id?.level || 'Unknown Level';
 
                           return (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-xs sm:text-sm max-w-[220px] truncate shrink-0"
-                              title={fullLabel}
-                            >
-                              {subjectName}
+                            <Badge key={index} variant="outline" className="text-xs sm:text-sm break-words">
+                              {subjectName} - {subjectType} - {levelName}
                             </Badge>
                           );
                         })}
@@ -752,19 +746,11 @@ const TutorProfilePage = () => {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Academic Levels</h4>
                       <div className="flex flex-wrap gap-2">
-                        {tutor.academic_levels_taught?.map((level, index) => {
-                          const levelName = typeof level === 'string' ? level : (level?.name ?? level?.educationLevel?.level ?? level?.level ?? '—');
-                          return (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="text-xs sm:text-sm max-w-[220px] truncate shrink-0"
-                              title={levelName}
-                            >
-                              {levelName}
-                            </Badge>
-                          );
-                        })}
+                        {tutor.academic_levels_taught?.map((level, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs sm:text-sm break-words">
+                            {level}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   </div>
